@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <title>Enchantment Calculator</title>
+        <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
+        <link rel="stylesheet" type="text/css" href="css/style.css">
+        <link rel="stylesheet" type="text/css" href="css/tree_diagram.css">
+        <link rel="stylesheet" type="text/css" href="css/tree_style.css">
+        <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
+        <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
+        <script src="js/calculator.js"></script>
+        <script src="js/metadata.js"></script>
+        <script src="js/ui_setup.js"></script>
+        <script src="js/tree.js"></script>
+        <script src="js/retrieve.js"></script>
+        <script src="js/item_selection.js"></script>
+        <script src="js/book_selection.js"></script>
+    </head>
+    <body onload="onLoad()">
+        <div id="master-container">
+            <div id="selection">
+                <div class="gallery">
+                    <h3 class="ui-widget-header">Enchanted Items</h3>
+                    <ul id="item-gallery"></ul>
+                    <h3 class="ui-widget-header">Trash</h3>
+                    <div id="trash-selected"><img src="img/lava.jpg" id="trash-image"></div>
+                    <div>
+                        <button id="calculate" class="ui-widget" onclick="calculateOptimalOrder()">Calculate</button>
+                    </div>
+                </div>
+                <div>
+                    <h3 class="ui-widget-header">Items to Merge</h3>
+                    <div id="selected-items"></div>
+                </div>
+            </div>
+            <div id="solution">
+                <div id="solution-tree" class="tree-diagram">
+                    <ul id="items-tree">
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </body>
+</html>

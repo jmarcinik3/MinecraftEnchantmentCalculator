@@ -1,0 +1,72 @@
+#items-tree .item-node {
+    background-color: #100010;
+    background-color: rgba(16, 0, 16, 0.94);
+    padding: 0.375em;
+    font-family: Minecraft, sans-serif;
+    src: url("../font/minecraft.woff") format('woff');
+    font-size: 16px;
+    color: #ffffff;
+    text-shadow: 0.125em 0.125em 0 #3f3f3f;
+    word-spacing: 4px;
+    white-space: nowrap;
+    line-height: 1.25em;
+    margin: 0.125em 0.25em;
+    pointer-events: none;
+
+    outline: 0.125em solid #2d0a63;
+    outline-offset: -0.25em;
+}
+
+#items-tree .item-node-container {
+    content: "";
+    position: relative;
+    top: 0.125em;
+    right: 0;
+    bottom: 0.125em;
+    left: 0;
+}
+
+/* #items-tree .item-node::before {
+    content: "";
+    position: absolute;
+    top: 0.125em;
+    right: -0.125em;
+    bottom: 0.125em;
+    left: -0.125em;
+    border: 0.125em solid #100010;
+}
+
+#items-tree .item-node::after {
+    content: "";
+    position: absolute;
+    top: 1em;
+    right: 0;
+    bottom: 3em;
+    left: 0;
+    border: 0.125em solid #2d0a63;
+    border: 1em solid green;
+    border-image: -webkit-linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31)) 1;
+    border-image: linear-gradient(rgba(80, 0, 255, 0.31), rgba(40, 0, 127, 0.31)) 1;
+} */
+
+#items-tree .item-name {
+}
+
+#items-tree .item-description {
+    display: block;
+    margin-top: 0.25em;
+}
+
+#items-tree ul.enchantments {
+    display: block;
+    list-style-type: none;
+    padding: 0;
+}
+
+#items-tree li.enchantment {
+    display: block;
+    padding: 0;
+}
+
+.item-description {
+}

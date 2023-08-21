@@ -1,0 +1,115 @@
+#master-container:after {
+    content: "";
+    display: table;
+    clear: both;
+}
+
+#solution {
+    float: left;
+}
+
+.ui-widget-header {
+    margin: 0;
+}
+
+#selection {
+    display: flex;
+}
+
+#selected-items {
+    width: 534px;
+    height: 80vh;
+    padding: 0;
+    margin: 0;
+    background-image: url("../img/enchanting_table.png");
+    background-size: contain;
+    background-repeat: no-repeat;
+}
+
+div.enchantment-groups,
+.book-selection {
+    background-color: rgba(0, 0, 0, 0.6);
+}
+
+div.enchantment-row {
+    display: table;
+    orientation: horizontal;
+}
+
+div.enchantment-row > .ui-widget-header {
+    display: table-cell;
+    text-align: left;
+    width: 230px;
+    padding: 0;
+    margin: 0;
+}
+
+input.level-button {
+    padding: 0;
+    margin: 0;
+    width: 30px;
+    height: 30px;
+    vertical-align: top;
+    box-shadow: 2px 1px 2px gray;
+}
+
+.level-button.off {
+    background-color: white;
+    color: black;
+}
+
+.level-button.on {
+    background-color: green;
+    color: white;
+}
+
+ul#item-gallery {
+    display: flex;
+    flex-wrap: wrap;
+    list-style-type: none;
+    width: 356px;
+    padding: 0;
+    margin-left: 3px;
+    margin-right: 3px;
+}
+
+li.item-bullet {
+    display: flex;
+    flex: 0 0 20%;
+}
+
+img.item-image {
+    width: 32px;
+    height: 32px;
+}
+
+#trash-image {
+    width: inherit;
+    height: 356px;
+}
+
+#trash-selected {
+    width: inherit;
+}
+
+.book-selection {
+    display: flex;
+}
+
+.enchantment-name-listbox {
+    width: 42%;
+}
+
+.enchantment-level-listbox {
+    width: 16%;
+}
+
+.selected-enchantments-listbox {
+    width: 42%;
+}
+
+.enchantment-name-option,
+.enchantment-level-option,
+.selected-enchantment-option {
+    font-size: 12px;
+}

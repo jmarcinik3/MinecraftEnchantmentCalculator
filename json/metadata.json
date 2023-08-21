@@ -1,0 +1,374 @@
+{
+    "enchantments": {
+        "aqua_affinity": {
+            "incompatible": [],
+            "items": ["helmet", "turtle_helmet"],
+            "max_level": "1",
+            "stylized": "Aqua Affinity",
+            "weight": "2"
+        },
+        "bane_of_arthropods": {
+            "incompatible": ["sharpness", "smite"],
+            "items": ["axe", "sword"],
+            "max_level": "5",
+            "stylized": "Bane of Arthropods",
+            "weight": "1"
+        },
+
+        "blast_protection": {
+            "incompatible": ["fire_protection", "projectile_protection", "protection"],
+            "items": ["boots", "chestplate", "helmet", "leggings", "turtle_helmet"],
+            "max_level": "4",
+            "stylized": "Blast Protection",
+            "weight": "2"
+        },
+        "channeling": {
+            "incompatible": ["riptide"],
+            "items": ["trident"],
+            "max_level": "1",
+            "stylized": "Channeling",
+            "weight": "4"
+        },
+        "depth_strider": {
+            "incompatible": ["frost_walker"],
+            "items": ["boots"],
+            "max_level": "3",
+            "stylized": "Depth Strider",
+            "weight": "2"
+        },
+        "efficiency": {
+            "incompatible": [],
+            "items": ["axe", "hoe", "pickaxe", "shears", "shovel"],
+            "max_level": "5",
+            "stylized": "Efficiency",
+            "weight": "1"
+        },
+        "feather_falling": {
+            "incompatible": [],
+            "items": ["boots"],
+            "max_level": "4",
+            "stylized": "Feather Falling",
+            "weight": "1"
+        },
+        "fire_aspect": {
+            "incompatible": [],
+            "items": ["sword"],
+            "max_level": "2",
+            "stylized": "Fire Aspect",
+            "weight": "2"
+        },
+        "fire_protection": {
+            "incompatible": ["blast_protection", "projectile_protection", "protection"],
+            "items": ["boots", "chestplate", "helmet", "leggings", "turtle_helmet"],
+            "max_level": "4",
+            "stylized": "Fire Protection",
+            "weight": "1"
+        },
+        "flame": {
+            "incompatible": [],
+            "items": ["bow"],
+            "max_level": "1",
+            "stylized": "Flame",
+            "weight": "2"
+        },
+        "fortune": {
+            "incompatible": ["silk_touch"],
+            "items": ["axe", "hoe", "pickaxe", "shovel"],
+            "max_level": "3",
+            "stylized": "Fortune",
+            "weight": "2"
+        },
+        "frost_walker": {
+            "incompatible": ["depth_strider"],
+            "items": ["boots"],
+            "max_level": "2",
+            "stylized": "Frost Walker",
+            "weight": "2"
+        },
+        "impaling": {
+            "incompatible": [],
+            "items": ["trident"],
+            "max_level": "5",
+            "stylized": "Impaling",
+            "weight": "2"
+        },
+        "infinity": {
+            "incompatible": ["mending"],
+            "items": ["bow"],
+            "max_level": "1",
+            "stylized": "Infinity",
+            "weight": "4"
+        },
+        "knockback": {
+            "incompatible": [],
+            "items": ["sword"],
+            "max_level": "2",
+            "stylized": "Knockback",
+            "weight": "1"
+        },
+        "looting": {
+            "incompatible": [],
+            "items": ["sword"],
+            "max_level": "3",
+            "stylized": "Looting",
+            "weight": "2"
+        },
+        "loyalty": {
+            "incompatible": ["riptide"],
+            "items": ["trident"],
+            "max_level": "3",
+            "stylized": "Loyalty",
+            "weight": "1"
+        },
+        "luck_of_the_sea": {
+            "incompatible": [],
+            "items": ["fishing_rod"],
+            "max_level": "3",
+            "stylized": "Luck of the Sea",
+            "weight": "2"
+        },
+        "lure": {
+            "incompatible": [],
+            "items": ["fishing_rod"],
+            "max_level": "3",
+            "stylized": "Lure",
+            "weight": "2"
+        },
+        "mending": {
+            "incompatible": ["infinity"],
+            "items": [
+                "axe",
+                "boots",
+                "bow",
+                "brush",
+                "carrot_on_a_stick",
+                "chestplate",
+                "crossbow",
+                "elytra",
+                "fishing_rod",
+                "flint_and_steel",
+                "helmet",
+                "hoe",
+                "leggings",
+                "pickaxe",
+                "shears",
+                "shield",
+                "shovel",
+                "sword",
+                "trident",
+                "turtle_helmet",
+                "warped_fungus_on_a_stick"
+            ],
+            "max_level": "1",
+            "stylized": "Mending",
+            "weight": "2"
+        },
+        "multishot": {
+            "incompatible": ["piercing"],
+            "items": ["crossbow"],
+            "max_level": "1",
+            "stylized": "Multishot",
+            "weight": "2"
+        },
+        "piercing": {
+            "incompatible": ["multishot"],
+            "items": ["crossbow"],
+            "max_level": "4",
+            "stylized": "Piercing",
+            "weight": "1"
+        },
+        "power": {
+            "incompatible": [],
+            "items": ["bow"],
+            "max_level": "5",
+            "stylized": "Power",
+            "weight": "1"
+        },
+        "projectile_protection": {
+            "incompatible": ["blast_protection", "fire_protection", "protection"],
+            "items": ["boots", "chestplate", "helmet", "leggings", "turtle_helmet"],
+            "max_level": "4",
+            "stylized": "Projectile Protection",
+            "weight": "1"
+        },
+        "protection": {
+            "incompatible": ["blast_protection", "fire_protection", "projectile_protection"],
+            "items": ["boots", "chestplate", "helmet", "leggings", "turtle_helmet"],
+            "max_level": "4",
+            "stylized": "Protection",
+            "weight": "1"
+        },
+        "punch": {
+            "incompatible": [],
+            "items": ["bow"],
+            "max_level": "2",
+            "stylized": "Punch",
+            "weight": "2"
+        },
+        "quick_charge": {
+            "incompatible": [],
+            "items": ["crossbow"],
+            "max_level": "3",
+            "stylized": "Quick Charge",
+            "weight": "1"
+        },
+        "respiration": {
+            "incompatible": [],
+            "items": ["helmet", "turtle_helmet"],
+            "max_level": "3",
+            "stylized": "Respiration",
+            "weight": "2"
+        },
+        "riptide": {
+            "incompatible": ["channeling", "loyalty"],
+            "items": ["trident"],
+            "max_level": "3",
+            "stylized": "Riptide",
+            "weight": "2"
+        },
+        "sharpness": {
+            "incompatible": ["bane_of_arthropods", "smite"],
+            "items": ["axe", "sword"],
+            "max_level": "5",
+            "stylized": "Sharpness",
+            "weight": "1"
+        },
+        "silk_touch": {
+            "incompatible": ["fortune"],
+            "items": ["axe", "hoe", "pickaxe", "shovel"],
+            "max_level": "1",
+            "stylized": "Silk Touch",
+            "weight": "4"
+        },
+        "smite": {
+            "incompatible": ["bane_of_arthropods", "sharpness"],
+            "items": ["axe", "sword"],
+            "max_level": "5",
+            "stylized": "Smite",
+            "weight": "1"
+        },
+        "soul_speed": {
+            "incompatible": [],
+            "items": ["boots"],
+            "max_level": "3",
+            "stylized": "Soul Speed",
+            "weight": "4"
+        },
+        "sweeping": {
+            "incompatible": [],
+            "items": ["sword"],
+            "max_level": "3",
+            "stylized": "Sweeping Edge",
+            "weight": "2"
+        },
+        "swift_sneak": {
+            "incompatible": [],
+            "items": ["leggings"],
+            "max_level": "3",
+            "stylized": "Swift Sneak",
+            "weight": "4"
+        },
+        "thorns": {
+            "incompatible": [],
+            "items": ["boots", "chestplate", "helmet", "leggings", "turtle_helmet"],
+            "max_level": "3",
+            "stylized": "Thorns",
+            "weight": "4"
+        },
+        "unbreaking": {
+            "incompatible": [],
+            "items": [
+                "axe",
+                "boots",
+                "bow",
+                "brush",
+                "carrot_on_a_stick",
+                "chestplate",
+                "crossbow",
+                "elytra",
+                "fishing_rod",
+                "flint_and_steel",
+                "helmet",
+                "hoe",
+                "leggings",
+                "pickaxe",
+                "shears",
+                "shield",
+                "shovel",
+                "sword",
+                "trident",
+                "turtle_helmet",
+                "warped_fungus_on_a_stick"
+            ],
+            "max_level": "3",
+            "stylized": "Unbreaking",
+            "weight": "1"
+        },
+        "binding_curse": {
+            "incompatible": [],
+            "items": ["boots", "carved_pumpkin", "chestplate", "elytra", "helmet", "leggings", "turtle_helmet"],
+            "max_level": "1",
+            "stylized": "Curse of Binding",
+            "weight": "4"
+        },
+        "vanishing_curse": {
+            "incompatible": [],
+            "items": [
+                "axe",
+                "boots",
+                "bow",
+                "brush",
+                "carrot_on_a_stick",
+                "carved_pumpkin",
+                "chestplate",
+                "compass",
+                "crossbow",
+                "elytra",
+                "fishing_rod",
+                "flint_and_steel",
+                "helmet",
+                "hoe",
+                "leggings",
+                "pickaxe",
+                "recovery_compass",
+                "shears",
+                "shield",
+                "shovel",
+                "sword",
+                "trident",
+                "turtle_helmet",
+                "warped_fungus_on_a_stick"
+            ],
+            "max_level": "1",
+            "stylized": "Curse of Vanishing",
+            "weight": "4"
+        }
+    },
+    "items": {
+        "book": "Book",
+        "helmet": "Helmet",
+        "chestplate": "Chestplate",
+        "leggings": "Leggings",
+        "boots": "Boots",
+        "pickaxe": "Pickaxe",
+        "shovel": "Shovel",
+        "axe": "Axe",
+        "sword": "Sword",
+        "hoe": "Hoe",
+        "fishing_rod": "Fishing Rod",
+        "bow": "Bow",
+        "shears": "Shears",
+        "flint_and_steel": "Flint & Steel",
+        "compass": "Compass",
+        "recovery_compass": "Recovery Compass",
+        "carrot_on_a_stick": "Carrot on a Stick",
+        "warped_fungus_on_a_stick": "Warped Fungus on a Stick",
+        "shield": "Shield",
+        "elytra": "Elytra",
+        "carved_pumpkin": " Carved Pumpkin",
+        "trident": "Trident",
+        "turtle_helmet": "Turtle Shell",
+        "crossbow": "Crossbow",
+        "brush": "Brush"
+    }
+}
