@@ -1,48 +1,50 @@
 <!doctype html>
 <html lang="en">
-    <head>
-        <meta charset="utf-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1">
-        <title>Enchantment Calculator</title>
-        <link rel="stylesheet" type="text/css" href="https://code.jquery.com/ui/1.13.2/themes/base/jquery-ui.css">
-        <link rel="stylesheet" type="text/css" href="css/style.css">
-        <link rel="stylesheet" type="text/css" href="css/tree_diagram.css">
-        <link rel="stylesheet" type="text/css" href="css/tree_style.css">
-        <script src="https://code.jquery.com/jquery-3.6.0.js"></script>
-        <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.js"></script>
-        <script src="js/metadata.js"></script>
-        <script src="js/ui_setup.js"></script>
-        <script src="js/tree.js"></script>
-        <script src="js/retrieve.js"></script>
-        <script src="js/item_selection.js"></script>
-        <script src="js/book_selection.js"></script>
-    </head>
-    <body onload="onLoad()">
-        <div id="master-container">
-            <div id="selection">
-                <div class="gallery">
-                    <h3 class="ui-widget-header">Enchanted Items</h3>
-                    <ul id="item-gallery"></ul>
-                    <h3 class="ui-widget-header">Trash</h3>
-                    <div id="trash-selected"><img src="img/lava.jpg" id="trash-image"></div>
-                    <div id="calculation-controls">
-                        <button id="calculate" class="ui-widget" onclick="calculateOptimalOrder()">Calculate</button>
-                        <button id="cancel" class="ui-widget" onclick="cancelCalculation()">Cancel</button>
-                    </div>
-                    <div id="progress-bar"><div id="progress-label"></div></div>
-                </div>
-                <div>
-                    <h3 class="ui-widget-header">Items to Merge</h3>
-                    <div id="item-count-warning" class="ui-state-error ui-corner-all"></div>
-                    <div id="selected-items"></div>
-                </div>
-            </div>
-            <div id="solution">
-                <div id="solution-tree" class="tree-diagram">
-                    <ul id="items-tree">
-                    </ul>
-                </div>
-            </div>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Enchantment Calculator</title>
+    <link rel="stylesheet" href="css/style.css">
+    <script type="module" src="js/app.js"></script>
+</head>
+<body>
+    <header class="site-header">
+        <h1>Enchantment calculator</h1>
+        <button id="copy-link" class="btn small" type="button">Copy link</button>
+    </header>
+
+    <main class="layout">
+        <div class="inputs">
+            <section class="card">
+                <h2><span class="step-badge">1</span>What are you enchanting?</h2>
+                <div id="items" class="item-grid"></div>
+            </section>
+
+            <section class="card">
+                <h2><span class="step-badge">2</span>Enchantments you want</h2>
+                <div id="wanted"></div>
+            </section>
+
+            <section class="card">
+                <h2><span class="step-badge">3</span>Your books</h2>
+                <div id="books"></div>
+            </section>
+
+            <section class="card">
+                <h2 id="existing-title"><span class="step-badge">4</span>Already on your item <span class="optional">optional</span></h2>
+                <div id="existing"></div>
+            </section>
         </div>
-    </body>
+
+        <aside class="results-column">
+            <section class="card results-card">
+                <div class="results-header">
+                    <h2>Best order</h2>
+                    <div id="objective" class="segmented" role="group" aria-label="Optimize for"></div>
+                </div>
+                <div id="results"></div>
+            </section>
+        </aside>
+    </main>
+</body>
 </html>

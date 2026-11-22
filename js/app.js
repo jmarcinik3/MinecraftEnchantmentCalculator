@@ -1,7 +1,7 @@
 import { createLogic, roman, MAX_PRIOR_WORK } from "./logic.js";
 
-const META_URL = "../json/metadata.json";
-const WORKER_URL = "../js/calculator.js";
+const META_URL = "json/metadata.json";
+const WORKER_URL = "js/calculator.js";
 const ITEM_WARNING_THRESHOLD = 10;
 const CALC_DELAY_MS = 250;      // wait for the user to stop clicking
 const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
@@ -54,7 +54,7 @@ const $ = selector => document.querySelector(selector);
 function icon(itemNs, small = false) {
     return h("img", {
         class: "item-icon" + (small ? " small" : ""),
-        src: `../img/${itemNs}.png`,
+        src: "img/" + ((meta.icons && meta.icons[itemNs]) || `${itemNs}.png`),
         alt: "",
         "aria-hidden": "true"
     });
@@ -325,7 +325,7 @@ function renderResults() {
         const message = !state.item
             ? "Pick an item to get started."
             : "Choose the enchantments you want, or add your books.";
-        box.append(h("div", { class: "empty" }, h("img", { src: "../img/enchanting_table.png", alt: "" }), h("p", {}, message)));
+        box.append(h("div", { class: "empty" }, h("img", { src: "img/enchanting_table.png", alt: "" }), h("p", {}, message)));
         return;
     }
     if (result.status === "cancelled") {

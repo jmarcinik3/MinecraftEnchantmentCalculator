@@ -3,7 +3,7 @@
 export const MAX_PRIOR_WORK = 6;
 
 // Common choices when enchantments conflict, used by "Max all".
-const PREFERRED = ["sharpness", "protection", "fortune", "mending", "depth_strider", "loyalty", "channeling", "multishot"];
+const PREFERRED = ["sharpness", "density", "protection", "fortune", "mending", "depth_strider", "loyalty", "channeling", "multishot"];
 
 export function roman(number) {
     const numerals = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];

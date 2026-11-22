@@ -158,6 +158,22 @@ test("full god sword solves quickly", () => {
     console.log(`       (${Date.now() - start} ms, ${result.cumulative_levels} levels total)`);
 });
 
+test("mace: Density and Breach conflict, Wind Burst does not", () => {
+    const left = engine.makeLeaf(["mace", [["density", 5]], 0]);
+    const breach = engine.combine(left, engine.makeLeaf(["book", [["breach", 4]], 0]));
+    assert.deepStrictEqual(levelsOf(breach), { density: 5 });
+    assert.strictEqual(breach.merge_levels, 1);
+    const wind = engine.combine(left, engine.makeLeaf(["book", [["wind_burst", 3]], 0]));
+    assert.deepStrictEqual(levelsOf(wind), { density: 5, wind_burst: 3 });
+    assert.strictEqual(wind.merge_levels, 6);
+});
+
+test("spear: Lunge III book costs 3, Sweeping Edge is not allowed", () => {
+    const result = engine.solve([["spear", [], 0], ["book", [["lunge", 3]], 0]]);
+    assert.strictEqual(result.cumulative_levels, 3);
+    assert.throws(() => engine.solve([["spear", [["sweeping", 1]], 0]]));
+});
+
 test("progress is reported, increases, and ends at 100%", () => {
     const calls = [];
     engine.solve([
