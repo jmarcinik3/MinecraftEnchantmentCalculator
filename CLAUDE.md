@@ -35,6 +35,11 @@ Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `to
 `node test/Engine.test.js` (includes brute-force cross-check) and `node test/Logic.test.mjs`
 (loads Logic.js through a data: URL).
 
+## CI and hosting
+`.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run. On `main`,
+if the tests pass, it copies `index.html css js json img font` into `_site/` and deploys to GitHub Pages at
+https://jmarcinik3.github.io/EnchantmentCalculator/. New top-level site folders must be added to that copy step.
+
 ## Conventions
 camelCase functions, PascalCase classes/filenames, snake_case variables, UPPER_CASE constants.
 Keep Engine.js DOM-free and UMD. Keep UI text short.
