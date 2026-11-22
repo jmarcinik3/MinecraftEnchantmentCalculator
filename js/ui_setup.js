@@ -20,8 +20,9 @@ function onLoad() {
         const event_data = event.data;
         const event_message = event.data["message"];
         if (event_message == "optimal_searched") {
-            const work2item = event_data["work2item"];
-            displayOptimalResults(work2item);
+            displayOptimalResults(event_data["result"]);
+        } else if (event_message == "calculation_failed") {
+            displayTreeMessage("Error: " + event_data["error"]);
         }
     };
 }
@@ -337,21 +338,21 @@ function setupTrash() {
     });
 }
 
-function displayOptimalResults(work2item) {
-    let cheapest_item_obj;
-    let cheapest_levels;
+function displayTreeMessage(text) {
+    $("#items-tree").empty().append($("<li>").text(text));
+}
 
-    for (let prior_work in work2item) {
-        const item_obj = work2item[prior_work];
-        const new_item_levels = item_obj.cumulative_levels;
-        if (!(new_item_levels >= cheapest_levels)) {
-            cheapest_item_obj = item_obj;
-            cheapest_levels = new_item_levels;
-        }
+function displayOptimalResults(result) {
+    if (!result) {
+        displayTreeMessage(
+            "No valid order found. Items must all be the same type (or books), " +
+            "and every anvil step must cost 39 levels or less."
+        );
+        return;
     }
 
     var $tree = $("#items-tree").empty();
-    addItemToTree(cheapest_item_obj, $tree, (is_root = true));
+    addItemToTree(result, $tree, true);
 }
 
 function calculateOptimalOrder() {

@@ -1,30 +1,16 @@
-function nodeEnchantmentElementFromObject(enchantment_obj) {
-    const enchantment_namespace = enchantment_obj.namespace;
-    const enchantment_level = enchantment_obj.level;
-    const enchantment_displayname = enchantmentDisplayName(enchantment_namespace, enchantment_level);
-
+function nodeEnchantmentElementFromObject(enchantment) {
+    const enchantment_displayname = enchantmentDisplayName(enchantment.namespace, enchantment.level);
     var $enchantment_element = $("<li>", { class: "enchantment" });
-    $enchantment_element.append(enchantment_displayname);
+    $enchantment_element.text(enchantment_displayname);
     return $enchantment_element;
 }
 
-function nodeEnchantmentListFromObject(enchantments_obj) {
-    const enchantment_objs = enchantments_obj.enchantment_objs;
+function nodeEnchantmentListFromObject(enchantments) {
     var $enchantments_list = $("<ul>", { class: "enchantments" });
-
-    enchantment_objs.forEach(enchantment_obj => {
-        const $enchantment_element = nodeEnchantmentElementFromObject(enchantment_obj);
-        $enchantments_list.append($enchantment_element);
+    enchantments.forEach(enchantment => {
+        $enchantments_list.append(nodeEnchantmentElementFromObject(enchantment));
     });
-
     return $enchantments_list;
-}
-
-function nodeItemDescriptionFromEnchantmentsObject(enchantments_obj) {
-    const $enchantments_list = nodeEnchantmentListFromObject(enchantments_obj);
-    var $item_description = $("<div>", { class: "item-description" });
-    $item_description.append($enchantments_list);
-    return $item_description;
 }
 
 function nodeItemNameFromNamespace(item_namespace) {
@@ -33,26 +19,21 @@ function nodeItemNameFromNamespace(item_namespace) {
 
     var $item_name = $("<div>", { class: "item-name" });
     $item_name.append($item_image);
-    $item_name.append(item_name);
+    $item_name.append(document.createTextNode(item_name));
     return $item_name;
 }
 
 function itemNodeFromObject(item_obj) {
-    const item_namespace = item_obj.item_namespace;
-    const $item_name = nodeItemNameFromNamespace(item_namespace);
+    const $item_name = nodeItemNameFromNamespace(item_obj.item_namespace);
 
-    const enchantments_obj = item_obj.enchantments_obj;
-    var $item_description = nodeItemDescriptionFromEnchantmentsObject(enchantments_obj);
-    try {
-        const merge_cost = item_obj.cumulative_levels;
-        if (merge_cost >= 1) {
-            const $merge_cost = $("<div>", { class: "merge-cost" });
-            $merge_cost.append("merge cost: " + merge_cost + "<br>");
-            $item_description.append($merge_cost);
-        }
-    } catch (error) {
-        if (error instanceof TypeError) {
-        }
+    var $item_description = $("<div>", { class: "item-description" });
+    $item_description.append(nodeEnchantmentListFromObject(item_obj.enchantments));
+
+    if (item_obj.left) {
+        const $merge_cost = $("<div>", { class: "merge-cost" });
+        $merge_cost.append("step cost: " + item_obj.merge_levels + "<br>");
+        $merge_cost.append("total cost: " + item_obj.cumulative_levels + "<br>");
+        $item_description.append($merge_cost);
     }
 
     var $item_node = $("<div>", { class: "item-node" });
@@ -69,20 +50,13 @@ function addItemToTree(item_obj, $parent_node, is_root = false) {
     if (is_root) {
         $item_node.attr("class", "tree-diagram__root");
     }
-    const $item_node_container = itemNodeFromObject(item_obj);
-    $item_node.append($item_node_container);
+    $item_node.append(itemNodeFromObject(item_obj));
 
-    try {
-        const left_item = item_obj.left_item_obj;
-        const right_item = item_obj.right_item_obj;
+    if (item_obj.left && item_obj.right) {
         const $children_nodes = $("<ul>");
-
-        addItemToTree(left_item, $children_nodes);
-        addItemToTree(right_item, $children_nodes);
+        addItemToTree(item_obj.left, $children_nodes);
+        addItemToTree(item_obj.right, $children_nodes);
         $item_node.append($children_nodes);
-    } catch (error) {
-        if (error instanceof TypeError) {
-        }
     }
 
     $parent_node.append($item_node);

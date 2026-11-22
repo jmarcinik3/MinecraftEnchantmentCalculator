@@ -193,20 +193,15 @@ function enchantmentGroupsFromItemNamespace(item_namespace) {
         const enchantment_namespace = enchantment_namespaces[0];
         var enchantment_group = incompatiblePartiteFromEnchantmentNamespace(enchantment_namespace);
 
-        var invalid_indices = [];
-        enchantment_group.forEach((new_enchantment_namespace, index) => {
-            var is_valid_enchantment = elementIsInArray(new_enchantment_namespace, enchantment_namespaces);
-            if (is_valid_enchantment) {
-                const enchantment_index = enchantment_namespaces.indexOf(new_enchantment_namespace);
-                enchantment_namespaces.splice(enchantment_index, 1);
-            } else {
-                invalid_indices.push(index);
+        // Keep only enchantments this item can take, removing them from the pool.
+        enchantment_group = enchantment_group.filter(new_enchantment_namespace => {
+            const enchantment_index = enchantment_namespaces.indexOf(new_enchantment_namespace);
+            if (enchantment_index === -1) {
+                return false;
             }
+            enchantment_namespaces.splice(enchantment_index, 1);
+            return true;
         });
-
-        if (invalid_indices.length) {
-            enchantment_group.splice(invalid_indices, 1);
-        }
 
         enchantment_groups.push(enchantment_group);
         enchantment_namespaces_length = enchantment_namespaces.length;
