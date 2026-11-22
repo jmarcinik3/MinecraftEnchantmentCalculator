@@ -40,4 +40,4 @@ The engine tests include a brute-force cross-check on random inputs.
 ## Hosting
 
 Every push to `main` runs the tests in GitHub Actions and, if they pass, deploys the site to
-GitHub Pages: https://jmarcinik3.github.io/EnchantmentCalculator/
+GitHub Pages: https://jmarcinik3.github.io/MinecraftEnchantmentCalculator/
