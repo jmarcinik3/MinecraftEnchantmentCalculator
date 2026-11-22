@@ -103,7 +103,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     font-size: 12px;
 }
 
-.optional { font-family: system-ui, sans-serif; font-size: 12px; color: var(--text-muted); }
 
 .hint { color: var(--text-secondary); font-size: 14px; margin: 4px 0; }
 
@@ -136,6 +135,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .toolbar .hint { flex: 1; margin: 0; }
+.toolbar .chips { flex: 1; }
 
 /* Item grid */
 .item-grid {
@@ -300,27 +300,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 .stale { opacity: 0.45; }
 
-.steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
-.step { border: 1px solid var(--border); border-radius: var(--radius); padding: 10px 12px; }
-.step-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
-.step-num { font-weight: 600; }
-.step-cost { color: var(--text-secondary); }
-.slots { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: stretch; }
-.slot { background: var(--surface-alt); border-radius: 6px; padding: 6px 8px; min-width: 0; }
-.slot-body { display: flex; gap: 6px; align-items: flex-start; }
-.slot-title { font-size: 13px; font-weight: 600; }
-.slot-sub { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
-.plus { align-self: center; color: var(--text-muted); }
-.step-result { margin-top: 8px; font-size: 12px; color: var(--text-secondary); }
-
-.tree-toggle { margin-top: 14px; }
-.tree, .tree ul { list-style: none; margin: 0; padding-left: 18px; }
-.tree { padding-left: 0; margin-top: 10px; }
-.tree ul { border-left: 1px solid var(--border-strong); margin-left: 11px; }
-.tree li { padding: 4px 0; }
-.tree-node { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; }
-.tree-cost { font-size: 12px; color: var(--accent-text); background: var(--accent-bg); border-radius: 4px; padding: 0 6px; }
-.tree-ench { width: 100%; padding-left: 30px; font-size: 12px; color: var(--text-secondary); }
 
 .empty { text-align: center; padding: 24px 8px; color: var(--text-secondary); }
 .empty img { width: 48px; height: 48px; image-rendering: pixelated; opacity: 0.8; }
@@ -328,3 +307,127 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .btn.small { display: inline-flex; align-items: center; gap: 6px; }
 .icon-toggle button { display: inline-flex; align-items: center; padding: 3px 6px; }
 .icon-toggle .item-icon.small { width: 20px; height: 20px; }
+
+/* Anvil steps: drawn like the in-game anvil and tooltips */
+.anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+
+.anvil-step {
+    position: relative;
+    padding: 12px 10px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+}
+
+.anvil-step-num {
+    position: absolute;
+    top: -9px;
+    left: 10px;
+    min-width: 20px;
+    height: 18px;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    font-size: 11px;
+    line-height: 18px;
+    text-align: center;
+}
+
+.anvil-row {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 6px;
+    align-items: start;
+}
+
+.anvil-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
+
+.anvil-op, .anvil-arrow {
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: "Minecraft", system-ui, sans-serif;
+    color: var(--text-secondary);
+}
+.anvil-op { font-size: 18px; }
+.anvil-arrow { flex-direction: column; gap: 2px; }
+.arrow-glyph { font-size: 22px; line-height: 1; }
+
+/* Green cost text with the game's drop shadow, on a dark chip so it reads in light mode */
+.anvil-cost {
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 12px;
+    white-space: nowrap;
+    color: #80ff20;
+    text-shadow: 1px 1px 0 #203f08;
+    background: #3b3b3b;
+    padding: 1px 5px;
+    border-radius: 2px;
+}
+
+/* Inventory slot: gray fill, dark top-left edge, light bottom-right edge */
+.mc-slot {
+    position: relative;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #8b8b8b;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+    overflow: hidden;
+}
+.mc-slot .item-icon { width: 36px; height: 36px; }
+
+/* Enchantment glint: a purple sheen sweeping across the icon */
+.mc-slot.glint::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(170, 90, 255, 0.45) 45%, rgba(210, 160, 255, 0.55) 50%, transparent 65%);
+    background-size: 250% 100%;
+    mix-blend-mode: screen;
+    animation: glint 3s linear infinite;
+    pointer-events: none;
+}
+@keyframes glint {
+    from { background-position: 150% 0; }
+    to { background-position: -100% 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .mc-slot.glint::after { animation: none; background-position: 50% 0; }
+}
+
+/* Tooltip: near-black purple box with a purple inner border */
+.mc-tooltip {
+    width: 100%;
+    padding: 4px 6px;
+    background: rgba(16, 0, 16, 0.94);
+    outline: 2px solid #2d0a63;
+    outline-offset: -3px;
+    border: 1px solid #100010;
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 12px;
+    line-height: 1.35;
+    text-shadow: 1px 1px 0 #3f3f3f;
+    overflow-wrap: anywhere;
+}
+.mc-name.rarity-common { color: #ffffff; }
+.mc-name.rarity-uncommon { color: #ffff55; text-shadow: 1px 1px 0 #3f3f15; }
+.mc-name.rarity-rare { color: #55ffff; text-shadow: 1px 1px 0 #153f3f; }
+.mc-name.rarity-epic { color: #ff55ff; text-shadow: 1px 1px 0 #3f153f; }
+.mc-ench { color: #aaaaaa; }
+.mc-ench.curse { color: #ff5555; text-shadow: 1px 1px 0 #3f1515; }
+/* Enchantments added or raised by this step */
+.mc-ench.changed { color: #ffffff; }
+.mc-ench.changed::before { content: "+ "; color: #55ff55; text-shadow: 1px 1px 0 #153f15; }
+
+@media (max-width: 420px) {
+    .anvil-row { grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px; }
+    .mc-slot { width: 40px; height: 40px; }
+    .mc-slot .item-icon { width: 30px; height: 30px; }
+    .mc-tooltip { font-size: 11px; padding: 3px 4px; }
+}

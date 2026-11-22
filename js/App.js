@@ -18,16 +18,13 @@ let show_progress = false;
 let calc_timer = null;
 let progress_timer = null;
 let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
-let show_tree = false;
 
 function defaultState() {
     return {
         item: null,
         wanted: {},        // enchantments the user wants on the final item
-        auto_books: true,   // derive books from `wanted`
-        books: [],         // custom books: { id, enchantments: {ns: level}, prior_work }
-        existing: {},      // enchantments already on the item
-        item_prior_work: 0,
+        auto_books: true,  // derive entries from `wanted`
+        books: [],         // custom entries: { id, type: "book" | "item", enchantments: {ns: level}, prior_work }
         objective: "levels"
     };
 }
@@ -72,7 +69,6 @@ function selectItem(item) {
     if (state.item === item) return;
     state.item = item;
     state.wanted = logic.sanitizeEnchantments(state.wanted, item);
-    state.existing = logic.sanitizeEnchantments(state.existing, item);
     state.books.forEach(book => { book.enchantments = logic.sanitizeEnchantments(book.enchantments, item); });
     commit();
 }
@@ -92,7 +88,7 @@ function setWanted(ns, level) {
 function customizeBooks() {
     state.books = logic.currentBooks(state).map(book => ({
         id: next_book_id++,
-        type: "book",
+        type: book.type,
         enchantments: { ...book.enchantments },
         prior_work: 0
     }));
@@ -112,7 +108,6 @@ function render() {
     renderItems();
     renderWanted();
     renderBooks();
-    renderExisting();
     renderObjective();
     renderResults();
 }
@@ -231,12 +226,13 @@ function renderBooks() {
 
     if (state.auto_books) {
         box.append(h("div", { class: "toolbar" },
-            h("p", { class: "hint" }, "One book per enchantment"),
+            h("div", { class: "chips" }, books.map(book => {
+                const enchantments = logic.summary(Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level })));
+                const is_item = book.type === "item";
+                return h("span", { class: "chip" }, icon(is_item ? state.item : "book", true), enchantments || (is_item ? item_name : "Book"));
+            })),
             h("button", { type: "button", class: "btn small", onclick: customizeBooks }, "Edit")
         ));
-        box.append(h("div", { class: "chips" }, books.map(book =>
-            h("span", { class: "chip" }, icon("book", true), logic.summary(Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level }))))
-        )));
         return;
     }
 
@@ -276,22 +272,6 @@ function typeToggle(book, item_name) {
             onclick: () => { if (book.type !== type) { book.type = type; commit(); } }
         }, icon(icon_ns, true))
     ));
-}
-
-function renderExisting() {
-    const title = $("#existing-title");
-    const item_label = state.item ? logic.itemName(state.item).toLowerCase() : "item";
-    title.replaceChildren(h("span", { class: "step-badge" }, "4"), `Already on ${item_label}`, h("span", { class: "optional" }, "optional"));
-
-    const box = $("#existing");
-    box.replaceChildren();
-    if (!state.item) return;
-    box.append(
-        h("div", { class: "toolbar" },
-            stepper("Prior work", state.item_prior_work, value => { state.item_prior_work = value; commit(); }, PRIOR_WORK_HELP)
-        ),
-        enchantmentEditor(state.existing)
-    );
 }
 
 function renderObjective() {
@@ -368,54 +348,49 @@ function renderResults() {
         content.append(h("div", { class: "warning" }, `Missing: ${missing.join(", ")}`));
     }
 
-    content.append(h("ol", { class: "steps" }, steps.map((step, index) => h("li", { class: "step" },
-        h("div", { class: "step-head" },
-            h("span", { class: "step-num" }, `Step ${index + 1}`),
-            h("span", { class: "step-cost" }, `${step.node.merge_levels} levels`)
-        ),
-        h("div", { class: "slots" }, slot(step.left), h("span", { class: "plus" }, "+"), slot(step.right)),
-        h("div", { class: "step-result" }, "→ ", logic.summary(step.node.enchantments))
-    ))));
-
-    content.append(h("button", {
-        type: "button",
-        class: "btn small tree-toggle",
-        onclick: () => { show_tree = !show_tree; renderResults(); }
-    }, show_tree ? "Hide tree" : "Tree"));
-    if (show_tree) {
-        content.append(h("ul", { class: "tree" }, treeNode(node)));
-    }
+    content.append(h("ol", { class: "anvil-steps" }, steps.map(anvilStep)));
 }
 
 function metric(label, value) {
     return h("div", { class: "metric" }, h("div", { class: "metric-label" }, label), h("div", { class: "metric-value" }, value));
 }
 
-function slot(ref) {
-    const node = ref.node;
-    const title = ref.kind === "step" ? `Step ${ref.index}` : logic.itemName(node.item_namespace);
-    const enchantments = logic.summary(node.enchantments);
-    return h("div", { class: "slot" },
-        h("div", { class: "slot-body" },
-            icon(node.item_namespace, true),
-            h("div", {},
-                h("div", { class: "slot-title" }, title),
-                enchantments ? h("div", { class: "slot-sub" }, enchantments) : null
-            )
+// One anvil step drawn like the game's anvil: [left] + [right] -> [result].
+function anvilStep(step, index) {
+    const left_levels = new Map(step.left.node.enchantments.map(e => [e.namespace, e.level]));
+    const changed = new Set(step.node.enchantments
+        .filter(e => left_levels.get(e.namespace) !== e.level)
+        .map(e => e.namespace));
+
+    return h("li", { class: "anvil-step" },
+        h("span", { class: "anvil-step-num" }, index + 1),
+        h("div", { class: "anvil-row" },
+            anvilCell(step.left.node),
+            h("div", { class: "anvil-op", "aria-hidden": "true" }, "+"),
+            anvilCell(step.right.node),
+            h("div", { class: "anvil-arrow" },
+                h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
+                h("span", { class: "anvil-cost" }, `Cost: ${step.node.merge_levels}`)
+            ),
+            anvilCell(step.node, changed)
         )
     );
 }
 
-function treeNode(node) {
-    const enchantments = logic.summary(node.enchantments);
-    const li = h("li", {}, h("div", { class: "tree-node" },
-        icon(node.item_namespace, true),
-        logic.itemName(node.item_namespace),
-        node.left ? h("span", { class: "tree-cost" }, `${node.merge_levels} lv`) : null,
-        enchantments ? h("div", { class: "tree-ench" }, enchantments) : null
-    ));
-    if (node.left) li.append(h("ul", {}, treeNode(node.left), treeNode(node.right)));
-    return li;
+// An inventory slot with a game-style tooltip underneath. The name is colored by rarity.
+function anvilCell(node, changed = null) {
+    const is_book = node.item_namespace === "book";
+    const enchanted = node.enchantments.length > 0;
+    const name = is_book && enchanted ? "Enchanted Book" : logic.itemName(node.item_namespace);
+    const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted);
+    const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
+        class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
+    }, logic.displayName(e.namespace, e.level)));
+
+    return h("div", { class: "anvil-cell" },
+        h("div", { class: "mc-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace)),
+        h("div", { class: "mc-tooltip" }, h("div", { class: name_class }, name), lines)
+    );
 }
 
 // ---------- Calculation (Web Worker) ----------

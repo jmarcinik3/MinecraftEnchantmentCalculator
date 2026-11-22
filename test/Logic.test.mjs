@@ -22,7 +22,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], existing: {}, item_prior_work: 0, objective: "levels" });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], objective: "levels" });
 
 test("every item has an icon file", () => {
     for (const item of Object.keys(meta.items)) {
@@ -39,12 +39,18 @@ test("Max all picks common defaults and skips curses", () => {
     assert.ok(!("smite" in sword) && !("vanishing_curse" in sword));
 });
 
-test("automatic books skip enchantments the item already has", () => {
-    const state = { ...baseState("spear"), wanted: { lunge: 3, unbreaking: 3 }, existing: { unbreaking: 3 } };
+test("automatic mode is one plain item plus one book per enchantment", () => {
+    const state = { ...baseState("spear"), wanted: { lunge: 3, unbreaking: 3 } };
     assert.deepStrictEqual(logic.buildEntries(state), [
-        ["spear", [["unbreaking", 3]], 0],
-        ["book", [["lunge", 3]], 0]
+        ["spear", [], 0],
+        ["book", [["lunge", 3]], 0],
+        ["book", [["unbreaking", 3]], 0]
     ]);
+});
+
+test("customizing keeps the plain item as an entry", () => {
+    const books = logic.currentBooks({ ...baseState("boots"), wanted: { feather_falling: 4 } });
+    assert.deepStrictEqual(books.map(b => b.type), ["item", "book"]);
 });
 
 test("extra copies of the item are entered as that item, not as books", () => {
@@ -58,12 +64,40 @@ test("extra copies of the item are entered as that item, not as books", () => {
         ]
     };
     assert.deepStrictEqual(logic.buildEntries(state), [
-        ["helmet", [], 0],
         ["helmet", [["protection", 4]], 1],
-        ["book", [["respiration", 3]], 0]
+        ["book", [["respiration", 3]], 0],
+        ["helmet", [], 0]
     ]);
     const loaded = logic.deserialize(logic.serialize(state), () => 0);
     assert.deepStrictEqual(loaded.books.map(b => b.type), ["item", "book", "item"]);
+});
+
+test("tooltips use the game's fixed enchantment order", () => {
+    const list = [
+        { namespace: "mending", level: 1 },
+        { namespace: "unbreaking", level: 3 },
+        { namespace: "sharpness", level: 5 },
+        { namespace: "vanishing_curse", level: 1 },
+        { namespace: "looting", level: 3 }
+    ];
+    assert.deepStrictEqual(logic.tooltipSort(list).map(e => e.namespace),
+        ["vanishing_curse", "sharpness", "looting", "unbreaking", "mending"]);
+    assert.strictEqual(logic.summary(list.slice(0, 3)), "Sharpness V, Unbreaking III, Mending");
+    assert.deepStrictEqual([...meta.tooltip_order].sort(), Object.keys(meta.enchantments).sort());
+});
+
+test("name rarity follows Java rules", () => {
+    const cases = [
+        ["sword", false, "common"], ["sword", true, "rare"],
+        ["book", false, "common"], ["book", true, "rare"],
+        ["recovery_compass", false, "uncommon"], ["recovery_compass", true, "rare"],
+        ["trident", false, "rare"], ["trident", true, "epic"],
+        ["mace", false, "epic"], ["mace", true, "epic"],
+        ["elytra", false, "epic"]
+    ];
+    for (const [item, enchanted, expected] of cases) {
+        assert.strictEqual(logic.rarity(item, enchanted), expected, `${item} enchanted=${enchanted}`);
+    }
 });
 
 test("shared links round-trip and drop invalid data", () => {

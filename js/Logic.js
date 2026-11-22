@@ -30,12 +30,30 @@ export function createLogic(meta) {
         return enchantments[a].incompatible.includes(b) || enchantments[b].incompatible.includes(a);
     }
 
+    // Name color tier, as in Java Edition: items without a listed rarity are common, and
+    // enchanting raises common/uncommon to rare and rare to epic (epic is the cap).
+    // An enchanted book is a common book with enchantments, so it shows as rare.
+    function rarity(item_ns, enchanted) {
+        const base = (meta.rarity && meta.rarity[item_ns]) || "common";
+        if (!enchanted) return base;
+        return base === "rare" || base === "epic" ? "epic" : "rare";
+    }
+
     function displayName(ns, level) {
         return maxLevel(ns) > 1 ? `${enchName(ns)} ${roman(level)}` : enchName(ns);
     }
 
+    // Java Edition lists enchantments in tooltips in a fixed order (the
+    // #minecraft:tooltip_order tag), not in the order they were added.
+    const TOOLTIP_RANK = new Map((meta.tooltip_order || []).map((ns, index) => [ns, index]));
+
+    function tooltipSort(list) {
+        const rank = ns => (TOOLTIP_RANK.has(ns) ? TOOLTIP_RANK.get(ns) : Infinity);
+        return [...list].sort((a, b) => rank(a.namespace) - rank(b.namespace));
+    }
+
     function summary(list) {
-        return list.map(e => displayName(e.namespace, e.level)).join(", ");
+        return tooltipSort(list).map(e => displayName(e.namespace, e.level)).join(", ");
     }
 
     // Enchantments that can go on an item, alphabetical, curses last.
@@ -82,23 +100,23 @@ export function createLogic(meta) {
         return result;
     }
 
-    // Books and extra copies of the item the calculation will use. Each has a `type` of
-    // "book" or "item" (another copy of the item being enchanted). Automatic mode: one
-    // book per wanted enchantment the item doesn't already have at that level.
+    // Everything going on the anvil. Each entry has a `type` of "book" or "item" (a copy
+    // of the item being enchanted). Automatic mode: one unenchanted item plus one book
+    // per wanted enchantment.
     function currentBooks(state) {
         if (!state.auto_books) return state.books;
-        return Object.entries(state.wanted)
-            .filter(([ns, level]) => !((state.existing[ns] || 0) >= level))
+        const books = Object.entries(state.wanted)
             .map(([ns, level]) => ({ id: "auto-" + ns, type: "book", enchantments: { [ns]: level }, prior_work: 0 }));
+        return [{ id: "auto-item", type: "item", enchantments: {}, prior_work: 0 }, ...books];
     }
 
+    // Empty books do nothing and are skipped; items are kept even without enchantments,
+    // since an unenchanted item is still something to enchant.
     function buildEntries(state) {
         if (!state.item) return [];
-        const item = [state.item, Object.entries(state.existing), state.item_prior_work];
-        const extras = currentBooks(state)
-            .filter(book => Object.keys(book.enchantments).length > 0)
+        return currentBooks(state)
+            .filter(book => book.type === "item" || Object.keys(book.enchantments).length > 0)
             .map(book => [book.type === "item" ? state.item : "book", Object.entries(book.enchantments), book.prior_work]);
-        return [item, ...extras];
     }
 
     // Wanted enchantments the result is missing or has at a lower level.
@@ -129,8 +147,6 @@ export function createLogic(meta) {
             w: state.wanted,
             a: state.auto_books ? 1 : 0,
             b: state.auto_books ? [] : state.books.map(book => [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0]),
-            e: state.existing,
-            p: state.item_prior_work,
             o: state.objective === "xp" ? 1 : 0
         };
         return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -151,14 +167,12 @@ export function createLogic(meta) {
                 enchantments: sanitizeEnchantments(enchants, item), // only the item's enchantments are offered
                 prior_work: clampPriorWork(prior_work)
             })),
-            existing: sanitizeEnchantments(data.e, item),
-            item_prior_work: clampPriorWork(data.p),
             objective: data.o === 1 ? "xp" : "levels"
         };
     }
 
     return {
-        enchName, maxLevel, isCurse, itemName, conflicts, displayName, summary,
+        enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantableItems, sanitizeEnchantments, clampPriorWork, maxAll,
         currentBooks, buildEntries, missing, collectSteps, serialize, deserialize
     };
