@@ -1,7 +1,7 @@
-// Run with: node test/engine.test.js
+// Run with: node test/Engine.test.js
 const assert = require("assert");
 const path = require("path");
-const { createEngine, experienceFromLevel } = require("../js/engine.js");
+const { createEngine, experienceFromLevel } = require("../js/Engine.js");
 const metadata = require(path.join(__dirname, "../json/metadata.json"));
 
 const engine = createEngine(metadata);

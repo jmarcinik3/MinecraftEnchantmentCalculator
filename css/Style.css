@@ -307,7 +307,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .step-cost { color: var(--text-secondary); }
 .slots { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 8px; align-items: stretch; }
 .slot { background: var(--surface-alt); border-radius: 6px; padding: 6px 8px; min-width: 0; }
-.slot-label { font-size: 11px; color: var(--text-muted); }
 .slot-body { display: flex; gap: 6px; align-items: flex-start; }
 .slot-title { font-size: 13px; font-weight: 600; }
 .slot-sub { font-size: 12px; color: var(--text-secondary); overflow-wrap: anywhere; }
@@ -325,3 +324,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 .empty { text-align: center; padding: 24px 8px; color: var(--text-secondary); }
 .empty img { width: 48px; height: 48px; image-rendering: pixelated; opacity: 0.8; }
+
+.btn.small { display: inline-flex; align-items: center; gap: 6px; }
+.icon-toggle button { display: inline-flex; align-items: center; padding: 3px 6px; }
+.icon-toggle .item-icon.small { width: 20px; height: 20px; }

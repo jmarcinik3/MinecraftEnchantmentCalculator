@@ -17,22 +17,22 @@ Then open http://localhost:8080.
 
 ## How it works
 
-- `js/engine.js`: the search. It tries every way to split the items into
+- `js/Engine.js`: the search. It tries every way to split the items into
   left/right groups, memoized on the subset of items, and keeps the cheapest
   result per (prior work, resulting enchantments). Follows Java anvil rules:
   book vs. item multipliers, prior-work penalty `2^n - 1`, level caps,
   incompatible enchantments dropped for 1 level, and the 39-level limit.
-- `js/calculator.js`: Web Worker wrapper so the page stays responsive.
-- `js/logic.js`: UI helpers (automatic books, "Max all", shareable links).
-- `js/app.js`: rendering and state.
+- `js/Calculator.js`: Web Worker wrapper so the page stays responsive.
+- `js/Logic.js`: UI helpers (automatic books, "Max all", shareable links).
+- `js/App.js`: rendering and state.
 - `json/metadata.json`: items, enchantments, max levels, anvil weights
   (book multipliers) and conflicts.
 
 ## Tests
 
 ```
-node test/engine.test.js
-node test/logic.test.mjs
+node test/Engine.test.js
+node test/Logic.test.mjs
 ```
 
 The engine tests include a brute-force cross-check on random inputs.

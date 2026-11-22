@@ -1,6 +1,6 @@
 // Web Worker entry point: runs the engine off the UI thread.
 // Cancelling is done by the page terminating this worker and starting a new one.
-importScripts("engine.js");
+importScripts("Engine.js");
 
 let engine = null;
 

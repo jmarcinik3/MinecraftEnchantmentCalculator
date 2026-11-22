@@ -1,33 +1,33 @@
-import { createLogic, roman, MAX_PRIOR_WORK } from "./logic.js";
+import { createLogic, roman, MAX_PRIOR_WORK } from "./Logic.js";
 
 const META_URL = "json/metadata.json";
-const WORKER_URL = "js/calculator.js";
+const WORKER_URL = "js/Calculator.js";
 const ITEM_WARNING_THRESHOLD = 10;
 const CALC_DELAY_MS = 250;      // wait for the user to stop clicking
 const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
 
 let meta = null;
-let L = null;
+let logic = null;
 let state = defaultState();
-let nextBookId = 1;
+let next_book_id = 1;
 
 let worker = null;
-let requestId = 0;
+let request_id = 0;
 let running = false;
-let showProgress = false;
-let calcTimer = null;
-let progressTimer = null;
-let lastResult = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
-let showTree = false;
+let show_progress = false;
+let calc_timer = null;
+let progress_timer = null;
+let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
+let show_tree = false;
 
 function defaultState() {
     return {
         item: null,
         wanted: {},        // enchantments the user wants on the final item
-        autoBooks: true,   // derive books from `wanted`
+        auto_books: true,   // derive books from `wanted`
         books: [],         // custom books: { id, enchantments: {ns: level}, prior_work }
         existing: {},      // enchantments already on the item
-        itemPriorWork: 0,
+        item_prior_work: 0,
         objective: "levels"
     };
 }
@@ -51,10 +51,10 @@ function h(tag, attrs = {}, ...children) {
 
 const $ = selector => document.querySelector(selector);
 
-function icon(itemNs, small = false) {
+function icon(item_ns, small = false) {
     return h("img", {
         class: "item-icon" + (small ? " small" : ""),
-        src: "img/" + ((meta.icons && meta.icons[itemNs]) || `${itemNs}.png`),
+        src: "img/" + ((meta.icons && meta.icons[item_ns]) || `${item_ns}.png`),
         alt: "",
         "aria-hidden": "true"
     });
@@ -71,16 +71,16 @@ function commit() {
 function selectItem(item) {
     if (state.item === item) return;
     state.item = item;
-    state.wanted = L.sanitizeEnchantments(state.wanted, item);
-    state.existing = L.sanitizeEnchantments(state.existing, item);
-    state.books.forEach(book => { book.enchantments = L.sanitizeEnchantments(book.enchantments, item); });
+    state.wanted = logic.sanitizeEnchantments(state.wanted, item);
+    state.existing = logic.sanitizeEnchantments(state.existing, item);
+    state.books.forEach(book => { book.enchantments = logic.sanitizeEnchantments(book.enchantments, item); });
     commit();
 }
 
 function setWanted(ns, level) {
     if (level) {
         for (const other of Object.keys(state.wanted)) {
-            if (L.conflicts(other, ns)) delete state.wanted[other];
+            if (logic.conflicts(other, ns)) delete state.wanted[other];
         }
         state.wanted[ns] = level;
     } else {
@@ -90,17 +90,19 @@ function setWanted(ns, level) {
 }
 
 function customizeBooks() {
-    state.books = L.currentBooks(state).map(book => ({
-        id: nextBookId++,
+    state.books = logic.currentBooks(state).map(book => ({
+        id: next_book_id++,
+        type: "book",
         enchantments: { ...book.enchantments },
         prior_work: 0
     }));
-    state.autoBooks = false;
+    state.auto_books = false;
     commit();
 }
 
-function addBook() {
-    state.books.push({ id: nextBookId++, enchantments: {}, prior_work: 0 });
+// `type` is "book" or "item" (another copy of the item being enchanted).
+function addBook(type) {
+    state.books.push({ id: next_book_id++, type: type, enchantments: {}, prior_work: 0 });
     commit();
 }
 
@@ -117,12 +119,12 @@ function render() {
 
 function renderItems() {
     const grid = $("#items");
-    grid.replaceChildren(...L.enchantableItems().map(item => h("button", {
+    grid.replaceChildren(...logic.enchantableItems().map(item => h("button", {
         type: "button",
         class: "item-button" + (state.item === item ? " selected" : ""),
         "aria-pressed": String(state.item === item),
         onclick: () => selectItem(item)
-    }, icon(item), L.itemName(item))));
+    }, icon(item), logic.itemName(item))));
 }
 
 function renderWanted() {
@@ -134,35 +136,35 @@ function renderWanted() {
     }
 
     box.append(h("div", { class: "toolbar" },
-        h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = L.maxAll(state.item, state.wanted); commit(); } }, "Max all"),
+        h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted); commit(); } }, "Max all"),
         h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, "Clear")
     ));
 
-    let cursesShown = false;
-    for (const ns of L.applicable(state.item)) {
-        if (L.isCurse(ns) && !cursesShown) {
+    let curses_shown = false;
+    for (const ns of logic.applicable(state.item)) {
+        if (logic.isCurse(ns) && !curses_shown) {
             box.append(h("div", { class: "divider" }, "Curses"));
-            cursesShown = true;
+            curses_shown = true;
         }
         const chosen = state.wanted[ns] || 0;
-        const blocker = !chosen && Object.keys(state.wanted).find(other => L.conflicts(other, ns));
+        const blocker = !chosen && Object.keys(state.wanted).find(other => logic.conflicts(other, ns));
 
         const levels = [];
-        for (let level = 1; level <= L.maxLevel(ns); level++) {
+        for (let level = 1; level <= logic.maxLevel(ns); level++) {
             levels.push(h("button", {
                 type: "button",
                 class: "level" + (chosen === level ? " selected" : ""),
                 "aria-pressed": String(chosen === level),
-                "aria-label": L.displayName(ns, level),
-                title: blocker ? `Replaces ${L.enchName(blocker)}` : null,
+                "aria-label": logic.displayName(ns, level),
+                title: blocker ? `Replaces ${logic.enchName(blocker)}` : null,
                 onclick: () => setWanted(ns, chosen === level ? 0 : level)
             }, roman(level)));
         }
 
         box.append(h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") },
             h("div", { class: "ench-name" },
-                L.enchName(ns),
-                blocker ? h("span", { class: "note" }, `Conflicts with ${L.enchName(blocker)}`) : null
+                logic.enchName(ns),
+                blocker ? h("span", { class: "note" }, `Conflicts with ${logic.enchName(blocker)}`) : null
             ),
             h("div", { class: "levels" }, levels)
         ));
@@ -171,41 +173,41 @@ function renderWanted() {
 
 function enchantmentEditor(enchantments) {
     const tags = Object.entries(enchantments).map(([ns, level]) => {
-        let levelSelect = null;
-        if (L.maxLevel(ns) > 1) {
+        let level_select = null;
+        if (logic.maxLevel(ns) > 1) {
             const options = [];
-            for (let l = 1; l <= L.maxLevel(ns); l++) {
+            for (let l = 1; l <= logic.maxLevel(ns); l++) {
                 options.push(h("option", { value: l, selected: l === level }, roman(l)));
             }
-            levelSelect = h("select", {
-                "aria-label": `Level of ${L.enchName(ns)}`,
+            level_select = h("select", {
+                "aria-label": `Level of ${logic.enchName(ns)}`,
                 onchange: event => { enchantments[ns] = Number(event.target.value); commit(); }
             }, options);
         }
         return h("span", { class: "tag" },
-            L.enchName(ns),
-            levelSelect,
+            logic.enchName(ns),
+            level_select,
             h("button", {
                 type: "button",
                 class: "tag-remove",
-                "aria-label": `Remove ${L.enchName(ns)}`,
+                "aria-label": `Remove ${logic.enchName(ns)}`,
                 onclick: () => { delete enchantments[ns]; commit(); }
             }, "×")
         );
     });
 
-    const available = L.applicable(state.item).filter(ns =>
-        !(ns in enchantments) && !Object.keys(enchantments).some(other => L.conflicts(other, ns)));
-    const addSelect = available.length ? h("select", {
+    const available = logic.applicable(state.item).filter(ns =>
+        !(ns in enchantments) && !Object.keys(enchantments).some(other => logic.conflicts(other, ns)));
+    const add_select = available.length ? h("select", {
         class: "add-ench",
         "aria-label": "Add enchantment",
         onchange: event => {
             const ns = event.target.value;
-            if (ns) { enchantments[ns] = L.maxLevel(ns); commit(); }
+            if (ns) { enchantments[ns] = logic.maxLevel(ns); commit(); }
         }
-    }, h("option", { value: "" }, "+ Add enchantment"), available.map(ns => h("option", { value: ns }, L.enchName(ns)))) : null;
+    }, h("option", { value: "" }, "+ Add enchantment"), available.map(ns => h("option", { value: ns }, logic.enchName(ns)))) : null;
 
-    return h("div", { class: "tags" }, tags, addSelect);
+    return h("div", { class: "tags" }, tags, add_select);
 }
 
 function stepper(label, value, onSet, help) {
@@ -222,69 +224,71 @@ const PRIOR_WORK_HELP = "How many times this has already been used on an anvil. 
 function renderBooks() {
     const box = $("#books");
     box.replaceChildren();
-    if (!state.item) {
-        box.append(h("p", { class: "hint" }, "Pick an item first."));
-        return;
-    }
+    if (!state.item) return;
 
-    const books = L.currentBooks(state);
+    const books = logic.currentBooks(state);
+    const item_name = logic.itemName(state.item);
 
-    if (state.autoBooks) {
+    if (state.auto_books) {
         box.append(h("div", { class: "toolbar" },
-            h("p", { class: "hint" }, "Assuming one fresh book for each enchantment you want."),
-            h("button", { type: "button", class: "btn small", onclick: customizeBooks }, "Edit books")
+            h("p", { class: "hint" }, "One book per enchantment"),
+            h("button", { type: "button", class: "btn small", onclick: customizeBooks }, "Edit")
         ));
-        if (books.length === 0) {
-            box.append(h("p", { class: "hint" }, "Choose enchantments above and they'll show up here."));
-        } else {
-            box.append(h("div", { class: "chips" }, books.map(book =>
-                h("span", { class: "chip" }, icon("book", true), L.summary(Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level }))))
-            )));
-        }
+        box.append(h("div", { class: "chips" }, books.map(book =>
+            h("span", { class: "chip" }, icon("book", true), logic.summary(Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level }))))
+        )));
         return;
     }
 
     box.append(h("div", { class: "toolbar" },
-        h("button", { type: "button", class: "btn small", onclick: addBook }, "Add book"),
-        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.autoBooks = true; state.books = []; commit(); } }, "Back to automatic")
+        h("button", { type: "button", class: "btn small", onclick: () => addBook("book") }, icon("book", true), "Add book"),
+        h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), `Add ${item_name.toLowerCase()}`),
+        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, "Automatic")
     ));
-    if (books.length === 0) {
-        box.append(h("p", { class: "hint" }, "No books yet. Add the books you actually have."));
-    }
     books.forEach((book, index) => {
         box.append(h("div", { class: "book-editor" },
             h("div", { class: "book-editor-head" },
-                icon("book", true),
-                `Book ${index + 1}`,
+                typeToggle(book, item_name),
                 h("span", { class: "spacer" }),
                 stepper("Prior work", book.prior_work, value => { book.prior_work = value; commit(); }, PRIOR_WORK_HELP),
                 h("button", {
                     type: "button",
-                    class: "btn tiny ghost",
-                    "aria-label": `Remove book ${index + 1}`,
+                    class: "tag-remove",
+                    "aria-label": `Remove entry ${index + 1}`,
                     onclick: () => { state.books = state.books.filter(b => b !== book); commit(); }
-                }, "Remove")
+                }, "×")
             ),
             enchantmentEditor(book.enchantments)
         ));
     });
 }
 
+// Switches an entry between a book and another copy of the item being enchanted.
+function typeToggle(book, item_name) {
+    const options = [["book", "book", "Book"], ["item", state.item, item_name]];
+    return h("div", { class: "segmented icon-toggle", role: "group", "aria-label": "Type" }, options.map(([type, icon_ns, label]) =>
+        h("button", {
+            type: "button",
+            class: book.type === type ? "selected" : "",
+            "aria-pressed": String(book.type === type),
+            title: label,
+            "aria-label": label,
+            onclick: () => { if (book.type !== type) { book.type = type; commit(); } }
+        }, icon(icon_ns, true))
+    ));
+}
+
 function renderExisting() {
     const title = $("#existing-title");
-    const itemLabel = state.item ? `your ${L.itemName(state.item).toLowerCase()}` : "your item";
-    title.replaceChildren(h("span", { class: "step-badge" }, "4"), `Already on ${itemLabel}`, h("span", { class: "optional" }, "optional"));
+    const item_label = state.item ? logic.itemName(state.item).toLowerCase() : "item";
+    title.replaceChildren(h("span", { class: "step-badge" }, "4"), `Already on ${item_label}`, h("span", { class: "optional" }, "optional"));
 
     const box = $("#existing");
     box.replaceChildren();
-    if (!state.item) {
-        box.append(h("p", { class: "hint" }, "Pick an item first."));
-        return;
-    }
+    if (!state.item) return;
     box.append(
         h("div", { class: "toolbar" },
-            h("p", { class: "hint" }, "Leave this empty for a brand-new item."),
-            stepper("Prior work", state.itemPriorWork, value => { state.itemPriorWork = value; commit(); }, PRIOR_WORK_HELP)
+            stepper("Prior work", state.item_prior_work, value => { state.item_prior_work = value; commit(); }, PRIOR_WORK_HELP)
         ),
         enchantmentEditor(state.existing)
     );
@@ -303,14 +307,14 @@ function renderObjective() {
 function renderResults() {
     const box = $("#results");
     box.replaceChildren();
-    const entries = L.buildEntries(state);
+    const entries = logic.buildEntries(state);
 
     if (entries.length > ITEM_WARNING_THRESHOLD) {
         box.append(h("div", { class: "warning" },
-            `${entries.length} items to combine. Each item past ${ITEM_WARNING_THRESHOLD} roughly triples the calculation time.`));
+            `${entries.length} items. Each one past ${ITEM_WARNING_THRESHOLD} roughly triples the wait.`));
     }
 
-    if (running && showProgress) {
+    if (running && show_progress) {
         box.append(h("div", { class: "progress" },
             h("div", { class: "progress-track" }, h("div", { class: "progress-fill", id: "progress-fill" })),
             h("span", { class: "progress-text", id: "progress-text" }, "0%"),
@@ -318,19 +322,17 @@ function renderResults() {
         ));
     }
 
-    const result = lastResult;
+    const result = last_result;
     if (!result) return;
 
     if (result.status === "empty") {
-        const message = !state.item
-            ? "Pick an item to get started."
-            : "Choose the enchantments you want, or add your books.";
+        const message = !state.item ? "Pick an item" : "Choose enchantments";
         box.append(h("div", { class: "empty" }, h("img", { src: "img/enchanting_table.png", alt: "" }), h("p", {}, message)));
         return;
     }
     if (result.status === "cancelled") {
-        box.append(h("p", { class: "hint" }, "Calculation cancelled. ",
-            h("button", { type: "button", class: "link", onclick: runCalculation }, "Run it again")));
+        box.append(h("p", { class: "hint" }, "Cancelled. ",
+            h("button", { type: "button", class: "link", onclick: runCalculation }, "Run again")));
         return;
     }
     if (result.status === "error") {
@@ -344,26 +346,26 @@ function renderResults() {
 
     if (!node) {
         content.append(h("div", { class: "warning" },
-            "There's no valid order. Every anvil step has to cost 39 levels or less. Try lowering prior work or splitting up multi-enchantment books."));
+            "No valid order: every step must cost 39 levels or less."));
         return;
     }
     if (!node.left) {
-        content.append(h("p", { class: "hint" }, "Nothing to combine yet."));
+        content.append(h("p", { class: "hint" }, "Nothing to combine"));
         return;
     }
 
-    const steps = L.collectSteps(node);
-    const maxStep = Math.max(...steps.map(step => step.node.merge_levels));
+    const steps = logic.collectSteps(node);
+    const max_step = Math.max(...steps.map(step => step.node.merge_levels));
     content.append(h("div", { class: "metrics" },
-        metric("Total levels", node.cumulative_levels),
-        metric("Priciest step", maxStep),
-        metric("Total XP", Math.round(node.cumulative_xp).toLocaleString()),
+        metric("Levels", node.cumulative_levels),
+        metric("Max step", max_step),
+        metric("XP", Math.round(node.cumulative_xp).toLocaleString()),
         metric("Steps", steps.length)
     ));
 
-    const missing = L.missing(state, node);
+    const missing = logic.missing(state, node);
     if (missing.length) {
-        content.append(h("div", { class: "warning" }, `Your books can't produce: ${missing.join(", ")}.`));
+        content.append(h("div", { class: "warning" }, `Missing: ${missing.join(", ")}`));
     }
 
     content.append(h("ol", { class: "steps" }, steps.map((step, index) => h("li", { class: "step" },
@@ -371,16 +373,16 @@ function renderResults() {
             h("span", { class: "step-num" }, `Step ${index + 1}`),
             h("span", { class: "step-cost" }, `${step.node.merge_levels} levels`)
         ),
-        h("div", { class: "slots" }, slot(step.left, "Left"), h("span", { class: "plus" }, "+"), slot(step.right, "Right")),
-        h("div", { class: "step-result" }, "Result: ", L.summary(step.node.enchantments))
+        h("div", { class: "slots" }, slot(step.left), h("span", { class: "plus" }, "+"), slot(step.right)),
+        h("div", { class: "step-result" }, "→ ", logic.summary(step.node.enchantments))
     ))));
 
     content.append(h("button", {
         type: "button",
         class: "btn small tree-toggle",
-        onclick: () => { showTree = !showTree; renderResults(); }
-    }, showTree ? "Hide tree" : "Show as tree"));
-    if (showTree) {
+        onclick: () => { show_tree = !show_tree; renderResults(); }
+    }, show_tree ? "Hide tree" : "Tree"));
+    if (show_tree) {
         content.append(h("ul", { class: "tree" }, treeNode(node)));
     }
 }
@@ -389,27 +391,28 @@ function metric(label, value) {
     return h("div", { class: "metric" }, h("div", { class: "metric-label" }, label), h("div", { class: "metric-value" }, value));
 }
 
-function slot(ref, side) {
+function slot(ref) {
     const node = ref.node;
-    const title = ref.kind === "step" ? `Result of step ${ref.index}` : L.itemName(node.item_namespace);
+    const title = ref.kind === "step" ? `Step ${ref.index}` : logic.itemName(node.item_namespace);
+    const enchantments = logic.summary(node.enchantments);
     return h("div", { class: "slot" },
-        h("div", { class: "slot-label" }, `${side} slot`),
         h("div", { class: "slot-body" },
             icon(node.item_namespace, true),
             h("div", {},
                 h("div", { class: "slot-title" }, title),
-                h("div", { class: "slot-sub" }, L.summary(node.enchantments) || "No enchantments")
+                enchantments ? h("div", { class: "slot-sub" }, enchantments) : null
             )
         )
     );
 }
 
 function treeNode(node) {
+    const enchantments = logic.summary(node.enchantments);
     const li = h("li", {}, h("div", { class: "tree-node" },
         icon(node.item_namespace, true),
-        L.itemName(node.item_namespace),
+        logic.itemName(node.item_namespace),
         node.left ? h("span", { class: "tree-cost" }, `${node.merge_levels} lv`) : null,
-        h("div", { class: "tree-ench" }, L.summary(node.enchantments) || "No enchantments")
+        enchantments ? h("div", { class: "tree-ench" }, enchantments) : null
     ));
     if (node.left) li.append(h("ul", {}, treeNode(node.left), treeNode(node.right)));
     return li;
@@ -423,7 +426,7 @@ function startWorker() {
     worker.onerror = event => {
         event.preventDefault();
         stopRunning();
-        lastResult = { status: "error", error: "The calculator failed to load. Check the browser console for details." };
+        last_result = { status: "error", error: "The calculator failed to load. Check the browser console for details." };
         renderResults();
     };
     worker.postMessage({ message: "instantiate_metadata", metadata: meta });
@@ -436,34 +439,34 @@ function restartWorker() {
 
 function stopRunning() {
     running = false;
-    showProgress = false;
-    clearTimeout(progressTimer);
+    show_progress = false;
+    clearTimeout(progress_timer);
 }
 
 function scheduleCalculation() {
-    clearTimeout(calcTimer);
-    calcTimer = setTimeout(runCalculation, CALC_DELAY_MS);
+    clearTimeout(calc_timer);
+    calc_timer = setTimeout(runCalculation, CALC_DELAY_MS);
 }
 
 function runCalculation() {
-    clearTimeout(calcTimer);
+    clearTimeout(calc_timer);
     // The search is one synchronous call, so a newer request has to replace the worker.
     if (running) restartWorker();
     stopRunning();
 
-    const entries = L.buildEntries(state);
+    const entries = logic.buildEntries(state);
     if (entries.length < 2) {
-        lastResult = { status: "empty" };
+        last_result = { status: "empty" };
         renderResults();
         return;
     }
 
-    requestId++;
+    request_id++;
     running = true;
-    progressTimer = setTimeout(() => { showProgress = true; renderResults(); }, PROGRESS_DELAY_MS);
+    progress_timer = setTimeout(() => { show_progress = true; renderResults(); }, PROGRESS_DELAY_MS);
     worker.postMessage({
         message: "calculate_optimal",
-        request_id: requestId,
+        request_id: request_id,
         item_entries: entries,
         objective: state.objective
     });
@@ -474,13 +477,13 @@ function cancelCalculation() {
     if (!running) return;
     restartWorker();
     stopRunning();
-    lastResult = { status: "cancelled" };
+    last_result = { status: "cancelled" };
     renderResults();
 }
 
 function handleWorkerMessage(event) {
     const data = event.data;
-    if (data.request_id !== requestId) return;
+    if (data.request_id !== request_id) return;
 
     if (data.message === "progress") {
         const percent = Math.min(100, Math.floor((data.done / data.total) * 100));
@@ -490,11 +493,11 @@ function handleWorkerMessage(event) {
         if (text) text.textContent = percent + "%";
     } else if (data.message === "optimal_searched") {
         stopRunning();
-        lastResult = { status: "ok", node: data.result };
+        last_result = { status: "ok", node: data.result };
         renderResults();
     } else if (data.message === "calculation_failed") {
         stopRunning();
-        lastResult = { status: "error", error: data.error };
+        last_result = { status: "error", error: data.error };
         renderResults();
     }
 }
@@ -502,7 +505,7 @@ function handleWorkerMessage(event) {
 // ---------- Shareable URL ----------
 
 function saveToUrl() {
-    const url = state.item ? "#" + L.serialize(state) : location.pathname + location.search;
+    const url = state.item ? "#" + logic.serialize(state) : location.pathname + location.search;
     history.replaceState(null, "", url);
 }
 
@@ -510,7 +513,7 @@ function loadFromUrl() {
     const hash = location.hash.slice(1);
     if (!hash) return;
     try {
-        const loaded = L.deserialize(hash, () => nextBookId++);
+        const loaded = logic.deserialize(hash, () => next_book_id++);
         if (loaded) state = loaded;
     } catch (error) {
         console.warn("Ignoring invalid link", error);
@@ -541,7 +544,7 @@ async function init() {
             "Couldn't load the enchantment data. Serve this folder over HTTP instead of opening the file directly."));
         return;
     }
-    L = createLogic(meta);
+    logic = createLogic(meta);
     loadFromUrl();
     startWorker();
     setupCopyLink();

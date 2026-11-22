@@ -82,22 +82,23 @@ export function createLogic(meta) {
         return result;
     }
 
-    // Books the calculation will use. Automatic mode: one book per wanted enchantment
-    // the item doesn't already have at that level.
+    // Books and extra copies of the item the calculation will use. Each has a `type` of
+    // "book" or "item" (another copy of the item being enchanted). Automatic mode: one
+    // book per wanted enchantment the item doesn't already have at that level.
     function currentBooks(state) {
-        if (!state.autoBooks) return state.books;
+        if (!state.auto_books) return state.books;
         return Object.entries(state.wanted)
             .filter(([ns, level]) => !((state.existing[ns] || 0) >= level))
-            .map(([ns, level]) => ({ id: "auto-" + ns, enchantments: { [ns]: level }, prior_work: 0 }));
+            .map(([ns, level]) => ({ id: "auto-" + ns, type: "book", enchantments: { [ns]: level }, prior_work: 0 }));
     }
 
     function buildEntries(state) {
         if (!state.item) return [];
-        const item = [state.item, Object.entries(state.existing), state.itemPriorWork];
-        const books = currentBooks(state)
+        const item = [state.item, Object.entries(state.existing), state.item_prior_work];
+        const extras = currentBooks(state)
             .filter(book => Object.keys(book.enchantments).length > 0)
-            .map(book => ["book", Object.entries(book.enchantments), book.prior_work]);
-        return [item, ...books];
+            .map(book => [book.type === "item" ? state.item : "book", Object.entries(book.enchantments), book.prior_work]);
+        return [item, ...extras];
     }
 
     // Wanted enchantments the result is missing or has at a lower level.
@@ -126,10 +127,10 @@ export function createLogic(meta) {
         const data = {
             i: state.item,
             w: state.wanted,
-            a: state.autoBooks ? 1 : 0,
-            b: state.autoBooks ? [] : state.books.map(book => [book.enchantments, book.prior_work]),
+            a: state.auto_books ? 1 : 0,
+            b: state.auto_books ? [] : state.books.map(book => [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0]),
             e: state.existing,
-            p: state.itemPriorWork,
+            p: state.item_prior_work,
             o: state.objective === "xp" ? 1 : 0
         };
         return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
@@ -143,14 +144,15 @@ export function createLogic(meta) {
         return {
             item,
             wanted: sanitizeEnchantments(data.w, item),
-            autoBooks: data.a !== 0,
-            books: books.map(([enchants, priorWork]) => ({
+            auto_books: data.a !== 0,
+            books: books.map(([enchants, prior_work, type_flag]) => ({
                 id: makeId(),
-                enchantments: sanitizeEnchantments(enchants, item), // books only offer the item's enchantments
-                prior_work: clampPriorWork(priorWork)
+                type: type_flag === 1 ? "item" : "book",
+                enchantments: sanitizeEnchantments(enchants, item), // only the item's enchantments are offered
+                prior_work: clampPriorWork(prior_work)
             })),
             existing: sanitizeEnchantments(data.e, item),
-            itemPriorWork: clampPriorWork(data.p),
+            item_prior_work: clampPriorWork(data.p),
             objective: data.o === 1 ? "xp" : "levels"
         };
     }
