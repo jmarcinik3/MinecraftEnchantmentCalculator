@@ -158,4 +158,24 @@ test("full god sword solves quickly", () => {
     console.log(`       (${Date.now() - start} ms, ${result.cumulative_levels} levels total)`);
 });
 
+test("progress is reported, increases, and ends at 100%", () => {
+    const calls = [];
+    engine.solve([
+        ["sword", [], 0],
+        ["book", [["sharpness", 5]], 0],
+        ["book", [["unbreaking", 3]], 0],
+        ["book", [["mending", 1]], 0],
+        ["book", [["looting", 3]], 0],
+        ["book", [["fire_aspect", 2]], 0]
+    ], { onProgress: (done, total) => calls.push([done, total]) });
+    assert.ok(calls.length > 1);
+    const total = calls[0][1];
+    assert.strictEqual(total, 3 ** 6 - 2 ** 7 + 1);
+    for (let i = 1; i < calls.length; i++) {
+        assert.ok(calls[i][0] >= calls[i - 1][0]);
+        assert.ok(calls[i][0] <= total);
+    }
+    assert.deepStrictEqual(calls[calls.length - 1], [total, total]);
+});
+
 console.log(`${passed} passed`);

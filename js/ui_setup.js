@@ -1,11 +1,14 @@
 let metadata;
 var calculator_worker;
+let current_request_id = 0;
+let calculation_running = false;
+const ITEM_WARNING_THRESHOLD = 10;
 
 function onLoad() {
     const metadata_path = "json/metadata.json";
-    calculator_worker = new Worker("js/calculator.js");
 
     $(document).tooltip();
+    startCalculatorWorker();
 
     $.getJSON(metadata_path, function(data) {
         metadata = data;
@@ -15,16 +18,70 @@ function onLoad() {
 
     setupSelectedItems();
     setupTrash();
+    setupCalculationControls();
+}
 
-    calculator_worker.onmessage = function(event) {
-        const event_data = event.data;
-        const event_message = event.data["message"];
-        if (event_message == "optimal_searched") {
-            displayOptimalResults(event_data["result"]);
-        } else if (event_message == "calculation_failed") {
-            displayTreeMessage("Error: " + event_data["error"]);
-        }
-    };
+function startCalculatorWorker() {
+    calculator_worker = new Worker("js/calculator.js");
+    calculator_worker.onmessage = handleWorkerMessage;
+    if (metadata) {
+        sendMetadataToCalculator(metadata);
+    }
+}
+
+function handleWorkerMessage(event) {
+    const event_data = event.data;
+    if (event_data["request_id"] !== current_request_id) {
+        return; // stale message from a cancelled calculation
+    }
+
+    const event_message = event_data["message"];
+    if (event_message == "progress") {
+        setProgress(event_data["done"] / event_data["total"]);
+    } else if (event_message == "optimal_searched") {
+        finishCalculation();
+        displayOptimalResults(event_data["result"]);
+    } else if (event_message == "calculation_failed") {
+        finishCalculation();
+        displayTreeMessage("Error: " + event_data["error"]);
+    }
+}
+
+function setupCalculationControls() {
+    $("#progress-bar").progressbar({ value: 0 }).hide();
+    $("#cancel").hide();
+    $("#item-count-warning").hide();
+}
+
+function setProgress(fraction) {
+    const percent = Math.min(100, Math.floor(fraction * 100));
+    $("#progress-bar").progressbar("value", percent);
+    $("#progress-label").text(percent + "%");
+}
+
+function finishCalculation() {
+    calculation_running = false;
+    $("#calculate").prop("disabled", false);
+    $("#cancel").hide();
+    $("#progress-bar").hide();
+}
+
+function selectedItemCount() {
+    return $("#selected-items > .selected-item-header").length;
+}
+
+function updateItemCountWarning() {
+    const item_count = selectedItemCount();
+    var $warning = $("#item-count-warning");
+    if (item_count > ITEM_WARNING_THRESHOLD) {
+        $warning.text(
+            item_count + " items selected. Calculation time roughly triples with every item " +
+            "past " + ITEM_WARNING_THRESHOLD + ", so this may take a long time."
+        );
+        $warning.show();
+    } else {
+        $warning.hide();
+    }
 }
 
 function sortListbox($listbox) {
@@ -300,6 +357,7 @@ function itemDroppedInSelection(event, ui) {
     } else {
         addItemToSelectedItems(item_namespace);
     }
+    updateItemCountWarning();
 }
 
 function itemDroppedInTrash(event, ui) {
@@ -307,6 +365,7 @@ function itemDroppedInTrash(event, ui) {
     const $item_enchantments = $item_header.next();
     $item_header.remove();
     $item_enchantments.remove();
+    updateItemCountWarning();
 }
 
 function setupItemGallery(metadata) {
@@ -356,11 +415,42 @@ function displayOptimalResults(result) {
 }
 
 function calculateOptimalOrder() {
+    if (calculation_running) {
+        return;
+    }
+
     const item_entries = retrieveSelectedItemEntries();
+    if (item_entries.length === 0) {
+        displayTreeMessage("Drag some items into \"Items to Merge\" first.");
+        return;
+    }
+
+    current_request_id++;
+    calculation_running = true;
+    $("#calculate").prop("disabled", true);
+    $("#cancel").show();
+    $("#progress-bar").show();
+    setProgress(0);
+    displayTreeMessage("Calculating...");
+
     calculator_worker.postMessage({
         message: "calculate_optimal",
+        request_id: current_request_id,
         item_entries: item_entries
     });
+}
+
+function cancelCalculation() {
+    if (!calculation_running) {
+        return;
+    }
+
+    // The search is one synchronous call, so the only way to stop it is to kill the worker.
+    calculator_worker.terminate();
+    current_request_id++;
+    finishCalculation();
+    startCalculatorWorker();
+    displayTreeMessage("Calculation cancelled.");
 }
 
 function sendMetadataToCalculator(metadata) {

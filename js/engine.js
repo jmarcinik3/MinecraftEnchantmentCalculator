@@ -138,12 +138,23 @@
             const memo = new Map();
             leaves.forEach((leaf, index) => memo.set(1 << index, [leaf]));
 
+            // Progress = (left, right) splits examined, out of the total over every subset:
+            // sum over subsets S of (2^|S| - 2) = 3^n - 2^(n+1) + 1.
+            const on_progress = typeof options.onProgress === "function" ? options.onProgress : null;
+            const total_splits = 3 ** count - 2 ** (count + 1) + 1;
+            const report_every = Math.max(1, Math.floor(total_splits / 200));
+            let splits_done = 0;
+
             function frontier(mask) {
                 const cached = memo.get(mask);
                 if (cached) return cached;
 
                 const best = new Map();
                 for (let sub = (mask - 1) & mask; sub > 0; sub = (sub - 1) & mask) {
+                    splits_done++;
+                    if (on_progress && splits_done % report_every === 0) {
+                        on_progress(splits_done, total_splits);
+                    }
                     const left_nodes = frontier(sub);
                     if (left_nodes.length === 0) continue;
                     const right_nodes = frontier(mask ^ sub);
@@ -164,6 +175,7 @@
             }
 
             const candidates = frontier((1 << count) - 1);
+            if (on_progress) on_progress(total_splits, total_splits);
             let chosen = null;
             for (const node of candidates) {
                 if (!chosen) {

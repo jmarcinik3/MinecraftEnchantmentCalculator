@@ -108,6 +108,33 @@ img.item-image {
     width: 42%;
 }
 
+#calculation-controls {
+    display: flex;
+    gap: 6px;
+    margin: 6px 3px;
+}
+
+#progress-bar {
+    position: relative;
+    width: 350px;
+    height: 22px;
+    margin: 0 3px;
+}
+
+#progress-label {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    line-height: 22px;
+    font-size: 12px;
+}
+
+#item-count-warning {
+    width: 522px;
+    padding: 6px;
+    font-size: 13px;
+}
+
 .enchantment-name-option,
 .enchantment-level-option,
 .selected-enchantment-option {

@@ -25,12 +25,15 @@
                     <ul id="item-gallery"></ul>
                     <h3 class="ui-widget-header">Trash</h3>
                     <div id="trash-selected"><img src="img/lava.jpg" id="trash-image"></div>
-                    <div>
+                    <div id="calculation-controls">
                         <button id="calculate" class="ui-widget" onclick="calculateOptimalOrder()">Calculate</button>
+                        <button id="cancel" class="ui-widget" onclick="cancelCalculation()">Cancel</button>
                     </div>
+                    <div id="progress-bar"><div id="progress-label"></div></div>
                 </div>
                 <div>
                     <h3 class="ui-widget-header">Items to Merge</h3>
+                    <div id="item-count-warning" class="ui-state-error ui-corner-all"></div>
                     <div id="selected-items"></div>
                 </div>
             </div>
