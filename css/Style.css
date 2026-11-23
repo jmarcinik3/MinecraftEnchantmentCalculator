@@ -81,7 +81,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 
 @media (min-width: 900px) {
-    .layout { grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); align-items: start; }
+    .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; }
     .results-column { position: sticky; top: 16px; }
     .results-card { max-height: calc(100vh - 32px); overflow-y: auto; }
 }
@@ -389,7 +389,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .icon-toggle .item-icon.small { width: 20px; height: 20px; }
 
 /* Anvil steps: drawn like the in-game anvil and tooltips */
-.anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
+.anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; container: steps / inline-size; }
 
 /* Rounds: groups of steps that don't depend on each other. */
 .rounds { display: grid; gap: 14px; }
@@ -435,11 +435,37 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .anvil-step.done .anvil-row { opacity: 0.4; }
 .anvil-step.done .anvil-step-num { background: var(--surface); color: var(--text-muted); }
 
+/* Wide: [left] + [right] -> [result] on one line. */
 .anvil-row {
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 14px minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr) auto minmax(0, 1fr);
+    grid-template-areas: "left plus right arrow result";
     gap: 6px;
     align-items: start;
+}
+.anvil-cell.left { grid-area: left; }
+.anvil-cell.right { grid-area: right; }
+.anvil-cell.result { grid-area: result; }
+.anvil-op { grid-area: plus; }
+.anvil-arrow { grid-area: arrow; }
+
+/* Narrow (a laptop-width or phone column): three tooltips side by side would wrap most
+   names, so the inputs go on top and the result sits centered below them. Chosen by the
+   width of the step list, so every step on screen uses the same layout. */
+@container steps (max-width: 540px) {
+    .anvil-row {
+        grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr);
+        grid-template-areas:
+            "left plus right"
+            "arrow arrow arrow"
+            "result result result";
+        row-gap: 4px;
+    }
+    /* .anvil-row raises these over the general .anvil-arrow rules further down. */
+    .anvil-row .anvil-arrow { height: auto; flex-direction: row; gap: 8px; padding: 2px 0; }
+    .anvil-row .arrow-glyph { transform: rotate(90deg); font-size: 18px; }
+    /* Alone on its line, the result can grow to fit its longest enchantment. */
+    .anvil-cell.result { justify-self: center; width: max-content; min-width: calc(50% - 6px); max-width: 100%; }
 }
 
 .anvil-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
@@ -508,7 +534,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 /* Tooltip: near-black purple box with a purple inner border */
 .mc-tooltip {
     width: 100%;
-    padding: 4px 6px;
+    padding: 4px 5px;
     background: rgba(16, 0, 16, 0.94);
     outline: 2px solid #2d0a63;
     outline-offset: -3px;
@@ -517,7 +543,8 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     font-size: 12px;
     line-height: 1.35;
     text-shadow: 1px 1px 0 #3f3f3f;
-    overflow-wrap: anywhere;
+    /* Wrap only between words (a single word too long for the box is the one exception). */
+    overflow-wrap: break-word;
 }
 .mc-name.rarity-common { color: #ffffff; }
 .mc-name.rarity-uncommon { color: #ffff55; text-shadow: 1px 1px 0 #3f3f15; }
@@ -530,8 +557,12 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .mc-ench.changed::before { content: "+ "; color: #55ff55; text-shadow: 1px 1px 0 #153f15; }
 
 @media (max-width: 420px) {
-    .anvil-row { grid-template-columns: minmax(0, 1fr) 10px minmax(0, 1fr) auto minmax(0, 1fr); gap: 4px; }
     .mc-slot { width: 40px; height: 40px; }
     .mc-slot .item-icon { width: 30px; height: 30px; }
-    .mc-tooltip { font-size: 11px; padding: 3px 4px; }
+    /* Tighter edges on phones so two tooltips side by side fit names like
+       "Feather Falling IV" on one line (the 16px page gutter stays). */
+    .card { padding: 14px 10px; }
+    .anvil-step { padding: 12px 6px 8px; }
+    .anvil-row { column-gap: 4px; grid-template-columns: minmax(0, 1fr) 8px minmax(0, 1fr); }
+    .mc-tooltip { padding: 3px 4px; }
 }

@@ -601,22 +601,23 @@ function anvilStep(step, done, order_key) {
     return h("li", { class: "anvil-step" + (done.has(number) ? " done" : "") },
         h("label", { class: "anvil-step-num", title: TEXT.results.step_done_help }, tick, number),
         h("div", { class: "anvil-row" },
-            anvilCell(step.left.node),
+            anvilCell(step.left.node, null, "left"),
             h("div", { class: "anvil-op", "aria-hidden": "true" }, "+"),
-            anvilCell(step.right.node),
+            anvilCell(step.right.node, null, "right"),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
                 h("span", { class: "anvil-cost" }, step.node.renamed
                     ? TEXT.results.cost_renamed(step.node.merge_levels)
                     : TEXT.results.cost(step.node.merge_levels))
             ),
-            anvilCell(step.node, changed)
+            anvilCell(step.node, changed, "result")
         )
     );
 }
 
 // An inventory slot with a game-style tooltip underneath. The name is colored by rarity.
-function anvilCell(node, changed = null) {
+// `role` is "left", "right" or "result", for the layout.
+function anvilCell(node, changed, role) {
     const is_book = node.item_namespace === "book";
     const enchanted = node.enchantments.length > 0;
     const name = is_book && enchanted ? TEXT.results.enchanted_book : logic.itemName(node.item_namespace);
@@ -625,7 +626,7 @@ function anvilCell(node, changed = null) {
         class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
     }, logic.displayName(e.namespace, e.level)));
 
-    return h("div", { class: "anvil-cell" },
+    return h("div", { class: "anvil-cell " + role },
         h("div", { class: "mc-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace)),
         h("div", { class: "mc-tooltip" }, h("div", { class: name_class }, name), lines)
     );
