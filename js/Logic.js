@@ -128,18 +128,31 @@ export function createLogic(meta) {
         return Object.keys(meta.items).filter(item => item !== "book" && applicable(item).length > 0);
     }
 
-    // Keep only valid, applicable, non-conflicting enchantments.
-    function sanitizeEnchantments(raw, item) {
+    // Keep only valid, applicable enchantments, dropping conflicts unless they are allowed.
+    // `taken` lists enchantments already on other entries, which count as conflicts too.
+    function sanitizeEnchantments(raw, item, allow_incompatible = false, taken = []) {
         const clean = {};
         if (!raw || typeof raw !== "object") return clean;
         const allowed = new Set(applicable(item));
         for (const [ns, value] of Object.entries(raw)) {
             const level = Number(value);
             if (!allowed.has(ns) || !Number.isInteger(level) || level < 1 || level > maxLevel(ns)) continue;
-            if (Object.keys(clean).some(other => conflicts(other, ns))) continue;
+            if (!allow_incompatible && [...taken, ...Object.keys(clean)].some(other => conflicts(other, ns))) continue;
             clean[ns] = level;
         }
         return clean;
+    }
+
+    // Cleans each entry in order. The engine does not check conflicts, so without
+    // `allow_incompatible` an enchantment that conflicts with one on an earlier entry is
+    // dropped too: every enchantment on the anvil must be able to go together.
+    function sanitizeBooks(books, item, allow_incompatible = false) {
+        const taken = [];
+        return books.map(book => {
+            const enchantments = sanitizeEnchantments(book.enchantments, item, allow_incompatible, taken);
+            taken.push(...Object.keys(enchantments));
+            return { ...book, enchantments };
+        });
     }
 
     function clampPriorWork(value) {
@@ -147,14 +160,14 @@ export function createLogic(meta) {
         return Number.isInteger(n) && n >= 0 ? n : 0;
     }
 
-    function maxAll(item, wanted) {
+    function maxAll(item, wanted, allow_incompatible = false) {
         const result = { ...wanted };
         const options = applicable(item).filter(ns => !isCurse(ns));
         const ordered = [...PREFERRED.filter(ns => options.includes(ns)), ...options.filter(ns => !PREFERRED.includes(ns))];
         for (const ns of ordered) {
             if (ns in result) {
                 result[ns] = maxLevel(ns);
-            } else if (!Object.keys(result).some(other => conflicts(other, ns))) {
+            } else if (allow_incompatible || !Object.keys(result).some(other => conflicts(other, ns))) {
                 result[ns] = maxLevel(ns);
             }
         }
@@ -210,7 +223,8 @@ export function createLogic(meta) {
             b: state.auto_books ? [] : state.books.map(book => [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0]),
             p: state.priority.map(c => CRITERIA.indexOf(c)),
             c: state.max_step,
-            n: state.no_step_limit ? 1 : 0
+            n: state.no_step_limit ? 1 : 0,
+            x: state.allow_incompatible ? 1 : 0
         };
         return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     }
@@ -220,16 +234,19 @@ export function createLogic(meta) {
         const item = typeof data.i === "string" && data.i in meta.items && data.i !== "book" ? data.i : null;
         if (!item) return null;
         const books = Array.isArray(data.b) ? data.b : [];
+        const allow_incompatible = data.x === 1;
         return {
             item,
-            wanted: sanitizeEnchantments(data.w, item),
+            allow_incompatible,
+            wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
             auto_books: data.a !== 0,
-            books: books.map(([enchants, prior_work, type_flag]) => ({
+            // Only the item's enchantments are offered, so others are dropped.
+            books: sanitizeBooks(books.map(([enchants, prior_work, type_flag]) => ({
                 id: makeId(),
                 type: type_flag === 1 ? "item" : "book",
-                enchantments: sanitizeEnchantments(enchants, item), // only the item's enchantments are offered
+                enchantments: enchants,
                 prior_work: clampPriorWork(prior_work)
-            })),
+            })), item, allow_incompatible),
             // Older links stored one objective: `o` = 1 meant least XP.
             priority: Array.isArray(data.p)
                 ? normalizePriority(data.p.map(index => CRITERIA[index]))
@@ -241,7 +258,7 @@ export function createLogic(meta) {
 
     return {
         enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, clampPriorWork, maxAll,
+        applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, maxAll,
         currentBooks, buildEntries, missing, collectSteps, serialize, deserialize
     };
 }

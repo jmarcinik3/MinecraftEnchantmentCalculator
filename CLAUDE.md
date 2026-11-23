@@ -7,10 +7,16 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Files
 - `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking`, `#copy-link`).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
-  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit }`
-  (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`).
+  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible }`
+  (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`;
+  `allow_incompatible` is for mods that let conflicting enchantments go together). The engine never checks conflicts:
+  Logic.js `sanitizeEnchantments`/`sanitizeBooks` and the editors keep every entry, and entries against each other,
+  conflict-free unless `allow_incompatible` is on.
   Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
   Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one.
+- `js/Text.js` (ES module): `TEXT`, every string the page shows (labels, tooltips, messages), grouped by
+  section; templated ones are functions (`name => ...`). index.html headings use `data-text="section.key"`.
+  Add new UI text here, not inline in App.js. A test checks the criteria and `data-text` keys exist.
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta) -> { solve, combine, makeLeaf }`,
   `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `MAXIMUM_MERGE_LEVELS`.
@@ -30,8 +36,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `css/Style.css`, `img/<item>.png|svg`, `font/minecraft.woff`.
 
 ## Game rules implemented (Engine.js)
-Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps, incompatible enchantments
-dropped but cost 1 level, merges of 40+ levels are "Too Expensive" (the user can lower this cap or remove it). Ties break on the next-ranked criterion.
+Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps,
+merges of 40+ levels are "Too Expensive" (the user can lower this cap or remove it). Ties break on the next-ranked criterion.
 
 ## Adding an item or enchantment
 Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add an image to
@@ -48,4 +54,4 @@ https://jmarcinik3.github.io/MinecraftEnchantmentCalculator/. New top-level site
 
 ## Conventions
 camelCase functions, PascalCase classes/filenames, snake_case variables, UPPER_CASE constants.
-Keep Engine.js DOM-free and UMD. Keep UI text short.
+Keep Engine.js DOM-free and UMD. Keep UI text short, and in `js/Text.js`.

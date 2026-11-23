@@ -60,12 +60,15 @@ test("equal levels below the cap go up by one", () => {
     assert.deepStrictEqual(levelsOf(result), { sharpness: 5 });
 });
 
-test("incompatible enchantment is dropped and costs 1", () => {
+test("the engine does not check conflicts: they merge at full cost", () => {
     const left = engine.makeLeaf(["sword", [["sharpness", 5]], 0]);
-    const right = engine.makeLeaf(["book", [["smite", 5]], 0]);
-    const node = engine.combine(left, right);
-    assert.deepStrictEqual(levelsOf(node), { sharpness: 5 });
-    assert.strictEqual(node.merge_levels, 1);
+    const node = engine.combine(left, engine.makeLeaf(["book", [["smite", 5]], 0]));
+    assert.deepStrictEqual(levelsOf(node), { sharpness: 5, smite: 5 });
+    assert.strictEqual(node.merge_levels, 5);
+    const all = engine.solve([
+        ["sword", [], 0], ["book", [["sharpness", 5]], 0], ["book", [["smite", 5]], 0], ["book", [["bane_of_arthropods", 5]], 0]
+    ]);
+    assert.deepStrictEqual(levelsOf(all), { bane_of_arthropods: 5, sharpness: 5, smite: 5 });
 });
 
 test("order matters: II + II + III reaches IV", () => {
@@ -259,11 +262,8 @@ test("full god sword solves quickly", () => {
     console.log(`       (${Date.now() - start} ms, ${result.cumulative_levels} levels total)`);
 });
 
-test("mace: Density and Breach conflict, Wind Burst does not", () => {
+test("mace: Wind Burst book onto Density costs 6", () => {
     const left = engine.makeLeaf(["mace", [["density", 5]], 0]);
-    const breach = engine.combine(left, engine.makeLeaf(["book", [["breach", 4]], 0]));
-    assert.deepStrictEqual(levelsOf(breach), { density: 5 });
-    assert.strictEqual(breach.merge_levels, 1);
     const wind = engine.combine(left, engine.makeLeaf(["book", [["wind_burst", 3]], 0]));
     assert.deepStrictEqual(levelsOf(wind), { density: 5, wind_burst: 3 });
     assert.strictEqual(wind.merge_levels, 6);

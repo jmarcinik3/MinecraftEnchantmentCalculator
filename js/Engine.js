@@ -49,15 +49,10 @@
             enchantments[namespace] = {
                 weight: Number(data.weight),
                 max_level: Number(data.max_level),
-                items: new Set(data.items),
-                incompatible: new Set(data.incompatible)
+                items: new Set(data.items)
             };
         }
         const item_namespaces = new Set(Object.keys(metadata.items));
-
-        function isIncompatible(a, b) {
-            return a !== b && (enchantments[a].incompatible.has(b) || enchantments[b].incompatible.has(a));
-        }
 
         function canApply(item_namespace, enchantment_namespace) {
             return item_namespace === "book" || enchantments[enchantment_namespace].items.has(item_namespace);
@@ -106,6 +101,8 @@
         // Returns the resulting node, or null if the game would not allow it or the
         // step would cost more than `max_merge_levels` (Infinity: no limit, as with mods
         // that remove "Too Expensive!").
+        // Conflicts between enchantments are not checked here: the page only sends
+        // entries whose enchantments may all go together.
         function combine(left, right, max_merge_levels = MAXIMUM_MERGE_LEVELS) {
             const right_is_book = right.item_namespace === "book";
             if (!right_is_book && left.item_namespace !== right.item_namespace) return null;
@@ -116,10 +113,6 @@
 
             for (const { namespace, level } of right.enchantments) {
                 if (!canApply(left.item_namespace, namespace)) continue;
-                if (left.enchantments.some(e => isIncompatible(e.namespace, namespace))) {
-                    merge_levels += 1; // incompatible enchantments are dropped but still cost 1
-                    continue;
-                }
                 const existing = levels.get(namespace) || 0;
                 const max_level = enchantments[namespace].max_level;
                 const final_level = existing === level ? Math.min(level + 1, max_level) : Math.max(existing, level);
@@ -176,7 +169,7 @@
             const dominates = dominance(priority);
             const cap = options.max_merge_levels == null ? MAXIMUM_MERGE_LEVELS : Number(options.max_merge_levels);
             if (cap !== Infinity && (!Number.isInteger(cap) || cap < 1)) {
-                throw new Error("Step limit must be a positive integer or Infinity");
+                throw new Error("Level limit must be a positive integer or Infinity");
             }
             const leaves = entries.map(makeLeaf);
             const count = leaves.length;

@@ -8,6 +8,7 @@ import { createRequire } from "module";
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 const { createLogic, normalizePriority, movePriority, clampStepLimit, maxPriorWork, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
+const { TEXT } = await import("data:text/javascript," + encodeURIComponent(read("../js/Text.js")));
 const logic = createLogic(meta);
 
 let passed = 0;
@@ -23,7 +24,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false });
 
 test("every item has an icon file", () => {
     for (const item of Object.keys(meta.items)) {
@@ -134,6 +135,14 @@ test("ranking criteria match the engine's", () => {
     assert.deepStrictEqual(CRITERIA, engine_api.CRITERIA);
 });
 
+test("Text.js has every ranking criterion and every page string", () => {
+    assert.deepStrictEqual(Object.keys(TEXT.ranking.criteria), CRITERIA);
+    for (const { label, help } of Object.values(TEXT.ranking.criteria)) assert.ok(label && help);
+    const keys = [...read("../index.html").matchAll(/data-text="([a-z_]+)\.([a-z_]+)"/g)];
+    assert.ok(keys.length >= 6);
+    for (const [, section, key] of keys) assert.strictEqual(typeof TEXT[section][key], "string", section + "." + key);
+});
+
 test("ranking helpers", () => {
     assert.deepStrictEqual(movePriority(CRITERIA, 2, -1), ["levels", "max_step", "xp", "prior_work"]);
     assert.deepStrictEqual(movePriority(CRITERIA, 0, -1), CRITERIA);
@@ -159,6 +168,39 @@ test("conflicting enchantments are grouped in list order", () => {
         const curse_start = groups.findIndex(g => logic.isCurse(g.members[0]));
         if (curse_start >= 0) assert.ok(groups.slice(curse_start).every(g => logic.isCurse(g.members[0])), item);
     }
+});
+
+test("conflicts are kept only when allowed", () => {
+    assert.deepStrictEqual(logic.sanitizeEnchantments({ sharpness: 5, smite: 5 }, "sword"), { sharpness: 5 });
+    assert.deepStrictEqual(logic.sanitizeEnchantments({ sharpness: 5, smite: 5 }, "sword", true), { sharpness: 5, smite: 5 });
+    const all = logic.maxAll("sword", {}, true);
+    assert.ok(all.sharpness && all.smite && all.bane_of_arthropods);
+    const state = { ...baseState("sword"), wanted: { sharpness: 5, smite: 5 }, allow_incompatible: true };
+    const loaded = logic.deserialize(logic.serialize(state), () => 0);
+    assert.strictEqual(loaded.allow_incompatible, true);
+    assert.deepStrictEqual(loaded.wanted, { sharpness: 5, smite: 5 });
+    const vanilla = logic.deserialize(logic.serialize({ ...state, allow_incompatible: false }), () => 0);
+    assert.deepStrictEqual(vanilla.wanted, { sharpness: 5 });
+});
+
+test("mace: Density and Breach conflict, Wind Burst does not", () => {
+    assert.strictEqual(logic.conflicts("density", "breach"), true);
+    assert.strictEqual(logic.conflicts("density", "wind_burst"), false);
+});
+
+test("entries may not conflict with each other unless allowed", () => {
+    const books = [
+        { id: 1, type: "item", enchantments: { sharpness: 5 }, prior_work: 0 },
+        { id: 2, type: "book", enchantments: { smite: 5, unbreaking: 3 }, prior_work: 0 },
+        { id: 3, type: "book", enchantments: { sharpness: 4 }, prior_work: 0 }
+    ];
+    const vanilla = logic.sanitizeBooks(books, "sword");
+    assert.deepStrictEqual(vanilla.map(b => b.enchantments), [{ sharpness: 5 }, { unbreaking: 3 }, { sharpness: 4 }]);
+    const modded = logic.sanitizeBooks(books, "sword", true);
+    assert.deepStrictEqual(modded.map(b => b.enchantments), books.map(b => b.enchantments));
+    const state = { ...baseState("sword"), auto_books: false, books };
+    const loaded = logic.deserialize(logic.serialize(state), () => 0);
+    assert.deepStrictEqual(loaded.books.map(b => b.enchantments), vanilla.map(b => b.enchantments));
 });
 
 test("max prior work follows the step limit", () => {

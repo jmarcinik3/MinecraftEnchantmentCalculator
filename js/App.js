@@ -1,4 +1,5 @@
 import { createLogic, roman, movePriority, clampStepLimit, maxPriorWork, CRITERIA, MAX_STEP_LEVELS } from "./Logic.js";
+import { TEXT } from "./Text.js";
 
 const META_URL = "json/metadata.json";
 const WORKER_URL = "js/Calculator.js";
@@ -27,7 +28,8 @@ function defaultState() {
         books: [],         // custom entries: { id, type: "book" | "item", enchantments: {ns: level}, prior_work }
         priority: [...CRITERIA],     // ranking for the best order, most important first
         max_step: MAX_STEP_LEVELS,   // no single step may cost more levels than this
-        no_step_limit: false         // ignore max_step and "Too Expensive!" (for mods that remove it)
+        no_step_limit: false,        // ignore max_step and "Too Expensive!" (for mods that remove it)
+        allow_incompatible: false    // let conflicting enchantments go together (for mods that allow it)
     };
 }
 
@@ -70,15 +72,32 @@ function commit() {
 function selectItem(item) {
     if (state.item === item) return;
     state.item = item;
-    state.wanted = logic.sanitizeEnchantments(state.wanted, item);
-    state.books.forEach(book => { book.enchantments = logic.sanitizeEnchantments(book.enchantments, item); });
+    sanitizeAll();
+    commit();
+}
+
+// Re-checks every chosen enchantment against the current item and conflict setting.
+function sanitizeAll() {
+    state.wanted = logic.sanitizeEnchantments(state.wanted, state.item, state.allow_incompatible);
+    state.books = logic.sanitizeBooks(state.books, state.item, state.allow_incompatible);
+}
+
+// Whether two enchantments may not go together under the current setting.
+function clashes(a, b) {
+    return !state.allow_incompatible && logic.conflicts(a, b);
+}
+
+// Turning conflicts back off drops the later of each conflicting pair.
+function setAllowIncompatible(allowed) {
+    state.allow_incompatible = allowed;
+    sanitizeAll();
     commit();
 }
 
 function setWanted(ns, level) {
     if (level) {
         for (const other of Object.keys(state.wanted)) {
-            if (logic.conflicts(other, ns)) delete state.wanted[other];
+            if (clashes(other, ns)) delete state.wanted[other];
         }
         state.wanted[ns] = level;
     } else {
@@ -128,20 +147,24 @@ function renderWanted() {
     const box = $("#wanted");
     box.replaceChildren();
     if (!state.item) {
-        box.append(h("p", { class: "hint" }, "Pick an item first."));
+        box.append(h("p", { class: "hint" }, TEXT.wanted.pick_item_first));
         return;
     }
 
     box.append(h("div", { class: "toolbar" },
-        h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted); commit(); } }, "Max all"),
-        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, "Clear")
+        h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
+        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear),
+        h("label", { class: "check-option", title: TEXT.wanted.allow_conflicts_help },
+            h("input", { type: "checkbox", checked: state.allow_incompatible, onchange: event => setAllowIncompatible(event.target.checked) }),
+            TEXT.wanted.allow_conflicts
+        )
     ));
 
     // Conflicting enchantments are boxed together where the first of them would be listed.
     let curses_shown = false;
     for (const group of logic.enchantmentGroups(state.item)) {
         if (logic.isCurse(group.members[0]) && !curses_shown) {
-            box.append(h("div", { class: "divider" }, "Curses"));
+            box.append(h("div", { class: "divider" }, TEXT.wanted.curses));
             curses_shown = true;
         }
         if (group.members.length === 1) {
@@ -149,7 +172,9 @@ function renderWanted() {
             continue;
         }
         box.append(h("div", { class: "ench-group" + (group.exclusive ? " exclusive" : "") },
-            h("div", { class: "ench-group-label" }, group.exclusive ? "Pick one" : "Some conflict"),
+            h("div", { class: "ench-group-label" },
+                state.allow_incompatible ? TEXT.wanted.group_allowed
+                    : group.exclusive ? TEXT.wanted.group_pick_one : TEXT.wanted.group_some_conflict),
             group.members.map(ns => wantedRow(ns, group.exclusive))
         ));
     }
@@ -159,7 +184,7 @@ function renderWanted() {
 // they conflict, so the per-row note is left out.
 function wantedRow(ns, in_exclusive_group) {
     const chosen = state.wanted[ns] || 0;
-    const blocker = !chosen && Object.keys(state.wanted).find(other => logic.conflicts(other, ns));
+    const blocker = !chosen && Object.keys(state.wanted).find(other => clashes(other, ns));
 
     const levels = [];
     for (let level = 1; level <= logic.maxLevel(ns); level++) {
@@ -168,7 +193,7 @@ function wantedRow(ns, in_exclusive_group) {
             class: "level" + (chosen === level ? " selected" : ""),
             "aria-pressed": String(chosen === level),
             "aria-label": logic.displayName(ns, level),
-            title: blocker ? `Replaces ${logic.enchName(blocker)}` : null,
+            title: blocker ? TEXT.wanted.replaces(logic.enchName(blocker)) : null,
             onclick: () => setWanted(ns, chosen === level ? 0 : level)
         }, roman(level)));
     }
@@ -176,10 +201,16 @@ function wantedRow(ns, in_exclusive_group) {
     return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") },
         h("div", { class: "ench-name" },
             logic.enchName(ns),
-            blocker && !in_exclusive_group ? h("span", { class: "note" }, `Conflicts with ${logic.enchName(blocker)}`) : null
+            blocker && !in_exclusive_group ? h("span", { class: "note" }, TEXT.wanted.conflicts_with(logic.enchName(blocker))) : null
         ),
         h("div", { class: "levels" }, levels)
     );
+}
+
+// Every enchantment on any custom entry. In vanilla, a new one must not conflict with
+// any of them, since the engine does not check conflicts.
+function onAnvil() {
+    return state.books.flatMap(book => Object.keys(book.enchantments));
 }
 
 function enchantmentEditor(enchantments) {
@@ -191,7 +222,7 @@ function enchantmentEditor(enchantments) {
                 options.push(h("option", { value: l, selected: l === level }, roman(l)));
             }
             level_select = h("select", {
-                "aria-label": `Level of ${logic.enchName(ns)}`,
+                "aria-label": TEXT.books.level_of_label(logic.enchName(ns)),
                 onchange: event => { enchantments[ns] = Number(event.target.value); commit(); }
             }, options);
         }
@@ -201,22 +232,22 @@ function enchantmentEditor(enchantments) {
             h("button", {
                 type: "button",
                 class: "tag-remove",
-                "aria-label": `Remove ${logic.enchName(ns)}`,
+                "aria-label": TEXT.books.remove_enchantment_label(logic.enchName(ns)),
                 onclick: () => { delete enchantments[ns]; commit(); }
             }, "×")
         );
     });
 
     const available = logic.applicable(state.item).filter(ns =>
-        !(ns in enchantments) && !Object.keys(enchantments).some(other => logic.conflicts(other, ns)));
+        !(ns in enchantments) && !onAnvil().some(other => clashes(other, ns)));
     const add_select = available.length ? h("select", {
         class: "add-ench",
-        "aria-label": "Add enchantment",
+        "aria-label": TEXT.books.add_enchantment_label,
         onchange: event => {
             const ns = event.target.value;
             if (ns) { enchantments[ns] = logic.maxLevel(ns); commit(); }
         }
-    }, h("option", { value: "" }, "+ Add enchantment"), available.map(ns => h("option", { value: ns }, logic.enchName(ns)))) : null;
+    }, h("option", { value: "" }, TEXT.books.add_enchantment), available.map(ns => h("option", { value: ns }, logic.enchName(ns)))) : null;
 
     return h("div", { class: "tags" }, tags, add_select);
 }
@@ -224,9 +255,9 @@ function enchantmentEditor(enchantments) {
 function stepper(label, value, max, onSet, help) {
     return h("span", { class: "stepper", title: help },
         label,
-        h("button", { type: "button", class: "btn tiny", "aria-label": `Decrease ${label}`, disabled: value <= 0, onclick: () => onSet(value - 1) }, "−"),
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label(label), disabled: value <= 0, onclick: () => onSet(value - 1) }, "−"),
         h("span", { class: "stepper-value" }, value),
-        h("button", { type: "button", class: "btn tiny", "aria-label": `Increase ${label}`, disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label(label), disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
     );
 }
 
@@ -234,8 +265,6 @@ function stepper(label, value, max, onSet, help) {
 function stepLimit() {
     return state.no_step_limit ? Infinity : state.max_step;
 }
-
-const PRIOR_WORK_HELP = "How many times this has already been used on an anvil. Each use makes later merges more expensive.";
 
 function renderBooks() {
     const box = $("#books");
@@ -250,28 +279,28 @@ function renderBooks() {
             h("div", { class: "chips" }, books.map(book => {
                 const enchantments = logic.summary(Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level })));
                 const is_item = book.type === "item";
-                return h("span", { class: "chip" }, icon(is_item ? state.item : "book", true), enchantments || (is_item ? item_name : "Book"));
+                return h("span", { class: "chip" }, icon(is_item ? state.item : "book", true), enchantments || (is_item ? item_name : TEXT.books.book));
             })),
-            h("button", { type: "button", class: "btn small", onclick: customizeBooks }, "Edit")
+            h("button", { type: "button", class: "btn small", onclick: customizeBooks }, TEXT.books.edit)
         ));
         return;
     }
 
     box.append(h("div", { class: "toolbar" },
-        h("button", { type: "button", class: "btn small", onclick: () => addBook("book") }, icon("book", true), "Add book"),
-        h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), `Add ${item_name.toLowerCase()}`),
-        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, "Automatic")
+        h("button", { type: "button", class: "btn small", onclick: () => addBook("book") }, icon("book", true), TEXT.books.add_book),
+        h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item(item_name)),
+        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, TEXT.books.automatic)
     ));
     books.forEach((book, index) => {
         box.append(h("div", { class: "book-editor" },
             h("div", { class: "book-editor-head" },
                 typeToggle(book, item_name),
                 h("span", { class: "spacer" }),
-                stepper("Prior work", book.prior_work, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, PRIOR_WORK_HELP),
+                stepper(TEXT.books.prior_work, book.prior_work, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, TEXT.books.prior_work_help),
                 h("button", {
                     type: "button",
                     class: "tag-remove",
-                    "aria-label": `Remove entry ${index + 1}`,
+                    "aria-label": TEXT.books.remove_entry_label(index + 1),
                     onclick: () => { state.books = state.books.filter(b => b !== book); commit(); }
                 }, "×")
             ),
@@ -282,8 +311,8 @@ function renderBooks() {
 
 // Switches an entry between a book and another copy of the item being enchanted.
 function typeToggle(book, item_name) {
-    const options = [["book", "book", "Book"], ["item", state.item, item_name]];
-    return h("div", { class: "segmented icon-toggle", role: "group", "aria-label": "Type" }, options.map(([type, icon_ns, label]) =>
+    const options = [["book", "book", TEXT.books.book], ["item", state.item, item_name]];
+    return h("div", { class: "segmented icon-toggle", role: "group", "aria-label": TEXT.books.type_label }, options.map(([type, icon_ns, label]) =>
         h("button", {
             type: "button",
             class: book.type === type ? "selected" : "",
@@ -294,14 +323,6 @@ function typeToggle(book, item_name) {
         }, icon(icon_ns, true))
     ));
 }
-
-const CRITERION_LABEL = { levels: "Levels", xp: "XP", max_step: "Max step", prior_work: "Prior work" };
-const CRITERION_HELP = {
-    levels: "Total levels spent",
-    xp: "Total XP points spent. Big steps cost more XP per level.",
-    max_step: "Cost of the most expensive step",
-    prior_work: "Prior work on the result, which makes future anvil use cheaper"
-};
 
 function setPriority(priority) {
     state.priority = priority;
@@ -316,11 +337,11 @@ function renderRanking() {
 
     const chips = state.priority.map((criterion, index) => {
         const last = index === state.priority.length - 1;
-        const label = CRITERION_LABEL[criterion];
+        const label = TEXT.ranking.criteria[criterion].label;
         return h("li", {
             class: "rank-chip",
             draggable: "true",
-            title: CRITERION_HELP[criterion],
+            title: TEXT.ranking.criteria[criterion].help,
             ondragstart: event => {
                 dragged = index;
                 event.dataTransfer.effectAllowed = "move";
@@ -336,22 +357,22 @@ function renderRanking() {
             label,
             h("button", {
                 type: "button", class: "rank-move", disabled: index === 0,
-                "aria-label": `Rank ${label} higher`, onclick: () => setPriority(movePriority(state.priority, index, -1))
+                "aria-label": TEXT.ranking.rank_higher_label(label), onclick: () => setPriority(movePriority(state.priority, index, -1))
             }, "‹"),
             h("button", {
                 type: "button", class: "rank-move", disabled: last,
-                "aria-label": `Rank ${label} lower`, onclick: () => setPriority(movePriority(state.priority, index, 1))
+                "aria-label": TEXT.ranking.rank_lower_label(label), onclick: () => setPriority(movePriority(state.priority, index, 1))
             }, "›")
         );
     });
 
     // The saved number comes back when the limit is turned on again.
     const limit = state.no_step_limit ? h("input", {
-        type: "text", class: "step-limit unlimited", value: "∞", readonly: true, tabindex: "-1",
-        "aria-label": "No step limit"
+        type: "text", class: "step-limit unlimited", value: TEXT.ranking.unlimited, readonly: true, tabindex: "-1",
+        "aria-label": TEXT.ranking.no_limit_label
     }) : h("input", {
         type: "number", class: "step-limit", min: 1, max: MAX_STEP_LEVELS, value: state.max_step,
-        "aria-label": "Most levels allowed per step",
+        "aria-label": TEXT.ranking.level_limit_label,
         onchange: event => {
             state.max_step = clampStepLimit(event.target.value);
             event.target.value = state.max_step;
@@ -360,15 +381,15 @@ function renderRanking() {
     });
 
     box.replaceChildren(
-        h("div", { class: "ranking-row" }, h("span", { class: "ranking-label" }, "Rank by"), h("ol", { class: "rank-list" }, chips)),
-        h("div", { class: "ranking-row", title: "Every step must cost at most this many levels" },
-            h("span", { class: "ranking-label" }, "Step limit"), limit, h("span", { class: "hint" }, "levels"),
-            h("label", { class: "no-limit", title: "For mods that remove \"Too Expensive!\"" },
+        h("div", { class: "ranking-row" }, h("span", { class: "ranking-label" }, TEXT.ranking.rank_by), h("ol", { class: "rank-list" }, chips)),
+        h("div", { class: "ranking-row", title: TEXT.ranking.level_limit_help },
+            h("span", { class: "ranking-label" }, TEXT.ranking.level_limit), limit,
+            h("label", { class: "no-limit", title: TEXT.ranking.no_limit_help },
                 h("input", {
                     type: "checkbox", checked: state.no_step_limit,
                     onchange: event => { state.no_step_limit = event.target.checked; commit(); }
                 }),
-                "No limit (modded)"
+                TEXT.ranking.no_limit
             )
         )
     );
@@ -381,14 +402,14 @@ function renderResults() {
 
     if (entries.length > ITEM_WARNING_THRESHOLD) {
         box.append(h("div", { class: "warning" },
-            `${entries.length} items. Each one past ${ITEM_WARNING_THRESHOLD} roughly triples the wait.`));
+            TEXT.results.too_many_items(entries.length, ITEM_WARNING_THRESHOLD)));
     }
 
     if (running && show_progress) {
         box.append(h("div", { class: "progress" },
             h("div", { class: "progress-track" }, h("div", { class: "progress-fill", id: "progress-fill" })),
             h("span", { class: "progress-text", id: "progress-text" }, "0%"),
-            h("button", { type: "button", class: "btn small", onclick: cancelCalculation }, "Cancel")
+            h("button", { type: "button", class: "btn small", onclick: cancelCalculation }, TEXT.results.cancel)
         ));
     }
 
@@ -396,13 +417,13 @@ function renderResults() {
     if (!result) return;
 
     if (result.status === "empty") {
-        const message = !state.item ? "Pick an item" : "Choose enchantments";
+        const message = !state.item ? TEXT.results.pick_item : TEXT.results.choose_enchantments;
         box.append(h("div", { class: "empty" }, h("img", { src: "img/enchanting_table.png", alt: "" }), h("p", {}, message)));
         return;
     }
     if (result.status === "cancelled") {
-        box.append(h("p", { class: "hint" }, "Cancelled. ",
-            h("button", { type: "button", class: "link", onclick: runCalculation }, "Run again")));
+        box.append(h("p", { class: "hint" }, TEXT.results.cancelled,
+            h("button", { type: "button", class: "link", onclick: runCalculation }, TEXT.results.run_again)));
         return;
     }
     if (result.status === "error") {
@@ -417,12 +438,12 @@ function renderResults() {
     if (!node) {
         content.append(h("div", { class: "warning" },
             state.no_step_limit
-                ? "No valid order: these can't be combined."
-                : `No valid order: every step must cost ${state.max_step} levels or less.`));
+                ? TEXT.results.no_valid_order
+                : TEXT.results.no_valid_order_within(state.max_step)));
         return;
     }
     if (!node.left) {
-        content.append(h("p", { class: "hint" }, "Nothing to combine"));
+        content.append(h("p", { class: "hint" }, TEXT.results.nothing_to_combine));
         return;
     }
 
@@ -434,12 +455,12 @@ function renderResults() {
         prior_work: node.prior_work
     };
     content.append(h("div", { class: "metrics" },
-        state.priority.map((criterion, index) => metric(CRITERION_LABEL[criterion], values[criterion], index === 0))
+        state.priority.map((criterion, index) => metric(TEXT.ranking.criteria[criterion].label, values[criterion], index === 0))
     ));
 
     const missing = logic.missing(state, node);
     if (missing.length) {
-        content.append(h("div", { class: "warning" }, `Missing: ${missing.join(", ")}`));
+        content.append(h("div", { class: "warning" }, TEXT.results.missing(missing)));
     }
 
     content.append(h("ol", { class: "anvil-steps" }, steps.map(anvilStep)));
@@ -464,7 +485,7 @@ function anvilStep(step, index) {
             anvilCell(step.right.node),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
-                h("span", { class: "anvil-cost" }, `Cost: ${step.node.merge_levels}`)
+                h("span", { class: "anvil-cost" }, TEXT.results.cost(step.node.merge_levels))
             ),
             anvilCell(step.node, changed)
         )
@@ -475,7 +496,7 @@ function anvilStep(step, index) {
 function anvilCell(node, changed = null) {
     const is_book = node.item_namespace === "book";
     const enchanted = node.enchantments.length > 0;
-    const name = is_book && enchanted ? "Enchanted Book" : logic.itemName(node.item_namespace);
+    const name = is_book && enchanted ? TEXT.results.enchanted_book : logic.itemName(node.item_namespace);
     const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted);
     const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
         class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
@@ -495,7 +516,7 @@ function startWorker() {
     worker.onerror = event => {
         event.preventDefault();
         stopRunning();
-        last_result = { status: "error", error: "The calculator failed to load. Check the browser console for details." };
+        last_result = { status: "error", error: TEXT.results.worker_failed };
         renderResults();
     };
     worker.postMessage({ message: "instantiate_metadata", metadata: meta });
@@ -595,23 +616,32 @@ function setupCopyLink() {
     button.addEventListener("click", async () => {
         try {
             await navigator.clipboard.writeText(location.href);
-            button.textContent = "Copied";
+            button.textContent = TEXT.page.copied;
         } catch {
-            button.textContent = "Copy failed";
+            button.textContent = TEXT.page.copy_failed;
         }
-        setTimeout(() => { button.textContent = "Copy link"; }, 1500);
+        setTimeout(() => { button.textContent = TEXT.page.copy_link; }, 1500);
     });
 }
 
 // ---------- Start ----------
 
+// Fills the static text in index.html: each `data-text="section.key"` gets TEXT.section.key.
+function fillPageText() {
+    document.title = TEXT.page.title;
+    for (const el of document.querySelectorAll("[data-text]")) {
+        const [section, key] = el.dataset.text.split(".");
+        el.textContent = TEXT[section][key];
+    }
+}
+
 async function init() {
+    fillPageText();
     try {
         const response = await fetch(META_URL);
         meta = await response.json();
     } catch (error) {
-        $("#results").replaceChildren(h("div", { class: "error" },
-            "Couldn't load the enchantment data. Serve this folder over HTTP instead of opening the file directly."));
+        $("#results").replaceChildren(h("div", { class: "error" }, TEXT.results.metadata_failed));
         return;
     }
     logic = createLogic(meta);

@@ -347,6 +347,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     font-weight: 600;
     cursor: default;
 }
+.check-option { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .no-limit { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; color: var(--text-secondary); cursor: pointer; }
 
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-bottom: 14px; }

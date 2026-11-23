@@ -3,30 +3,30 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Enchantment Calculator</title>
+    <title></title>
     <link rel="stylesheet" href="css/Style.css">
     <script type="module" src="js/App.js"></script>
 </head>
 <body>
     <header class="site-header">
-        <h1>Enchantment calculator</h1>
-        <button id="copy-link" class="btn small" type="button">Copy link</button>
+        <h1 data-text="page.heading"></h1>
+        <button id="copy-link" class="btn small" type="button" data-text="page.copy_link"></button>
     </header>
 
     <main class="layout">
         <div class="inputs">
             <section class="card">
-                <h2><span class="step-badge">1</span>Item</h2>
+                <h2><span class="step-badge">1</span><span data-text="page.item_heading"></span></h2>
                 <div id="items" class="item-grid"></div>
             </section>
 
             <section class="card">
-                <h2><span class="step-badge">2</span>Enchantments</h2>
+                <h2><span class="step-badge">2</span><span data-text="page.enchantments_heading"></span></h2>
                 <div id="wanted"></div>
             </section>
 
             <section class="card">
-                <h2><span class="step-badge">3</span>Books and items</h2>
+                <h2><span class="step-badge">3</span><span data-text="page.books_heading"></span></h2>
                 <div id="books"></div>
             </section>
         </div>
@@ -34,7 +34,7 @@
         <aside class="results-column">
             <section class="card results-card">
                 <div class="results-header">
-                    <h2>Best order</h2>
+                    <h2 data-text="page.results_heading"></h2>
                 </div>
                 <div id="ranking" class="ranking"></div>
                 <div id="results"></div>
