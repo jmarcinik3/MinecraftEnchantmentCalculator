@@ -586,6 +586,10 @@ function renderResults() {
     if (missing.length) {
         content.append(h("div", { class: "warning" }, TEXT.results.missing(missing)));
     }
+    const extra = logic.extra(state, node);
+    if (extra.length) {
+        content.append(h("div", { class: "note-box", title: TEXT.results.extra_help }, TEXT.results.extra(extra)));
+    }
 
     const order_key = orderKey(steps);
     const done = loadChecklist(order_key);

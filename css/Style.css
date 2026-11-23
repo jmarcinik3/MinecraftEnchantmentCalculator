@@ -425,6 +425,15 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     margin-bottom: 12px;
 }
 .warning { background: var(--warning-bg); color: var(--warning-text); }
+/* Information that is not a problem, e.g. enchantments that came along unasked. */
+.note-box {
+    padding: 8px 12px;
+    border-radius: var(--radius);
+    font-size: 13px;
+    margin-bottom: 12px;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+}
 .error { background: var(--danger-bg); color: var(--danger-text); }
 
 .progress { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }

@@ -313,6 +313,13 @@ export function createLogic(meta) {
             .map(([ns, level]) => displayName(ns, level));
     }
 
+    // Enchantments on the result that were not chosen (they came along on a book or item),
+    // in tooltip order.
+    function extra(state, node) {
+        return tooltipSort(node.enchantments.filter(e => !(e.namespace in state.wanted)))
+            .map(e => displayName(e.namespace, e.level));
+    }
+
     // Flattens the merge tree into anvil steps, grouped into rounds. A step's round is one
     // after the latest round among the steps it needs (round 1 uses only starting items),
     // so steps in the same round don't depend on each other and can be done in any order.
@@ -409,6 +416,6 @@ export function createLogic(meta) {
         enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks,
-        currentBooks, buildEntries, missing, collectSteps, stepRounds, serialize, deserialize
+        currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, serialize, deserialize
     };
 }

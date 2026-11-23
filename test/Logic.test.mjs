@@ -253,6 +253,13 @@ test("book checks: still needed and not chosen", () => {
     assert.deepStrictEqual(logic.checkBooks({ ...state, auto_books: true }), { short: [], unwanted: [] });
 });
 
+test("extra enchantments on the result are the ones not chosen, in tooltip order", () => {
+    const state = { ...baseState("sword"), wanted: { sharpness: 5 } };
+    const node = { enchantments: [{ namespace: "knockback", level: 2 }, { namespace: "sharpness", level: 5 }, { namespace: "unbreaking", level: 3 }] };
+    assert.deepStrictEqual(logic.extra(state, node), logic.tooltipSort(node.enchantments.filter(e => e.namespace !== "sharpness")).map(e => logic.displayName(e.namespace, e.level)));
+    assert.deepStrictEqual(logic.extra({ ...state, wanted: { sharpness: 5, knockback: 2, unbreaking: 3 } }, node), []);
+});
+
 test("ranking helpers", () => {
     assert.deepStrictEqual(movePriority(CRITERIA, 2, -1), ["levels", "max_step", "xp", "prior_work"]);
     assert.deepStrictEqual(movePriority(CRITERIA, 0, -1), CRITERIA);

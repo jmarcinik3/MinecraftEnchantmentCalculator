@@ -111,6 +111,8 @@ export const TEXT = {
         no_valid_order_within: limit => `No valid order within the ${limit}-level limit.`,
         nothing_to_combine: "Nothing to combine",
         missing: names => `Missing: ${names.join(", ")}`,
+        extra: names => `Also on the item (not chosen): ${names.join(", ")}`,
+        extra_help: "These came along on your books or items. They are included in the cost.",
         cost: levels => `Cost: ${levels}`,
         cost_renamed: levels => `Cost: ${levels} (with rename)`,
         step_done_label: number => `Step ${number} done`,
