@@ -1771,6 +1771,14 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
    prior work. */
 .cell-meta { font: 11px/1.3 system-ui, sans-serif; color: var(--gui-text); text-align: center; }
 .entry-card.highlight { outline: 2px solid var(--accent); outline-offset: 2px; }
+.entry-card.flash { animation: entry-flash 1.4s ease-out; }
+@keyframes entry-flash {
+    from { box-shadow: 0 0 0 6px var(--accent-bg); }
+    to { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .entry-card.flash { animation: none; } }
+/* A starting slot in Steps or Tree: click to find its card in Books and items. */
+[data-entry-link] { cursor: pointer; }
 
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
 /* At least 260px, so on a phone it takes its own row rather than cutting its text. */

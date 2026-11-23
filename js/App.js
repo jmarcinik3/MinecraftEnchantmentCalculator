@@ -2249,7 +2249,7 @@ function mergeTree(root, steps, done, order_key) {
                 class: "tree-line" + (number ? " merge" : "") + (number && done.has(number) ? " done" : ""),
                 "data-step-card": number || null, title: number ? fold_label : null,
                 onclick: number ? event => { if (!event.target.closest(".tree-step, .step-fold")) toggleFold(order_key, number, !folded); } : null,
-                // A starting item lights its card in section 2 (entryHover), as in the Steps view.
+                // A starting item lights its card in section 2 and scrolls to it on a click (entryHover).
                 ...(node.left ? {} : entryHover(node))
             },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
@@ -2492,15 +2492,25 @@ function entryRef(side) {
     return side.kind === "step" ? h("span", { class: "cell-meta" }, TEXT.results.from_step({ number: side.index })) : null;
 }
 
-// Hover and focus handlers that highlight the section 2 card of a starting slot.
+// Attributes for a starting slot (in Steps or Tree): hovering it highlights its section 2
+// card, and a click or tap scrolls to the card and flashes it (useful on phones).
 function entryHover(leaf) {
     const index = entryIndexOf(leaf);
     if (index < 0) return {};
-    const light = on => {
-        const card = document.querySelector(`#books .entry-card[data-index="${index}"]`);
-        if (card) card.classList.toggle("highlight", on);
+    const card = () => document.querySelector(`#books .entry-card[data-index="${index}"]`);
+    const light = on => { const el = card(); if (el) el.classList.toggle("highlight", on); };
+    return {
+        "data-entry-link": "",
+        onmouseenter: () => light(true), onmouseleave: () => light(false),
+        onclick: () => {
+            const el = card();
+            if (!el) return;
+            el.scrollIntoView({ block: "center", behavior: motion_ok() ? "smooth" : "auto" });
+            el.classList.remove("flash");
+            void el.offsetWidth; // restart the flash
+            el.classList.add("flash");
+        }
     };
-    return { onmouseenter: () => light(true), onmouseleave: () => light(false), onfocus: () => light(true), onblur: () => light(false) };
 }
 
 // The section 2 entry a starting slot is (by what it is, its enchantments and prior work;
