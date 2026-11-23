@@ -42,7 +42,7 @@ jobs:
       - name: Collect site files
         run: |
           mkdir _site
-          cp -r index.html css js json img font _site/
+          cp -r index.html ServiceWorker.js manifest.webmanifest css js json img font _site/
       # Give each release new file addresses (?v=<commit>), so browsers that cached the
       # last release load the new code instead of mixing old and new files.
       - name: Stamp file references with the commit

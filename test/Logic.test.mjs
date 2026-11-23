@@ -6,9 +6,13 @@ import { readFileSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+// A module's source as a data: URL, with its imports of other files in js/ turned into
+// data: URLs too (a data: URL has no folder to resolve "./" against).
+const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path)
+    .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
+const { createLogic, editionMetadata, localizedMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
-const { TEXT } = await import("data:text/javascript," + encodeURIComponent(read("../js/Text.js")));
+const { TEXT, LANGUAGES, setLanguage } = await import(moduleUrl("../js/Text.js"));
 const logic = createLogic(meta);
 
 let passed = 0;
@@ -141,6 +145,70 @@ test("Text.js has every ranking criterion and every page string", () => {
     const keys = [...read("../index.html").matchAll(/data-text(?:-label)?="([a-z_]+)\.([a-z_]+)"/g)];
     assert.ok(keys.length >= 6);
     for (const [, section, key] of keys) assert.strictEqual(typeof TEXT[section][key], "string", section + "." + key);
+});
+
+test("every language has the same text entries as English, of the same kind", () => {
+    const shape = (text, path = "") => Object.entries(text).flatMap(([key, value]) =>
+        key === "names" ? [] // English names come from the metadata
+            : value && typeof value === "object" ? shape(value, path + key + ".")
+                : [path + key + ":" + typeof value]);
+    const english = shape(LANGUAGES.en.text).sort();
+    for (const [language, { label, text }] of Object.entries(LANGUAGES)) {
+        assert.ok(label, language);
+        assert.deepStrictEqual(shape(text).sort(), english, language);
+        // Templates take the same values.
+        for (const section of Object.keys(LANGUAGES.en.text)) {
+            for (const [key, value] of Object.entries(LANGUAGES.en.text[section] || {})) {
+                if (typeof value === "function") assert.strictEqual(text[section][key].length, value.length, language + " " + section + "." + key);
+            }
+        }
+        // Every item and enchantment is named (English uses the metadata).
+        if (text.names) {
+            assert.deepStrictEqual(Object.keys(text.names.items).sort(), Object.keys(meta.items).sort(), language);
+            assert.deepStrictEqual(Object.keys(text.names.enchantments).sort(), Object.keys(meta.enchantments).sort(), language);
+        }
+    }
+    assert.strictEqual(setLanguage("es"), "es");
+    assert.strictEqual(TEXT.books.add_book, "Añadir libro");
+    assert.strictEqual(setLanguage("xx"), "en"); // unknown: English
+    assert.strictEqual(TEXT.books.add_book, "Add book");
+});
+
+test("translated names replace the metadata's, in every helper", () => {
+    const spanish = createLogic(localizedMetadata(meta, LANGUAGES.es.text.names));
+    assert.strictEqual(spanish.displayName("protection", 4), "Protección IV");
+    assert.strictEqual(spanish.itemName("boots"), "Botas");
+    assert.strictEqual(spanish.maxLevel("protection"), 4);
+    assert.strictEqual(localizedMetadata(meta, null), meta);
+    assert.strictEqual(meta.items.boots, "Boots"); // the original is not changed
+});
+
+test("level track: the level before and after each step, and what is short", () => {
+    assert.deepStrictEqual(levelTrack([3, 5, 10], 30), {
+        steps: [{ before: 30, after: 27, short: 0 }, { before: 27, after: 22, short: 0 }, { before: 22, after: 12, short: 0 }],
+        end: 12, short: 0
+    });
+    // 4 short at the last step, then 0 left; starting at 18 (the total) would be enough.
+    const short = levelTrack([3, 5, 10], 14);
+    assert.deepStrictEqual(short.steps[2], { before: 6, after: 0, short: 4 });
+    assert.strictEqual(short.short, 4);
+    assert.strictEqual(levelTrack([3, 5, 10], 18).short, 0);
+    assert.strictEqual(levelTrack([2], "").steps[0].short, 2); // blank counts as 0
+});
+
+test("anvil break chance: 3 or more damages at 12% per use", () => {
+    assert.strictEqual(anvilBreakChance(0), 0);
+    assert.strictEqual(anvilBreakChance(2), 0);
+    assert.ok(Math.abs(anvilBreakChance(3) - 0.12 ** 3) < 1e-12);
+    // Brute force over every damage pattern for 8 uses.
+    let expected = 0;
+    for (let mask = 0; mask < 256; mask++) {
+        let hits = 0;
+        for (let bit = 0; bit < 8; bit++) hits += (mask >> bit) & 1;
+        if (hits >= 3) expected += 0.12 ** hits * 0.88 ** (8 - hits);
+    }
+    assert.ok(Math.abs(anvilBreakChance(8) - expected) < 1e-12);
+    assert.ok(anvilBreakChance(100) > 0.99);
 });
 
 test("search size counts identical entries once, matching the engine", () => {

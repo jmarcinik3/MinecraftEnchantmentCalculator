@@ -1,5 +1,5 @@
-import { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, MAX_COPIES, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
-import { TEXT } from "./Text.js";
+import { createLogic, editionMetadata, localizedMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
+import { TEXT, LANGUAGES, setLanguage } from "./Text.js";
 
 const META_URL = "json/metadata.json";
 const WORKER_URL = "js/Calculator.js";
@@ -9,6 +9,14 @@ const SLOW_SPLITS = 1000000;
 const CALC_DELAY_MS = 250;      // wait for the user to stop clicking
 const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
+// Kept in this browser only (not in share links): they are about the viewer, not the setup.
+const LEVEL_STORAGE_KEY = "enchantment-calculator-level";
+const VIEW_STORAGE_KEY = "enchantment-calculator-view";
+const SAVED_STORAGE_KEY = "enchantment-calculator-saved";
+const LANGUAGE_STORAGE_KEY = "enchantment-calculator-language";
+const MAX_PLAYER_LEVEL = 24791; // the highest level in either edition
+const MAX_SETUP_NAME = 100;
+const COPIED_MS = 1500; // how long "Copied" shows on a copy button
 
 let meta = null;
 let logic = null;
@@ -23,6 +31,12 @@ let show_progress = false;
 let calc_timer = null;
 let progress_timer = null;
 let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
+
+let language = "en";
+let player_level = readStorage(LEVEL_STORAGE_KEY, null); // "Your level", or null when blank
+let result_view = readStorage(VIEW_STORAGE_KEY, "steps") === "tree" ? "tree" : "steps";
+let saved_name = ""; // what is typed in the Saved menu's name box
+let removed_setup = null; // { setup, index } of the last setup removed, until Undo or the menu closes
 
 function defaultState() {
     return {
@@ -68,6 +82,36 @@ function icon(item_ns, small = false) {
     });
 }
 
+// Storage can be unavailable (private windows, blocked site data), so every access is
+// guarded and falls back to `fallback`.
+function readStorage(key, fallback) {
+    try {
+        const value = JSON.parse(localStorage.getItem(key));
+        return value == null ? fallback : value;
+    } catch {
+        return fallback;
+    }
+}
+
+function writeStorage(key, value) {
+    try {
+        localStorage.setItem(key, JSON.stringify(value));
+    } catch {
+        // No storage: the value lasts until the page reloads.
+    }
+}
+
+// Copies `text`, showing "Copied" on `button` for a moment, then `label` again.
+async function copyText(button, text, label) {
+    try {
+        await navigator.clipboard.writeText(text);
+        button.textContent = TEXT.results.copied;
+    } catch {
+        button.textContent = TEXT.results.copy_failed;
+    }
+    setTimeout(() => { button.textContent = label; }, COPIED_MS);
+}
+
 // ---------- State changes ----------
 
 // `keep_undo` is only for applying a suggestion: any other change ends the chance to undo it.
@@ -106,7 +150,7 @@ function setAllowIncompatible(allowed) {
 // Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the
 // helpers are rebuilt for it and anything it does not have is dropped.
 function useEdition(edition) {
-    logic = createLogic(editionMetadata(meta, edition));
+    logic = createLogic(localizedMetadata(editionMetadata(meta, edition), TEXT.names));
 }
 
 function setEdition(edition) {
@@ -151,6 +195,8 @@ function addBook(type) {
 // ---------- Rendering ----------
 
 function render() {
+    renderLanguage();
+    renderSaved();
     renderItems();
     renderWanted();
     renderBooks();
@@ -158,6 +204,147 @@ function render() {
     renderRanking();
     renderResults();
 }
+
+// ---------- Language ----------
+
+function renderLanguage() {
+    $("#language").replaceChildren(h("select", {
+        class: "language-select",
+        "aria-label": TEXT.page.language_label,
+        title: TEXT.page.language_label,
+        onchange: event => switchLanguage(event.target.value)
+    }, Object.entries(LANGUAGES).map(([code, { label }]) => h("option", { value: code, selected: code === language }, label))));
+}
+
+// The saved choice, else the browser's language if there is text for it, else English.
+function startingLanguage() {
+    const saved = readStorage(LANGUAGE_STORAGE_KEY, null);
+    if (LANGUAGES[saved]) return saved;
+    const browser = (navigator.language || "en").slice(0, 2).toLowerCase();
+    return LANGUAGES[browser] ? browser : "en";
+}
+
+function applyLanguage(code) {
+    language = setLanguage(code);
+    document.documentElement.lang = language;
+    fillPageText();
+}
+
+function switchLanguage(code) {
+    applyLanguage(code);
+    writeStorage(LANGUAGE_STORAGE_KEY, language);
+    useEdition(state.edition); // item and enchantment names
+    renderMetrics(true);
+    render();
+}
+
+// ---------- Saved setups ----------
+// Setups saved in this browser under a name, from the header's Saved menu. Each is a
+// share link's text, so loading one works like opening its link.
+
+function readSaved() {
+    const list = readStorage(SAVED_STORAGE_KEY, []);
+    return Array.isArray(list) ? list.filter(setup => setup && typeof setup.name === "string" && typeof setup.link === "string") : [];
+}
+
+// "Boots: Protection IV, Mending" for the current setup.
+function defaultSetupName() {
+    if (!state.item) return "";
+    const chosen = logic.summary(Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level })));
+    return [...(logic.itemName(state.item) + (chosen ? ": " + chosen : ""))].slice(0, MAX_SETUP_NAME).join("");
+}
+
+function renderSaved() {
+    const list = readSaved();
+    // Through h(), which skips the missing Undo row (replaceChildren would print "null").
+    $("#saved-panel").replaceChildren(...h("div", {},
+        h("form", {
+            class: "saved-form",
+            onsubmit: event => { event.preventDefault(); saveSetup(saved_name.trim() || defaultSetupName()); }
+        },
+            h("input", {
+                type: "text", class: "rename-input", maxlength: MAX_SETUP_NAME, value: saved_name,
+                placeholder: defaultSetupName(), "aria-label": TEXT.page.save_name_label,
+                oninput: event => { saved_name = event.target.value; }
+            }),
+            h("button", { type: "submit", class: "btn small primary", disabled: !state.item }, TEXT.page.save)
+        ),
+        list.length
+            ? h("ul", { class: "saved-list" }, list.map((setup, index) => h("li", {},
+                h("button", { type: "button", class: "saved-load", title: setup.name, onclick: () => loadSetup(setup.link) },
+                    setup.item && meta.items[setup.item] ? icon(setup.item, true) : null,
+                    h("span", { class: "saved-name" }, setup.name)),
+                h("button", {
+                    type: "button", class: "saved-delete", title: TEXT.page.delete_saved,
+                    "aria-label": TEXT.page.delete_saved_label(setup.name),
+                    onclick: () => deleteSetup(index)
+                }, "×")
+            )))
+            : h("p", { class: "hint" }, TEXT.page.saved_empty),
+        removed_setup ? h("div", { class: "saved-removed" },
+            h("span", { class: "saved-name" }, TEXT.page.removed_saved(removed_setup.setup.name)),
+            h("button", { type: "button", class: "link", onclick: undoRemoveSetup }, TEXT.page.undo_remove)
+        ) : null
+    ).childNodes);
+}
+
+// Saving under a name already in the list replaces that setup; the newest is first.
+function saveSetup(name) {
+    if (!state.item || !name) return;
+    const list = readSaved().filter(setup => setup.name !== name);
+    list.unshift({ name, item: state.item, link: logic.serialize(state) });
+    writeStorage(SAVED_STORAGE_KEY, list);
+    saved_name = "";
+    removed_setup = null;
+    renderSaved();
+}
+
+// Removing asks nothing first; Undo below the list puts it back where it was.
+function deleteSetup(index) {
+    const list = readSaved();
+    const [setup] = list.splice(index, 1);
+    if (!setup) return;
+    removed_setup = { setup, index };
+    writeStorage(SAVED_STORAGE_KEY, list);
+    renderSaved();
+}
+
+function undoRemoveSetup() {
+    if (!removed_setup) return;
+    const { setup, index } = removed_setup;
+    const list = readSaved().filter(other => other.name !== setup.name);
+    list.splice(Math.min(index, list.length), 0, setup);
+    removed_setup = null;
+    writeStorage(SAVED_STORAGE_KEY, list);
+    renderSaved();
+}
+
+function loadSetup(link) {
+    const loaded = readLink(link);
+    if (!loaded) return;
+    state = loaded;
+    useEdition(state.edition);
+    if (state.item) sanitizeAll();
+    $("#saved").open = false;
+    commit();
+}
+
+// The Saved menu closes on a click outside it or on Escape.
+function setupSavedMenu() {
+    const menu = $("#saved");
+    $("#saved > summary").title = TEXT.page.saved_help;
+    document.addEventListener("click", event => {
+        // The path, not contains(): a click on a button the menu then redraws is still inside.
+        if (menu.open && !event.composedPath().includes(menu)) menu.open = false;
+    });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") menu.open = false; });
+    // Undo is offered until the menu closes.
+    menu.addEventListener("toggle", () => {
+        if (!menu.open && removed_setup) { removed_setup = null; renderSaved(); }
+    });
+}
+
+// ---------- Rendering ----------
 
 function renderEdition() {
     $("#edition").replaceChildren(...EDITIONS.map(edition => h("button", {
@@ -545,7 +732,7 @@ function renderMetrics(rebuild = false) {
     const node = result && result.left ? result : null; // nothing to show without a step
     const values = node && {
         levels: node.cumulative_levels,
-        xp: Math.round(node.cumulative_xp).toLocaleString(),
+        xp: Math.round(node.cumulative_xp).toLocaleString(language),
         max_step: node.max_step,
         prior_work: node.prior_work
     };
@@ -618,8 +805,27 @@ function renderRanking() {
                 TEXT.ranking.rename
             ),
             state.rename ? nameInput() : null
+        ),
+        h("div", { class: "ranking-row", title: TEXT.ranking.your_level_help },
+            h("span", { class: "ranking-label" }, TEXT.ranking.your_level),
+            levelInput()
         )
     );
+}
+
+// "Your level": only changes what the steps show, so typing redraws just the results.
+function levelInput() {
+    return h("input", {
+        type: "number", class: "step-limit player-level", min: 0, max: MAX_PLAYER_LEVEL, inputmode: "numeric",
+        value: player_level, placeholder: TEXT.ranking.your_level_placeholder,
+        "aria-label": TEXT.ranking.your_level_label,
+        oninput: event => {
+            const text = event.target.value.trim();
+            player_level = text === "" ? null : Math.min(MAX_PLAYER_LEVEL, Math.max(0, Math.floor(Number(text)) || 0));
+            writeStorage(LEVEL_STORAGE_KEY, player_level);
+            renderResults();
+        }
+    });
 }
 
 // The new name for the finished item. It does not change the cost, so typing only
@@ -705,6 +911,37 @@ function renderResults() {
         content.append(h("div", { class: "note-box", title: TEXT.results.extra_help }, TEXT.results.extra(extra)));
     }
 
+    // Only on paper: what is being made, since the inputs are not printed.
+    content.append(h("p", { class: "print-only" }, TEXT.results.text_wanted(logic.itemName(state.item), logic.summary(node.enchantments))));
+
+    // With "Your level" filled in: the level before and after each step, in step order.
+    const track = player_level == null ? null : levelTrack(steps.map(step => step.node.merge_levels), player_level);
+    content.append(h("div", { class: "result-facts" },
+        h("span", { title: TEXT.results.anvil_wear_help },
+            TEXT.results.anvil_wear(steps.length, percentText(anvilBreakChance(steps.length)))),
+        track ? h("span", { class: track.short ? "short" : null }, track.short
+            ? TEXT.results.levels_needed(track.short, node.cumulative_levels)
+            : TEXT.results.levels_left(track.end)) : null
+    ));
+
+    content.append(h("div", { class: "toolbar result-tools" },
+        h("div", { class: "segmented", role: "group", "aria-label": TEXT.results.view_label },
+            [["steps", TEXT.results.view_steps], ["tree", TEXT.results.view_tree]].map(([view, label]) => h("button", {
+                type: "button", class: result_view === view ? "selected" : "", "aria-pressed": String(result_view === view),
+                onclick: () => { result_view = view; writeStorage(VIEW_STORAGE_KEY, view); renderResults(); }
+            }, label))),
+        h("button", {
+            type: "button", class: "btn small copy-steps", title: TEXT.results.copy_steps_help,
+            onclick: event => copyText(event.currentTarget, stepsText(node, steps), TEXT.results.copy_steps)
+        }, TEXT.results.copy_steps),
+        h("button", { type: "button", class: "btn small", title: TEXT.results.print_help, onclick: () => window.print() }, TEXT.results.print)
+    ));
+
+    if (result_view === "tree") {
+        content.append(mergeTree(node, steps));
+        return;
+    }
+
     const order_key = orderKey(steps);
     const done = loadChecklist(order_key);
     // One group per round: its steps don't depend on each other, so any order works.
@@ -712,8 +949,64 @@ function renderResults() {
     content.append(h("div", { class: "rounds" }, rounds.map((round, index) => h("section", { class: "round" },
         h("div", { class: "round-label", title: round.length > 1 ? TEXT.results.round_help : null },
             TEXT.results.round(index + 1, round.length)),
-        h("ol", { class: "anvil-steps" }, round.map(step => anvilStep(step, done, order_key)))
+        h("ol", { class: "anvil-steps" }, round.map(step => anvilStep(step, done, order_key, track && track.steps[step.number - 1])))
     ))));
+}
+
+// 0.04 as "4%" in the page's language; tiny chances as "under 1%" rather than "0%".
+function percentText(chance) {
+    if (chance > 0 && chance < 0.01) return TEXT.results.under_one_percent;
+    return new Intl.NumberFormat(language, { style: "percent", maximumFractionDigits: 0 }).format(chance);
+}
+
+// The name an anvil slot shows: the new name on a renamed result, "Enchanted Book" for
+// a book with enchantments, otherwise the item's name.
+function nodeName(node) {
+    if (node.renamed && state.rename_to.trim()) return state.rename_to;
+    return node.item_namespace === "book" && node.enchantments.length ? TEXT.results.enchanted_book : logic.itemName(node.item_namespace);
+}
+
+// The order as a tree: the finished item on top, and under each merge the two things
+// that went into it (first slot first), down to the books and items you start with.
+function mergeTree(root, steps) {
+    const numbers = new Map(steps.map(step => [step.node, step.number]));
+    const branch = node => {
+        const number = numbers.get(node);
+        const enchanted = node.enchantments.length > 0;
+        return h("li", { class: "tree-node" },
+            h("div", { class: "tree-line" + (number ? " merge" : "") },
+                h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
+                h("span", { class: "tree-text" },
+                    h("span", { class: "tree-name" + (node.renamed && state.rename_to.trim() ? " renamed" : "") }, nodeName(node)),
+                    enchanted ? h("span", { class: "tree-ench" }, logic.summary(node.enchantments)) : null),
+                number ? h("span", { class: "tree-step" }, TEXT.results.tree_step(number, node.merge_levels)) : null
+            ),
+            node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
+        );
+    };
+    return h("ul", { class: "merge-tree" }, branch(root));
+}
+
+// The steps as plain text, for pasting in a chat: what is made, the totals, then each
+// round's steps, and the link to this setup.
+function stepsText(root, steps) {
+    const text = TEXT.results;
+    const part = side => side.kind === "step"
+        ? text.text_result_of(side.index)
+        : text.text_entry(nodeName(side.node), logic.summary(side.node.enchantments));
+    const lines = [
+        text.text_wanted(logic.itemName(state.item), logic.summary(root.enchantments)),
+        text.text_totals(root.cumulative_levels, Math.round(root.cumulative_xp).toLocaleString(language), root.max_step)
+    ];
+    logic.stepRounds(steps).forEach((round, index) => {
+        lines.push("", text.round(index + 1, round.length));
+        for (const step of round) {
+            const rename = step.node.renamed ? " (" + text.text_rename(state.rename_to.trim()) + ")" : "";
+            lines.push(text.text_step(step.number, part(step.left), part(step.right), step.node.merge_levels) + rename);
+        }
+    });
+    lines.push("", location.href);
+    return lines.join("\n");
 }
 
 // ---------- Step checklist ----------
@@ -749,7 +1042,8 @@ function saveChecklist(order_key, done) {
 
 // One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a
 // box to tick it off.
-function anvilStep(step, done, order_key) {
+// `level`: { before, after, short } with "Your level" filled in, else null.
+function anvilStep(step, done, order_key, level = null) {
     const number = step.number;
     const tick = h("input", {
         type: "checkbox",
@@ -777,7 +1071,10 @@ function anvilStep(step, done, order_key) {
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
                 h("span", { class: "anvil-cost" }, step.node.renamed
                     ? TEXT.results.cost_renamed(step.node.merge_levels)
-                    : TEXT.results.cost(step.node.merge_levels))
+                    : TEXT.results.cost(step.node.merge_levels)),
+                level ? h("span", { class: "level-track" + (level.short ? " short" : "") }, level.short
+                    ? TEXT.results.level_short(level.short)
+                    : TEXT.results.level_track(level.before, level.after)) : null
             ),
             anvilCell(step.node, changed, "result")
         )
@@ -787,12 +1084,10 @@ function anvilStep(step, done, order_key) {
 // An inventory slot with a game-style tooltip underneath. The name is colored by rarity.
 // `role` is "left", "right" or "result", for the layout.
 function anvilCell(node, changed, role) {
-    const is_book = node.item_namespace === "book";
     const enchanted = node.enchantments.length > 0;
     // A renamed item shows its new name in italics, as in the game.
     const renamed = Boolean(node.renamed && state.rename_to.trim());
-    const name = renamed ? state.rename_to
-        : is_book && enchanted ? TEXT.results.enchanted_book : logic.itemName(node.item_namespace);
+    const name = nodeName(node);
     const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "");
     const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
         class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
@@ -905,12 +1200,21 @@ function saveToUrl() {
 
 function loadFromUrl() {
     const hash = location.hash.slice(1);
-    if (!hash) return;
+    const loaded = hash ? readLink(hash) : null;
+    if (loaded) state = loaded;
+}
+
+// The state in a share link's text, or null if it is not valid. Read with the Java
+// helpers, which know every enchantment; the caller then switches to the link's edition.
+function readLink(text) {
     try {
-        const loaded = logic.deserialize(hash, () => next_book_id++);
-        if (loaded) state = loaded;
+        useEdition("java");
+        return logic.deserialize(text, () => next_book_id++);
     } catch (error) {
         console.warn("Ignoring invalid link", error);
+        return null;
+    } finally {
+        useEdition(state.edition);
     }
 }
 
@@ -958,15 +1262,7 @@ function infoTip(id, button_text, label, text, extra_class = "") {
 
 function setupCopyLink() {
     const button = $("#copy-link");
-    button.addEventListener("click", async () => {
-        try {
-            await navigator.clipboard.writeText(location.href);
-            button.textContent = TEXT.page.copied;
-        } catch {
-            button.textContent = TEXT.page.copy_failed;
-        }
-        setTimeout(() => { button.textContent = TEXT.page.copy_link; }, 1500);
-    });
+    button.addEventListener("click", () => copyText(button, location.href, TEXT.page.copy_link));
 }
 
 // ---------- Start ----------
@@ -986,7 +1282,7 @@ function fillPageText() {
 }
 
 async function init() {
-    fillPageText();
+    applyLanguage(startingLanguage());
     try {
         const response = await fetch(META_URL);
         meta = await response.json();
@@ -996,15 +1292,20 @@ async function init() {
     }
     useEdition("java");
     loadFromUrl();
-    if (state.edition !== "java") {
-        useEdition(state.edition);
-        if (state.item) sanitizeAll();
-    }
+    if (state.edition !== "java" && state.item) sanitizeAll();
     startWorker();
     setupCopyLink();
     setupInfoTip();
+    setupSavedMenu();
     render();
     runCalculation();
+    registerOffline();
+}
+
+// Keeps a copy of the site for use without a connection (ServiceWorker.js).
+function registerOffline() {
+    if (!("serviceWorker" in navigator) || location.protocol === "file:") return;
+    navigator.serviceWorker.register("ServiceWorker.js").catch(error => console.warn("Offline use is unavailable", error));
 }
 
 init();

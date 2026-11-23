@@ -5,7 +5,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 `python -m http.server 8080`.
 
 ## Files
-- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking` options, `#metrics` tiles, `#edition`, `#copy-link`).
+- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking` options, `#metrics` tiles, `#edition`, `#copy-link`,
+  `#language`, and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
   (`rename_to` is display-only: italic name on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
@@ -19,6 +20,10 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Text.js` (ES module): `TEXT`, every string the page shows (labels, tooltips, messages), grouped by
   section; templated ones are functions (`name => ...`). index.html headings use `data-text="section.key"`.
   Add new UI text here, not inline in App.js. A test checks the criteria and `data-text` keys exist.
+  Languages: `EN` lives in Text.js, others in `js/Text<Language>.js` (`TextSpanish.js` = `ES`), listed in `LANGUAGES`;
+  `setLanguage(code)` swaps `TEXT`'s contents in place. Each language has the same keys (a test checks keys, kinds
+  and template arity), plus `names: { items, enchantments }` (English: `null`, from metadata) that Logic.js
+  `localizedMetadata` puts into the metadata App.js `useEdition` gives `createLogic`. A new string goes in every language.
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta, { edition }) -> { solve, combine, makeLeaf }`,
   `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `EDITIONS`, `MAXIMUM_MERGE_LEVELS`, `MAXIMUM_GROUPS`.
@@ -31,7 +36,12 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
-- App.js extras: the step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
+- App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
+  (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps/Tree view
+  (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,
+  loaded via `readLink`; × removes one, with Undo until the menu closes: `removed_setup`), and the language. Results also show anvil wear (Logic.js `anvilBreakChance`: 12% damage per
+  use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
+  The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
   keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
@@ -46,6 +56,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
 - `json/metadata.json`: keys `enchantments` ({incompatible, items, max_level, stylized, weight}), `items`,
   `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
+- `ServiceWorker.js` (site root, since a worker only covers its folder): offline copy, network first (with `cache: "no-cache"`, so the HTTP cache never serves a stale file). Precaches the
+  JS/CSS/JSON files (add new ones to `FILES`); `VERSION` is stamped on deploy so the URLs match and old caches go.
+  `manifest.webmanifest` + `img/app_icon_*.png` make it installable.
 - `css/Style.css`, `img/<item>.png|svg`, `font/minecraft.woff`.
 
 ## Game rules implemented (Engine.js)
@@ -62,14 +75,14 @@ Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `to
 
 ## Tests (run after engine/logic changes)
 `node test/Engine.test.js` (includes brute-force cross-check) and `node test/Logic.test.mjs`
-(loads Logic.js through a data: URL).
+(loads Logic.js and Text.js through data: URLs, `moduleUrl` inlining their `./X.js` imports).
 
 ## CI and hosting
 `.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run. On `main`,
-if the tests pass, it copies `index.html css js json img font` into `_site/` and deploys to GitHub Pages at
+if the tests pass, it copies `index.html ServiceWorker.js manifest.webmanifest css js json img font` into `_site/` and deploys to GitHub Pages at
 https://jmarcinik3.github.io/MinecraftEnchantmentCalculator/. New top-level site folders must be added to that copy step.
-Deploy then runs `.github/stamp-version.sh`, which adds `?v=<commit>` to the page's references to its CSS, JS modules,
-worker, Engine.js and metadata (in `_site` only), so cached copies (phones especially) are not reused. It fails if a
+Deploy then runs `.github/stamp-version.sh`, which adds `?v=<commit>` to the page's references to its CSS, JS modules
+(including Text.js's language imports), worker, Engine.js and metadata, and sets ServiceWorker.js `VERSION` (in `_site` only), so cached copies (phones especially) are not reused. It fails if a
 reference is missing: when renaming or adding one of those files or imports, update the script.
 
 ## Conventions

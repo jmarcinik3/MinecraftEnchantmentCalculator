@@ -78,6 +78,53 @@ function fromLinkText(link) {
     return new TextDecoder().decode(Uint8Array.from(binary, char => char.charCodeAt(0)));
 }
 
+// The metadata with item and enchantment names in another language: `names` is
+// { items: {ns: name}, enchantments: {ns: name} } (Text.js `names`); missing ones stay English.
+export function localizedMetadata(meta, names) {
+    if (!names) return meta;
+    const enchantments = {};
+    for (const [ns, data] of Object.entries(meta.enchantments)) {
+        const name = names.enchantments && names.enchantments[ns];
+        enchantments[ns] = name ? { ...data, stylized: name } : data;
+    }
+    return { ...meta, enchantments, items: { ...meta.items, ...(names.items || {}) } };
+}
+
+// Each anvil use has a 12% chance to damage the anvil (Java and Bedrock alike), and a
+// new anvil breaks on its 3rd damage (anvil -> chipped -> damaged -> gone).
+export const ANVIL_DAMAGE_CHANCE = 0.12;
+export const ANVIL_DAMAGE_STAGES = 3;
+
+// The chance that a new anvil breaks somewhere in `uses` uses: 3 or more damages.
+export function anvilBreakChance(uses) {
+    if (uses < ANVIL_DAMAGE_STAGES) return 0;
+    const p = ANVIL_DAMAGE_CHANCE;
+    let survive = 0; // chance of fewer than 3 damages
+    let term = (1 - p) ** uses; // chance of exactly k damages, starting at k = 0
+    for (let k = 0; k < ANVIL_DAMAGE_STAGES && k <= uses; k++) {
+        survive += term;
+        term *= ((uses - k) / (k + 1)) * (p / (1 - p));
+    }
+    return Math.max(0, 1 - survive);
+}
+
+// Follows the player's level through the steps in order (each step needs at least its
+// cost, which it then takes). When a step costs more than the player has, `short` is how
+// many levels to gain first; they are then assumed to have exactly enough, so 0 after.
+// Returns { steps: [{ before, after, short }], end, short } with the totals.
+export function levelTrack(costs, start_level) {
+    let level = Math.max(0, Math.floor(Number(start_level) || 0));
+    let total_short = 0;
+    const steps = costs.map(cost => {
+        const before = level;
+        const short = Math.max(0, cost - level);
+        total_short += short;
+        level = Math.max(0, level - cost);
+        return { before, after: level, short };
+    });
+    return { steps, end: level, short: total_short };
+}
+
 // Most groups of entries the search may remember (must match Engine.js): as many as
 // 20 all-different entries. Repeated entries add far fewer.
 export const MAX_GROUPS = 2 ** 20;

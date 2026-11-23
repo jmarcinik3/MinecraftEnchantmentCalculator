@@ -1,4 +1,6 @@
 // Every piece of text the page shows, in one place: edit the wording here.
+// Each language is one object with the same keys (a test checks they match); English
+// is `EN` here, the others are in js/Text<Language>.js. `TEXT` is the one in use.
 //
 // - Plain entries are used as they are.
 // - Entries written as `name => ...` fill in a value. Keep the `${...}` parts and
@@ -6,9 +8,12 @@
 // - `help` entries are tooltips (shown on hover). `label` entries ending in `_label`
 //   are read aloud by screen readers but not shown.
 //
-// Item and enchantment names come from json/metadata.json, not from here.
+// English item and enchantment names come from json/metadata.json; other languages
+// list theirs under `names`.
 
-export const TEXT = {
+import { ES } from "./TextSpanish.js";
+
+const EN = {
     // Page title and the headings in index.html.
     page: {
         title: "Enchantment Calculator",
@@ -21,6 +26,17 @@ export const TEXT = {
         copied: "Copied",
         copy_failed: "Copy failed",
         edition_label: "Edition",
+        language_label: "Language",
+        // Setups saved in this browser, in the header.
+        saved: "Saved",
+        saved_help: "Setups saved in this browser",
+        save: "Save",
+        save_name_label: "Name for this setup",
+        saved_empty: "Nothing saved yet.",
+        delete_saved: "Remove",
+        delete_saved_label: name => `Remove ${name}`,
+        removed_saved: name => `Removed ${name}`,
+        undo_remove: "Undo",
         // The edition toggle in the header.
         editions: {
             java: { label: "Java", help: "Java Edition anvil rules" },
@@ -112,7 +128,11 @@ export const TEXT = {
         rename: "Rename",
         rename_help: "Rename the item in the last step. Renaming adds 1 level to that step.",
         rename_placeholder: "New name (optional)",
-        rename_label: "New name for the finished item"
+        rename_label: "New name for the finished item",
+        your_level: "Your level",
+        your_level_help: "Your XP level now, to see what you have left after each step",
+        your_level_placeholder: "optional",
+        your_level_label: "Your current XP level"
     },
 
     // The results: progress, messages, and the anvil steps.
@@ -138,7 +158,55 @@ export const TEXT = {
         round_help: "These steps don't need each other's results, so do them in any order.",
         step_done_help: "Tick off steps as you do them. Kept in this browser.",
         enchanted_book: "Enchanted Book",
+        // With "Your level" filled in: the level before and after each step.
+        level_track: (before, after) => `Lv ${before} → ${after}`,
+        level_short: count => `Need ${count} more ${count === 1 ? "level" : "levels"}`,
+        levels_left: level => `You end at level ${level}.`,
+        levels_needed: (short, start) => `${short} more ${short === 1 ? "level" : "levels"} needed in total: start at level ${start} or higher.`,
+        // Chance a new anvil breaks: each use damages it 12% of the time, the 3rd damage breaks it.
+        anvil_wear: (uses, chance) => `${uses} anvil ${uses === 1 ? "use" : "uses"} · a new anvil breaks ${chance} of the time`,
+        anvil_wear_help: "Each anvil use has a 12% chance to damage the anvil. A new anvil breaks on its third damage.",
+        under_one_percent: "under 1%",
+        // The steps can also be shown as a tree, copied as text, or printed.
+        view_label: "Show the order as",
+        view_steps: "Steps",
+        view_tree: "Tree",
+        tree_step: (number, levels) => `Step ${number} · ${levels} ${levels === 1 ? "level" : "levels"}`,
+        copy_steps: "Copy steps",
+        copy_steps_help: "Copy the steps as text, e.g. to paste in a chat",
+        copied: "Copied",
+        copy_failed: "Copy failed",
+        print: "Print",
+        print_help: "Print the steps, or save them as a PDF",
+        // The copied text.
+        text_wanted: (item, enchantments) => `${item}: ${enchantments}`,
+        text_totals: (levels, xp, max_step) => `${levels} levels in total (${xp} XP), at most ${max_step} in one step`,
+        text_entry: (name, enchantments) => (enchantments ? `${name} (${enchantments})` : name),
+        text_result_of: number => `result of step ${number}`,
+        text_step: (number, left, right, levels) => `${number}. ${left} + ${right}: ${levels} ${levels === 1 ? "level" : "levels"}`,
+        text_rename: name => (name ? `rename to "${name}"` : "rename"),
         worker_failed: "The calculator failed to load. Check the browser console for details.",
         metadata_failed: "Couldn't load the enchantment data. Serve this folder over HTTP instead of opening the file directly."
-    }
+    },
+
+    // English names come from json/metadata.json.
+    names: null
 };
+
+// Every language: its name in its own language, and its text.
+export const LANGUAGES = {
+    en: { label: "English", text: EN },
+    es: { label: "Español", text: ES }
+};
+
+// The text in use. setLanguage swaps its contents, so modules holding TEXT see the change.
+export const TEXT = {};
+
+export function setLanguage(language) {
+    const chosen = LANGUAGES[language] ? language : "en";
+    for (const key of Object.keys(TEXT)) delete TEXT[key];
+    Object.assign(TEXT, LANGUAGES[chosen].text);
+    return chosen;
+}
+
+setLanguage("en");

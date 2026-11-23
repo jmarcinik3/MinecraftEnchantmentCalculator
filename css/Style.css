@@ -703,3 +703,188 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     .anvil-row { column-gap: 4px; grid-template-columns: minmax(0, 1fr) 8px minmax(0, 1fr); }
     .mc-tooltip { padding: 3px 4px; }
 }
+
+/* Language picker and the Saved menu in the header */
+.language-select {
+    font: inherit;
+    font-size: 13px;
+    padding: 3px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+}
+.saved-menu { position: relative; }
+.saved-menu > summary { list-style: none; }
+.saved-menu > summary::-webkit-details-marker { display: none; }
+.saved-menu > summary::after { content: "▾"; font-size: 10px; }
+.saved-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    width: min(300px, calc(100vw - 32px));
+    padding: 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    font-size: 13px;
+}
+.saved-form { display: flex; gap: 6px; }
+.saved-form .rename-input { flex: 1; width: auto; min-width: 0; }
+.saved-form button:disabled { opacity: 0.5; cursor: default; }
+.saved-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; max-height: 50vh; overflow-x: hidden; overflow-y: auto; }
+/* The name takes what is left, so a long one is cut short instead of pushing out the ×. */
+.saved-list li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 4px; }
+.saved-load {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 6px;
+    border: none;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+.saved-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.saved-load:hover { background: var(--accent-bg); color: var(--accent-text); }
+.saved-load .item-icon.small { width: 20px; height: 20px; flex: none; }
+.saved-delete {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-secondary);
+    font: 16px/1 system-ui, sans-serif;
+    cursor: pointer;
+}
+.saved-delete:hover, .saved-delete:focus-visible { border-color: var(--danger-text); background: var(--danger-bg); color: var(--danger-text); }
+.saved-removed {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+    color: var(--text-secondary);
+}
+.saved-removed .link { flex: none; }
+.saved-panel .hint { margin: 8px 0 0; font-size: 13px; }
+
+/* "Your level" and what it shows on each step */
+.step-limit.player-level { width: 84px; }
+.level-track {
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--text-secondary);
+    font-family: system-ui, sans-serif;
+}
+.level-track.short { color: var(--danger-text); font-weight: 600; }
+
+/* Anvil wear and the level summary, above the steps */
+.result-facts {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-bottom: 10px;
+    font-size: 12px;
+    color: var(--text-secondary);
+}
+.result-facts .short { color: var(--danger-text); font-weight: 600; }
+.result-tools .copy-steps { margin-left: auto; }
+
+/* The order as a tree: each merge with its two inputs indented below it */
+.merge-tree, .tree-children { list-style: none; margin: 0; padding: 0; }
+.tree-children { margin-left: 14px; padding-left: 12px; border-left: 1px solid var(--border-strong); }
+.tree-node { position: relative; }
+.tree-children > .tree-node::before {
+    content: "";
+    position: absolute;
+    left: -12px;
+    top: 18px;
+    width: 10px;
+    border-top: 1px solid var(--border-strong);
+}
+/* The last child's line stops at its own branch. */
+.tree-children > .tree-node:last-child::after {
+    content: "";
+    position: absolute;
+    left: -13px;
+    top: 19px;
+    bottom: 0;
+    border-left: 3px solid var(--surface);
+}
+.tree-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; min-width: 0; }
+.tree-slot {
+    position: relative;
+    flex: none;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #8b8b8b;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+    overflow: hidden;
+}
+.tree-slot .item-icon.small { width: 22px; height: 22px; }
+.tree-slot.glint::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(115deg, transparent 30%, rgba(170, 90, 255, 0.45) 45%, rgba(210, 160, 255, 0.55) 50%, transparent 65%);
+    background-size: 250% 100%;
+    mix-blend-mode: screen;
+    animation: glint 3s linear infinite;
+    pointer-events: none;
+}
+.tree-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.tree-name { font-size: 13px; font-weight: 600; }
+.tree-name.renamed { font-style: italic; }
+.tree-ench { font-size: 12px; color: var(--text-secondary); }
+.tree-step {
+    margin-left: auto;
+    flex: none;
+    font-size: 11px;
+    padding: 1px 6px;
+    border-radius: 9px;
+    background: var(--accent-bg);
+    color: var(--accent-text);
+    white-space: nowrap;
+}
+@media (prefers-reduced-motion: reduce) {
+    .tree-slot.glint::after { animation: none; background-position: 50% 0; }
+}
+
+.print-only { display: none; }
+
+/* Print: only the result, in black on white, with steps kept whole on a page. */
+@media print {
+    :root {
+        --bg: #fff; --surface: #fff; --surface-alt: #fff; --text: #000;
+        --text-secondary: #333; --text-muted: #555; --border: #bbb; --border-strong: #888;
+        --accent-bg: #eee; --accent-text: #000; --danger-text: #a01818;
+        color-scheme: light;
+    }
+    .print-only { display: block; margin: 0 0 10px; font-weight: 600; }
+    body { font-size: 12px; }
+    .header-actions, .inputs, #ranking, .info-tip, .rank-move, .result-tools, .progress,
+    .anvil-step-num input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
+    .site-header { padding: 0 0 8px; }
+    .layout { display: block; padding: 0; max-width: none; }
+    .results-column { position: static; }
+    .results-card { max-height: none; overflow: visible; border: none; padding: 0; }
+    .stale { opacity: 1; }
+    .anvil-step, .tree-line, .metric { break-inside: avoid; }
+    .anvil-step.done .anvil-row { opacity: 1; }
+    /* Game colors on paper: keep the slots and tooltips as drawn. */
+    .mc-slot, .mc-tooltip, .tree-slot, .anvil-cost { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

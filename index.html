@@ -4,6 +4,10 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title></title>
+    <meta name="theme-color" content="#6a3fd1">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" type="image/png" href="img/app_icon_192.png">
+    <link rel="apple-touch-icon" href="img/app_icon_180.png">
     <link rel="stylesheet" href="css/Style.css">
     <script type="module" src="js/App.js"></script>
 </head>
@@ -11,6 +15,11 @@
     <header class="site-header">
         <h1 data-text="page.heading"></h1>
         <div class="header-actions">
+            <div id="language"></div>
+            <details id="saved" class="saved-menu">
+                <summary class="btn small" data-text="page.saved"></summary>
+                <div id="saved-panel" class="saved-panel"></div>
+            </details>
             <div id="edition" class="segmented" role="group" data-text-label="page.edition_label"></div>
             <button id="copy-link" class="btn small" type="button" data-text="page.copy_link"></button>
         </div>

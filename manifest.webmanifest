@@ -1,0 +1,14 @@
+{
+    "name": "Enchantment Calculator",
+    "short_name": "Enchanting",
+    "description": "The cheapest anvil order for combining enchanted books and items in Minecraft",
+    "start_url": "./",
+    "scope": "./",
+    "display": "standalone",
+    "background_color": "#161517",
+    "theme_color": "#6a3fd1",
+    "icons": [
+        { "src": "img/app_icon_192.png", "sizes": "192x192", "type": "image/png" },
+        { "src": "img/app_icon_512.png", "sizes": "512x512", "type": "image/png" }
+    ]
+}
