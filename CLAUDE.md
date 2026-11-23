@@ -20,10 +20,15 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta) -> { solve, combine, makeLeaf }`,
   `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `MAXIMUM_MERGE_LEVELS`.
-  `solve(entries, { priority, max_merge_levels, onProgress })` memoizes on item-subset bitmask, keeping the best
+  `solve(entries, { priority, max_merge_levels, onProgress })` memoizes on groups of entries, keeping the best
   nodes per (prior work, enchantment signature); returns the root merge-tree node (`left`/`right` children) or null.
   Totals (levels, XP) are additive, so one node per bucket is exact; when `max_step` outranks a total, the bucket
   keeps a Pareto front over (max step, totals) instead (see `dominance`). Old `objective` option still accepted.
+  Speed: identical entries are one "kind", and a group is a mixed-radix code of how many of each kind it holds
+  (`groupKinds`), so repeats are not re-solved. Each merge is `preview`ed into scratch space and only built if it
+  survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
+  Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
+  `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
 - `js/Calculator.js`: worker. Messages in: `instantiate_metadata`, `calculate_optimal`. Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable

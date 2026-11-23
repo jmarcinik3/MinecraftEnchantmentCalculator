@@ -37,6 +37,30 @@ export function clampStepLimit(value) {
     return Number.isInteger(n) ? Math.min(MAX_STEP_LEVELS, Math.max(1, n)) : MAX_STEP_LEVELS;
 }
 
+// Most groups of entries the search may remember (must match Engine.js): as many as
+// 20 all-different entries. Repeated entries add far fewer.
+export const MAX_GROUPS = 2 ** 20;
+
+// How big a search `entries` (from buildEntries) needs, counting identical entries once
+// as Engine.js does: `groups` it must remember, and `splits` (left/right divisions) it
+// tries, which is what the time grows with. With c copies of each kind:
+//   groups = product of (c + 1), splits = product of (c + 1)(c + 2) / 2 - 2 groups + 1.
+export function searchSize(entries) {
+    const copies = new Map();
+    for (const [item, enchantment_list, prior_work] of entries) {
+        const sorted = [...enchantment_list].sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0));
+        const kind = item + "|" + prior_work + "|" + sorted.map(([ns, level]) => ns + ":" + Number(level)).join(",");
+        copies.set(kind, (copies.get(kind) || 0) + 1);
+    }
+    let groups = 1;
+    let pairs = 1;
+    for (const c of copies.values()) {
+        groups *= c + 1;
+        pairs *= (c + 1) * (c + 2) / 2;
+    }
+    return { groups, splits: pairs - 2 * groups + 1 };
+}
+
 // Common choices when enchantments conflict, used by "Max all".
 const PREFERRED = ["sharpness", "density", "protection", "fortune", "mending", "depth_strider", "loyalty", "channeling", "multishot"];
 

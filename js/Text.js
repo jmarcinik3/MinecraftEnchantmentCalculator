@@ -80,7 +80,8 @@ export const TEXT = {
 
     // The results: progress, messages, and the anvil steps.
     results: {
-        too_many_items: (count, threshold) => `${count} items. Each one past ${threshold} roughly triples the wait.`,
+        slow_search: count => `${count} entries: this may take a while.`,
+        too_many_different: "Too many different entries. Repeated books are fine, but at most 20 different ones.",
         cancel: "Cancel",
         cancelled: "Cancelled. ",
         run_again: "Run again",

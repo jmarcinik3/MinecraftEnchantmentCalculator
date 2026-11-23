@@ -204,6 +204,55 @@ test("every ranking and step limit matches brute force", () => {
     }
 });
 
+test("repeated identical entries match brute force for every ranking", () => {
+    const orders = permutations(CRITERIA);
+    let seed = 2024;
+    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    // A tiny pool, so most inputs repeat an entry.
+    const pool = [["book", [["sharpness", 1]], 0], ["book", [["sharpness", 2]], 0], ["book", [["unbreaking", 1]], 1], ["sword", [], 0]];
+    for (let trial = 0; trial < 25; trial++) {
+        const entries = [["sword", [], rand(2)]];
+        for (let i = 0, extra = 2 + rand(4); i < extra; i++) entries.push(pool[rand(pool.length)]);
+        const cap = [39, 9, Infinity][rand(3)];
+        const trees = allTrees(entries, cap);
+        for (const priority of orders) {
+            const fast = engine.solve(entries, { priority, max_merge_levels: cap });
+            const label = JSON.stringify({ entries, priority, cap });
+            assert.strictEqual(fast === null, trees.length === 0, label);
+            if (!fast) continue;
+            const best_value = Math.max(...trees.map(valueOf));
+            const slow = trees.filter(t => valueOf(t) === best_value).sort((a, b) => {
+                for (const c of priority) if (a[FIELDS[c]] !== b[FIELDS[c]]) return a[FIELDS[c]] - b[FIELDS[c]];
+                return 0;
+            })[0];
+            for (const c of priority) assert.strictEqual(fast[FIELDS[c]], slow[FIELDS[c]], label + " " + c);
+        }
+    }
+});
+
+test("progress total counts each split of identical entries once", () => {
+    // Kinds with 1, 3 and 1 copies.
+    const entries = [["sword", [], 0], ...Array(3).fill(["book", [["sharpness", 1]], 0]), ["book", [["mending", 1]], 0]];
+    let expected = 0;
+    for (let a = 0; a <= 1; a++) for (let b = 0; b <= 3; b++) for (let c = 0; c <= 1; c++) {
+        if (a + b + c > 0) expected += (a + 1) * (b + 1) * (c + 1) - 2;
+    }
+    const calls = [];
+    engine.solve(entries, { onProgress: (done, total) => calls.push([done, total]) });
+    assert.deepStrictEqual(calls[calls.length - 1], [expected, expected]);
+});
+
+test("many different enchantments fall back to text keys and stay exact", () => {
+    // Every enchantment in the game between three books: too many for exact number keys.
+    const names = Object.keys(metadata.enchantments);
+    const third = Math.ceil(names.length / 3);
+    const entries = [0, 1, 2].map(i => ["book", names.slice(i * third, (i + 1) * third).map(ns => [ns, 1]), 0]);
+    const fast = engine.solve(entries, { max_merge_levels: Infinity });
+    const slow = allTrees(entries, Infinity).sort((a, b) => a.cumulative_levels - b.cumulative_levels || a.cumulative_xp - b.cumulative_xp)[0];
+    assert.strictEqual(fast.enchantments.length, names.length);
+    assert.strictEqual(fast.cumulative_levels, slow.cumulative_levels);
+});
+
 test("step limit lowers the most expensive step", () => {
     const entries = [
         ["sword", [], 0],
@@ -243,6 +292,13 @@ test("the highest prior work the step limit allows can still be used", () => {
     // Prior work 5 costs 31; 6 would cost 63, more than 39.
     assert.ok(engine.solve([["sword", [], 5], ["book", [["mending", 1]], 0]]));
     assert.strictEqual(engine.solve([["sword", [], 6], ["book", [["mending", 1]], 0]]), null);
+});
+
+test("many repeated entries are allowed; too many different ones are not", () => {
+    const result = engine.solve([["sword", [], 0], ...Array(24).fill(["book", [["sharpness", 1]], 0])], { max_merge_levels: Infinity });
+    assert.deepStrictEqual(levelsOf(result), { sharpness: 5 });
+    const different = Array.from({ length: 21 }, (_, i) => ["book", [["sharpness", 1]], i]);
+    assert.throws(() => engine.solve(different, { max_merge_levels: Infinity }), /Too many different entries/);
 });
 
 test("full god sword solves quickly", () => {

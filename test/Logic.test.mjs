@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic, normalizePriority, movePriority, clampStepLimit, maxPriorWork, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+const { createLogic, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT } = await import("data:text/javascript," + encodeURIComponent(read("../js/Text.js")));
 const logic = createLogic(meta);
@@ -141,6 +141,29 @@ test("Text.js has every ranking criterion and every page string", () => {
     const keys = [...read("../index.html").matchAll(/data-text="([a-z_]+)\.([a-z_]+)"/g)];
     assert.ok(keys.length >= 6);
     for (const [, section, key] of keys) assert.strictEqual(typeof TEXT[section][key], "string", section + "." + key);
+});
+
+test("search size counts identical entries once, matching the engine", () => {
+    const engine_api = createRequire(import.meta.url)("../js/Engine.js");
+    assert.strictEqual(MAX_GROUPS, engine_api.MAXIMUM_GROUPS);
+    const engine = engine_api.createEngine(meta);
+    const book = (ns, level, prior_work = 0) => ["book", [[ns, level]], prior_work];
+    const inputs = [
+        [["sword", [], 0], book("sharpness", 5), book("unbreaking", 3), book("mending", 1)],
+        [["sword", [], 0], book("sharpness", 1), book("sharpness", 1), book("sharpness", 1), book("sharpness", 1, 1)],
+        // Same enchantments listed in a different order are still identical.
+        [["sword", [], 0], ["book", [["unbreaking", 1], ["looting", 1]], 0], ["book", [["looting", 1], ["unbreaking", 1]], 0]]
+    ];
+    for (const entries of inputs) {
+        let total = null;
+        engine.solve(entries, { onProgress: (done, all) => { total = all; } });
+        assert.strictEqual(searchSize(entries).splits, total, JSON.stringify(entries));
+    }
+    assert.deepStrictEqual(searchSize(inputs[1]), { groups: 2 * 4 * 2, splits: 3 * 10 * 3 - 2 * 16 + 1 });
+    // 40 copies of one book is tiny; 21 different entries is too many.
+    assert.ok(searchSize(Array(40).fill(book("sharpness", 1))).groups <= MAX_GROUPS);
+    const many = Array.from({ length: 21 }, (_, i) => book("sharpness", 1, i));
+    assert.ok(searchSize(many).groups > MAX_GROUPS);
 });
 
 test("ranking helpers", () => {

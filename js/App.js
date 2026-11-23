@@ -1,9 +1,11 @@
-import { createLogic, roman, movePriority, clampStepLimit, maxPriorWork, CRITERIA, MAX_STEP_LEVELS } from "./Logic.js";
+import { createLogic, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
 import { TEXT } from "./Text.js";
 
 const META_URL = "json/metadata.json";
 const WORKER_URL = "js/Calculator.js";
-const ITEM_WARNING_THRESHOLD = 10;
+// Warn when a search tries more left/right splits than this: about a second or more.
+// (12 all-different entries is ~520,000 splits; repeated entries add far fewer.)
+const SLOW_SPLITS = 1000000;
 const CALC_DELAY_MS = 250;      // wait for the user to stop clicking
 const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
 
@@ -400,9 +402,10 @@ function renderResults() {
     box.replaceChildren();
     const entries = logic.buildEntries(state);
 
-    if (entries.length > ITEM_WARNING_THRESHOLD) {
-        box.append(h("div", { class: "warning" },
-            TEXT.results.too_many_items(entries.length, ITEM_WARNING_THRESHOLD)));
+    // Only while it runs: once the result is in, the wait is over.
+    const size = searchSize(entries);
+    if (running && size.groups <= MAX_GROUPS && size.splits > SLOW_SPLITS) {
+        box.append(h("div", { class: "warning" }, TEXT.results.slow_search(entries.length)));
     }
 
     if (running && show_progress) {
@@ -547,6 +550,11 @@ function runCalculation() {
     const entries = logic.buildEntries(state);
     if (entries.length < 2) {
         last_result = { status: "empty" };
+        renderResults();
+        return;
+    }
+    if (searchSize(entries).groups > MAX_GROUPS) {
+        last_result = { status: "error", error: TEXT.results.too_many_different };
         renderResults();
         return;
     }
