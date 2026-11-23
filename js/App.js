@@ -497,11 +497,7 @@ function renderWanted() {
     box.append(wantedHead(
         h("div", { class: "toolbar" },
             h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
-            h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear),
-            h("label", { class: "check-option", title: TEXT.wanted.allow_conflicts_help },
-                h("input", { type: "checkbox", checked: state.allow_incompatible, onchange: event => setAllowIncompatible(event.target.checked) }),
-                TEXT.wanted.allow_conflicts
-            )
+            h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear)
         ),
         presetChips()
     ), wantedList());
@@ -1346,10 +1342,16 @@ function renderRanking() {
     const active = document.activeElement;
     const focused = active && (box.contains(active) || panel.contains(active)) ? active.dataset.focus : null;
 
-    // The settings menu: the level limit (the menu stays open while it changes).
-    panel.replaceChildren(h("div", { class: "options" },
-        optionRow(TEXT.ranking.level_limit, TEXT.ranking.level_limit_help, limitControl())
-    ));
+    // The game rules menu: the level limit and whether conflicting enchantments may go
+    // together (both for mods; they apply everywhere). The menu stays open while they change.
+    panel.replaceChildren(
+        h("div", { class: "options-panel-title" }, TEXT.ranking.options),
+        h("div", { class: "options" },
+            // No hover titles on these labels: the "?" beside each says what it is for.
+            optionRow([TEXT.ranking.level_limit, helpTip("limit-help", TEXT.ranking.level_limit_help_label, TEXT.ranking.level_limit_help)], null, limitControl()),
+            optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch())
+        )
+    );
     $("#options-summary").textContent = optionsSummary();
 
     // Under the tiles: one grid, so the labels share a column.
@@ -1366,15 +1368,54 @@ function renderRanking() {
     updateLevelMeter();
 }
 
-// "Level limit 39" (or "No level limit"), on the settings button.
+// "Level limit 39" (or "No level limit"), plus "· Conflicts allowed" when they are, on
+// the game rules button, so a rule that isn't the game's own is seen with the menu closed.
 function optionsSummary() {
-    return state.no_step_limit ? TEXT.ranking.options_no_limit : TEXT.ranking.options_limit({ limit: state.max_step });
+    const limit = state.no_step_limit ? TEXT.ranking.options_no_limit : TEXT.ranking.options_limit({ limit: state.max_step });
+    return state.allow_incompatible ? limit + " · " + TEXT.ranking.options_conflicts : limit;
 }
 
+// What a game rule is for, in a "?" tip beside its label (tap on phones). Its bubble
+// floats over the page, like the Best order one.
+function helpTip(id, label, text) {
+    const tip = infoTip(id, "?", label, text, "option-help");
+    floatBubble(tip);
+    return tip;
+}
+
+// Allow conflicts: an on/off switch.
+function conflictsSwitch() {
+    const on = state.allow_incompatible;
+    return h("div", { class: "rule-control" },
+        h("button", {
+            type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
+            "data-focus": "allow-conflicts", "aria-label": TEXT.ranking.allow_conflicts,
+            onclick: () => setAllowIncompatible(!on)
+        }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
+            h("span", { class: "rule-switch-text" }, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
+    );
+}
+
+// The panel is position: fixed, placed under the button whenever it opens and as the
+// page or the right column scrolls: inside the right column it would count as the
+// column's content, and stick out of (or add a scrollbar to) a short column, such as
+// with Best order closed. It ends at the button's right edge, kept on screen.
 function setupOptionsMenu() {
     const menu = $("#options-menu");
+    const panel = $("#limit-panel");
     menu.querySelector("summary").title = TEXT.ranking.options;
     setupMenuClosing(menu);
+    const place = () => {
+        if (!menu.open) return;
+        const button = menu.querySelector("summary").getBoundingClientRect();
+        const width = panel.offsetWidth;
+        panel.style.top = button.bottom + 6 + "px";
+        panel.style.left = Math.max(8, Math.min(button.right - width, innerWidth - width - 8)) + "px";
+    };
+    menu.addEventListener("toggle", place);
+    menu.querySelector("summary").addEventListener("click", () => requestAnimationFrame(place));
+    document.addEventListener("scroll", place, { capture: true, passive: true });
+    addEventListener("resize", place);
 }
 
 function optionRow(label, help, control) {
@@ -2126,9 +2167,15 @@ function floatBubble(tip) {
     tip.classList.add("floating");
     tip.place = place; // setTipOpen calls it once the bubble is open
     for (const type of ["mouseenter", "focusin"]) tip.addEventListener(type, () => requestAnimationFrame(place));
-    document.addEventListener("scroll", place, { capture: true, passive: true });
-    addEventListener("resize", place);
+    if (!floating_listeners) {
+        // Once for all of them, since tips in redrawn panels are new each time.
+        floating_listeners = true;
+        const placeAll = () => { for (const other of document.querySelectorAll(".info-tip.floating")) other.place(); };
+        document.addEventListener("scroll", placeAll, { capture: true, passive: true });
+        addEventListener("resize", placeAll);
+    }
 }
+let floating_listeners = false;
 
 // Tips redrawn while open (the books badge, on every edit) stay open: remembered by id.
 const open_tips = new Set();

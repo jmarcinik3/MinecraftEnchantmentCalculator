@@ -45,7 +45,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
 - Section 3 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
   heading and, beside it in a `.section-head`, the settings menu (`#options-menu` `<details>`: a button showing
-  `optionsSummary` + gear, opening `#limit-panel` with the level limit slider only; closes on outside click/Escape via
+  `optionsSummary` + gear, opening `#limit-panel`, "Game rules": the level limit slider and the Allow conflicts switch (`conflictsSwitch`; the
+  button's summary adds "Conflicts allowed" when on); closes on outside click/Escape via
   `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
   Rename and Your level, with "You end at level…" beside it, written by `updateLevelMeter`). Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.
@@ -60,8 +61,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   placeholder; any typed name renames; `state.rename` follows whether `rename_to` has text (`syncRename`,
   also on load/edition change), and typing only reschedules the search when that flips, without redrawing the box.
   Only the limit commits; your level and the name redraw just the results.
-- The Best order "?" bubble is `position: fixed` (`floatBubble`, `.info-tip.floating`), placed under the "?" on open,
-  hover, focus and scroll, so it never adds height to the scrolling right column.
+- The Best order "?" bubble and the Game rules "?"s (`helpTip`, Level limit and Allow conflicts) are `position: fixed` (`floatBubble`,
+  `.info-tip.floating`, one shared scroll/resize listener), placed under the "?" on open, hover, focus and scroll, and the
+  Game rules panel is fixed too (placed by `setupOptionsMenu`), so none of them adds height to the scrolling right column.
 - Section 1 (`renderWanted`): until an item is picked, `itemGrid`; then a preview of the finished item (`wantedPreview`, the game
   slot + tooltip via `anvilCell`; the slot is `.item-menu-button`, opening `itemGrid` in `.item-menu` (`item_menu_open`;
   static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). The preview and the controls

@@ -266,7 +266,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 @container wanted (min-width: 460px) {
     .wanted-preview { flex: 0 0 250px; }
     .wanted-controls { flex: 1 1 0; }
-    .wanted-controls .check-option { margin-left: 0; }
 }
 #wanted > .hint { margin: 0 0 10px; }
 
@@ -619,10 +618,12 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     background: var(--surface);
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
-.entry-popover.count { right: auto; display: grid; gap: 8px; width: max-content; max-width: 100%; }
+/* A fixed width and two lines for the note, so the popover keeps its size while the
+   note changes with the prior work. */
+.entry-popover.count { right: auto; display: grid; gap: 8px; width: 260px; max-width: 100%; }
 .entry-popover.count .stepper { justify-content: space-between; }
 .stepper-label { min-width: 80px; }
-.popover-note { margin: 0; max-width: 260px; font-size: 12px; color: var(--text-secondary); }
+.popover-note { margin: 0; font-size: 12px; line-height: 1.35; min-height: 2.7em; color: var(--text-secondary); }
 .picker-head {
     padding: 6px 0 2px;
     font-size: 11px;
@@ -732,11 +733,62 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .options-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gear-icon { flex: none; width: 16px; height: 16px; transition: transform 0.25s; }
 .options-menu[open] .gear-icon { transform: rotate(45deg); }
-.options-panel {
+.options-panel-title {
+    margin-bottom: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+/* Allow conflicts: a switch, then what it is for. */
+.rule-control { display: flex; flex-direction: column; gap: 4px; min-height: 32px; justify-content: center; }
+.rule-switch {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+}
+.rule-switch-track {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--border-strong);
+    transition: background-color 0.15s;
+}
+.rule-switch-thumb {
     position: absolute;
-    top: calc(100% + 6px);
-    right: 0;
-    z-index: 20;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    transition: transform 0.15s;
+}
+.rule-switch.on { color: var(--accent-text); }
+.rule-switch.on .rule-switch-track { background: var(--accent); }
+.rule-switch.on .rule-switch-thumb { transform: translateX(16px); }
+.rule-switch:focus-visible { outline: none; }
+.rule-switch:focus-visible .rule-switch-track { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* The "?" beside an option's label. */
+.option-label .info-tip.option-help { margin-left: 6px; vertical-align: middle; }
+.option-label .info-tip-bubble { line-height: 1.4; font-weight: normal; }
+@media (prefers-reduced-motion: reduce) { .rule-switch-track, .rule-switch-thumb { transition: none; } }
+/* Fixed, placed by App.js setupOptionsMenu (so it never counts as the right column's
+   content). */
+.options-panel {
+    position: fixed;
+    z-index: 25;
     /* 48px: the page's 16px gutters plus the card's padding, so on a phone the panel
        stays inside the page's margins. */
     width: min(360px, calc(100vw - 48px));
@@ -747,6 +799,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 @media (prefers-reduced-motion: reduce) { .gear-icon { transition: none; } }
+
 
 /* Your level, with what it means for this order beside it. */
 .level-line { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
@@ -763,7 +816,6 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     cursor: pointer;
 }
 .rank-move:disabled { opacity: 0.25; cursor: default; }
-.check-option { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .rename-input {
     font: inherit;
     font-size: 13px;
