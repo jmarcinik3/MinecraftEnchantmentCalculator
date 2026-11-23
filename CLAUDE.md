@@ -5,12 +5,14 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 `python -m http.server 8080`.
 
 ## Files
-- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking` options, `#metrics` tiles, `#edition`, `#copy-link`,
+- `index.html`: shell with 3 left sections (1 Item `#items`, 2 Enchantments `#wanted`, 3 Books and items `#books`) and
+  2 right ones (4 Best order: `#metrics` tiles and `#ranking` settings; 5 Anvil uses, `.results-card`: `#results` with status
+  messages, anvil wear, the Steps/Tree row and the steps), all collapsible (+ `#edition`, `#copy-link`,
   `#language`, and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
   `.header-control` (one height); under 600px they form a full-width row below the title, under 440px Copy link is icon-only).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
-  (`rename_to` is display-only: italic name on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
+  (`rename` is true exactly when `rename_to` has text; the name is shown in italics on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
   share links are base64 of UTF-8 so any characters survive)
   (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`;
   `allow_incompatible` is for mods that let conflicting enchantments go together). The engine never checks conflicts:
@@ -40,20 +42,35 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
-- Options above the results (`renderRanking`, a 2-column `.options` grid, refocusing by `data-focus` after redraws):
+- Section 4 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
+  heading and, beside it in a `.section-head`, the settings menu (`#options-menu` `<details>`: a button showing
+  `optionsSummary` + gear, opening `#limit-panel` with the level limit slider only; closes on outside click/Escape via
+  `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
+  Rename and Your level, with "You end at level…" beside it, written by `updateLevelMeter`). Ticked steps count as 0 for your
+  level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.
+  On desktop (900px+) the right column is a window-high flex column (section 4 natural height, section 5 the rest) and only `.steps-scroll` (the steps or tree, under the Steps/Tree row)
+  scrolls; `steps_scroll` keeps its position across redraws of the same order and view. Phones scroll the page.
+- Options (`renderRanking`, 2-column `.options` grids, refocusing by `data-focus` after redraws):
   level limit slider 1-39 plus an ∞ button (= `no_step_limit`), commits on release, value tappable to type
   (`editLimit`); "Your level" −/+ (`holdButton` repeats while held) around a green number with an XP bar filling
-  toward the order's total levels (`updateLevelMeter`), and an on/off toggle showing `img/experience_orb.png` (off shows ∞ in place of the number) (`level_on`,
-  `LEVEL_ON_STORAGE_KEY`; `activeLevel()` is what the steps use; changing the number turns it on); Rename is a toggle showing `img/name_tag.png` with an
-  anvil-style name box and character count. Only limit/rename commit; your level redraws just the results.
+  toward the order's total levels (`updateLevelMeter`), an on/off toggle showing `img/experience_orb.png`, and "Set to N" (`#level-set`: the unticked steps' total) (off shows ∞ in place of the number) (`level_on`,
+  `LEVEL_ON_STORAGE_KEY`; `activeLevel()` is what the steps use; changing the number turns it on); Rename is one anvil-style name box (`nameField`:
+  `img/name_tag.png`, "+1 level" badge, character count); empty is no rename and shows the item's name as a gray
+  placeholder; any typed name renames; `state.rename` follows whether `rename_to` has text (`syncRename`,
+  also on load/edition change), and typing only reschedules the search when that flips, without redrawing the box.
+  Only the limit commits; your level and the name redraw just the results.
+- The Best order "?" bubble is `position: fixed` (`floatBubble`, `.info-tip.floating`), placed under the "?" on open,
+  hover, focus and scroll, so it never adds height to the scrolling right column.
 - Sections 1-3 collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
 - App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
   (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps/Tree view
   (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,
-  loaded via `readLink`; × removes one, with Undo until the menu closes: `removed_setup`), and the language. Results also show anvil wear (Logic.js `anvilBreakChance`: 12% damage per
-  use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
+  loaded via `readLink`; × removes one, with Undo until the menu closes: `removed_setup`), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
+  step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks). Ticking a step also ticks
+  the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Results also show anvil wear (`anvilWear`: `img/anvil.png` in a slot, the uses, and a badge colored by
+  Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
   keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
@@ -63,7 +80,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Logic.js` (ES module): `createLogic(meta, names)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 3
   heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
-  items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 2 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
+  items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 2 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.

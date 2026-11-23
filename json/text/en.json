@@ -6,6 +6,7 @@
         "enchantments_heading": "Enchantments",
         "books_heading": "Books and items",
         "results_heading": "Best order",
+        "steps_heading": "Anvil uses",
         "copy_link": "Copy link",
         "copied": "Copied",
         "copy_failed": "Copy failed",
@@ -24,6 +25,11 @@
         "expand_label": "Show {section}",
         "summary_none": "None chosen",
         "summary_automatic": "Automatic",
+        "summary_levels": {"plural": "levels", "one": "{levels} level", "other": "{levels} levels"},
+        "summary_xp": "{xp} XP",
+        "summary_max_step": "Max level {level}",
+        "summary_prior_work": "Prior work {count}",
+        "summary_steps": {"plural": "count", "one": "{count} use", "other": "{count} uses"},
         "summary_entries": {"plural": "count", "one": "{count} entry", "other": "{count} entries"},
         "editions": {
             "java": { "label": "Java", "help": "Java Edition anvil rules" },
@@ -97,6 +103,9 @@
         },
         "rank_higher_label": "Rank {label} higher",
         "rank_lower_label": "Rank {label} lower",
+        "options": "Settings",
+        "options_limit": "Level limit {limit}",
+        "options_no_limit": "No level limit",
         "level_limit": "Level limit",
         "level_limit_help": "No anvil use may cost more levels than this",
         "level_limit_label": "Most levels allowed per anvil use",
@@ -104,8 +113,9 @@
         "no_limit_help": "For mods that remove \"Too Expensive!\"",
         "unlimited": "∞",
         "rename": "Rename",
-        "rename_help": "Rename the item in the last step. Renaming adds 1 level to that step.",
-        "rename_placeholder": "New name (optional)",
+        "rename_help": "Type a name to rename the item in the last step (+1 level). Leave it blank for no rename.",
+        "rename_placeholder": "No rename",
+        "rename_cost": "+1 level",
         "rename_label": "New name for the finished item",
         "your_level": "Your level",
         "your_level_help": "Your XP level now, to see what you have left after each step",
@@ -113,12 +123,12 @@
         "level_limit_edit_label": "Type a level limit",
         "level_down_label": "One level lower",
         "level_up_label": "One level higher",
+        "set_needed": "Set to {levels}",
+        "set_needed_help": "Set your level to exactly what the steps not yet ticked need",
         "use_level": "Use your level",
         "use_level_help": "Follow your level through the steps: the level before and after each one",
         "level_enough": "Enough: this order needs {needed}",
         "level_short_of": {"plural": "short", "one": "{short} level short: this order needs {needed}", "other": "{short} levels short: this order needs {needed}"},
-        "rename_off": "Off",
-        "rename_on": "On · +1 level",
         "name_count": "{count} / {max}",
         "name_count_label": "{count} of {max} characters"
     },
@@ -157,14 +167,12 @@
         "levels_left": "You end at level {level}.",
         "levels_needed": {
             "plural": "short",
-            "one": "{short} more level needed in total: start at level {start} or higher.",
-            "other": "{short} more levels needed in total: start at level {start} or higher."
+            "one": "{short} more level needed in total.",
+            "other": "{short} more levels needed in total."
         },
-        "anvil_wear": {
-            "plural": "uses",
-            "one": "{uses} anvil use · a new anvil breaks {chance} of the time",
-            "other": "{uses} anvil uses · a new anvil breaks {chance} of the time"
-        },
+        "anvil_uses": {"plural": "uses", "one": "{uses} anvil use", "other": "{uses} anvil uses"},
+        "anvil_break": "{chance} chance a new anvil breaks",
+        "anvil_safe": "A new anvil won't break",
         "anvil_wear_help": "Each anvil use has a 12% chance to damage the anvil. A new anvil breaks on its third damage.",
         "under_one_percent": "under 1%",
         "view_label": "Show the order as",
@@ -175,6 +183,8 @@
             "one": "Step {number} · {levels} level",
             "other": "Step {number} · {levels} levels"
         },
+        "uncheck_all": "Uncheck all",
+        "uncheck_all_help": "Untick every step",
         "copy_steps": "Copy steps",
         "copy_steps_help": "Copy the steps as text, e.g. to paste in a chat",
         "copied": "Copied",
@@ -190,7 +200,6 @@
             "one": "{number}. {left} + {right}: {levels} level",
             "other": "{number}. {left} + {right}: {levels} levels"
         },
-        "text_rename": "rename",
         "text_rename_to": "rename to \"{name}\"",
         "worker_failed": "The calculator failed to load. Check the browser console for details.",
         "metadata_failed": "Couldn't load the enchantment data. Serve this folder over HTTP instead of opening the file directly."

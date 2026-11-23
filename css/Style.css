@@ -17,6 +17,8 @@
     --accent-text: #4a2a9e;
     --warning-bg: #fbf1dc;
     --warning-text: #7a4c08;
+    --success-bg: #e3f4e1;
+    --success-text: #25602a;
     --danger-bg: #fbe7e7;
     --danger-text: #8f2525;
     --radius: 8px;
@@ -38,6 +40,8 @@
         --accent-text: #d4c6fb;
         --warning-bg: #3d2f12;
         --warning-text: #f2cf8a;
+        --success-bg: #183a1f;
+        --success-text: #a5e0a3;
         --danger-bg: #431c1c;
         --danger-text: #f3b0b0;
         color-scheme: dark;
@@ -118,10 +122,44 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     padding: 8px 16px 40px;
 }
 
+/* Sections 4 and 5 stack with the same gap as 1-3 (on desktop the column becomes a flex
+   column with the same gap, below). */
+.results-column { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
+
 @media (min-width: 900px) {
     .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; }
-    .results-column { position: sticky; top: 16px; }
-    .results-card { max-height: calc(100vh - 32px); overflow-y: auto; }
+    /* The right column fills the window's height: section 4 at its natural height, and
+       section 5 (the steps) takes the rest, where only the steps (or tree) scroll, so the
+       Steps/Tree row stays in view. Closing section 4 gives the steps more room. If the
+       column is too short for both, it scrolls as a whole. */
+    .results-column {
+        position: sticky;
+        top: 16px;
+        max-height: calc(100vh - 32px);
+        overflow-y: auto;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+    }
+    .results-column > .card { flex: none; }
+    .results-column > .results-card:not(.collapsed) { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .results-card > * { flex: none; }
+    .results-card > .section-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .results-card > .section-body[hidden] { display: none; }
+    .results-card #results { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .results-card #results > * { flex: none; }
+    .results-card #results > .results-content { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
+    .results-content > * { flex: none; }
+    .results-content > .steps-scroll {
+        flex: 1 1 auto;
+        min-height: 220px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        /* Room so the step badges (which sit above each step's border) and the scrollbar
+           are not clipped. */
+        padding: 10px 4px 2px 0;
+        margin-right: -4px;
+    }
 }
 
 /* minmax(0, ...): a closed section's one-line summary is cut short, not widening the page. */
@@ -241,9 +279,13 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .ench-row.conflict .level { opacity: 0.55; }
 
 /* Conflicting enchantments share a box; the label says how they conflict. */
+/* The box reaches out past the list by its own padding + border (9px), so the names and
+   level buttons inside it line up with the single rows above and below. 9px fits inside
+   the card's padding even on phones (10px). */
 .ench-group {
-    margin: 6px 0;
-    padding: 2px 10px 0;
+    --group-inset: 8px;
+    margin: 6px calc(-1 * var(--group-inset) - 1px);
+    padding: 2px var(--group-inset) 0;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     background: var(--surface-alt);
@@ -363,8 +405,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .stepper-value { min-width: 16px; text-align: center; color: var(--text); }
 
 /* Results */
-.results-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
-.results-header h2 { margin: 0; }
 
 .segmented { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; }
 .segmented button {
@@ -378,7 +418,53 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 .segmented button.selected { background: var(--accent-bg); color: var(--accent-text); }
 
-.ranking { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+
+/* Section 4's settings, under the tiles. */
+.settings { margin-bottom: 4px; }
+
+/* The settings menu in section 4's heading: a button ("Level limit 39 ⚙") that opens a
+   panel with the level limit slider. */
+.options-menu { position: relative; min-width: 0; flex: none; }
+/* 26px, the collapse arrow's height, so section 4's heading is as tall as the others. */
+.options-button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    height: 26px;
+    padding: 0 4px 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    list-style: none;
+    cursor: pointer;
+    font-size: 12px;
+    color: var(--text-secondary);
+    user-select: none;
+}
+.options-button::-webkit-details-marker { display: none; }
+.options-button:hover, .options-menu[open] > .options-button { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+.options-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gear-icon { flex: none; width: 16px; height: 16px; transition: transform 0.25s; }
+.options-menu[open] .gear-icon { transform: rotate(45deg); }
+.options-panel {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 20;
+    /* 48px: the page's 16px gutters plus the card's padding, so on a phone the panel
+       stays inside the page's margins. */
+    width: min(360px, calc(100vw - 48px));
+    padding: 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+@media (prefers-reduced-motion: reduce) { .gear-icon { transition: none; } }
+
+/* Your level, with what it means for this order beside it. */
+.level-line { display: flex; align-items: center; gap: 6px 12px; flex-wrap: wrap; }
+.level-summary { font-size: 12px; color: var(--text-secondary); }
+.level-summary.short { color: var(--danger-text); font-weight: 600; }
 .rank-move {
     font: inherit;
     font-size: 15px;
@@ -411,7 +497,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     gap: 10px 14px;
     font-size: 13px;
 }
-.option-label { color: var(--text-secondary); }
+/* Lined up with the first 32px row of its control, so it stays put when the control
+   wraps (e.g. "Your level" with its "levels needed" line below). */
+.option-label { align-self: start; line-height: 32px; color: var(--text-secondary); }
 .option-control { min-width: 0; }
 .option-wide { grid-column: 2; min-width: 0; }
 
@@ -582,31 +670,13 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .xp-orb { display: block; width: 28px; height: 28px; image-rendering: pixelated; filter: grayscale(1) opacity(0.6); }
 .level-toggle.on .xp-orb { filter: drop-shadow(0 0 3px rgba(128, 255, 32, 0.7)); }
 
-/* Rename: a name tag toggle, then the anvil's name box under it. */
-.name-tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    height: 32px;
-    padding: 0 12px 0 8px;
-    border: 1px solid var(--border-strong);
-    border-radius: 16px;
-    background: none;
-    color: var(--text-secondary);
-    font: 13px/1 system-ui, sans-serif;
-    cursor: pointer;
-}
-.name-tag:hover { border-color: var(--accent); }
-.name-tag.on { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
-/* The game's name tag, kept sharp. Gray while off, as the XP orb. */
-.name-tag-icon { display: block; width: 20px; height: 20px; image-rendering: pixelated; filter: grayscale(1) opacity(0.6); }
-.name-tag.on .name-tag-icon { filter: none; }
+/* Rename: one anvil-style name box. The name tag and "+1 level" light up while a name is typed. */
 .anvil-name {
     display: flex;
     align-items: center;
     gap: 8px;
     height: 32px;
-    padding: 0 8px;
+    padding: 0 8px 0 6px;
     border: 2px solid;
     border-color: #373737 #ffffff #ffffff #373737;
     background: #000;
@@ -622,8 +692,23 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     text-shadow: 1px 1px 0 #3f3f3f;
 }
 .anvil-name-input::placeholder { color: #8b8b8b; font-style: normal; text-shadow: none; }
+/* Empty: the item's name shows as a gray hint (the placeholder above); a typed name is
+   white italics. */
 .anvil-name-input:focus { outline: none; }
 .name-count { flex: none; font-size: 11px; color: #a0a0a0; font-family: system-ui, sans-serif; }
+.anvil-name .name-tag-icon { flex: none; width: 18px; height: 18px; image-rendering: pixelated; filter: grayscale(1) opacity(0.5); }
+.anvil-name.renaming .name-tag-icon { filter: none; }
+.rename-cost {
+    display: none;
+    flex: none;
+    padding: 1px 5px;
+    border-radius: 2px;
+    background: #3b3b3b;
+    color: #80ff20;
+    text-shadow: 1px 1px 0 #203f08;
+    font: 11px/1.3 "Minecraft", system-ui, sans-serif;
+}
+.anvil-name.renaming .rename-cost { display: inline-block; }
 @media (prefers-reduced-motion: reduce) { .xp-fill { transition: none; } }
 
 /* Result tiles, which are also the ranking (drag or use the arrows). */
@@ -661,6 +746,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .info-tip:hover .info-tip-bubble,
 .info-tip-button:focus-visible + .info-tip-bubble,
 .info-tip.open .info-tip-bubble { display: block; }
+/* Placed against the window by App.js floatBubble, so it never adds to a scrolling
+   column's height. */
+.info-tip.floating .info-tip-bubble { position: fixed; z-index: 30; }
 /* Four in a row while each tile can be 120px wide (enough for "Trabajo anterior" on one
    line), else two rows of two, never three and one. */
 .metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -722,6 +810,10 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Collapsible sections: the heading opens and closes the section. */
 .card.collapsible > h2 { cursor: pointer; user-select: none; min-width: 0; }
+/* Section 4's heading row: the h2, then the settings menu and the arrow beside it. */
+.section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; min-width: 0; }
+.section-head > h2 { flex: 1; min-width: 0; margin: 0; cursor: pointer; user-select: none; }
+.card.collapsed > .section-head { margin-bottom: 0; }
 .card.collapsible .section-title, .card.collapsible .step-badge { flex: none; }
 .card.collapsed > h2 { margin-bottom: 0; }
 .section-summary {
@@ -1068,17 +1160,43 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 .level-track.short { color: var(--danger-text); font-weight: 600; }
 
-/* Anvil wear and the level summary, above the steps */
-.result-facts {
+/* Anvil wear: [anvil] 7 anvil uses · (4% chance a new anvil breaks) */
+.anvil-wear {
     display: flex;
+    align-items: center;
     flex-wrap: wrap;
-    gap: 4px 14px;
-    margin-bottom: 10px;
+    gap: 6px 10px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    color: var(--text);
+}
+.anvil-wear-slot {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #8b8b8b;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+}
+.anvil-wear-icon { width: 22px; height: 22px; }
+.anvil-wear-uses { font-weight: 600; }
+.anvil-wear-chance {
+    padding: 2px 9px;
+    border-radius: 10px;
     font-size: 12px;
+    background: var(--surface-alt);
     color: var(--text-secondary);
 }
-.result-facts .short { color: var(--danger-text); font-weight: 600; }
+/* Green when a break is unlikely (or impossible), amber when possible, red when likely. */
+.anvil-wear-chance.risk-none, .anvil-wear-chance.risk-low { background: var(--success-bg); color: var(--success-text); }
+.anvil-wear-chance.risk-medium { background: var(--warning-bg); color: var(--warning-text); }
+.anvil-wear-chance.risk-high { background: var(--danger-bg); color: var(--danger-text); font-weight: 600; }
+
 .result-tools .copy-steps { margin-left: auto; }
+.result-tools .btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
 
 /* The order as a tree: each merge with its two inputs indented below it */
 .merge-tree, .tree-children { list-style: none; margin: 0; padding: 0; }
@@ -1126,20 +1244,38 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     animation: glint 3s linear infinite;
     pointer-events: none;
 }
-.tree-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
-.tree-name { font-size: 13px; font-weight: 600; }
-.tree-name.renamed { font-style: italic; }
-.tree-ench { font-size: 12px; color: var(--text-secondary); }
+/* The game's tooltip, sized to its text rather than the row. */
+.tree-tooltip {
+    display: flex;
+    flex-direction: column;
+    width: auto;
+    max-width: 100%;
+    min-width: 0;
+    padding: 3px 6px;
+}
+/* (Curses and the white "+ " for added enchantments come from .mc-ench.curse / .changed.) */
 .tree-step {
     margin-left: auto;
     flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
     font-size: 11px;
-    padding: 1px 6px;
+    padding: 2px 8px 2px 5px;
     border-radius: 9px;
     background: var(--accent-bg);
     color: var(--accent-text);
     white-space: nowrap;
+    cursor: pointer;
 }
+.tree-step input { margin: 0; width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; }
+/* A ticked merge fades back, as a ticked step does, and so does everything that went
+   into it (its branch below): that is all done too. Set on each slot, tooltip and badge
+   rather than on the branch, so a ticked step inside a ticked one does not fade twice. */
+.tree-line.done > .tree-slot, .tree-line.done > .tree-tooltip,
+.tree-line.done ~ .tree-children .tree-slot, .tree-line.done ~ .tree-children .tree-tooltip { opacity: 0.4; }
+.tree-line.done > .tree-step,
+.tree-line.done ~ .tree-children .tree-step { background: var(--surface-alt); color: var(--text-muted); }
 @media (prefers-reduced-motion: reduce) {
     .tree-slot.glint::after { animation: none; background-position: 50% 0; }
 }
@@ -1156,12 +1292,17 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     }
     .print-only { display: block; margin: 0 0 10px; font-weight: 600; }
     body { font-size: 12px; }
-    .header-actions, .inputs, #ranking, .info-tip, .rank-move, .result-tools, .progress,
-    .anvil-step-num input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
+    .inputs, .collapse-toggle, .section-summary,
+    .header-actions, #ranking, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
+    .anvil-step-num input, .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
     .site-header { padding: 0 0 8px; }
     .layout { display: block; padding: 0; max-width: none; }
-    .results-column { position: static; }
-    .results-card { max-height: none; overflow: visible; border: none; padding: 0; }
+    /* Sections 4 and 5 print, even if they were closed. */
+    .results-column > .card { border: none; padding: 0; margin-bottom: 8px; }
+    .results-column .section-body { display: block !important; }
+    .results-column { position: static; max-height: none; overflow: visible; display: block; }
+    .results-card { max-height: none; overflow: visible; border: none; padding: 0; display: block; }
+    .steps-scroll { overflow: visible !important; max-height: none !important; }
     .stale { opacity: 1; }
     .anvil-step, .tree-line, .metric { break-inside: avoid; }
     .anvil-step.done .anvil-row { opacity: 1; }

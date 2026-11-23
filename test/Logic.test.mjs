@@ -487,6 +487,24 @@ test("steps are listed children first", () => {
     assert.deepStrictEqual([steps[1].right.kind, steps[1].right.index], ["step", 1]);
 });
 
+test("ticking a step ticks the steps before it; unticking one unticks the steps after it", () => {
+    const leaf = ns => ({ item_namespace: ns, enchantments: [], left: null, right: null });
+    const merge = (left, right, cost) => ({ item_namespace: left.item_namespace, enchantments: [], merge_levels: cost, left, right });
+    // Numbers: 1 = b (2), 2 = a (5), 3 = c (b + book), 4 = sword + a, 5 = 4 + 3.
+    const a = merge(leaf("book"), leaf("book"), 5);
+    const b = merge(leaf("book"), leaf("book"), 2);
+    const c = merge(b, leaf("book"), 7);
+    const steps = logic.collectSteps(merge(merge(leaf("sword"), a, 9), c, 4));
+    const sorted = set => [...set].sort((x, y) => x - y);
+    assert.deepStrictEqual(sorted(logic.tickStep(steps, new Set(), 3, true)), [1, 3]);
+    assert.deepStrictEqual(sorted(logic.tickStep(steps, new Set(), 5, true)), [1, 2, 3, 4, 5]);
+    assert.deepStrictEqual(sorted(logic.tickStep(steps, new Set([1, 2, 3, 4, 5]), 1, false)), [2, 4]); // 3 and 5 used it
+    assert.deepStrictEqual(sorted(logic.tickStep(steps, new Set([1, 2, 3, 4, 5]), 5, false)), [1, 2, 3, 4]);
+    const done = new Set([2]);
+    logic.tickStep(steps, done, 4, true);
+    assert.deepStrictEqual(sorted(done), [2]); // the old set is not changed
+});
+
 test("steps are grouped into rounds of independent steps, cheapest first", () => {
     const leaf = ns => ({ item_namespace: ns, enchantments: [], left: null, right: null });
     const merge = (left, right, cost) => ({ item_namespace: left.item_namespace, enchantments: [], merge_levels: cost, left, right });

@@ -443,6 +443,36 @@ export function createLogic(meta, names = {}) {
         return steps;
     }
 
+    // The checklist after ticking or unticking step `number` (collectSteps' numbers; `done`
+    // is the Set of ticked ones, left as it is). A step can only be done once the steps
+    // that made its two inputs are, so ticking one also ticks those, all the way down;
+    // unticking one also unticks the later steps that use its result, all the way up.
+    function tickStep(steps, done, number, checked) {
+        const by_number = new Map(steps.map(step => [step.number, step]));
+        const used_by = new Map();
+        for (const step of steps) {
+            for (const side of [step.left, step.right]) {
+                if (side.kind === "step") used_by.set(side.index, step.number);
+            }
+        }
+        const next = new Set(done);
+        const spread = (start, neighbours) => {
+            const queue = [start];
+            while (queue.length) {
+                const current = queue.pop();
+                if (checked) next.add(current);
+                else next.delete(current);
+                for (const other of neighbours(current)) queue.push(other);
+            }
+        };
+        if (checked) {
+            spread(number, n => [by_number.get(n).left, by_number.get(n).right].filter(side => side.kind === "step").map(side => side.index));
+        } else {
+            spread(number, n => (used_by.has(n) ? [used_by.get(n)] : []));
+        }
+        return next;
+    }
+
     // Splits collectSteps' list into its rounds: [[steps of round 1], [round 2], ...].
     function stepRounds(steps) {
         const rounds = [];
@@ -507,6 +537,6 @@ export function createLogic(meta, names = {}) {
         isItem: ns => items.has(ns), enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf,
-        currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, serialize, deserialize
+        currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };
 }

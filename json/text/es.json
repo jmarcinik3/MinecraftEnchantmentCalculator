@@ -6,6 +6,7 @@
         "enchantments_heading": "Encantamientos",
         "books_heading": "Libros y objetos",
         "results_heading": "Mejor orden",
+        "steps_heading": "Usos del yunque",
         "copy_link": "Copiar enlace",
         "copied": "Copiado",
         "copy_failed": "No se pudo copiar",
@@ -24,6 +25,11 @@
         "expand_label": "Mostrar {section}",
         "summary_none": "Nada elegido",
         "summary_automatic": "Automático",
+        "summary_levels": {"plural": "levels", "one": "{levels} nivel", "other": "{levels} niveles"},
+        "summary_xp": "{xp} XP",
+        "summary_max_step": "Nivel máx. {level}",
+        "summary_prior_work": "Trabajo anterior {count}",
+        "summary_steps": {"plural": "count", "one": "{count} uso", "other": "{count} usos"},
         "summary_entries": {"plural": "count", "one": "{count} entrada", "other": "{count} entradas"},
         "editions": {
             "java": { "label": "Java", "help": "Reglas del yunque de Java Edition" },
@@ -97,6 +103,9 @@
         },
         "rank_higher_label": "Subir {label}",
         "rank_lower_label": "Bajar {label}",
+        "options": "Ajustes",
+        "options_limit": "Límite de niveles {limit}",
+        "options_no_limit": "Sin límite de niveles",
         "level_limit": "Límite de niveles",
         "level_limit_help": "Ningún uso del yunque puede costar más niveles que esto",
         "level_limit_label": "Máximo de niveles por uso del yunque",
@@ -104,8 +113,9 @@
         "no_limit_help": "Para mods que quitan \"¡Demasiado caro!\"",
         "unlimited": "∞",
         "rename": "Renombrar",
-        "rename_help": "Renombra el objeto en el último paso. Renombrar añade 1 nivel a ese paso.",
-        "rename_placeholder": "Nombre nuevo (opcional)",
+        "rename_help": "Escribe un nombre para renombrar el objeto en el último paso (+1 nivel). Déjalo en blanco para no renombrar.",
+        "rename_placeholder": "Sin renombrar",
+        "rename_cost": "+1 nivel",
         "rename_label": "Nombre nuevo del objeto terminado",
         "your_level": "Tu nivel",
         "your_level_help": "Tu nivel de experiencia actual, para ver lo que te queda tras cada paso",
@@ -113,12 +123,12 @@
         "level_limit_edit_label": "Escribe un límite de niveles",
         "level_down_label": "Un nivel menos",
         "level_up_label": "Un nivel más",
+        "set_needed": "Poner {levels}",
+        "set_needed_help": "Pon tu nivel justo en lo que necesitan los pasos aún sin marcar",
         "use_level": "Usar tu nivel",
         "use_level_help": "Sigue tu nivel en los pasos: el nivel antes y después de cada uno",
         "level_enough": "Suficiente: este orden necesita {needed}",
         "level_short_of": {"plural": "short", "one": "Falta {short} nivel: este orden necesita {needed}", "other": "Faltan {short} niveles: este orden necesita {needed}"},
-        "rename_off": "No",
-        "rename_on": "Sí · +1 nivel",
         "name_count": "{count} / {max}",
         "name_count_label": "{count} de {max} caracteres"
     },
@@ -157,14 +167,12 @@
         "levels_left": "Terminas en el nivel {level}.",
         "levels_needed": {
             "plural": "short",
-            "one": "Falta {short} nivel en total: empieza en el nivel {start} o más.",
-            "other": "Faltan {short} niveles en total: empieza en el nivel {start} o más."
+            "one": "Falta {short} nivel en total.",
+            "other": "Faltan {short} niveles en total."
         },
-        "anvil_wear": {
-            "plural": "uses",
-            "one": "{uses} uso del yunque · un yunque nuevo se rompe {chance} de las veces",
-            "other": "{uses} usos del yunque · un yunque nuevo se rompe {chance} de las veces"
-        },
+        "anvil_uses": {"plural": "uses", "one": "{uses} uso del yunque", "other": "{uses} usos del yunque"},
+        "anvil_break": "{chance} de probabilidad de que un yunque nuevo se rompa",
+        "anvil_safe": "Un yunque nuevo no se romperá",
         "anvil_wear_help": "Cada uso del yunque tiene un 12 % de probabilidad de dañarlo. Un yunque nuevo se rompe al tercer daño.",
         "under_one_percent": "menos del 1 %",
         "view_label": "Mostrar el orden como",
@@ -175,6 +183,8 @@
             "one": "Paso {number} · {levels} nivel",
             "other": "Paso {number} · {levels} niveles"
         },
+        "uncheck_all": "Desmarcar todo",
+        "uncheck_all_help": "Quita la marca de todos los pasos",
         "copy_steps": "Copiar pasos",
         "copy_steps_help": "Copia los pasos como texto, p. ej. para pegarlos en un chat",
         "copied": "Copiado",
@@ -190,7 +200,6 @@
             "one": "{number}. {left} + {right}: {levels} nivel",
             "other": "{number}. {left} + {right}: {levels} niveles"
         },
-        "text_rename": "renombrar",
         "text_rename_to": "renombrar a \"{name}\"",
         "worker_failed": "No se pudo cargar la calculadora. Mira la consola del navegador para más detalles.",
         "metadata_failed": "No se pudieron cargar los datos de encantamientos. Sirve esta carpeta por HTTP en vez de abrir el archivo directamente."

@@ -163,6 +163,7 @@ function setEdition(edition) {
     if (state.edition === edition) return;
     state.edition = edition;
     state.rename_to = cleanName(state.rename_to, edition); // Bedrock names are shorter
+    syncRename();
     useEdition(edition);
     if (state.item) sanitizeAll();
     commit();
@@ -241,10 +242,14 @@ function applyCollapsed() {
 
 function setupCollapsing() {
     for (const card of document.querySelectorAll(".card.collapsible")) {
+        const toggle = () => setCollapsed(card.dataset.section, !collapsed.has(card.dataset.section));
         card.querySelector("h2").addEventListener("click", event => {
-            if (event.target.closest(".info-tip")) return; // the warning badge has its own bubble
-            setCollapsed(card.dataset.section, !collapsed.has(card.dataset.section));
+            if (event.target.closest(".info-tip")) return; // the badge and ? have their own bubbles
+            toggle();
         });
+        // Section 4's arrow sits beside its heading (with the Options menu between them).
+        const arrow = card.querySelector(".collapse-toggle");
+        if (!card.querySelector("h2").contains(arrow)) arrow.addEventListener("click", toggle);
     }
     applyCollapsed();
 }
@@ -256,6 +261,26 @@ function renderSummaries() {
     $("#item-summary").textContent = state.item ? logic.itemName(state.item) : TEXT.page.summary_none;
     $("#wanted-summary").textContent = chosen.length ? logic.summary(chosen) : TEXT.page.summary_none;
     $("#books-summary").textContent = state.auto_books ? TEXT.page.summary_automatic : TEXT.page.summary_entries({ count: entries });
+    renderOrderSummary();
+}
+
+// Section 5's summary while closed: how many steps the order takes.
+function renderStepsSummary() {
+    const node = resultNode();
+    $("#steps-summary").textContent = node ? TEXT.page.summary_steps({ count: logic.collectSteps(node).length }) : TEXT.ranking.no_value;
+}
+
+// Section 4's summary while closed: all four results in ranking order, e.g.
+// "66 levels · 1,246 XP · Max level 16 · Prior work 4".
+function renderOrderSummary() {
+    const node = resultNode();
+    const summaries = {
+        levels: () => TEXT.page.summary_levels({ levels: node.cumulative_levels }),
+        xp: () => TEXT.page.summary_xp({ xp: Math.round(node.cumulative_xp).toLocaleString(language) }),
+        max_step: () => TEXT.page.summary_max_step({ level: node.max_step }),
+        prior_work: () => TEXT.page.summary_prior_work({ count: node.prior_work })
+    };
+    $("#order-summary").textContent = node ? state.priority.map(criterion => summaries[criterion]()).join(" · ") : TEXT.ranking.no_value;
 }
 
 // ---------- Language ----------
@@ -388,21 +413,26 @@ function loadSetup(link) {
     const loaded = readLink(link);
     if (!loaded) return;
     state = loaded;
+    syncRename();
     useEdition(state.edition);
     if (state.item) sanitizeAll();
     $("#saved").open = false;
     commit();
 }
 
-// The Saved menu closes on a click outside it or on Escape.
-function setupSavedMenu() {
-    const menu = $("#saved");
-    $("#saved > summary").title = TEXT.page.saved_help;
+// The header's Saved menu closes on a click outside it or on Escape.
+function setupMenuClosing(menu) {
     document.addEventListener("click", event => {
         // The path, not contains(): a click on a button the menu then redraws is still inside.
         if (menu.open && !event.composedPath().includes(menu)) menu.open = false;
     });
     document.addEventListener("keydown", event => { if (event.key === "Escape") menu.open = false; });
+}
+
+function setupSavedMenu() {
+    const menu = $("#saved");
+    $("#saved > summary").title = TEXT.page.saved_help;
+    setupMenuClosing(menu);
     // Undo is offered until the menu closes.
     menu.addEventListener("toggle", () => {
         if (!menu.open && removed_setup) { removed_setup = null; renderSaved(); }
@@ -848,21 +878,44 @@ const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
 const HOLD_DELAY_MS = 400;          // holding − / +: wait this long, then repeat
 const HOLD_REPEAT_MS = 70;
 
+// The level limit opens from the settings button in section 4's heading; Rename and Your
+// level sit under the tiles, one row each, your level with what it means for this order
+// beside it.
 function renderRanking() {
     const box = $("#ranking");
+    const panel = $("#limit-panel");
     const active = document.activeElement;
-    const focused = active && box.contains(active) ? active.dataset.focus : null;
-    box.replaceChildren(h("div", { class: "options" },
-        optionRow(TEXT.ranking.level_limit, TEXT.ranking.level_limit_help, limitControl()),
-        optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help, levelControl()),
-        optionRow(TEXT.ranking.rename, TEXT.ranking.rename_help, renameToggle()),
-        state.rename ? h("div", { class: "option-wide" }, nameField()) : null
+    const focused = active && (box.contains(active) || panel.contains(active)) ? active.dataset.focus : null;
+
+    // The settings menu: the level limit (the menu stays open while it changes).
+    panel.replaceChildren(h("div", { class: "options" },
+        optionRow(TEXT.ranking.level_limit, TEXT.ranking.level_limit_help, limitControl())
     ));
+    $("#options-summary").textContent = optionsSummary();
+
+    // Under the tiles: one grid, so the labels share a column.
+    box.replaceChildren(h("div", { class: "options" },
+        optionRow(TEXT.ranking.rename, TEXT.ranking.rename_help, nameField()),
+        optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help,
+            h("div", { class: "level-line" }, levelControl(), h("span", { class: "level-summary", id: "level-summary" })))
+    ));
+
     if (focused) {
-        const again = box.querySelector(`[data-focus="${focused}"]`);
+        const again = document.querySelector(`#ranking [data-focus="${focused}"], #limit-panel [data-focus="${focused}"]`);
         if (again) again.focus();
     }
     updateLevelMeter();
+}
+
+// "Level limit 39" (or "No level limit"), on the settings button.
+function optionsSummary() {
+    return state.no_step_limit ? TEXT.ranking.options_no_limit : TEXT.ranking.options_limit({ limit: state.max_step });
+}
+
+function setupOptionsMenu() {
+    const menu = $("#options-menu");
+    menu.querySelector("summary").title = TEXT.ranking.options;
+    setupMenuClosing(menu);
 }
 
 function optionRow(label, help, control) {
@@ -978,7 +1031,17 @@ function levelControl() {
             type: "button", class: "level-toggle" + (level_on ? " on" : ""), "data-focus": "level-toggle",
             "aria-pressed": String(level_on), "aria-label": TEXT.ranking.use_level, title: TEXT.ranking.use_level_help,
             onclick: () => setLevelOn(!level_on)
-        }, xpOrb())
+        }, xpOrb()),
+        // "Set to 61": exactly the levels the unticked steps still need (filled in by
+        // updateLevelMeter, which knows the order).
+        h("button", {
+            type: "button", class: "level-set", id: "level-set", "data-focus": "level-set",
+            title: TEXT.ranking.set_needed_help,
+            onclick: () => {
+                const node = resultNode();
+                if (node) setPlayerLevel(remainingLevels(logic.collectSteps(node)).needed, true);
+            }
+        })
     );
 }
 
@@ -1040,6 +1103,15 @@ function setPlayerLevel(value, update_input) {
     renderResults();
 }
 
+// What is still to spend, for "Your level": ticked steps are done, so their levels are
+// already gone from the player's level and count as 0 here. (The Levels tile keeps the
+// whole order's total.) Returns { costs: per step in step order, needed: their sum, done }.
+function remainingLevels(steps) {
+    const done = loadChecklist(orderKey(steps));
+    const costs = steps.map(step => (done.has(step.number) ? 0 : step.node.merge_levels));
+    return { costs, needed: costs.reduce((total, cost) => total + cost, 0), done };
+}
+
 // The finished order, or null while there is none.
 function resultNode() {
     const node = last_result && last_result.status === "ok" ? last_result.node : null;
@@ -1051,7 +1123,8 @@ function updateLevelMeter() {
     const bar = $("#xp-bar");
     if (!bar) return;
     const node = resultNode();
-    const needed = node ? node.cumulative_levels : 0;
+    const levels = node ? remainingLevels(logic.collectSteps(node)) : null;
+    const needed = levels ? levels.needed : 0;
     const active = activeLevel();
     const level = active == null ? 0 : active;
     const share = needed && active != null ? Math.min(1, level / needed) : 0;
@@ -1060,18 +1133,59 @@ function updateLevelMeter() {
     bar.title = !needed || active == null ? ""
         : level >= needed ? TEXT.ranking.level_enough({ needed })
             : TEXT.ranking.level_short_of({ short: needed - level, needed });
+
+    // Beside it: where you end up, or how many levels are missing.
+    const summary = $("#level-summary");
+    const track = levels && active != null ? levelTrack(levels.costs, active) : null;
+    summary.textContent = !track ? ""
+        : track.short ? TEXT.results.levels_needed({ short: track.short })
+            : TEXT.results.levels_left({ level: track.end });
+    summary.classList.toggle("short", Boolean(track && track.short));
+
+    const set = $("#level-set");
+    set.textContent = TEXT.ranking.set_needed({ levels: levels ? needed : TEXT.ranking.no_value });
+    set.disabled = !levels;
 }
 
-// Rename: a name tag toggle. When on, the anvil's name box opens under it.
-function renameToggle() {
-    return h("button", {
-        type: "button", class: "name-tag" + (state.rename ? " on" : ""), "data-focus": "rename",
-        "aria-pressed": String(state.rename), title: TEXT.ranking.rename_help,
-        onclick: () => { state.rename = !state.rename; commit(); }
-    },
+// Rename: one box drawn like the anvil's name field. Empty means no rename, and shows the
+// item's own name in gray as a hint; any typed name (even the item's own) renames the item
+// in the last step (+1 level), in white italics as the game shows renamed items. Inside:
+// the name tag (lit while renaming), the name, a "+1 level" badge while renaming, and a
+// count against the edition's limit.
+function nameField() {
+    const limit = MAX_NAME_LENGTH[state.edition];
+    const original = state.item ? logic.itemName(state.item) : "";
+    const count = h("span", { class: "name-count" });
+    const input = h("input", {
+        type: "text", class: "anvil-name-input", value: state.rename_to, maxlength: limit, "data-focus": "rename-to",
+        placeholder: original || TEXT.ranking.rename_placeholder, "aria-label": TEXT.ranking.rename_label,
+        oninput: event => {
+            state.rename_to = cleanName(event.target.value, state.edition);
+            const renaming = syncRename();
+            showState();
+            saveToUrl();
+            // Starting or ending a rename changes the cost (+1 level), so search again;
+            // otherwise only the name on the result changes. This box is never redrawn
+            // while typing, which would move the cursor.
+            if (renaming !== was_renaming) { was_renaming = renaming; scheduleCalculation(); }
+            renderResults();
+        }
+    });
+    const box = h("div", { class: "anvil-name" },
         nameTagIcon(),
-        state.rename ? TEXT.ranking.rename_on : TEXT.ranking.rename_off
+        input,
+        h("span", { class: "rename-cost" }, TEXT.ranking.rename_cost),
+        count
     );
+    let was_renaming = state.rename;
+    const showState = () => {
+        const used = [...input.value].length;
+        count.textContent = TEXT.ranking.name_count({ count: used, max: limit });
+        count.title = TEXT.ranking.name_count_label({ count: used, max: limit });
+        box.classList.toggle("renaming", state.rename);
+    };
+    showState();
+    return box;
 }
 
 // The game's name tag (img/name_tag.png).
@@ -1079,37 +1193,24 @@ function nameTagIcon() {
     return h("img", { class: "name-tag-icon", src: "img/name_tag.png", alt: "", "aria-hidden": "true" });
 }
 
-// The new name, typed in a box drawn like the anvil's, in italics as the game shows a
-// renamed item, with a count against the edition's limit. It does not change the cost,
-// so typing only redraws the results (redrawing this box would drop the cursor mid-word).
-function nameField() {
-    const limit = MAX_NAME_LENGTH[state.edition];
-    const count = h("span", { class: "name-count" });
-    const showCount = () => {
-        const used = [...state.rename_to].length;
-        count.textContent = TEXT.ranking.name_count({ count: used, max: limit });
-        count.title = TEXT.ranking.name_count_label({ count: used, max: limit });
-    };
-    showCount();
-    return h("div", { class: "anvil-name" },
-        h("input", {
-            type: "text", class: "anvil-name-input", value: state.rename_to, maxlength: limit, "data-focus": "rename-to",
-            placeholder: TEXT.ranking.rename_placeholder, "aria-label": TEXT.ranking.rename_label,
-            oninput: event => {
-                state.rename_to = cleanName(event.target.value, state.edition);
-                showCount();
-                saveToUrl();
-                renderResults();
-            }
-        }),
-        count
-    );
+// Renaming is on exactly when a name is typed. Returns whether it is.
+function syncRename() {
+    state.rename = state.rename_to.trim() !== "";
+    return state.rename;
 }
+
+// Each redraw (a tick, a new name, a new level) rebuilds the steps; their scroll position
+// is kept when the same view of the same order comes back.
+let steps_scroll = { key: null, top: 0 };
 
 function renderResults() {
     renderMetrics();
+    renderOrderSummary();
+    renderStepsSummary();
     updateLevelMeter();
     const box = $("#results");
+    const old_scroll = box.querySelector(".steps-scroll");
+    if (old_scroll) steps_scroll.top = old_scroll.scrollTop;
     box.replaceChildren();
     const entries = logic.buildEntries(state);
 
@@ -1145,7 +1246,7 @@ function renderResults() {
         return;
     }
 
-    const content = h("div", { class: running ? "stale" : null });
+    const content = h("div", { class: "results-content" + (running ? " stale" : "") });
     box.append(content);
     const node = result.node;
 
@@ -1176,14 +1277,11 @@ function renderResults() {
     content.append(h("p", { class: "print-only" }, TEXT.results.text_wanted({ item: logic.itemName(state.item), enchantments: logic.summary(node.enchantments) })));
 
     // With "Your level" filled in: the level before and after each step, in step order.
-    const track = activeLevel() == null ? null : levelTrack(steps.map(step => step.node.merge_levels), activeLevel());
-    content.append(h("div", { class: "result-facts" },
-        h("span", { title: TEXT.results.anvil_wear_help },
-            TEXT.results.anvil_wear({ uses: steps.length, chance: percentText(anvilBreakChance(steps.length)) })),
-        track ? h("span", { class: track.short ? "short" : null }, track.short
-            ? TEXT.results.levels_needed({ short: track.short, start: node.cumulative_levels })
-            : TEXT.results.levels_left({ level: track.end })) : null
-    ));
+    // Ticked steps are already paid for, so the level follows only the ones left.
+    const remaining = remainingLevels(steps);
+    const track = activeLevel() == null ? null : levelTrack(remaining.costs, activeLevel());
+    // (Where your level ends up is beside "Your level", above.)
+    content.append(anvilWear(steps.length)); // right above the Steps/Tree row
 
     content.append(h("div", { class: "toolbar result-tools" },
         h("div", { class: "segmented", role: "group", "aria-label": TEXT.results.view_label },
@@ -1192,26 +1290,57 @@ function renderResults() {
                 onclick: () => { result_view = view; writeStorage(VIEW_STORAGE_KEY, view); renderResults(); }
             }, label))),
         h("button", {
+            type: "button", class: "btn small ghost", title: TEXT.results.uncheck_all_help,
+            disabled: loadChecklist(orderKey(steps)).size === 0,
+            onclick: () => { saveChecklist(orderKey(steps), new Set()); renderResults(); }
+        }, TEXT.results.uncheck_all),
+        h("button", {
             type: "button", class: "btn small copy-steps", title: TEXT.results.copy_steps_help,
             onclick: event => copyText(event.currentTarget, stepsText(node, steps), TEXT.results.copy_steps)
         }, TEXT.results.copy_steps),
         h("button", { type: "button", class: "btn small", title: TEXT.results.print_help, onclick: () => window.print() }, TEXT.results.print)
     ));
 
+    // Only the steps (or the tree) scroll, under the Steps/Tree row; on desktop they fill
+    // what is left of the window. See .steps-scroll.
+    const order_key = orderKey(steps);
+    const scroller = h("div", { class: "steps-scroll" });
+    content.append(scroller);
+
+    const done = loadChecklist(order_key);
     if (result_view === "tree") {
-        content.append(mergeTree(node, steps));
-        return;
+        scroller.append(mergeTree(node, steps, done, order_key));
+    } else {
+        // One group per round: its steps don't depend on each other, so any order works.
+        const rounds = logic.stepRounds(steps);
+        scroller.append(h("div", { class: "rounds" }, rounds.map((round, index) => h("section", { class: "round" },
+            h("div", { class: "round-label", title: round.length > 1 ? TEXT.results.round_help : null },
+                TEXT.results.round({ number: index + 1, steps: round.length })),
+            h("ol", { class: "anvil-steps" }, round.map(step =>
+                anvilStep(step, done, order_key, steps, track && !done.has(step.number) ? track.steps[step.number - 1] : null)))
+        ))));
     }
 
-    const order_key = orderKey(steps);
-    const done = loadChecklist(order_key);
-    // One group per round: its steps don't depend on each other, so any order works.
-    const rounds = logic.stepRounds(steps);
-    content.append(h("div", { class: "rounds" }, rounds.map((round, index) => h("section", { class: "round" },
-        h("div", { class: "round-label", title: round.length > 1 ? TEXT.results.round_help : null },
-            TEXT.results.round({ number: index + 1, steps: round.length })),
-        h("ol", { class: "anvil-steps" }, round.map(step => anvilStep(step, done, order_key, track && track.steps[step.number - 1])))
-    ))));
+    const scroll_key = result_view + "|" + order_key;
+    if (steps_scroll.key === scroll_key) scroller.scrollTop = steps_scroll.top;
+    steps_scroll = { key: scroll_key, top: scroller.scrollTop };
+}
+
+// [anvil] 7 anvil uses · (4% chance a new anvil breaks). The chance is a badge colored
+// by how likely the break is; under 3 uses a new anvil can't break.
+const ANVIL_RISK_MEDIUM = 0.1;
+const ANVIL_RISK_HIGH = 0.5;
+
+function anvilWear(uses) {
+    const chance = anvilBreakChance(uses);
+    const risk = chance === 0 ? "none" : chance < ANVIL_RISK_MEDIUM ? "low" : chance < ANVIL_RISK_HIGH ? "medium" : "high";
+    return h("div", { class: "anvil-wear", title: TEXT.results.anvil_wear_help },
+        // In a slot like the steps' items, so the dark anvil shows in dark mode too.
+        h("span", { class: "anvil-wear-slot" }, h("img", { class: "anvil-wear-icon", src: "img/anvil.png", alt: "" })),
+        h("span", { class: "anvil-wear-uses" }, TEXT.results.anvil_uses({ uses })),
+        h("span", { class: "anvil-wear-chance risk-" + risk },
+            chance === 0 ? TEXT.results.anvil_safe : TEXT.results.anvil_break({ chance: percentText(chance) }))
+    );
 }
 
 // 0.04 as "4%" in the page's language; tiny chances as "under 1%" rather than "0%".
@@ -1229,18 +1358,34 @@ function nodeName(node) {
 
 // The order as a tree: the finished item on top, and under each merge the two things
 // that went into it (first slot first), down to the books and items you start with.
-function mergeTree(root, steps) {
+// Each entry is drawn like the game: an inventory slot and a tooltip, the name colored
+// by rarity (italic once renamed) and the enchantments in gray (curses in red), in the
+// game's font. On a merge, enchantments it adds or raises over its first-slot item are
+// white with a green "+", as in the Steps view. A merge's badge ("Step 9 · 19 levels") has the same tick box as the Steps
+// view, and a ticked merge fades.
+function mergeTree(root, steps, done, order_key) {
     const numbers = new Map(steps.map(step => [step.node, step.number]));
     const branch = node => {
         const number = numbers.get(node);
         const enchanted = node.enchantments.length > 0;
+        const renamed = Boolean(node.renamed && state.rename_to.trim());
+        const before = node.left ? new Map(node.left.enchantments.map(e => [e.namespace, e.level])) : null;
+        const enchantments = logic.tooltipSort(node.enchantments).flatMap((e, index) => [
+            index ? ", " : null,
+            h("span", {
+                class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") +
+                    (before && before.get(e.namespace) !== e.level ? " changed" : "")
+            }, logic.displayName(e.namespace, e.level))
+        ]);
         return h("li", { class: "tree-node" },
-            h("div", { class: "tree-line" + (number ? " merge" : "") },
+            h("div", { class: "tree-line" + (number ? " merge" : "") + (number && done.has(number) ? " done" : "") },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
-                h("span", { class: "tree-text" },
-                    h("span", { class: "tree-name" + (node.renamed && state.rename_to.trim() ? " renamed" : "") }, nodeName(node)),
-                    enchanted ? h("span", { class: "tree-ench" }, logic.summary(node.enchantments)) : null),
-                number ? h("span", { class: "tree-step" }, TEXT.results.tree_step({ number, levels: node.merge_levels })) : null
+                h("span", { class: "mc-tooltip tree-tooltip" },
+                    h("span", { class: "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "") }, nodeName(node)),
+                    enchanted ? h("span", { class: "mc-ench tree-ench" }, enchantments) : null),
+                number ? h("label", { class: "tree-step", title: TEXT.results.step_done_help },
+                    stepTick(number, done, order_key, steps),
+                    TEXT.results.tree_step({ number, levels: node.merge_levels })) : null
             ),
             node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
         );
@@ -1264,8 +1409,7 @@ function stepsText(root, steps) {
     logic.stepRounds(steps).forEach((round, index) => {
         lines.push("", text.round({ number: index + 1, steps: round.length }));
         for (const step of round) {
-            const new_name = state.rename_to.trim();
-            const rename = !step.node.renamed ? "" : " (" + (new_name ? text.text_rename_to({ name: new_name }) : text.text_rename) + ")";
+            const rename = step.node.renamed ? " (" + text.text_rename_to({ name: state.rename_to.trim() }) + ")" : "";
             lines.push(text.text_step({ number: step.number, left: part(step.left), right: part(step.right), levels: step.node.merge_levels }) + rename);
         }
     });
@@ -1307,19 +1451,28 @@ function saveChecklist(order_key, done) {
 // One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a
 // box to tick it off.
 // `level`: { before, after, short } with "Your level" filled in, else null.
-function anvilStep(step, done, order_key, level = null) {
-    const number = step.number;
-    const tick = h("input", {
+// The box for ticking off step `number`, in the Steps view and the Tree view alike (both
+// keep the same ticks). Ticking a step also ticks the steps it needs, and unticking one
+// unticks the steps that need it (Logic.js tickStep), so the redraw shows all of them;
+// it also updates what "Your level" has left.
+function stepTick(number, done, order_key, steps) {
+    return h("input", {
         type: "checkbox",
         checked: done.has(number),
+        "data-step": number,
         "aria-label": TEXT.results.step_done_label({ number }),
         onchange: event => {
-            if (event.target.checked) done.add(number);
-            else done.delete(number);
-            saveChecklist(order_key, done);
-            event.target.closest(".anvil-step").classList.toggle("done", event.target.checked);
+            saveChecklist(order_key, logic.tickStep(steps, done, number, event.target.checked));
+            renderResults();
+            const again = document.querySelector(`input[data-step="${number}"]`);
+            if (again) again.focus(); // keyboard users keep their place
         }
     });
+}
+
+function anvilStep(step, done, order_key, steps, level = null) {
+    const number = step.number;
+    const tick = stepTick(number, done, order_key, steps);
     const left_levels = new Map(step.left.node.enchantments.map(e => [e.namespace, e.level]));
     const changed = new Set(step.node.enchantments
         .filter(e => left_levels.get(e.namespace) !== e.level)
@@ -1465,7 +1618,7 @@ function saveToUrl() {
 function loadFromUrl() {
     const hash = location.hash.slice(1);
     const loaded = hash ? readLink(hash) : null;
-    if (loaded) state = loaded;
+    if (loaded) { state = loaded; syncRename(); }
 }
 
 // The state in a share link's text, or null if it is not valid. Read with the Java
@@ -1488,6 +1641,7 @@ function readLink(text) {
 function setupInfoTip() {
     const button = $("#rank-help");
     button.addEventListener("click", event => toggleTip(event, button.closest(".info-tip")));
+    floatBubble(button.closest(".info-tip"));
     // Any open tip closes on a click elsewhere or on Escape.
     document.addEventListener("click", event => {
         for (const tip of document.querySelectorAll(".info-tip.open")) if (!tip.contains(event.target)) setTipOpen(tip, false);
@@ -1497,11 +1651,32 @@ function setupInfoTip() {
     });
 }
 
+// The "?" sits in the right column, which scrolls when its contents are too tall, so a
+// bubble positioned inside it would count as content and add a scrollbar. This places the
+// bubble against the window instead (position: fixed): under the "?", kept on screen, and
+// following the "?" when the page or the column scrolls.
+function floatBubble(tip) {
+    const bubble = tip.querySelector(".info-tip-bubble");
+    // Only while it shows: a hidden bubble has no width to keep on screen.
+    const place = () => {
+        if (!bubble.offsetWidth) return;
+        const anchor = tip.querySelector("button").getBoundingClientRect();
+        bubble.style.top = anchor.bottom + 6 + "px";
+        bubble.style.left = Math.max(8, Math.min(anchor.left, innerWidth - bubble.offsetWidth - 8)) + "px";
+    };
+    tip.classList.add("floating");
+    tip.place = place; // setTipOpen calls it once the bubble is open
+    for (const type of ["mouseenter", "focusin"]) tip.addEventListener(type, () => requestAnimationFrame(place));
+    document.addEventListener("scroll", place, { capture: true, passive: true });
+    addEventListener("resize", place);
+}
+
 // Tips redrawn while open (the books badge, on every edit) stay open: remembered by id.
 const open_tips = new Set();
 
 function setTipOpen(tip, open) {
     tip.classList.toggle("open", open);
+    if (open && tip.place) tip.place();
     tip.querySelector("button").setAttribute("aria-expanded", String(open));
     if (tip.id) open ? open_tips.add(tip.id) : open_tips.delete(tip.id);
 }
@@ -1567,6 +1742,7 @@ async function init() {
     setupCopyLink();
     setupInfoTip();
     setupSavedMenu();
+    setupOptionsMenu();
     setupCollapsing();
     render();
     runCalculation();

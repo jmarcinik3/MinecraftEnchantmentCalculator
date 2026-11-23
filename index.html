@@ -48,23 +48,46 @@
                 <h2><span class="step-badge">3</span><span class="section-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
                 <div id="books-body" class="section-body"><div id="books"></div></div>
             </section>
+
         </div>
 
+        <!-- The result: section 4 (the totals and settings), then section 5 (the steps, with
+             anvil wear and the Steps/Tree row above them). Both collapse from their heading. -->
         <aside class="results-column">
-            <section class="card results-card">
-                <div class="results-header">
-                    <h2>
-                        <span data-text="page.results_heading"></span>
+            <!-- 4: the result. The ? in the heading says how the tiles rank. The level limit is
+                 in the settings menu beside the heading (it is usually set once; the button
+                 says what it is), so the heading row is a .section-head: the h2, the menu and
+                 the collapse arrow. -->
+            <section class="card collapsible" data-section="order">
+                <div class="section-head">
+                    <h2><span class="step-badge">4</span><span class="section-title" data-text="page.results_heading"></span>
                         <span class="info-tip">
                             <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
                                 aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
                             <span id="rank-help-text" class="info-tip-bubble" role="tooltip" data-text="ranking.rank_by"></span>
                         </span>
+                        <span class="section-summary" id="order-summary"></span>
                     </h2>
+                    <details id="options-menu" class="options-menu">
+                        <summary class="options-button" data-text-label="ranking.options">
+                            <span id="options-summary" class="options-summary"></span>
+                            <svg class="gear-icon" viewBox="0 0 24 24" aria-hidden="true"><g fill="currentColor"><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(0 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(45 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(90 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(135 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(180 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(225 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(270 12 12)"/><rect x="10.4" y="1.6" width="3.2" height="4.4" rx="0.8" transform="rotate(315 12 12)"/></g><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="3.4"/></svg>
+                        </summary>
+                        <div id="limit-panel" class="options-panel"></div>
+                    </details>
+                    <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="order-body"></button>
                 </div>
-                <div id="ranking" class="ranking"></div>
-                <div id="metrics" class="metrics-box"></div>
-                <div id="results"></div>
+                <!-- The tiles (the totals, and the ranking), then the settings: level limit and
+                     rename (they change which order wins) and your level (only what the steps show). -->
+                <div id="order-body" class="section-body">
+                    <div id="metrics" class="metrics-box"></div>
+                    <div id="ranking" class="settings"></div>
+                </div>
+            </section>
+
+            <section class="card collapsible results-card" data-section="steps">
+                <h2><span class="step-badge">5</span><span class="section-title" data-text="page.steps_heading"></span><span class="section-summary" id="steps-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
+                <div id="steps-body" class="section-body"><div id="results"></div></div>
             </section>
         </aside>
     </main>
