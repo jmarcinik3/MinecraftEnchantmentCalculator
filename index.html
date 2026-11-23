@@ -8,6 +8,8 @@
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" type="image/png" href="img/app_icon_192.png">
     <link rel="apple-touch-icon" href="img/app_icon_180.png">
+    <!-- The saved light/dark choice, before the page draws (App.js setupTheme). -->
+    <script>try { const theme = JSON.parse(localStorage.getItem("enchantment-calculator-theme")); if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme; } catch {}</script>
     <link rel="stylesheet" href="css/Style.css">
     <script type="module" src="js/App.js"></script>
 </head>
@@ -26,6 +28,7 @@
                 <svg class="link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 10a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
                 <span class="copy-label" data-text="page.copy_link"></span>
             </button>
+            <button id="theme" class="header-control theme-toggle" type="button"><svg class="theme-icon sun-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg class="theme-icon moon-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg></button>
             <div id="language"></div>
         </div>
     </header>

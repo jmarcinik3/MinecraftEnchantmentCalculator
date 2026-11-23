@@ -27,8 +27,9 @@
     color-scheme: light;
 }
 
+/* Dark: from the system unless the sun/moon button chose light, or chosen by it. */
 @media (prefers-color-scheme: dark) {
-    :root {
+    :root:not([data-theme="light"]) {
         --bg: #161517;
         --surface: #1f1e21;
         --surface-alt: #2a292d;
@@ -50,6 +51,28 @@
         --row-glint: rgba(190, 140, 255, 0.16);
         color-scheme: dark;
     }
+}
+:root[data-theme="dark"] {
+    --bg: #161517;
+    --surface: #1f1e21;
+    --surface-alt: #2a292d;
+    --text: #eceae6;
+    --text-secondary: #b3b0aa;
+    --text-muted: #85827d;
+    --border: rgba(255, 255, 255, 0.12);
+    --border-strong: rgba(255, 255, 255, 0.26);
+    --accent: #a68af0;
+    --accent-bg: #2f2550;
+    --accent-text: #d4c6fb;
+    --warning-bg: #3d2f12;
+    --warning-text: #f2cf8a;
+    --success-bg: #183a1f;
+    --success-text: #a5e0a3;
+    --danger-bg: #431c1c;
+    --danger-text: #f3b0b0;
+    --curse: #ff6b6b;
+    --row-glint: rgba(190, 140, 255, 0.16);
+    color-scheme: dark;
 }
 
 * { box-sizing: border-box; }
@@ -88,6 +111,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .header-control.segmented button { height: 100%; font-size: 13px; padding: 0 10px; }
 .header-control.segmented:hover { background: transparent; }
 .copy-link .link-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; flex: none; }
+/* Sun/moon: an icon-only header button. */
+.theme-toggle { justify-content: center; padding: 0 9px; }
+.theme-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 /* Phones: the title on its own line, then the toolbar across the full width. */
 @media (max-width: 600px) {
@@ -103,6 +129,12 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 @media (max-width: 440px) {
     .copy-link:not(.copied) .copy-label { display: none; }
     .copy-link { padding: 0 9px; }
+    /* A little tighter, so the toolbar (with the sun/moon) stays on one row on a 375px phone,
+       in Spanish too. */
+    header .header-actions { gap: 5px; }
+    .header-control.segmented button { padding: 0 7px; }
+    .copy-link, .theme-toggle { padding: 0 8px; }
+    .header-actions .saved-menu > .header-control { padding: 0 8px; }
 }
 .check-row { color: var(--text-secondary); cursor: pointer; }
 .check-row input { margin: 0; }
@@ -531,6 +563,112 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .entry-top > .drag-handle { margin-left: -2px; }
 .entry-remove { margin-left: auto; align-self: flex-start; color: var(--text-muted); }
 .entry-remove:hover { color: var(--text); }
+/* ⧉ duplicate, beside ×. */
+.entry-tool {
+    margin-left: auto;
+    align-self: flex-start;
+    padding: 0 4px;
+    border: none;
+    background: none;
+    color: var(--text-muted);
+    font: inherit;
+    font-size: 15px;
+    line-height: 1;
+    cursor: pointer;
+}
+.entry-tool:hover { color: var(--text); }
+.entry-tool + .entry-remove { margin-left: 0; }
+.entry-tools { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-left: auto; align-self: flex-start; }
+.entry-tools > .entry-tool, .entry-tools > .entry-remove { margin: 0; align-self: auto; }
+.entry-badges { flex-wrap: nowrap; }
+
+/* Coverage: each chosen enchantment, reached (green ✓) or not (amber; tap to fix). */
+.coverage { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.cover-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+}
+.cover-chip.ok { background: var(--success-bg); color: var(--success-text); }
+.cover-chip.short { background: var(--warning-bg); color: var(--warning-text); border: 1px dashed var(--warning-text); cursor: pointer; }
+.cover-chip.short:hover, .cover-chip.short:focus-visible { border-style: solid; }
+.cover-best { font-size: 11px; opacity: 0.8; }
+.cover-best::before { content: "· "; }
+
+/* List view: one row per entry. */
+.entry-grid.list { grid-template-columns: minmax(0, 1fr); gap: 6px; }
+/* One row: grip, slot, enchantments, badges, ⧉, ×; on a narrow section the badges go
+   under the enchantments, so the names keep their room. */
+.entry-card.compact {
+    display: grid;
+    grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
+    grid-template-areas: "grip slot summary badges dup remove";
+    align-items: center;
+    gap: 2px 8px;
+    padding: 6px 8px;
+}
+.entry-card.compact > .drag-handle { grid-area: grip; }
+.entry-card.compact > .entry-slot, .entry-card.compact > .mc-slot { grid-area: slot; }
+.entry-card.compact > .entry-summary { grid-area: summary; }
+.entry-card.compact > .entry-badges { grid-area: badges; }
+.entry-card.compact > .entry-tool { grid-area: dup; }
+.entry-card.compact > .entry-remove { grid-area: remove; }
+@container books (max-width: 439px) {
+    .entry-card.compact {
+        grid-template-columns: auto auto minmax(0, 1fr) auto auto;
+        grid-template-areas: "grip slot summary dup remove" "grip slot badges dup remove";
+    }
+    .entry-card.compact > .entry-badges { justify-self: start; padding-left: 6px; }
+}
+.entry-card.compact .mc-slot { width: 36px; height: 36px; }
+.entry-card.compact .mc-slot .item-icon { width: 26px; height: 26px; }
+.entry-card.compact .stack-count { font-size: 12px; text-shadow: 1px 1px 0 #3f3f3f; }
+.entry-card.compact > .entry-badges { flex: none; }
+.entry-card.compact > .entry-tool { margin-left: 0; align-self: center; }
+.entry-card.compact > .entry-remove { margin-left: 0; align-self: center; }
+.entry-summary {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 2px 6px;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text);
+    font: inherit;
+    text-align: left;
+}
+button.entry-summary { cursor: pointer; }
+button.entry-summary:hover, .entry-summary.open { background: var(--surface-alt); }
+.entry-summary-list {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    overflow: hidden;
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 13px;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.entry-summary-list.no-enchantments { color: var(--text-muted); }
+
+/* Dragging an enchantment line to another card. */
+.entry-line { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+.line-ghost { position: fixed; z-index: 60; width: auto; padding: 3px 7px; pointer-events: none; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.entry-card.drag-source { opacity: 0.7; }
+.entry-card.drop-ok { outline: 2px solid var(--accent); outline-offset: 2px; }
+.entry-card.drop-no { outline: 2px dashed var(--danger-text); outline-offset: 2px; }
+body.dragging-line, body.dragging-line * { cursor: grabbing !important; }
 
 /* The slot is the book/item switch: a purple ring on hover. The stack count sits in its
    corner in the game's white with a drop shadow, above the glint. */
@@ -595,10 +733,26 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .mc-ench .tag-flag { flex: none; text-shadow: none; }
 
 /* The add cell: a dashed card with the two add buttons. */
+.entry-add-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
+.type-add { display: flex; gap: 6px; }
+.type-add-input {
+    flex: 1;
+    min-width: 0;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 6px;
+    background: var(--surface);
+    color: var(--text);
+    font: inherit;
+    font-size: 13px;
+}
+.type-add-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
+.type-note { margin: 0; font-size: 12px; color: var(--warning-text); }
 .entry-add-card {
     display: flex;
-    flex-wrap: wrap;
-    align-items: flex-start;
+    flex-direction: column;
+    align-items: stretch;
     gap: 6px;
     padding: 8px;
     border: 1px dashed var(--border-strong);
@@ -633,7 +787,24 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     color: var(--text-muted);
 }
 .picker-head:first-child { padding-top: 0; }
-.picker-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.picker-row { display: flex; align-items: center; gap: 10px; margin: 0 -6px; padding: 4px 6px; border-radius: 6px; }
+/* The row of the enchantment tapped on the card, highlighted for a moment. */
+.picker-row.spot { animation: picker-spot 1.6s ease-out; }
+@keyframes picker-spot {
+    from { background: var(--accent-bg); }
+    to { background: transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .picker-row.spot { animation: none; background: var(--accent-bg); } }
+.picker-more {
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--accent-text);
+    font: inherit;
+    font-size: 13px;
+    text-decoration: underline;
+    cursor: pointer;
+}
 .picker-name {
     flex: 1;
     min-width: 0;
@@ -649,7 +820,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .picker-row.conflict .level-bar { opacity: 0.45; }
 .picker-row.conflict .level-bar:hover, .picker-row.conflict .level-bar:focus-visible { opacity: 0.8; }
 .picker-row .note { font-family: system-ui, sans-serif; }
-.popover-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+.popover-foot { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 8px; }
 
 /* An enchantment on an entry that wasn't chosen in section 1. */
 .tag-flag {
@@ -1622,7 +1793,8 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 
 /* Print: only the result, in black on white, with steps kept whole on a page. */
 @media print {
-    :root {
+    /* As specific as the dark theme rules (and later), so paper is always light. */
+    :root, :root:not([data-theme="light"]), :root[data-theme] {
         --bg: #fff; --surface: #fff; --surface-alt: #fff; --text: #000;
         --text-secondary: #333; --text-muted: #555; --border: #bbb; --border-strong: #888;
         --accent-bg: #eee; --accent-text: #000; --danger-text: #a01818;

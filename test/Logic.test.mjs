@@ -530,6 +530,19 @@ test("presets: the best set, then each well-known swap the item can take", () =>
     assert.strictEqual(logic.describe("mending"), TEXTS.en.names.descriptions.mending);
 });
 
+test("typed books: names from their start, levels, commas between books and + within one", () => {
+    const read = text => logic.parseBooks(text, "boots");
+    assert.deepStrictEqual(read("prot 4, mending"), { books: [{ protection: 4 }, { mending: 1 }], unknown: [] });
+    assert.deepStrictEqual(read("unb III + thorns").books, [{ unbreaking: 3, thorns: 3 }]); // no level: the max
+    assert.deepStrictEqual(read("feather falling 9").books, [{ feather_falling: 4 }]); // capped
+    assert.deepStrictEqual(read("fire prot 2").books, [{ fire_protection: 2 }]);
+    assert.deepStrictEqual(read("curse vanish").books, [{ vanishing_curse: 1 }]); // every word a start
+    assert.deepStrictEqual(read("soul_speed 1").books, [{ soul_speed: 1 }]); // namespaces too
+    assert.deepStrictEqual(read("mending, sharpness 5 + unb"), { books: [{ mending: 1 }], unknown: ["sharpness 5"] }); // not on boots
+    const spanish = createLogic(meta, TEXTS.es.names);
+    assert.deepStrictEqual(spanish.parseBooks("proteccion 3, reparacion", "boots").books, [{ protection: 3 }, { mending: 1 }]);
+});
+
 test("steps are grouped into rounds of independent steps, cheapest first", () => {
     const leaf = ns => ({ item_namespace: ns, enchantments: [], left: null, right: null });
     const merge = (left, right, cost) => ({ item_namespace: left.item_namespace, enchantments: [], merge_levels: cost, left, right });

@@ -417,6 +417,53 @@ export function createLogic(meta, names = {}) {
         return { books, removed, merged: Boolean(same) };
     }
 
+    // Books typed in a box, e.g. "prot 4, mending, unb 3 + thorns": commas (or new lines)
+    // between books, "+" between the enchantments on one book. Each enchantment is the
+    // start of its name in the page's language (or its namespace), accents and case
+    // ignored, optionally followed by a level (4 or IV; the max if left out, capped at
+    // it). Returns { books: [{ns: level}], unknown: [parts it couldn't read] }; a book with
+    // a part it couldn't read is left out whole.
+    function parseBooks(text, item) {
+        const options = applicable(item);
+        const key = value => value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[\s_]+/g, " ").trim();
+        const ROMAN = { i: 1, ii: 2, iii: 3, iv: 4, v: 5 };
+        const names = options.map(ns => ({ ns, names: [key(enchName(ns)), key(ns)] }));
+        const find = query => {
+            const exact = names.find(entry => entry.names.includes(query));
+            if (exact) return exact.ns;
+            const words = query.split(" ");
+            const matches = names.filter(entry => entry.names.some(name =>
+                name.startsWith(query) || words.every(word => name.split(" ").some(part => part.startsWith(word)))));
+            matches.sort((a, b) => a.names[0].length - b.names[0].length);
+            return matches.length ? matches[0].ns : null;
+        };
+        const books = [];
+        const unknown = [];
+        for (const piece of String(text).split(/[,;\n]+/)) {
+            const enchantments = {};
+            let readable = true;
+            for (const part of piece.split("+")) {
+                const words = key(part).split(" ").filter(Boolean);
+                if (!words.length) continue;
+                let level = null;
+                const last = words[words.length - 1];
+                if (words.length > 1 && (/^\d+$/.test(last) || last in ROMAN)) {
+                    level = /^\d+$/.test(last) ? Number(last) : ROMAN[last];
+                    words.pop();
+                }
+                const ns = find(words.join(" "));
+                if (!ns) {
+                    unknown.push(part.trim());
+                    readable = false;
+                    continue;
+                }
+                enchantments[ns] = Math.max(1, Math.min(maxLevel(ns), level || maxLevel(ns)));
+            }
+            if (readable && Object.keys(enchantments).length) books.push(enchantments);
+        }
+        return { books, unknown };
+    }
+
     // Problems with a custom list that can be seen before calculating:
     //   short: wanted enchantments the entries cannot reach, [{ ns, wanted, best }]
     //          (best 0 means no entry has it);
@@ -572,7 +619,7 @@ export function createLogic(meta, names = {}) {
     return {
         isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
-        bestLevels, checkBooks, addBook, twinOf,
+        bestLevels, checkBooks, addBook, twinOf, parseBooks,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };
 }

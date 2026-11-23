@@ -8,7 +8,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `index.html`: shell with 2 left sections (1 Item and enchantments `#wanted`, 2 Books and items `#books`) and
   2 right ones (3 Best order: `#metrics` tiles and `#ranking` settings; 4 Anvil uses, `.results-card`: `#results` with status
   messages, anvil wear, the Steps/Tree row and the steps), all collapsible (+ `#edition`, `#copy-link`,
-  `#language`, and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
+  `#language`, `#theme` (sun/moon: `setupTheme`/`renderTheme`, `THEME_STORAGE_KEY`, `data-theme` on <html>, set early by an inline
+  script in index.html; Style.css dark tokens apply under `prefers-color-scheme: dark` unless `data-theme="light"`, or with
+  `data-theme="dark"`), and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
   `.header-control` (one height); under 600px they form a full-width row below the title, under 440px Copy link is icon-only).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
@@ -86,6 +88,13 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   last cell is `addCard`. One popover at a time (`entry_popover`, `placePopover` puts it in the grid under its card;
   outside click/Escape close). Cards slide on change (`cardRects`/`animateCards`, grid-relative, FLIP), and `render`
   and `renderBooks` keep the scroll position across the redraw.
+  Also in Custom: `coverageStrip` (each section 1 pick reached ✓ or not; an amber chip runs `applyFix`, same as the ⚠ fixes),
+  × fades out (`removeEntry`) with "Put back …" (`undo_books` + `undo_label`), ⧉ `duplicateEntry`, "Add book"/⧉ open the
+  picker at once (`openPicker`/`focusPicker`; their buttons are `.popover-toggle` so the outside-click handler leaves it
+  open), the picker lists section 1 picks first with "Show all" (`picker_all`) and highlights a tapped line's row
+  (`entry_popover.ns`, `.spot`), a Cards | List switch (`viewSwitch`, `BOOKS_VIEW_STORAGE_KEY`; List = `.entry-card.compact`
+  grid rows; switching morphs each card from its old box, `animateCards(..., morph)`), a type box making one book of every typed enchantment (`addTyped`, Logic.js `parseBooks` per piece: "prot 4, mending"), and dragging a tooltip line
+  onto another card moves it (`lineDragStart`: mouse after 6px, touch after a 350ms hold; `moveEnchantment`).
 - All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
