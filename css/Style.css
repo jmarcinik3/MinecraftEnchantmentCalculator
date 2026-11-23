@@ -279,9 +279,50 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 .segmented button.selected { background: var(--accent-bg); color: var(--accent-text); }
 
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-bottom: 14px; }
+.ranking { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.ranking-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
+.ranking-label { color: var(--text-secondary); min-width: 64px; }
+.rank-list { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.rank-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 4px 3px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: grab;
+    user-select: none;
+}
+.rank-chip:first-child { background: var(--accent-bg); color: var(--accent-text); border-color: transparent; }
+.rank-num { font-size: 11px; font-weight: 600; min-width: 12px; text-align: center; color: var(--text-muted); }
+.rank-chip:first-child .rank-num { color: inherit; }
+.rank-move {
+    font: inherit;
+    font-size: 15px;
+    line-height: 1;
+    padding: 0 3px;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+}
+.rank-move:disabled { opacity: 0.25; cursor: default; }
+.step-limit {
+    font: inherit;
+    width: 56px;
+    padding: 3px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+}
+
+.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-bottom: 14px; }
 .metric { background: var(--surface-alt); border-radius: var(--radius); padding: 10px 12px; }
 .metric-label { font-size: 12px; color: var(--text-secondary); }
+.metric.primary { background: var(--accent-bg); color: var(--accent-text); }
+.metric.primary .metric-label { color: inherit; }
 .metric-value { font-size: 22px; font-weight: 600; }
 
 .warning, .error {

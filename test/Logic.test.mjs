@@ -3,9 +3,10 @@
 // so load its source through a data: URL instead of a normal import.
 import assert from "assert";
 import { readFileSync } from "fs";
+import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+const { createLogic, normalizePriority, movePriority, clampStepLimit, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
 const logic = createLogic(meta);
 
@@ -22,7 +23,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], objective: "levels" });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39 });
 
 test("every item has an icon file", () => {
     for (const item of Object.keys(meta.items)) {
@@ -106,11 +107,37 @@ test("shared links round-trip and drop invalid data", () => {
         wanted: { sharpness: 5 },
         auto_books: false,
         books: [{ id: 1, enchantments: { sharpness: 5, smite: 5, power: 2 }, prior_work: 9 }],
-        objective: "xp"
+        priority: ["max_step", "xp", "levels", "prior_work"],
+        max_step: 25
     };
     const loaded = logic.deserialize(logic.serialize(state), () => 1);
     assert.deepStrictEqual(loaded.books, [{ id: 1, type: "book", enchantments: { sharpness: 5 }, prior_work: 6 }]);
-    assert.strictEqual(loaded.objective, "xp");
+    assert.deepStrictEqual(loaded.priority, ["max_step", "xp", "levels", "prior_work"]);
+    assert.strictEqual(loaded.max_step, 25);
+});
+
+test("old single-objective links still load", () => {
+    const encode = data => btoa(JSON.stringify(data)).replace(/=+$/, "");
+    const old = logic.deserialize(encode({ i: "sword", w: {}, a: 1, b: [], o: 1 }), () => 0);
+    assert.deepStrictEqual(old.priority, ["xp", "levels", "max_step", "prior_work"]);
+    assert.strictEqual(old.max_step, 39);
+    const bad = logic.deserialize(encode({ i: "sword", w: {}, a: 1, b: [], p: [2, 2, 9], c: 99 }), () => 0);
+    assert.deepStrictEqual(bad.priority, ["max_step", "levels", "xp", "prior_work"]);
+    assert.strictEqual(bad.max_step, 39);
+});
+
+test("ranking criteria match the engine's", () => {
+    const engine_api = createRequire(import.meta.url)("../js/Engine.js");
+    assert.deepStrictEqual(CRITERIA, engine_api.CRITERIA);
+});
+
+test("ranking helpers", () => {
+    assert.deepStrictEqual(movePriority(CRITERIA, 2, -1), ["levels", "max_step", "xp", "prior_work"]);
+    assert.deepStrictEqual(movePriority(CRITERIA, 0, -1), CRITERIA);
+    assert.deepStrictEqual(normalizePriority(["prior_work"]), ["prior_work", "levels", "xp", "max_step"]);
+    assert.strictEqual(clampStepLimit(0), 1);
+    assert.strictEqual(clampStepLimit("12"), 12);
+    assert.strictEqual(clampStepLimit("x"), 39);
 });
 
 test("steps are listed children first", () => {

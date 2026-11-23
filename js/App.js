@@ -1,4 +1,4 @@
-import { createLogic, roman, MAX_PRIOR_WORK } from "./Logic.js";
+import { createLogic, roman, movePriority, clampStepLimit, CRITERIA, MAX_PRIOR_WORK, MAX_STEP_LEVELS } from "./Logic.js";
 
 const META_URL = "json/metadata.json";
 const WORKER_URL = "js/Calculator.js";
@@ -25,7 +25,8 @@ function defaultState() {
         wanted: {},        // enchantments the user wants on the final item
         auto_books: true,  // derive entries from `wanted`
         books: [],         // custom entries: { id, type: "book" | "item", enchantments: {ns: level}, prior_work }
-        objective: "levels"
+        priority: [...CRITERIA],     // ranking for the best order, most important first
+        max_step: MAX_STEP_LEVELS    // no single step may cost more levels than this
     };
 }
 
@@ -108,7 +109,7 @@ function render() {
     renderItems();
     renderWanted();
     renderBooks();
-    renderObjective();
+    renderRanking();
     renderResults();
 }
 
@@ -274,14 +275,72 @@ function typeToggle(book, item_name) {
     ));
 }
 
-function renderObjective() {
-    const options = [["levels", "Fewest levels"], ["xp", "Least XP"]];
-    $("#objective").replaceChildren(...options.map(([value, label]) => h("button", {
-        type: "button",
-        class: state.objective === value ? "selected" : "",
-        "aria-pressed": String(state.objective === value),
-        onclick: () => { if (state.objective !== value) { state.objective = value; commit(); } }
-    }, label)));
+const CRITERION_LABEL = { levels: "Levels", xp: "XP", max_step: "Max step", prior_work: "Prior work" };
+const CRITERION_HELP = {
+    levels: "Total levels spent",
+    xp: "Total XP points spent. Big steps cost more XP per level.",
+    max_step: "Cost of the most expensive step",
+    prior_work: "Prior work on the result, which makes future anvil use cheaper"
+};
+
+function setPriority(priority) {
+    state.priority = priority;
+    commit();
+}
+
+// Ranked criteria, most important first. Drag a chip or use its arrows to reorder;
+// later criteria break ties.
+function renderRanking() {
+    const box = $("#ranking");
+    let dragged = null;
+
+    const chips = state.priority.map((criterion, index) => {
+        const last = index === state.priority.length - 1;
+        const label = CRITERION_LABEL[criterion];
+        return h("li", {
+            class: "rank-chip",
+            draggable: "true",
+            title: CRITERION_HELP[criterion],
+            ondragstart: event => {
+                dragged = index;
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/plain", criterion);
+            },
+            ondragover: event => event.preventDefault(),
+            ondrop: event => {
+                event.preventDefault();
+                if (dragged !== null && dragged !== index) setPriority(movePriority(state.priority, dragged, index - dragged));
+            }
+        },
+            h("span", { class: "rank-num" }, index + 1),
+            label,
+            h("button", {
+                type: "button", class: "rank-move", disabled: index === 0,
+                "aria-label": `Rank ${label} higher`, onclick: () => setPriority(movePriority(state.priority, index, -1))
+            }, "‹"),
+            h("button", {
+                type: "button", class: "rank-move", disabled: last,
+                "aria-label": `Rank ${label} lower`, onclick: () => setPriority(movePriority(state.priority, index, 1))
+            }, "›")
+        );
+    });
+
+    const limit = h("input", {
+        type: "number", class: "step-limit", min: 1, max: MAX_STEP_LEVELS, value: state.max_step,
+        "aria-label": "Most levels allowed per step",
+        onchange: event => {
+            state.max_step = clampStepLimit(event.target.value);
+            event.target.value = state.max_step;
+            commit();
+        }
+    });
+
+    box.replaceChildren(
+        h("div", { class: "ranking-row" }, h("span", { class: "ranking-label" }, "Rank by"), h("ol", { class: "rank-list" }, chips)),
+        h("label", { class: "ranking-row", title: "Every step must cost at most this many levels" },
+            h("span", { class: "ranking-label" }, "Step limit"), limit, h("span", { class: "hint" }, "levels")
+        )
+    );
 }
 
 function renderResults() {
@@ -326,7 +385,7 @@ function renderResults() {
 
     if (!node) {
         content.append(h("div", { class: "warning" },
-            "No valid order: every step must cost 39 levels or less."));
+            `No valid order: every step must cost ${state.max_step} levels or less.`));
         return;
     }
     if (!node.left) {
@@ -335,12 +394,14 @@ function renderResults() {
     }
 
     const steps = logic.collectSteps(node);
-    const max_step = Math.max(...steps.map(step => step.node.merge_levels));
+    const values = {
+        levels: node.cumulative_levels,
+        xp: Math.round(node.cumulative_xp).toLocaleString(),
+        max_step: node.max_step,
+        prior_work: node.prior_work
+    };
     content.append(h("div", { class: "metrics" },
-        metric("Levels", node.cumulative_levels),
-        metric("Max step", max_step),
-        metric("XP", Math.round(node.cumulative_xp).toLocaleString()),
-        metric("Steps", steps.length)
+        state.priority.map((criterion, index) => metric(CRITERION_LABEL[criterion], values[criterion], index === 0))
     ));
 
     const missing = logic.missing(state, node);
@@ -351,8 +412,8 @@ function renderResults() {
     content.append(h("ol", { class: "anvil-steps" }, steps.map(anvilStep)));
 }
 
-function metric(label, value) {
-    return h("div", { class: "metric" }, h("div", { class: "metric-label" }, label), h("div", { class: "metric-value" }, value));
+function metric(label, value, primary = false) {
+    return h("div", { class: "metric" + (primary ? " primary" : "") }, h("div", { class: "metric-label" }, label), h("div", { class: "metric-value" }, value));
 }
 
 // One anvil step drawn like the game's anvil: [left] + [right] -> [result].
@@ -443,7 +504,8 @@ function runCalculation() {
         message: "calculate_optimal",
         request_id: request_id,
         item_entries: entries,
-        objective: state.objective
+        priority: state.priority,
+        max_merge_levels: state.max_step
     });
     renderResults();
 }

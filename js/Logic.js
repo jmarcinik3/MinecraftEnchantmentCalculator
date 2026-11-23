@@ -1,6 +1,32 @@
 // Pure helpers for the prototype UI: no DOM access, so they can be tested on their own.
 
 export const MAX_PRIOR_WORK = 6;
+export const MAX_STEP_LEVELS = 39; // a step costing 40+ levels is "Too Expensive!"
+
+// Ranking criteria for the best order, in default order (must match Engine.js).
+export const CRITERIA = ["levels", "xp", "max_step", "prior_work"];
+
+// Valid, de-duplicated ranking; unlisted criteria are appended in default order.
+export function normalizePriority(priority) {
+    const listed = Array.isArray(priority) ? priority.filter(c => CRITERIA.includes(c)) : [];
+    const unique = [...new Set(listed)];
+    return [...unique, ...CRITERIA.filter(c => !unique.includes(c))];
+}
+
+// Moves the criterion at `index` by `offset` places, returning a new list.
+export function movePriority(priority, index, offset) {
+    const target = index + offset;
+    if (target < 0 || target >= priority.length) return priority;
+    const result = [...priority];
+    const [moved] = result.splice(index, 1);
+    result.splice(target, 0, moved);
+    return result;
+}
+
+export function clampStepLimit(value) {
+    const n = Number(value);
+    return Number.isInteger(n) ? Math.min(MAX_STEP_LEVELS, Math.max(1, n)) : MAX_STEP_LEVELS;
+}
 
 // Common choices when enchantments conflict, used by "Max all".
 const PREFERRED = ["sharpness", "density", "protection", "fortune", "mending", "depth_strider", "loyalty", "channeling", "multishot"];
@@ -147,7 +173,8 @@ export function createLogic(meta) {
             w: state.wanted,
             a: state.auto_books ? 1 : 0,
             b: state.auto_books ? [] : state.books.map(book => [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0]),
-            o: state.objective === "xp" ? 1 : 0
+            p: state.priority.map(c => CRITERIA.indexOf(c)),
+            c: state.max_step
         };
         return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     }
@@ -167,7 +194,11 @@ export function createLogic(meta) {
                 enchantments: sanitizeEnchantments(enchants, item), // only the item's enchantments are offered
                 prior_work: clampPriorWork(prior_work)
             })),
-            objective: data.o === 1 ? "xp" : "levels"
+            // Older links stored one objective: `o` = 1 meant least XP.
+            priority: Array.isArray(data.p)
+                ? normalizePriority(data.p.map(index => CRITERIA[index]))
+                : normalizePriority(data.o === 1 ? ["xp", "levels"] : []),
+            max_step: data.c == null ? MAX_STEP_LEVELS : clampStepLimit(data.c)
         };
     }
 

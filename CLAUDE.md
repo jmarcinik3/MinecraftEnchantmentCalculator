@@ -5,27 +5,31 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 `python -m http.server 8080`.
 
 ## Files
-- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#objective`, `#copy-link`).
+- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking`, `#copy-link`).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
-  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], objective: "levels"|"xp" }`.
+  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39 }`.
+  Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
   Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one.
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta) -> { solve, combine, makeLeaf }`,
-  `experienceFromLevel`, `priorWorkPenalty`, `MAXIMUM_MERGE_LEVELS`.
-  `solve(entries, { objective, onProgress })` memoizes on item-subset bitmask, keeping the cheapest node per
-  (prior work, enchantment signature); returns the root merge-tree node (`left`/`right` children) or null.
+  `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `MAXIMUM_MERGE_LEVELS`.
+  `solve(entries, { priority, max_merge_levels, onProgress })` memoizes on item-subset bitmask, keeping the best
+  nodes per (prior work, enchantment signature); returns the root merge-tree node (`left`/`right` children) or null.
+  Totals (levels, XP) are additive, so one node per bucket is exact; when `max_step` outranks a total, the bucket
+  keeps a Pareto front over (max step, totals) instead (see `dominance`). Old `objective` option still accepted.
 - `js/Calculator.js`: worker. Messages in: `instantiate_metadata`, `calculate_optimal`. Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `collectSteps(root)`, `serialize`/`deserialize`
-  (share links). Also exports `roman`, `MAX_PRIOR_WORK` (6).
+  (share links; old `o` objective links still load). Also exports `roman`, `MAX_PRIOR_WORK` (6), `MAX_STEP_LEVELS` (39),
+  `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
 - `json/metadata.json`: keys `enchantments` ({incompatible, items, max_level, stylized, weight}), `items`,
   `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
 - `css/Style.css`, `img/<item>.png|svg`, `font/minecraft.woff`.
 
 ## Game rules implemented (Engine.js)
 Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps, incompatible enchantments
-dropped but cost 1 level, merges of 40+ levels are "Too Expensive". Ties break on the other objective.
+dropped but cost 1 level, merges of 40+ levels are "Too Expensive" (the user can lower this cap). Ties break on the next-ranked criterion.
 
 ## Adding an item or enchantment
 Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add an image to

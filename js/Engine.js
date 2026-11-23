@@ -18,6 +18,31 @@
         return 2 ** prior_work - 1;
     }
 
+    // Ranking criteria, compared in the order the user lists them.
+    //   levels: total levels spent, xp: total XP points spent,
+    //   max_step: the most expensive single step, prior_work: the final item's anvil uses.
+    const CRITERIA = ["levels", "xp", "max_step", "prior_work"];
+    const CRITERION_FIELD = { levels: "cumulative_levels", xp: "cumulative_xp", max_step: "max_step", prior_work: "prior_work" };
+
+    // Valid, de-duplicated priority list; unlisted criteria are appended in default order.
+    function normalizePriority(priority) {
+        const listed = Array.isArray(priority) ? priority.filter(c => CRITERIA.includes(c)) : [];
+        const unique = [...new Set(listed)];
+        return [...unique, ...CRITERIA.filter(c => !unique.includes(c))];
+    }
+
+    // Lexicographic comparator over the given criteria.
+    function lexicographic(criteria) {
+        const fields = criteria.map(c => CRITERION_FIELD[c]);
+        return (a, b) => {
+            for (const field of fields) {
+                const diff = a[field] - b[field];
+                if (diff !== 0) return diff;
+            }
+            return 0;
+        };
+    }
+
     function createEngine(metadata) {
         const enchantments = {};
         for (const [namespace, data] of Object.entries(metadata.enchantments)) {
@@ -46,9 +71,9 @@
             return node.enchantments.map(e => e.namespace + ":" + e.level).join(",");
         }
 
-        function makeNode(item_namespace, enchantment_list, prior_work, merge_levels, cumulative_levels, cumulative_xp, left, right) {
+        function makeNode(item_namespace, enchantment_list, prior_work, merge_levels, cumulative_levels, cumulative_xp, max_step, left, right) {
             enchantment_list.sort((a, b) => (a.namespace < b.namespace ? -1 : a.namespace > b.namespace ? 1 : 0));
-            return { item_namespace, enchantments: enchantment_list, prior_work, merge_levels, cumulative_levels, cumulative_xp, left, right };
+            return { item_namespace, enchantments: enchantment_list, prior_work, merge_levels, cumulative_levels, cumulative_xp, max_step, left, right };
         }
 
         function makeLeaf(entry) {
@@ -74,12 +99,13 @@
                 seen.add(namespace);
                 return { namespace, level };
             });
-            return makeNode(item_namespace, list, prior_work, 0, 0, 0, null, null);
+            return makeNode(item_namespace, list, prior_work, 0, 0, 0, 0, null, null);
         }
 
         // Put `left` in the first anvil slot and `right` in the second.
-        // Returns the resulting node, or null if the game would not allow it.
-        function combine(left, right) {
+        // Returns the resulting node, or null if the game would not allow it or the
+        // step would cost more than `max_merge_levels`.
+        function combine(left, right, max_merge_levels = MAXIMUM_MERGE_LEVELS) {
             const right_is_book = right.item_namespace === "book";
             if (!right_is_book && left.item_namespace !== right.item_namespace) return null;
 
@@ -101,7 +127,7 @@
             }
 
             merge_levels += priorWorkPenalty(left.prior_work) + priorWorkPenalty(right.prior_work);
-            if (merge_levels > MAXIMUM_MERGE_LEVELS) return null;
+            if (merge_levels > Math.min(max_merge_levels, MAXIMUM_MERGE_LEVELS)) return null;
 
             const list = Array.from(levels, ([namespace, level]) => ({ namespace, level }));
             return makeNode(
@@ -111,30 +137,51 @@
                 merge_levels,
                 left.cumulative_levels + right.cumulative_levels + merge_levels,
                 left.cumulative_xp + right.cumulative_xp + experienceFromLevel(merge_levels),
+                Math.max(left.max_step, right.max_step, merge_levels),
                 left,
                 right
             );
         }
 
-        function comparator(objective) {
-            if (objective === "xp") {
-                return (a, b) => a.cumulative_xp - b.cumulative_xp || a.cumulative_levels - b.cumulative_levels;
+        // `objective` ("levels" | "xp") is the older single-choice option.
+        function priorityFromOptions(options) {
+            if (options.priority) return normalizePriority(options.priority);
+            return normalizePriority(options.objective === "xp" ? ["xp", "levels"] : ["levels", "xp"]);
+        }
+
+        // Within one memo bucket (same prior work and enchantments) a node can be dropped
+        // only if another node stays at least as good after any further merges.
+        // Totals (levels, XP) just add the same amount to both, so their lexicographic order
+        // is kept. The max step is not: max(30, 36) ties max(35, 36), letting a node that
+        // lost on max step win later on totals. So if max step outranks a total, keep every
+        // node that is not beaten on both the max step and the totals (a Pareto front,
+        // at most 39 nodes since steps cost 1-39 levels).
+        function dominance(priority) {
+            const ranked = priority.filter(c => c !== "prior_work"); // equal within a bucket
+            if (ranked[ranked.length - 1] === "max_step") {
+                const compare = lexicographic(ranked);
+                return (a, b) => compare(a, b) <= 0;
             }
-            return (a, b) => a.cumulative_levels - b.cumulative_levels || a.cumulative_xp - b.cumulative_xp;
+            const compare_totals = lexicographic(ranked.filter(c => c !== "max_step"));
+            return (a, b) => a.max_step <= b.max_step && compare_totals(a, b) <= 0;
         }
 
         // Finds the cheapest anvil order that yields the best possible enchantments.
         // Returns the root node of the merge tree, or null if no valid order exists.
         function solve(entries, options = {}) {
-            const compare = comparator(options.objective);
+            const priority = priorityFromOptions(options);
+            const compare = lexicographic(priority);
+            const dominates = dominance(priority);
+            const cap = options.max_merge_levels == null ? MAXIMUM_MERGE_LEVELS : Number(options.max_merge_levels);
+            if (!Number.isInteger(cap) || cap < 1) throw new Error("Step limit must be a positive integer");
             const leaves = entries.map(makeLeaf);
             const count = leaves.length;
             if (count === 0) return null;
             if (count > 20) throw new Error("Too many items (maximum 20)");
 
             // Memoize on the subset of items (bitmask). For each subset keep the cheapest
-            // node per (prior work, resulting enchantments): those two fully determine how
-            // the node behaves in later merges.
+            // nodes per (prior work, resulting enchantments): those two fully determine how
+            // the node behaves in later merges (see `dominance` for which nodes are kept).
             const memo = new Map();
             leaves.forEach((leaf, index) => memo.set(1 << index, [leaf]));
 
@@ -160,16 +207,22 @@
                     const right_nodes = frontier(mask ^ sub);
                     for (const left of left_nodes) {
                         for (const right of right_nodes) {
-                            const node = combine(left, right);
+                            const node = combine(left, right, cap);
                             if (!node) continue;
                             const key = node.prior_work + "|" + signature(node);
-                            const current = best.get(key);
-                            if (!current || compare(node, current) < 0) best.set(key, node);
+                            const kept = best.get(key);
+                            if (!kept) {
+                                best.set(key, [node]);
+                            } else if (!kept.some(other => dominates(other, node))) {
+                                const survivors = kept.filter(other => !dominates(node, other));
+                                survivors.push(node);
+                                best.set(key, survivors);
+                            }
                         }
                     }
                 }
 
-                const result = Array.from(best.values());
+                const result = [].concat(...best.values());
                 memo.set(mask, result);
                 return result;
             }
@@ -191,7 +244,7 @@
         return { solve, combine, makeLeaf };
     }
 
-    const api = { createEngine, experienceFromLevel, priorWorkPenalty, MAXIMUM_MERGE_LEVELS };
+    const api = { createEngine, experienceFromLevel, priorWorkPenalty, normalizePriority, CRITERIA, MAXIMUM_MERGE_LEVELS };
     if (typeof module !== "undefined" && module.exports) {
         module.exports = api;
     } else {

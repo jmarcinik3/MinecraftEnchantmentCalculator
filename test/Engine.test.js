@@ -1,7 +1,7 @@
 // Run with: node test/Engine.test.js
 const assert = require("assert");
 const path = require("path");
-const { createEngine, experienceFromLevel } = require("../js/Engine.js");
+const { createEngine, experienceFromLevel, normalizePriority, CRITERIA } = require("../js/Engine.js");
 const metadata = require(path.join(__dirname, "../json/metadata.json"));
 
 const engine = createEngine(metadata);
@@ -139,6 +139,89 @@ test("memoized search matches brute force on random inputs", () => {
             assert.deepStrictEqual(levelsOf(fast), levelsOf(slow), JSON.stringify(entries));
         }
     }
+});
+
+// Every complete merge tree, for checking any ranking against the memoized search.
+function allTrees(entries, cap) {
+    function all(nodes) {
+        if (nodes.length === 1) return nodes;
+        const out = [];
+        const n = nodes.length;
+        for (let mask = 1; mask < (1 << n) - 1; mask++) {
+            const left = nodes.filter((_, i) => mask & (1 << i));
+            const right = nodes.filter((_, i) => !(mask & (1 << i)));
+            for (const l of all(left)) for (const r of all(right)) {
+                const c = engine.combine(l, r, cap);
+                if (c) out.push(c);
+            }
+        }
+        return out;
+    }
+    return all(entries.map(engine.makeLeaf));
+}
+
+const FIELDS = { levels: "cumulative_levels", xp: "cumulative_xp", max_step: "max_step", prior_work: "prior_work" };
+const valueOf = node => node.enchantments.reduce((s, e) => s + e.level * metadata.enchantments[e.namespace].weight, 0);
+
+function permutations(list) {
+    if (list.length <= 1) return [list];
+    return list.flatMap((x, i) => permutations([...list.slice(0, i), ...list.slice(i + 1)]).map(rest => [x, ...rest]));
+}
+
+test("every ranking and step limit matches brute force", () => {
+    const sword = ["sharpness", "smite", "unbreaking", "mending", "looting", "fire_aspect", "knockback", "sweeping"];
+    const orders = permutations(CRITERIA);
+    let seed = 777;
+    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    for (let trial = 0; trial < 40; trial++) {
+        const count = 3 + rand(3);
+        const entries = [["sword", [], rand(3)]];
+        for (let i = 1; i < count; i++) {
+            const picks = new Set([sword[rand(sword.length)], sword[rand(sword.length)]]);
+            const list = [...picks].map(ns => [ns, 1 + rand(metadata.enchantments[ns].max_level)]);
+            entries.push([rand(4) === 0 ? "sword" : "book", list, rand(3)]);
+        }
+        const cap = [39, 39, 20, 12, 8][rand(5)];
+        const trees = allTrees(entries, cap);
+        for (const priority of orders) {
+            const fast = engine.solve(entries, { priority, max_merge_levels: cap });
+            const label = JSON.stringify({ entries, priority, cap });
+            assert.strictEqual(fast === null, trees.length === 0, label);
+            if (!fast) continue;
+            const best_value = Math.max(...trees.map(valueOf));
+            const ranked = trees.filter(t => valueOf(t) === best_value).sort((a, b) => {
+                for (const c of priority) if (a[FIELDS[c]] !== b[FIELDS[c]]) return a[FIELDS[c]] - b[FIELDS[c]];
+                return 0;
+            });
+            const slow = ranked[0];
+            assert.strictEqual(valueOf(fast), best_value, label);
+            for (const c of priority) assert.strictEqual(fast[FIELDS[c]], slow[FIELDS[c]], label + " " + c);
+            assert.ok(fast.max_step <= cap, label);
+        }
+    }
+});
+
+test("step limit lowers the most expensive step", () => {
+    const entries = [
+        ["sword", [], 0],
+        ["book", [["sharpness", 5]], 0],
+        ["book", [["unbreaking", 3]], 0],
+        ["book", [["mending", 1]], 0],
+        ["book", [["looting", 3]], 0],
+        ["book", [["fire_aspect", 2]], 0]
+    ];
+    const free = engine.solve(entries);
+    const flat = engine.solve(entries, { priority: ["max_step", "levels"] });
+    assert.ok(flat.max_step <= free.max_step);
+    assert.ok(flat.cumulative_levels >= free.cumulative_levels);
+    const capped = engine.solve(entries, { max_merge_levels: flat.max_step });
+    assert.strictEqual(capped.max_step <= flat.max_step, true);
+    assert.strictEqual(engine.solve(entries, { max_merge_levels: flat.max_step - 1 }), null);
+});
+
+test("unknown or partial rankings are completed in default order", () => {
+    assert.deepStrictEqual(normalizePriority(["max_step", "bogus", "max_step"]), ["max_step", "levels", "xp", "prior_work"]);
+    assert.deepStrictEqual(normalizePriority(undefined), CRITERIA);
 });
 
 test("full god sword solves quickly", () => {

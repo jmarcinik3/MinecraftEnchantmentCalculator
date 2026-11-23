@@ -14,7 +14,8 @@ onmessage = function(event) {
         try {
             if (!engine) throw new Error("Metadata has not loaded yet");
             const result = engine.solve(data.item_entries, {
-                objective: data.objective,
+                priority: data.priority,
+                max_merge_levels: data.max_merge_levels,
                 onProgress: (done, total) => {
                     postMessage({ message: "progress", request_id: request_id, done: done, total: total });
                 }
