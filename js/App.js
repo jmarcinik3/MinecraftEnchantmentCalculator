@@ -25,6 +25,8 @@ let logic = null;
 let state = defaultState();
 let next_book_id = 1;
 let undo_books = null; // the custom list before the last suggestion was applied
+let undo_item = null; // { item, wanted, books } before switching to an item that dropped some of them
+let item_menu_open = false; // section 1's item menu (on the item's slot)
 
 let worker = null;
 let request_id = 0;
@@ -122,16 +124,35 @@ async function copyText(target, text, label, button = target) {
 
 // `keep_undo` is only for applying a suggestion: any other change ends the chance to undo it.
 function commit(keep_undo = false) {
-    if (!keep_undo) undo_books = null;
+    if (!keep_undo) {
+        undo_books = null;
+        undo_item = null;
+    }
     saveToUrl();
     render();
     scheduleCalculation();
 }
 
+// Switching item drops the enchantments the new one can't take; if that loses any, the
+// toolbar offers to switch back with everything as it was.
 function selectItem(item) {
-    if (state.item === item) return;
+    item_menu_open = false;
+    if (state.item === item) { renderWanted(); return; }
+    const before = { item: state.item, wanted: { ...state.wanted }, books: state.books.map(book => ({ ...book, enchantments: { ...book.enchantments } })) };
+    const count = () => Object.keys(state.wanted).length + state.books.reduce((total, book) => total + Object.keys(book.enchantments).length, 0);
+    const had = count();
     state.item = item;
     sanitizeAll();
+    undo_books = null;
+    undo_item = before.item && count() < had ? before : null;
+    commit(true);
+}
+
+function undoItem() {
+    const { item, wanted, books } = undo_item;
+    state.item = item;
+    state.wanted = wanted;
+    state.books = books;
     commit();
 }
 
@@ -205,7 +226,6 @@ function render() {
     renderSummaries();
     renderLanguage();
     renderSaved();
-    renderItems();
     renderWanted();
     renderBooks();
     renderEdition();
@@ -247,7 +267,7 @@ function setupCollapsing() {
             if (event.target.closest(".info-tip")) return; // the badge and ? have their own bubbles
             toggle();
         });
-        // Section 4's arrow sits beside its heading (with the Options menu between them).
+        // Section 3's arrow sits beside its heading (with the Options menu between them).
         const arrow = card.querySelector(".collapse-toggle");
         if (!card.querySelector("h2").contains(arrow)) arrow.addEventListener("click", toggle);
     }
@@ -258,19 +278,20 @@ function setupCollapsing() {
 function renderSummaries() {
     const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
     const entries = state.books.reduce((total, book) => total + (book.copies || 1), 0);
-    $("#item-summary").textContent = state.item ? logic.itemName(state.item) : TEXT.page.summary_none;
-    $("#wanted-summary").textContent = chosen.length ? logic.summary(chosen) : TEXT.page.summary_none;
+    $("#wanted-summary").textContent = state.item
+        ? TEXT.page.summary_item({ item: logic.itemName(state.item), count: chosen.length })
+        : TEXT.page.summary_none;
     $("#books-summary").textContent = state.auto_books ? TEXT.page.summary_automatic : TEXT.page.summary_entries({ count: entries });
     renderOrderSummary();
 }
 
-// Section 5's summary while closed: how many steps the order takes.
+// Section 4's summary while closed: how many steps the order takes.
 function renderStepsSummary() {
     const node = resultNode();
     $("#steps-summary").textContent = node ? TEXT.page.summary_steps({ count: logic.collectSteps(node).length }) : TEXT.ranking.no_value;
 }
 
-// Section 4's summary while closed: all four results in ranking order, e.g.
+// Section 3's summary while closed: all four results in ranking order, e.g.
 // "66 levels · 1,246 XP · Max level 16 · Prior work 4".
 function renderOrderSummary() {
     const node = resultNode();
@@ -451,30 +472,37 @@ function renderEdition() {
     }, TEXT.page.editions[edition].label)));
 }
 
-function renderItems() {
-    const grid = $("#items");
-    grid.replaceChildren(...logic.enchantableItems().map(item => h("button", {
+// Every item that can be enchanted, as a grid of buttons.
+function itemGrid() {
+    return h("div", { class: "item-grid", id: "items" }, logic.enchantableItems().map(item => h("button", {
         type: "button",
         class: "item-button" + (state.item === item ? " selected" : ""),
         "aria-pressed": String(state.item === item),
+        "data-focus": "item-" + item,
         onclick: () => selectItem(item)
     }, icon(item), logic.itemName(item))));
 }
 
-// Section 2: a preview of the finished item, the toolbar and presets, then one row per
-// enchantment (conflict groups together).
+// Section 1: the item grid until an item is picked; then a preview of the finished item
+// (its slot opens the item menu), the toolbar and presets, and one row per enchantment
+// (conflict groups together).
 function renderWanted() {
     const box = $("#wanted");
     const focus = focusState(box);
     box.replaceChildren();
     if (!state.item) {
-        box.append(h("p", { class: "hint" }, TEXT.wanted.pick_item_first));
+        box.append(h("p", { class: "hint" }, TEXT.wanted.pick_item_first), itemGrid());
+        restoreFocus(box, focus);
         return;
     }
 
     box.append(...[
         wantedPreview(),
         h("div", { class: "toolbar" },
+            undo_item ? h("button", {
+                type: "button", class: "btn small undo", "data-focus": "undo-item",
+                title: TEXT.wanted.undo_item_help, onclick: undoItem
+            }, TEXT.wanted.undo_item({ item: logic.itemName(undo_item.item) })) : null,
             h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
             h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear),
             h("label", { class: "check-option", title: TEXT.wanted.allow_conflicts_help },
@@ -529,11 +557,53 @@ function wantedList() {
 }
 
 // The finished item as the game shows it: its slot, then a tooltip with its name (in
-// italics once renamed) and the chosen enchantments in the game's order.
+// italics once renamed) and the chosen enchantments in the game's order. The slot is
+// the button for the item menu: the item grid in a panel under it (in the card's flow
+// on phones), closed by picking, a click outside, or Escape.
 function wantedPreview() {
     const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
     const node = { item_namespace: state.item, enchantments: chosen, renamed: true };
-    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, anvilCell(node, null, "preview"));
+    const cell = anvilCell(node, null, "preview");
+    const slot = cell.querySelector(".mc-slot");
+    const button = h("button", {
+        type: "button", class: "item-menu-button", "data-focus": "item-menu",
+        "aria-haspopup": "true", "aria-expanded": String(item_menu_open), "aria-controls": "item-menu",
+        "aria-label": TEXT.wanted.change_item_label({ item: logic.itemName(state.item) }),
+        title: TEXT.wanted.change_item,
+        onclick: () => {
+            item_menu_open = !item_menu_open;
+            renderWanted();
+            if (item_menu_open) {
+                const current = document.querySelector(`#items [data-focus="item-${state.item}"]`);
+                if (current) current.focus({ preventScroll: true });
+            }
+        }
+    });
+    slot.replaceWith(button);
+    button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
+    return h("div", { class: "wanted-preview" + (item_menu_open ? " menu-open" : "") },
+        h("div", { role: "group", "aria-label": TEXT.wanted.preview_label }, cell),
+        item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null
+    );
+}
+
+// The item menu closes on a click outside it (or its button) and on Escape, which puts
+// the focus back on the slot.
+function setupItemMenu() {
+    document.addEventListener("click", event => {
+        if (!item_menu_open) return;
+        const path = event.composedPath();
+        if (path.some(el => el.classList && (el.classList.contains("item-menu") || el.classList.contains("item-menu-button")))) return;
+        item_menu_open = false;
+        renderWanted();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape" || !item_menu_open) return;
+        item_menu_open = false;
+        renderWanted();
+        const button = document.querySelector(".item-menu-button");
+        if (button) button.focus();
+    });
 }
 
 // "Presets: Best · Silk Touch": each sets the chosen enchantments to a whole set (Logic.js
@@ -697,7 +767,7 @@ function onAnvil() {
     return state.books.flatMap(book => Object.keys(book.enchantments));
 }
 
-// `unwanted`: enchantments not chosen in section 2, flagged since they still cost levels.
+// `unwanted`: enchantments not chosen in section 1, flagged since they still cost levels.
 // `book`: the entry being edited, so a new book that turns out identical to another
 // entry becomes one more copy of it.
 function enchantmentEditor(enchantments, unwanted = new Set(), book = null) {
@@ -1035,7 +1105,7 @@ const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
 const HOLD_DELAY_MS = 400;          // holding − / +: wait this long, then repeat
 const HOLD_REPEAT_MS = 70;
 
-// The level limit opens from the settings button in section 4's heading; Rename and Your
+// The level limit opens from the settings button in section 3's heading; Rename and Your
 // level sit under the tiles, one row each, your level with what it means for this order
 // beside it.
 function renderRanking() {
@@ -1899,6 +1969,7 @@ async function init() {
     setupCopyLink();
     setupInfoTip();
     setupSavedMenu();
+    setupItemMenu();
     setupOptionsMenu();
     setupCollapsing();
     render();

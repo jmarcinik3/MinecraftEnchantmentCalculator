@@ -34,18 +34,14 @@
         <div class="inputs">
             <!-- Each section can collapse from its heading (App.js setupCollapsing); the
                  summary says what is chosen while it is closed. -->
-            <section class="card collapsible" data-section="item">
-                <h2><span class="step-badge">1</span><span class="section-title" data-text="page.item_heading"></span><span class="section-summary" id="item-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="item-body"></button></h2>
-                <div id="item-body" class="section-body"><div id="items" class="item-grid"></div></div>
-            </section>
-
+            <!-- 1: the item (a grid until one is picked, then a menu on its slot) and its enchantments. -->
             <section class="card collapsible" data-section="wanted">
-                <h2><span class="step-badge">2</span><span class="section-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
+                <h2><span class="step-badge">1</span><span class="section-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
                 <div id="wanted-body" class="section-body"><div id="wanted"></div></div>
             </section>
 
             <section class="card collapsible" data-section="books">
-                <h2><span class="step-badge">3</span><span class="section-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
+                <h2><span class="step-badge">2</span><span class="section-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
                 <div id="books-body" class="section-body"><div id="books"></div></div>
             </section>
 
@@ -60,7 +56,7 @@
                  the collapse arrow. -->
             <section class="card collapsible" data-section="order">
                 <div class="section-head">
-                    <h2><span class="step-badge">4</span><span class="section-title" data-text="page.results_heading"></span>
+                    <h2><span class="step-badge">3</span><span class="section-title" data-text="page.results_heading"></span>
                         <span class="info-tip">
                             <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
                                 aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
@@ -86,7 +82,7 @@
             </section>
 
             <section class="card collapsible results-card" data-section="steps">
-                <h2><span class="step-badge">5</span><span class="section-title" data-text="page.steps_heading"></span><span class="section-summary" id="steps-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
+                <h2><span class="step-badge">4</span><span class="section-title" data-text="page.steps_heading"></span><span class="section-summary" id="steps-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
                 <div id="steps-body" class="section-body"><div id="results"></div></div>
             </section>
         </aside>

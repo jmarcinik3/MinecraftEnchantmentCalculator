@@ -132,9 +132,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 @media (min-width: 900px) {
     .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; }
-    /* The right column fills the window's height: section 4 at its natural height, and
-       section 5 (the steps) takes the rest, where only the steps (or tree) scroll, so the
-       Steps/Tree row stays in view. Closing section 4 gives the steps more room. If the
+    /* The right column fills the window's height: section 3 at its natural height, and
+       section 4 (the steps) takes the rest, where only the steps (or tree) scroll, so the
+       Steps/Tree row stays in view. Closing section 3 gives the steps more room. If the
        column is too short for both, it scrolls as a whole. */
     .results-column {
         position: sticky;
@@ -253,7 +253,54 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Wanted enchantments */
 /* The finished item as the game shows it: the slot, then a tooltip as wide as its text. */
-.wanted-preview { margin-bottom: 12px; }
+.wanted-preview { position: relative; margin-bottom: 12px; }
+#wanted > .hint { margin: 0 0 10px; }
+
+/* The slot is the item menu's button: a caret in its corner, a purple ring on hover. */
+.item-menu-button {
+    position: relative;
+    flex: none;
+    padding: 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 2px;
+}
+.item-menu-button:hover .mc-slot, .menu-open .item-menu-button .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
+.item-menu-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.item-menu-caret {
+    position: absolute;
+    right: -5px;
+    bottom: -5px;
+    width: 18px;
+    height: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 11px;
+    line-height: 1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.menu-open .item-menu-caret { transform: rotate(180deg); }
+.item-menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    left: 0;
+    z-index: 20;
+    width: min(440px, 100%);
+    padding: 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+/* On phones the grid opens in the card's flow, full width, so its buttons stay big. */
+@media (max-width: 600px) {
+    .item-menu { position: static; width: auto; margin-top: 10px; box-shadow: none; }
+}
 .anvil-cell.preview { flex-direction: row; align-items: flex-start; gap: 10px; }
 .anvil-cell.preview .mc-tooltip { width: auto; flex: 0 1 auto; min-width: 0; }
 
@@ -446,7 +493,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Books and tags */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
-/* An enchantment on a book that wasn't chosen in section 2. */
+/* An enchantment on a book that wasn't chosen in section 1. */
 .tag.unwanted { border-style: dashed; border-color: var(--warning-text); }
 .tag-flag {
     display: inline-flex;
@@ -554,13 +601,13 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .segmented button.selected { background: var(--accent-bg); color: var(--accent-text); }
 
 
-/* Section 4's settings, under the tiles. */
+/* Section 3's settings, under the tiles. */
 .settings { margin-bottom: 4px; }
 
-/* The settings menu in section 4's heading: a button ("Level limit 39 ⚙") that opens a
+/* The settings menu in section 3's heading: a button ("Level limit 39 ⚙") that opens a
    panel with the level limit slider. */
 .options-menu { position: relative; min-width: 0; flex: none; }
-/* 26px, the collapse arrow's height, so section 4's heading is as tall as the others. */
+/* 26px, the collapse arrow's height, so section 3's heading is as tall as the others. */
 .options-button {
     display: flex;
     align-items: center;
@@ -945,7 +992,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Collapsible sections: the heading opens and closes the section. */
 .card.collapsible > h2 { cursor: pointer; user-select: none; min-width: 0; }
-/* Section 4's heading row: the h2, then the settings menu and the arrow beside it. */
+/* Section 3's heading row: the h2, then the settings menu and the arrow beside it. */
 .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; min-width: 0; }
 .section-head > h2 { flex: 1; min-width: 0; margin: 0; cursor: pointer; user-select: none; }
 .card.collapsed > .section-head { margin-bottom: 0; }

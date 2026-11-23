@@ -2,8 +2,7 @@
     "page": {
         "title": "Calculadora de encantamientos",
         "heading": "Calculadora de encantamientos",
-        "item_heading": "Objeto",
-        "enchantments_heading": "Encantamientos",
+        "enchantments_heading": "Objeto y encantamientos",
         "books_heading": "Libros y objetos",
         "results_heading": "Mejor orden",
         "steps_heading": "Usos del yunque",
@@ -23,6 +22,7 @@
         "undo_remove": "Deshacer",
         "collapse_label": "Ocultar {section}",
         "expand_label": "Mostrar {section}",
+        "summary_item": {"plural": "count", "one": "{item} · {count} encantamiento", "other": "{item} · {count} encantamientos"},
         "summary_none": "Nada elegido",
         "summary_automatic": "Automático",
         "summary_levels": {"plural": "levels", "one": "{levels} nivel", "other": "{levels} niveles"},
@@ -38,7 +38,11 @@
     },
 
     "wanted": {
-        "pick_item_first": "Elige primero un objeto.",
+        "pick_item_first": "Elige el objeto que quieres encantar.",
+        "change_item": "Cambiar objeto",
+        "change_item_label": "{item}: cambiar objeto",
+        "undo_item": "↶ Volver a {item}",
+        "undo_item_help": "Vuelve atrás, con los encantamientos y libros que tenías",
         "max_all": "Todo al máximo",
         "clear": "Borrar",
         "allow_conflicts": "Permitir incompatibles (mods)",
@@ -60,7 +64,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Unos {levels} nivel para añadirlo con un libro, sin contar el trabajo anterior", "other": "Unos {levels} niveles para añadirlo con un libro, sin contar el trabajo anterior"},
         "preview_label": "El objeto terminado",
-        "short_help": "Tus libros y objetos de la sección 3 no llegan al nivel elegido aquí."
+        "short_help": "Tus libros y objetos de la sección 2 no llegan al nivel elegido aquí."
     },
 
     "books": {

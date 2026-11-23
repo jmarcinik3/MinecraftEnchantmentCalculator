@@ -2,8 +2,7 @@
     "page": {
         "title": "Enchantment Calculator",
         "heading": "Enchantment calculator",
-        "item_heading": "Item",
-        "enchantments_heading": "Enchantments",
+        "enchantments_heading": "Item and enchantments",
         "books_heading": "Books and items",
         "results_heading": "Best order",
         "steps_heading": "Anvil uses",
@@ -23,6 +22,7 @@
         "undo_remove": "Undo",
         "collapse_label": "Hide {section}",
         "expand_label": "Show {section}",
+        "summary_item": {"plural": "count", "one": "{item} · {count} enchantment", "other": "{item} · {count} enchantments"},
         "summary_none": "None chosen",
         "summary_automatic": "Automatic",
         "summary_levels": {"plural": "levels", "one": "{levels} level", "other": "{levels} levels"},
@@ -38,7 +38,11 @@
     },
 
     "wanted": {
-        "pick_item_first": "Pick an item first.",
+        "pick_item_first": "Pick the item to enchant.",
+        "change_item": "Change item",
+        "change_item_label": "{item}: change item",
+        "undo_item": "↶ Back to {item}",
+        "undo_item_help": "Switch back, with the enchantments and books you had",
         "max_all": "Max all",
         "clear": "Clear",
         "allow_conflicts": "Allow conflicts (modded)",
@@ -60,7 +64,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "About {levels} level to add this from a book, before any prior work", "other": "About {levels} levels to add this from a book, before any prior work"},
         "preview_label": "The finished item",
-        "short_help": "Your books and items in section 3 can't reach the level chosen here."
+        "short_help": "Your books and items in section 2 can't reach the level chosen here."
     },
 
     "books": {

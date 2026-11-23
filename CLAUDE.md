@@ -5,8 +5,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 `python -m http.server 8080`.
 
 ## Files
-- `index.html`: shell with 3 left sections (1 Item `#items`, 2 Enchantments `#wanted`, 3 Books and items `#books`) and
-  2 right ones (4 Best order: `#metrics` tiles and `#ranking` settings; 5 Anvil uses, `.results-card`: `#results` with status
+- `index.html`: shell with 2 left sections (1 Item and enchantments `#wanted`, 2 Books and items `#books`) and
+  2 right ones (3 Best order: `#metrics` tiles and `#ranking` settings; 4 Anvil uses, `.results-card`: `#results` with status
   messages, anvil wear, the Steps/Tree row and the steps), all collapsible (+ `#edition`, `#copy-link`,
   `#language`, and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
   `.header-control` (one height); under 600px they form a full-width row below the title, under 440px Copy link is icon-only).
@@ -43,13 +43,13 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
-- Section 4 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
+- Section 3 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
   heading and, beside it in a `.section-head`, the settings menu (`#options-menu` `<details>`: a button showing
   `optionsSummary` + gear, opening `#limit-panel` with the level limit slider only; closes on outside click/Escape via
   `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
   Rename and Your level, with "You end at level…" beside it, written by `updateLevelMeter`). Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.
-  On desktop (900px+) the right column is a window-high flex column (section 4 natural height, section 5 the rest) and only `.steps-scroll` (the steps or tree, under the Steps/Tree row)
+  On desktop (900px+) the right column is a window-high flex column (section 3 natural height, section 4 the rest) and only `.steps-scroll` (the steps or tree, under the Steps/Tree row)
   scrolls; `steps_scroll` keeps its position across redraws of the same order and view. Phones scroll the page.
 - Options (`renderRanking`, 2-column `.options` grids, refocusing by `data-focus` after redraws):
   level limit slider 1-39 plus an ∞ button (= `no_step_limit`), commits on release, value tappable to type
@@ -62,14 +62,17 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Only the limit commits; your level and the name redraw just the results.
 - The Best order "?" bubble is `position: fixed` (`floatBubble`, `.info-tip.floating`), placed under the "?" on open,
   hover, focus and scroll, so it never adds height to the scrolling right column.
-- Section 2 (`renderWanted`): a preview of the finished item (`wantedPreview`, the game slot + tooltip via `anvilCell`),
+- Section 1 (`renderWanted`): until an item is picked, `itemGrid`; then a preview of the finished item (`wantedPreview`, the game
+  slot + tooltip via `anvilCell`; the slot is `.item-menu-button`, opening `itemGrid` in `.item-menu` (`item_menu_open`;
+  static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). Switching item keeps `undo_item` when
+  it dropped enchantments (toolbar "Back to X", `undoItem`), cleared by any other commit. Then
   the toolbar, presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
   entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: name in the game font, curses red, an `.ench-info` tip with
   `names.descriptions` (Logic `describe`), a `+N` hint once chosen (Logic `bookCost`: level x book multiplier), and a
   `levelBar`: role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide so the I segments line up),
   "Pick one" groups as a switch (`groupSwitch`) plus the chosen one's row, partial conflicts in a left bracket
   (`.ench-group`), conflicting rows dimmed. Chosen rows get a CSS glint. Focus is restored by `data-focus` after redraws.
-- Sections 1-3 collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
+- All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
 - App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
@@ -86,9 +89,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta, names)` UI helpers: rarity, display names, tooltip sort, applicable
-  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 3
+  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 2
   heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
-  items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 2 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
+  items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 1 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
