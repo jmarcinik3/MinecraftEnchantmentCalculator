@@ -65,6 +65,9 @@ Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `to
 `.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run. On `main`,
 if the tests pass, it copies `index.html css js json img font` into `_site/` and deploys to GitHub Pages at
 https://jmarcinik3.github.io/MinecraftEnchantmentCalculator/. New top-level site folders must be added to that copy step.
+Deploy then runs `.github/stamp-version.sh`, which adds `?v=<commit>` to the page's references to its CSS, JS modules,
+worker, Engine.js and metadata (in `_site` only), so cached copies (phones especially) are not reused. It fails if a
+reference is missing: when renaming or adding one of those files or imports, update the script.
 
 ## Conventions
 camelCase functions, PascalCase classes/filenames, snake_case variables, UPPER_CASE constants.
