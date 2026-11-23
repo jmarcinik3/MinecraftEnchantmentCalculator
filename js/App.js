@@ -1,4 +1,4 @@
-import { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
+import { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, MAX_COPIES, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
 import { TEXT } from "./Text.js";
 
 const META_URL = "json/metadata.json";
@@ -132,7 +132,8 @@ function customizeBooks() {
         id: next_book_id++,
         type: book.type,
         enchantments: { ...book.enchantments },
-        prior_work: 0
+        prior_work: 0,
+        copies: 1
     }));
     state.auto_books = false;
     commit();
@@ -140,7 +141,7 @@ function customizeBooks() {
 
 // `type` is "book" or "item" (another copy of the item being enchanted).
 function addBook(type) {
-    state.books.push({ id: next_book_id++, type: type, enchantments: {}, prior_work: 0 });
+    state.books.push({ id: next_book_id++, type: type, enchantments: {}, prior_work: 0, copies: 1 });
     commit();
 }
 
@@ -245,8 +246,10 @@ function onAnvil() {
     return state.books.flatMap(book => Object.keys(book.enchantments));
 }
 
-function enchantmentEditor(enchantments) {
+// `unwanted`: enchantments not chosen in section 2, flagged since they still cost levels.
+function enchantmentEditor(enchantments, unwanted = new Set()) {
     const tags = Object.entries(enchantments).map(([ns, level]) => {
+        const is_unwanted = unwanted.has(ns);
         let level_select = null;
         if (logic.maxLevel(ns) > 1) {
             const options = [];
@@ -258,7 +261,8 @@ function enchantmentEditor(enchantments) {
                 onchange: event => { enchantments[ns] = Number(event.target.value); commit(); }
             }, options);
         }
-        return h("span", { class: "tag" },
+        return h("span", { class: "tag" + (is_unwanted ? " unwanted" : ""), title: is_unwanted ? TEXT.books.unwanted_help : null },
+            is_unwanted ? h("span", { class: "tag-flag", "aria-label": TEXT.books.unwanted_label }, "!") : null,
             logic.enchName(ns),
             level_select,
             h("button", {
@@ -284,10 +288,10 @@ function enchantmentEditor(enchantments) {
     return h("div", { class: "tags" }, tags, add_select);
 }
 
-function stepper(label, value, max, onSet, help) {
+function stepper(label, value, min, max, onSet, help) {
     return h("span", { class: "stepper", title: help },
         label,
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label(label), disabled: value <= 0, onclick: () => onSet(value - 1) }, "−"),
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label(label), disabled: value <= min, onclick: () => onSet(value - 1) }, "−"),
         h("span", { class: "stepper-value" }, value),
         h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label(label), disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
     );
@@ -323,12 +327,20 @@ function renderBooks() {
         h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item(item_name)),
         h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, TEXT.books.automatic)
     ));
+    const check = logic.checkBooks(state);
+    if (check.short.length) {
+        box.append(h("div", { class: "warning" }, TEXT.books.still_needed(check.short.map(({ ns, wanted, best }) =>
+            best ? TEXT.books.short_of(logic.displayName(ns, wanted), logic.displayName(ns, best))
+                : logic.displayName(ns, wanted)))));
+    }
+    const unwanted = new Set(check.unwanted);
     books.forEach((book, index) => {
         box.append(h("div", { class: "book-editor" },
             h("div", { class: "book-editor-head" },
                 typeToggle(book, item_name),
                 h("span", { class: "spacer" }),
-                stepper(TEXT.books.prior_work, book.prior_work, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, TEXT.books.prior_work_help),
+                stepper(TEXT.books.copies, book.copies || 1, 1, MAX_COPIES, value => { book.copies = value; commit(); }, TEXT.books.copies_help),
+                stepper(TEXT.books.prior_work, book.prior_work, 0, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, TEXT.books.prior_work_help),
                 h("button", {
                     type: "button",
                     class: "tag-remove",
@@ -336,7 +348,7 @@ function renderBooks() {
                     onclick: () => { state.books = state.books.filter(b => b !== book); commit(); }
                 }, "×")
             ),
-            enchantmentEditor(book.enchantments)
+            enchantmentEditor(book.enchantments, unwanted)
         ));
     });
 }

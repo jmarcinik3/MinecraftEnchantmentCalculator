@@ -7,7 +7,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Files
 - `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking` options, `#metrics` tiles, `#edition`, `#copy-link`).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
-  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
+  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
   (`rename_to` is display-only: italic name on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
   share links are base64 of UTF-8 so any characters survive)
   (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`;
@@ -38,7 +38,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable
-  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
+  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `bestLevels`/`checkBooks` (pre-calculation warnings: still needed, not chosen), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.

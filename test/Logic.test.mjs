@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+const { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT } = await import("data:text/javascript," + encodeURIComponent(read("../js/Text.js")));
 const logic = createLogic(meta);
@@ -113,7 +113,7 @@ test("shared links round-trip and drop invalid data", () => {
         no_step_limit: true
     };
     const loaded = logic.deserialize(logic.serialize(state), () => 1);
-    assert.deepStrictEqual(loaded.books, [{ id: 1, type: "book", enchantments: { sharpness: 5 }, prior_work: 9 }]);
+    assert.deepStrictEqual(loaded.books, [{ id: 1, type: "book", enchantments: { sharpness: 5 }, prior_work: 9, copies: 1 }]);
     assert.deepStrictEqual(loaded.priority, ["max_step", "xp", "levels", "prior_work"]);
     assert.strictEqual(loaded.max_step, 25);
     assert.strictEqual(loaded.no_step_limit, true);
@@ -201,6 +201,56 @@ test("the new name is saved in links and cut to the edition's length", () => {
     assert.strictEqual(cleanName(42, "java"), "");
     const bedrock_link = logic.serialize({ ...state, edition: "bedrock", rename_to: long });
     assert.strictEqual(logic.deserialize(bedrock_link, () => 0).rename_to.length, MAX_NAME_LENGTH.bedrock);
+});
+
+test("copies: one entry per copy, saved in links, clamped", () => {
+    const book = (enchantments, copies) => ({ id: 1, type: "book", enchantments, prior_work: 0, copies });
+    const state = {
+        ...baseState("sword"), auto_books: false,
+        books: [{ id: 0, type: "item", enchantments: {}, prior_work: 0, copies: 1 }, book({ sharpness: 1 }, 4)]
+    };
+    const entries = logic.buildEntries(state);
+    assert.strictEqual(entries.length, 5);
+    assert.strictEqual(entries.filter(e => e[0] === "book").length, 4);
+    const loaded = logic.deserialize(logic.serialize(state), () => 0);
+    assert.deepStrictEqual(loaded.books.map(b => b.copies), [1, 4]);
+    assert.strictEqual(logic.clampCopies(0), 1);
+    assert.strictEqual(logic.clampCopies(999), MAX_COPIES);
+    assert.strictEqual(logic.clampCopies("x"), 1);
+    // Links from before copies existed load as single copies.
+    const old = btoa(JSON.stringify({ i: "sword", w: {}, a: 0, b: [[{ sharpness: 1 }, 0, 0]] })).replace(/=+$/, "");
+    assert.strictEqual(logic.deserialize(old, () => 0).books[0].copies, 1);
+});
+
+test("best levels follow the anvil: two equal levels make one higher", () => {
+    const books = list => ({ ...baseState("sword"), auto_books: false, books: list.map(([enchantments, copies = 1]) => ({ id: 0, type: "book", enchantments, prior_work: 0, copies })) });
+    assert.deepStrictEqual(logic.bestLevels(books([[{ sharpness: 1 }, 4]])), { sharpness: 3 });          // I+I=II, II+II=III
+    assert.deepStrictEqual(logic.bestLevels(books([[{ sharpness: 1 }, 3]])), { sharpness: 2 });          // one I is left over
+    assert.deepStrictEqual(logic.bestLevels(books([[{ sharpness: 4 }], [{ sharpness: 4 }]])), { sharpness: 5 });
+    assert.deepStrictEqual(logic.bestLevels(books([[{ sharpness: 5 }, 8]])), { sharpness: 5 });          // capped at the max
+    assert.deepStrictEqual(logic.bestLevels(books([[{ sharpness: 3 }], [{ sharpness: 2 }]])), { sharpness: 3 }); // unequal keep the higher
+    assert.deepStrictEqual(logic.bestLevels(books([[{ sharpness: 2 }], [{ sharpness: 1 }, 2]])), { sharpness: 3 }); // I+I=II, then II+II=III
+});
+
+test("book checks: still needed and not chosen", () => {
+    const state = {
+        ...baseState("sword"),
+        wanted: { sharpness: 5, mending: 1, unbreaking: 3 },
+        auto_books: false,
+        books: [
+            { id: 0, type: "item", enchantments: {}, prior_work: 0, copies: 1 },
+            { id: 1, type: "book", enchantments: { sharpness: 4 }, prior_work: 0, copies: 1 },
+            { id: 2, type: "book", enchantments: { unbreaking: 3, knockback: 2 }, prior_work: 0, copies: 1 }
+        ]
+    };
+    const check = logic.checkBooks(state);
+    assert.deepStrictEqual(check.short, [{ ns: "sharpness", wanted: 5, best: 4 }, { ns: "mending", wanted: 1, best: 0 }]);
+    assert.deepStrictEqual(check.unwanted, ["knockback"]);
+    // A second Sharpness IV makes V, so Sharpness is no longer short.
+    state.books[1].copies = 2;
+    assert.deepStrictEqual(logic.checkBooks(state).short.map(s => s.ns), ["mending"]);
+    // Automatic books always match what was chosen.
+    assert.deepStrictEqual(logic.checkBooks({ ...state, auto_books: true }), { short: [], unwanted: [] });
 });
 
 test("ranking helpers", () => {

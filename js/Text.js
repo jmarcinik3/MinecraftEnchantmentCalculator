@@ -52,6 +52,8 @@ export const TEXT = {
         automatic: "Automatic",
         book: "Book",
         type_label: "Type",
+        copies: "Copies",
+        copies_help: "How many identical copies of this you have, e.g. a stack of the same book",
         prior_work: "Prior work",
         prior_work_help: "How many times this has already been used on an anvil. Each use makes later merges more expensive.",
         decrease_label: label => `Decrease ${label}`,
@@ -60,7 +62,12 @@ export const TEXT = {
         add_enchantment: "+ Add enchantment",
         add_enchantment_label: "Add enchantment",
         level_of_label: name => `Level of ${name}`,
-        remove_enchantment_label: name => `Remove ${name}`
+        remove_enchantment_label: name => `Remove ${name}`,
+        // Checks on a custom list, shown before calculating.
+        still_needed: names => `Still needed: ${names.join(", ")}`,
+        short_of: (wanted, best) => `${wanted} (best possible: ${best})`,
+        unwanted_label: "Not chosen",
+        unwanted_help: "Not chosen in Enchantments. It will still go on the item and cost levels."
     },
 
     // The "Rank by" chips and the level limit, above the results.

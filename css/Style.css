@@ -230,6 +230,20 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Books and tags */
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+/* An enchantment on a book that wasn't chosen in section 2. */
+.tag.unwanted { border-style: dashed; border-color: var(--warning-text); }
+.tag-flag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--warning-bg);
+    color: var(--warning-text);
+    font-size: 10px;
+    font-weight: 700;
+}
 .chip {
     display: inline-flex;
     align-items: center;

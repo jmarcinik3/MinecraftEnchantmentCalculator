@@ -1,6 +1,7 @@
 // Pure helpers for the prototype UI: no DOM access, so they can be tested on their own.
 
 export const MAX_STEP_LEVELS = 39; // a step costing 40+ levels is "Too Expensive!"
+export const MAX_COPIES = 64;      // copies of one entry (a stack of books)
 
 // Ranking criteria for the best order, in default order (must match Engine.js).
 export const CRITERIA = ["levels", "xp", "max_step", "prior_work"];
@@ -218,6 +219,11 @@ export function createLogic(meta) {
         });
     }
 
+    function clampCopies(value) {
+        const n = Number(value);
+        return Number.isInteger(n) ? Math.min(MAX_COPIES, Math.max(1, n)) : 1;
+    }
+
     function clampPriorWork(value) {
         const n = Number(value);
         return Number.isInteger(n) && n >= 0 ? n : 0;
@@ -253,7 +259,50 @@ export function createLogic(meta) {
         if (!state.item) return [];
         return currentBooks(state)
             .filter(book => book.type === "item" || Object.keys(book.enchantments).length > 0)
-            .map(book => [book.type === "item" ? state.item : "book", Object.entries(book.enchantments), book.prior_work]);
+            .flatMap(book => {
+                const entry = [book.type === "item" ? state.item : "book", Object.entries(book.enchantments), book.prior_work];
+                return Array.from({ length: book.copies || 1 }, () => entry);
+            });
+    }
+
+    // Highest level of each enchantment the entries could make between them. Merging two
+    // equal levels gives one level higher (up to the max) and unequal ones keep the
+    // higher, so it works like carrying in addition: two IIs make a III, and so on.
+    function bestLevels(state) {
+        const counts = {}; // ns -> level -> how many copies have it
+        for (const book of currentBooks(state)) {
+            for (const [ns, level] of Object.entries(book.enchantments)) {
+                counts[ns] = counts[ns] || {};
+                counts[ns][level] = (counts[ns][level] || 0) + (book.copies || 1);
+            }
+        }
+        const best = {};
+        for (const [ns, by_level] of Object.entries(counts)) {
+            let carry = 0;
+            let top = 0;
+            for (let level = 1; level <= maxLevel(ns); level++) {
+                const here = (by_level[level] || 0) + carry;
+                if (here > 0) top = level;
+                carry = level < maxLevel(ns) ? Math.floor(here / 2) : 0;
+            }
+            best[ns] = top;
+        }
+        return best;
+    }
+
+    // Problems with a custom list that can be seen before calculating:
+    //   short: wanted enchantments the entries cannot reach, [{ ns, wanted, best }]
+    //          (best 0 means no entry has it);
+    //   unwanted: enchantments on entries that were not chosen in section 2. They still
+    //          end up on the item (the search keeps every enchantment it can), costing levels.
+    function checkBooks(state) {
+        if (state.auto_books || !state.item) return { short: [], unwanted: [] };
+        const best = bestLevels(state);
+        const short = Object.entries(state.wanted)
+            .filter(([ns, level]) => (best[ns] || 0) < level)
+            .map(([ns, level]) => ({ ns, wanted: level, best: best[ns] || 0 }));
+        const unwanted = Object.keys(best).filter(ns => !(ns in state.wanted));
+        return { short, unwanted };
     }
 
     // Wanted enchantments the result is missing or has at a lower level.
@@ -308,7 +357,12 @@ export function createLogic(meta) {
             i: state.item,
             w: state.wanted,
             a: state.auto_books ? 1 : 0,
-            b: state.auto_books ? [] : state.books.map(book => [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0]),
+            // [enchantments, prior work, 1 if a copy of the item, copies (left out when 1)]
+            b: state.auto_books ? [] : state.books.map(book => {
+                const saved = [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0];
+                if ((book.copies || 1) > 1) saved.push(book.copies);
+                return saved;
+            }),
             p: state.priority.map(c => CRITERIA.indexOf(c)),
             c: state.max_step,
             n: state.no_step_limit ? 1 : 0,
@@ -335,11 +389,12 @@ export function createLogic(meta) {
             wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
             auto_books: data.a !== 0,
             // Only the item's enchantments are offered, so others are dropped.
-            books: sanitizeBooks(books.map(([enchants, prior_work, type_flag]) => ({
+            books: sanitizeBooks(books.map(([enchants, prior_work, type_flag, copies]) => ({
                 id: makeId(),
                 type: type_flag === 1 ? "item" : "book",
                 enchantments: enchants,
-                prior_work: clampPriorWork(prior_work)
+                prior_work: clampPriorWork(prior_work),
+                copies: copies == null ? 1 : clampCopies(copies)
             })), item, allow_incompatible),
             // Older links stored one objective: `o` = 1 meant least XP.
             priority: Array.isArray(data.p)
@@ -352,7 +407,8 @@ export function createLogic(meta) {
 
     return {
         enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, maxAll,
+        applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
+        bestLevels, checkBooks,
         currentBooks, buildEntries, missing, collectSteps, stepRounds, serialize, deserialize
     };
 }
