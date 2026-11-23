@@ -506,6 +506,9 @@ function renderWanted() {
         for (const group of box.querySelectorAll(".ench-group[data-group]")) old_groups.set(group.dataset.group, group.getBoundingClientRect().height);
     }
     conflicts_toggled = false;
+    // The preview's tooltip lines, to fade out the ones about to go (closeLines).
+    const old_width = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect().width : null;
+    const old_lines = old_height != null ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => ({ ns: line.dataset.ns, node: line.cloneNode(true) })) : [];
     box.replaceChildren();
     if (!state.item) {
         box.append(h("p", { class: "hint" }, TEXT.wanted.pick_item_first), itemGrid());
@@ -524,9 +527,11 @@ function renderWanted() {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
         growSmoothly(preview, old_height);
+        slideWidth(preview.querySelector(".mc-tooltip"), old_width);
         // Swapping one enchantment for another leaves the tooltip the same size: the new
         // line then only fades in, since opening it from 0 would shrink the box and grow it back.
         openLines(preview.querySelectorAll(".mc-ench.fresh"), same_size);
+        if (!same_size) closeLines(preview, old_lines);
 
     }
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
@@ -667,6 +672,49 @@ function openLines(lines, same_size = false) {
         }
         line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
     }
+}
+
+// The tooltip is as wide as its longest line; when that changes, its width slides from the
+// old one (lines stay on one line meanwhile, so the height doesn't jump).
+function slideWidth(tooltip, from) {
+    if (!tooltip || from == null || !motion_ok()) return;
+    const to = tooltip.getBoundingClientRect().width;
+    if (Math.abs(to - from) < 1) return;
+    const style = tooltip.style;
+    style.boxSizing = "border-box";
+    style.overflow = "hidden";
+    style.whiteSpace = "nowrap";
+    // Held at the end width until the lines closing in it (closeLines) are gone, which
+    // happens just after, so the box never flashes wider.
+    const slide = tooltip.animate([{ width: from + "px" }, { width: to + "px" }], { duration: 250, easing: "ease-out", fill: "forwards" });
+    const finish = () => { slide.cancel(); style.boxSizing = style.overflow = style.whiteSpace = ""; };
+    slide.finished.then(() => setTimeout(finish, 0), finish);
+    setTimeout(finish, 450); // a hidden tab never finishes animations
+}
+
+// Removed tooltip lines close the way new ones open: a copy stays in its place and folds
+// away (shrinking and fading), so the lines below slide up with the box instead of jumping.
+function closeLines(preview, old_lines) {
+    if (!motion_ok()) return;
+    const tooltip = preview.querySelector(".mc-tooltip");
+    if (!tooltip) return;
+    const kept = new Set([...tooltip.querySelectorAll(".mc-ench[data-ns]")].map(line => line.dataset.ns));
+    old_lines.forEach(({ ns, node }, index) => {
+        if (kept.has(ns)) return;
+        const ghost = node;
+        ghost.classList.remove("fresh");
+        ghost.setAttribute("aria-hidden", "true");
+        ghost.removeAttribute("data-ns");
+        ghost.style.pointerEvents = "none";
+        const lines = tooltip.querySelectorAll(".mc-ench");
+        const before = lines[Math.min(index, lines.length)];
+        before ? before.before(ghost) : tooltip.append(ghost);
+        const height = ghost.getBoundingClientRect().height;
+        ghost.style.overflow = "hidden";
+        const remove = () => ghost.remove();
+        ghost.animate([{ height: height + "px", opacity: 1 }, { height: "0px", opacity: 0 }], { duration: 250, easing: "ease-out", fill: "forwards" }).finished.then(remove, remove);
+        setTimeout(remove, 400); // a hidden tab never finishes animations
+    });
 }
 
 // The item menu closes on a click outside it (or its button) and on Escape, which puts
@@ -2560,7 +2608,8 @@ function anvilCell(node, changed, role, meta = null, attrs = {}) {
     const name = nodeName(node);
     const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "");
     const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
-        class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
+        class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : ""),
+        "data-ns": e.namespace
     }, logic.displayName(e.namespace, e.level)));
 
     return h("div", { class: "anvil-cell " + role, ...attrs },

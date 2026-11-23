@@ -73,7 +73,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). The preview and the controls
   (toolbar, presets) form `wantedHead`: side by side when `#wanted` is 460px+ (container query; the preview has a fixed
   width there). The preview's height slides on change (`growSmoothly`, 0.25s, a timer clears it) and new lines open from
-  0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`; only a fade when the box ends the same size, as when swapping conflicting picks); toggling "Allow conflicts" slides and fades each
+  0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`; removed lines fold away in place, `closeLines`; the tooltip's width slides too, `slideWidth`; only a fade when the box ends the same size, as when swapping conflicting picks); toggling "Allow conflicts" slides and fades each
   conflict group (`conflicts_toggled`, `.ench-group[data-group]`); all off with reduced motion. Then
   the toolbar, presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
   entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: name in the game font, curses red, an `.ench-info` tip with
