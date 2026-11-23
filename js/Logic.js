@@ -140,6 +140,10 @@ export function searchSize(entries) {
 // Common choices when enchantments conflict, used by "Max all".
 const PREFERRED = ["sharpness", "density", "protection", "fortune", "mending", "depth_strider", "loyalty", "channeling", "multishot"];
 
+// The well-known swaps from the best set, each offered as a preset of its own: the best
+// set with this one in place of what it conflicts with (Silk Touch for Fortune...).
+const PRESET_SWAPS = ["silk_touch", "frost_walker", "smite", "bane_of_arthropods", "breach", "infinity", "piercing", "riptide"];
+
 export function roman(number) {
     const numerals = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
     let out = "";
@@ -163,6 +167,8 @@ export function createLogic(meta, names = {}) {
     const maxLevel = ns => Number(enchantments[ns].max_level);
     const isCurse = ns => ns.endsWith("_curse");
     const itemName = ns => (names.items && names.items[ns]) || ns;
+    // What an enchantment does, in a few words ("" when the language has none).
+    const describe = ns => (names.descriptions && names.descriptions[ns]) || "";
 
     function conflicts(a, b) {
         if (a === b) return false;
@@ -281,6 +287,28 @@ export function createLogic(meta, names = {}) {
             }
         }
         return result;
+    }
+
+    // Section 2's presets: "best" (Max all from nothing), then one per swap in
+    // PRESET_SWAPS that the item can take and the best set leaves out. Each is
+    // { key: "best" | swap namespace, wanted }. None for the plain book (it takes every
+    // enchantment, so a "best" set means little), and only "best" with conflicts allowed.
+    function presets(item, allow_incompatible = false) {
+        if (!item || item === "book") return [];
+        const best = maxAll(item, {}, allow_incompatible);
+        const list = [{ key: "best", wanted: best }];
+        if (allow_incompatible) return list;
+        const options = applicable(item);
+        for (const ns of PRESET_SWAPS) {
+            if (options.includes(ns) && !(ns in best)) list.push({ key: ns, wanted: maxAll(item, { [ns]: maxLevel(ns) }) });
+        }
+        return list;
+    }
+
+    // Roughly what adding `ns` at `level` from a book costs on its own: the level times
+    // the book multiplier, before any prior work (the hint beside a chosen enchantment).
+    function bookCost(ns, level) {
+        return level * Number(enchantments[ns].weight);
     }
 
     // Everything going on the anvil. Each entry has a `type` of "book" or "item" (a copy
@@ -534,7 +562,7 @@ export function createLogic(meta, names = {}) {
     }
 
     return {
-        isItem: ns => items.has(ns), enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
+        isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize

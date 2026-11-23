@@ -21,6 +21,8 @@
     --success-text: #25602a;
     --danger-bg: #fbe7e7;
     --danger-text: #8f2525;
+    --curse: #b3261e;
+    --row-glint: rgba(140, 80, 255, 0.13);
     --radius: 8px;
     color-scheme: light;
 }
@@ -44,6 +46,8 @@
         --success-text: #a5e0a3;
         --danger-bg: #431c1c;
         --danger-text: #f3b0b0;
+        --curse: #ff6b6b;
+        --row-glint: rgba(190, 140, 255, 0.16);
         color-scheme: dark;
     }
 }
@@ -248,58 +252,189 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .item-icon.small { width: 24px; height: 24px; }
 
 /* Wanted enchantments */
+/* The finished item as the game shows it: the slot, then a tooltip as wide as its text. */
+.wanted-preview { margin-bottom: 12px; }
+.anvil-cell.preview { flex-direction: row; align-items: flex-start; gap: 10px; }
+.anvil-cell.preview .mc-tooltip { width: auto; flex: 0 1 auto; min-width: 0; }
+
+/* Presets: "Presets  Best  Silk Touch". */
+.presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.presets-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+.preset {
+    height: 26px;
+    padding: 0 11px;
+    border: 1px solid var(--border-strong);
+    border-radius: 13px;
+    background: transparent;
+    color: var(--text-secondary);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+.preset:hover { border-color: var(--accent); color: var(--accent-text); }
+.preset.selected { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+
+/* One row: the name (game font; curses red), the rough cost once chosen, the level bar. */
 .ench-row {
+    position: relative;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 12px;
+    gap: 10px;
     padding: 6px 0;
     border-top: 1px solid var(--border);
 }
-.ench-row:first-of-type { border-top: none; }
-.ench-name { display: flex; flex-direction: column; font-size: 14px; }
-.ench-row.chosen .ench-name { font-weight: 600; }
+.wanted-list > .ench-row:first-child, .ench-group + .ench-row, .divider + .ench-row,
+.ench-group-label + .ench-row, .group-switch + .ench-row { border-top: none; }
+.ench-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 14px;
+    line-height: 1.3;
+    color: var(--text-secondary);
+}
+.ench-row.chosen .ench-name { color: var(--text); }
+.ench-row.curse .ench-name { color: var(--curse); }
+/* Conflicts with a chosen one: dimmed (choosing it replaces that one). Not opacity on
+   the row, which would trap the name's bubble under the rows below. */
 .ench-row.conflict .ench-name { color: var(--text-muted); }
+.ench-row.conflict .level-bar { opacity: 0.45; }
+.ench-row.conflict .level-bar:hover, .ench-row.conflict .level-bar:focus-visible { opacity: 0.8; }
 .note { font-size: 12px; color: var(--text-muted); font-weight: normal; }
+.ench-cost { flex: none; font-size: 11px; }
 
-.levels { display: flex; gap: 4px; flex: none; }
-.level {
+/* A chosen row gets a faint purple sheen now and then, like the enchantment glint. */
+.ench-row.chosen::after {
+    content: "";
+    position: absolute;
+    inset: 1px -4px;
+    border-radius: 6px;
+    background: linear-gradient(115deg, transparent 38%, var(--row-glint) 50%, transparent 62%) no-repeat;
+    background-size: 300% 100%;
+    animation: row-glint 7s linear infinite;
+    pointer-events: none;
+}
+/* With the gradient 3 rows wide, 100% -> 0% sweeps the band from left to right, visible
+   for the middle half of the loop: a pass, then a pause. */
+@keyframes row-glint {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+    .ench-row.chosen::after { animation: none; background: var(--row-glint); opacity: 0.45; }
+}
+
+/* What an enchantment does: its name opens a bubble (tap, focus, or a short hover, so
+   moving the mouse down the list does not flash one on every row). */
+.ench-info .info-tip-button {
+    width: auto;
+    height: auto;
+    padding: 0;
+    border: none;
+    border-radius: 0;
+    background: none;
+    color: inherit;
     font: inherit;
-    font-size: 12px;
-    min-width: 32px;
+    text-align: left;
+    cursor: help;
+}
+.ench-info .info-tip-button:hover, .ench-info.open .info-tip-button {
+    background: none;
+    color: inherit;
+    text-decoration: underline dotted;
+    text-underline-offset: 3px;
+}
+.ench-info:hover, .ench-info.open { z-index: 11; }
+.ench-info .info-tip-bubble { display: block; visibility: hidden; opacity: 0; transition: opacity 0.12s, visibility 0s linear 0.12s; }
+.ench-info:hover .info-tip-bubble, .ench-info .info-tip-button:focus-visible + .info-tip-bubble {
+    visibility: visible;
+    opacity: 1;
+    transition: opacity 0.12s linear 0.45s, visibility 0s linear 0.45s;
+}
+.ench-info.open .info-tip-bubble { visibility: visible; opacity: 1; transition: none; }
+
+/* The level bar: joined segments that fill up to the chosen level. Always five segments
+   wide with its own from the left, so the I segments of every row share a column. */
+.level-bar {
+    --seg: 30px;
+    flex: none;
+    display: grid;
+    grid-template-columns: repeat(var(--levels), var(--seg));
+    width: calc(5 * var(--seg));
     height: 28px;
     border-radius: 6px;
-    border: 1px solid var(--border-strong);
-    background: transparent;
-    color: var(--text);
     cursor: pointer;
+    touch-action: pan-y;
+    user-select: none;
+    -webkit-user-select: none;
 }
-.level:hover { background: var(--surface-alt); }
-.level.selected { background: var(--accent); border-color: var(--accent); color: #fff; }
-.ench-row.conflict .level { opacity: 0.55; }
-
-/* Conflicting enchantments share a box; the label says how they conflict. */
-/* The box reaches out past the list by its own padding + border (9px), so the names and
-   level buttons inside it line up with the single rows above and below. 9px fits inside
-   the card's padding even on phones (10px). */
-.ench-group {
-    --group-inset: 8px;
-    margin: 6px calc(-1 * var(--group-inset) - 1px);
-    padding: 2px var(--group-inset) 0;
+.level-bar:focus { outline: none; }
+.level-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.level-seg {
+    display: flex;
+    align-items: center;
+    justify-content: center;
     border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    background: var(--surface-alt);
+    border-left-width: 0;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 12px;
+    transition: background-color 0.08s;
 }
-.ench-group + .ench-row { border-top: none; }
+.level-seg:first-child { border-left-width: 1px; border-radius: 6px 0 0 6px; }
+.level-seg:last-child { border-radius: 0 6px 6px 0; }
+.level-seg:only-child { border-radius: 6px; }
+.level-bar:hover .level-seg:not(.filled) { background: var(--surface-alt); }
+.level-seg.filled { background: var(--accent); border-color: var(--accent); color: #fff; }
+.level-seg.filled + .level-seg.filled { box-shadow: inset 1px 0 rgba(255, 255, 255, 0.28); }
+@media (prefers-reduced-motion: reduce) { .level-seg { transition: none; } }
+
+/* Conflicting enchantments are bracketed together; the label says how they conflict.
+   The bracket sits out in the card's padding by its width (2px line + 7px gap), so the
+   names and bars inside line up with the single rows. */
+.ench-group {
+    margin: 6px 0 6px -9px;
+    padding-left: 7px;
+    border-left: 2px solid var(--border-strong);
+}
+.ench-group.has-chosen { border-left-color: var(--accent); }
 .ench-group-label {
-    padding-top: 6px;
+    padding: 2px 0 2px;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
-.ench-group-label + .ench-row { border-top: none; }
+
+/* "Pick one" groups: a switch for which one (or none), then the chosen one's row. */
+.group-switch {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    width: fit-content;
+    max-width: 100%;
+    margin: 4px 0 6px;
+    padding: 3px;
+    border-radius: 8px;
+    background: var(--surface-alt);
+}
+.switch-option {
+    min-height: 28px;
+    padding: 2px 10px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 13px;
+    cursor: pointer;
+}
+.switch-option:hover { color: var(--text); background: var(--border); }
+.switch-option.selected { background: var(--surface); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent), 0 1px 3px rgba(0, 0, 0, 0.15); }
 
 .divider {
     margin-top: 10px;

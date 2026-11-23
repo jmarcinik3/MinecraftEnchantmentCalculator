@@ -170,6 +170,7 @@ test("every language has the same text entries as English, of the same kind", ()
         // Every item and enchantment is named, and nothing else.
         assert.deepStrictEqual(Object.keys(text.names.items).sort(), [...meta.items].sort(), language);
         assert.deepStrictEqual(Object.keys(text.names.enchantments).sort(), Object.keys(meta.enchantments).sort(), language);
+        assert.deepStrictEqual(Object.keys(text.names.descriptions).sort(), Object.keys(meta.enchantments).sort(), language);
     }
 });
 
@@ -503,6 +504,23 @@ test("ticking a step ticks the steps before it; unticking one unticks the steps 
     const done = new Set([2]);
     logic.tickStep(steps, done, 4, true);
     assert.deepStrictEqual(sorted(done), [2]); // the old set is not changed
+});
+
+test("presets: the best set, then each well-known swap the item can take", () => {
+    const keys = item => logic.presets(item).map(p => p.key);
+    assert.deepStrictEqual(keys("pickaxe"), ["best", "silk_touch"]);
+    assert.deepStrictEqual(keys("boots"), ["best", "frost_walker"]);
+    assert.deepStrictEqual(keys("book"), []);
+    assert.deepStrictEqual(logic.presets("sword", true).map(p => p.key), ["best"]);
+    const [best, silk] = logic.presets("pickaxe");
+    assert.deepStrictEqual(best.wanted, logic.maxAll("pickaxe", {}));
+    assert.strictEqual(silk.wanted.silk_touch, 1);
+    assert.ok(!("fortune" in silk.wanted) && silk.wanted.efficiency === 5);
+    const trident = logic.presets("trident").find(p => p.key === "riptide").wanted;
+    assert.ok(!("loyalty" in trident) && !("channeling" in trident));
+    assert.strictEqual(logic.bookCost("thorns", 3), 12);
+    assert.strictEqual(logic.bookCost("sharpness", 5), 5);
+    assert.strictEqual(logic.describe("mending"), TEXTS.en.names.descriptions.mending);
 });
 
 test("steps are grouped into rounds of independent steps, cheapest first", () => {

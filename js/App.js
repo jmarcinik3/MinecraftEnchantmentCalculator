@@ -461,77 +461,234 @@ function renderItems() {
     }, icon(item), logic.itemName(item))));
 }
 
+// Section 2: a preview of the finished item, the toolbar and presets, then one row per
+// enchantment (conflict groups together).
 function renderWanted() {
     const box = $("#wanted");
+    const focus = focusState(box);
     box.replaceChildren();
     if (!state.item) {
         box.append(h("p", { class: "hint" }, TEXT.wanted.pick_item_first));
         return;
     }
 
-    box.append(h("div", { class: "toolbar" },
-        h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
-        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear),
-        h("label", { class: "check-option", title: TEXT.wanted.allow_conflicts_help },
-            h("input", { type: "checkbox", checked: state.allow_incompatible, onchange: event => setAllowIncompatible(event.target.checked) }),
-            TEXT.wanted.allow_conflicts
-        )
-    ));
-
-    // B: chosen enchantments the custom books can't reach (none in automatic mode).
-    const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
-
-    // Conflicting enchantments are boxed together where the first of them would be listed.
-    let curses_shown = false;
-    for (const group of logic.enchantmentGroups(state.item)) {
-        if (logic.isCurse(group.members[0]) && !curses_shown) {
-            box.append(h("div", { class: "divider" }, TEXT.wanted.curses));
-            curses_shown = true;
-        }
-        if (group.members.length === 1) {
-            box.append(wantedRow(group.members[0], false, short.get(group.members[0])));
-            continue;
-        }
-        box.append(h("div", { class: "ench-group" + (group.exclusive ? " exclusive" : "") },
-            h("div", { class: "ench-group-label" },
-                state.allow_incompatible ? TEXT.wanted.group_allowed
-                    : group.exclusive ? TEXT.wanted.group_pick_one : TEXT.wanted.group_some_conflict),
-            group.members.map(ns => wantedRow(ns, group.exclusive, short.get(ns)))
-        ));
-    }
+    box.append(...[
+        wantedPreview(),
+        h("div", { class: "toolbar" },
+            h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
+            h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear),
+            h("label", { class: "check-option", title: TEXT.wanted.allow_conflicts_help },
+                h("input", { type: "checkbox", checked: state.allow_incompatible, onchange: event => setAllowIncompatible(event.target.checked) }),
+                TEXT.wanted.allow_conflicts
+            )
+        ),
+        presetChips(),
+        wantedList()
+    ].filter(Boolean));
+    restoreFocus(box, focus);
 }
 
-// One enchantment with its level buttons. In a "Pick one" group the box already says
-// they conflict, so the per-row note is left out.
+// The element with focus inside `box` (by its data-focus), so a redraw can put the
+// focus back where it was (the level bars and switches are rebuilt on every change).
+function focusState(box) {
+    const active = document.activeElement;
+    return active && box.contains(active) && active.dataset.focus ? active.dataset.focus : null;
+}
+
+function restoreFocus(box, key) {
+    const again = key && box.querySelector(`[data-focus="${key}"]`);
+    if (again) again.focus({ preventScroll: true });
+}
+
+// The rows: single enchantments, "Pick one" switches, and brackets around enchantments
+// that only partly conflict; curses last.
+function wantedList() {
+    // B: chosen enchantments the custom books can't reach (none in automatic mode).
+    const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
+    const rows = [];
+    let curses_shown = false;
+    for (const group of logic.enchantmentGroups(state.item)) {
+        const members = group.members;
+        const switchable = group.exclusive && !state.allow_incompatible;
+        if (logic.isCurse(members[0]) && !curses_shown) {
+            rows.push(h("div", { class: "divider" }, TEXT.wanted.curses));
+            curses_shown = true;
+        }
+        if (switchable) {
+            rows.push(groupSwitch(members, short));
+        } else if (members.length === 1) {
+            rows.push(wantedRow(members[0], short.get(members[0])));
+        } else {
+            rows.push(h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : "") },
+                h("div", { class: "ench-group-label" }, state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict),
+                members.map(ns => wantedRow(ns, short.get(ns)))
+            ));
+        }
+    }
+    return h("div", { class: "wanted-list" }, rows);
+}
+
+// The finished item as the game shows it: its slot, then a tooltip with its name (in
+// italics once renamed) and the chosen enchantments in the game's order.
+function wantedPreview() {
+    const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
+    const node = { item_namespace: state.item, enchantments: chosen, renamed: true };
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, anvilCell(node, null, "preview"));
+}
+
+// "Presets: Best · Silk Touch": each sets the chosen enchantments to a whole set (Logic.js
+// presets); the one matching the current choice is highlighted. When the item has only
+// one set of conflicting enchantments, "Best" is named after its pick from that set
+// ("Fortune · Silk Touch", "Channeling + Loyalty · Riptide").
+function presetChips() {
+    const presets = logic.presets(state.item, state.allow_incompatible);
+    if (!presets.length) return null;
+    const conflict_sets = logic.enchantmentGroups(state.item).filter(group => group.members.length > 1);
+    const best_name = wanted => {
+        if (state.allow_incompatible || conflict_sets.length !== 1) return TEXT.wanted.preset_best;
+        const picks = conflict_sets[0].members.filter(ns => wanted[ns]);
+        return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
+    };
+    const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);
+    return h("div", { class: "presets" },
+        h("span", { class: "presets-label" }, TEXT.wanted.presets),
+        presets.map(preset => {
+            const selected = same(preset.wanted, state.wanted);
+            const best = preset.key === "best";
+            return h("button", {
+                type: "button", class: "preset" + (selected ? " selected" : ""), "aria-pressed": String(selected),
+                "data-focus": "preset-" + preset.key,
+                title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
+                onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
+            }, best ? best_name(preset.wanted) : logic.enchName(preset.key));
+        })
+    );
+}
+
+// A "Pick one" group (every pair conflicts): a switch for which one, or none, then the
+// chosen one's row with its level bar. Switching picks the new one at its max level.
+function groupSwitch(members, short) {
+    const chosen = members.find(ns => state.wanted[ns]) || null;
+    const label_id = "pick-" + members[0];
+    const option = (ns, label) => h("button", {
+        type: "button", role: "radio", class: "switch-option" + (chosen === ns ? " selected" : ""),
+        "aria-checked": String(chosen === ns), "data-focus": "switch-" + members[0] + "-" + (ns || "none"),
+        title: ns ? logic.describe(ns) || null : null,
+        onclick: () => {
+            if (chosen === ns) return;
+            if (ns) setWanted(ns, logic.maxLevel(ns)); // drops the one it replaces
+            else setWanted(chosen, 0);
+        }
+    }, label);
+    return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : "") },
+        h("div", { class: "ench-group-label", id: label_id }, TEXT.wanted.group_pick_one),
+        h("div", { class: "group-switch", role: "radiogroup", "aria-labelledby": label_id },
+            option(null, TEXT.wanted.none),
+            members.map(ns => option(ns, logic.enchName(ns)))
+        ),
+        chosen ? wantedRow(chosen, short.get(chosen)) : null
+    );
+}
+
+// One enchantment: its name (tap or hover for what it does), the rough cost once chosen,
+// and its level bar. One that conflicts with a chosen enchantment is dimmed, and choosing
+// it replaces that one.
 // `short`: { best } when the custom books can't reach this chosen level.
-function wantedRow(ns, in_exclusive_group, short = null) {
+function wantedRow(ns, short = null) {
     const chosen = state.wanted[ns] || 0;
     const blocker = !chosen && Object.keys(state.wanted).find(other => clashes(other, ns));
+    const name = logic.enchName(ns);
+    const help = logic.describe(ns);
+    const cost = chosen ? logic.bookCost(ns, chosen) : 0;
 
-    const levels = [];
-    for (let level = 1; level <= logic.maxLevel(ns); level++) {
-        levels.push(h("button", {
-            type: "button",
-            class: "level" + (chosen === level ? " selected" : ""),
-            "aria-pressed": String(chosen === level),
-            "aria-label": logic.displayName(ns, level),
-            title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
-            onclick: () => setWanted(ns, chosen === level ? 0 : level)
-        }, roman(level)));
-    }
-
-    return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") },
+    return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
         h("div", { class: "ench-name" },
             // The mark shares the name's line, so rows never get taller.
             h("span", { class: "ench-title" },
-                logic.enchName(ns),
+                help ? infoTip("ench-info-" + ns, name, name, help, "ench-info") : name,
                 short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
                     short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
-            ),
-            blocker && !in_exclusive_group ? h("span", { class: "note" }, TEXT.wanted.conflicts_with({ name: logic.enchName(blocker) })) : null
+            )
         ),
-        h("div", { class: "levels" }, levels)
+        chosen ? h("span", { class: "anvil-cost ench-cost", title: TEXT.wanted.cost_help({ levels: cost }) }, TEXT.wanted.cost({ levels: cost })) : null,
+        levelBar(ns, chosen, blocker)
     );
+}
+
+// The levels as one bar of joined segments (I up to the max) that fill up to the chosen
+// level: tap a segment to choose it (the chosen one again clears it), drag across them
+// (off the left end clears), or use the arrow keys, Home/End and digits. Every bar is as
+// wide as five segments with its own from the left, so the I segments share a column.
+function levelBar(ns, chosen, blocker) {
+    const max = logic.maxLevel(ns);
+    const segments = [];
+    for (let level = 1; level <= max; level++) segments.push(h("span", { class: "level-seg", "data-level": level }, roman(level)));
+    const bar = h("div", {
+        class: "level-bar", role: "slider", tabindex: "0", "data-focus": "bar-" + ns,
+        "aria-label": TEXT.wanted.level_label({ name: logic.enchName(ns) }),
+        "aria-valuemin": "0", "aria-valuemax": String(max),
+        title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
+        style: `--levels: ${max}`
+    }, segments);
+
+    const show = level => {
+        bar.setAttribute("aria-valuenow", String(level));
+        bar.setAttribute("aria-valuetext", level ? logic.displayName(ns, level) : TEXT.wanted.level_none);
+        for (const seg of segments) seg.classList.toggle("filled", Number(seg.dataset.level) <= level);
+    };
+    show(chosen);
+    const choose = level => { if (level !== chosen) setWanted(ns, level); };
+
+    bar.addEventListener("keydown", event => {
+        const keys = { ArrowRight: chosen + 1, ArrowUp: chosen + 1, ArrowLeft: chosen - 1, ArrowDown: chosen - 1, Home: 0, End: max, Delete: 0, Backspace: 0 };
+        let level = keys[event.key];
+        if (level == null && /^[0-9]$/.test(event.key)) level = Number(event.key);
+        if (level == null) return;
+        event.preventDefault();
+        choose(Math.max(0, Math.min(max, level)));
+    });
+
+    // The level under the pointer, by position, so a drag also works over the gaps.
+    const levelAt = x => {
+        const rects = segments.map(seg => seg.getBoundingClientRect());
+        if (x < rects[0].left - 8) return 0;
+        let level = 1;
+        rects.forEach((rect, index) => { if (x >= rect.left) level = index + 1; });
+        return level;
+    };
+    // The bar fills as the pointer moves and the choice is made on release (a redraw
+    // mid-drag would end it). Vertical swipes still scroll the page (touch-action: pan-y).
+    let drag = null;
+    bar.addEventListener("pointerdown", event => {
+        if (event.button !== 0) return;
+        const level = levelAt(event.clientX);
+        drag = { id: event.pointerId, start: level, level, moved: false };
+        bar.setPointerCapture(event.pointerId);
+        bar.classList.add("dragging");
+        show(level);
+    });
+    bar.addEventListener("pointermove", event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const level = levelAt(event.clientX);
+        if (level !== drag.level) {
+            drag.level = level;
+            drag.moved = true;
+            show(level);
+        }
+    });
+    bar.addEventListener("pointerup", event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { start, level, moved } = drag;
+        drag = null;
+        bar.classList.remove("dragging");
+        choose(!moved && start === chosen ? 0 : level);
+    });
+    bar.addEventListener("pointercancel", () => {
+        drag = null;
+        bar.classList.remove("dragging");
+        show(chosen);
+    });
+    return bar;
 }
 
 // Every enchantment on any custom entry. In vanilla, a new one must not conflict with

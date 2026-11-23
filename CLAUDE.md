@@ -21,7 +21,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
   Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one.
 - `json/text/<language>.json` (`en`, `es`): every string the page shows (labels, tooltips, messages), grouped by
-  section, plus `names: { items, enchantments }` (the only place item and enchantment names live, English included).
+  section, plus `names: { items, enchantments, descriptions }` (the only place item and enchantment names live, English
+  included; `descriptions`: what each enchantment does, in a few words).
   Templates use `{placeholder}` (arrays join as a localized list); number-dependent text is
   `{ "plural": "<value>", "one": ..., "other": ... }` (Intl.PluralRules forms). index.html headings use
   `data-text="section.key"`. Add new UI text there, in every language, not inline in App.js. Tests check each
@@ -61,6 +62,13 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Only the limit commits; your level and the name redraw just the results.
 - The Best order "?" bubble is `position: fixed` (`floatBubble`, `.info-tip.floating`), placed under the "?" on open,
   hover, focus and scroll, so it never adds height to the scrolling right column.
+- Section 2 (`renderWanted`): a preview of the finished item (`wantedPreview`, the game slot + tooltip via `anvilCell`),
+  the toolbar, presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
+  entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: name in the game font, curses red, an `.ench-info` tip with
+  `names.descriptions` (Logic `describe`), a `+N` hint once chosen (Logic `bookCost`: level x book multiplier), and a
+  `levelBar`: role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide so the I segments line up),
+  "Pick one" groups as a switch (`groupSwitch`) plus the chosen one's row, partial conflicts in a left bracket
+  (`.ench-group`), conflicting rows dimmed. Chosen rows get a CSS glint. Focus is restored by `data-focus` after redraws.
 - Sections 1-3 collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
