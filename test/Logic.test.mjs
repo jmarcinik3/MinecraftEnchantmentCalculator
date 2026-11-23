@@ -260,6 +260,68 @@ test("extra enchantments on the result are the ones not chosen, in tooltip order
     assert.deepStrictEqual(logic.extra({ ...state, wanted: { sharpness: 5, knockback: 2, unbreaking: 3 } }, node), []);
 });
 
+test("the fix, one book at the chosen level, replaces every lower book of it", () => {
+    const entry = (enchantments, copies = 1) => ({ id: 1, type: "book", enchantments, prior_work: 0, copies });
+    const boots = books => ({ ...baseState("boots"), wanted: { protection: 4 }, auto_books: false,
+        books: [{ id: 0, type: "item", enchantments: {}, prior_work: 0, copies: 1 }, ...books] });
+    for (const books of [[entry({ protection: 1 }), entry({ protection: 2 })], [entry({ protection: 3 })], [entry({ protection: 1 }, 5)], []]) {
+        const state = boots(books);
+        const [short] = logic.checkBooks(state).short;
+        const { books: fixed, removed } = logic.addBook(state, short.ns, short.wanted);
+        assert.strictEqual(removed.length, books.length, JSON.stringify(books));
+        assert.deepStrictEqual(fixed.map(b => b.enchantments), [{}, { protection: 4 }]);
+        assert.deepStrictEqual(logic.checkBooks({ ...state, books: fixed }).short, []);
+    }
+});
+
+test("adding a suggested book: merges with an identical one, drops books it replaces", () => {
+    const entry = (enchantments, copies = 1, prior_work = 0) => ({ id: 1, type: "book", enchantments, prior_work, copies });
+    const boots = (books, wanted = { protection: 4 }) => ({ ...baseState("boots"), wanted, auto_books: false,
+        books: [{ id: 0, type: "item", enchantments: {}, prior_work: 0, copies: 1 }, ...books] });
+
+    // Protection IV replaces a Protection I and II.
+    const one = entry({ protection: 1 }), two = entry({ protection: 2 });
+    const state = boots([one, two]);
+    const result = logic.addBook(state, "protection", 4);
+    assert.deepStrictEqual(result.removed, [one, two]);
+    assert.deepStrictEqual(result.books.map(b => b.enchantments), [{}, { protection: 4 }]);
+    assert.strictEqual(result.merged, false);
+    assert.strictEqual(state.books.length, 3); // the old list is not changed
+
+    // A second Protection III becomes 2 copies; nothing lower to drop.
+    const three = entry({ protection: 3 });
+    const merged = logic.addBook(boots([three]), "protection", 3);
+    assert.strictEqual(merged.merged, true);
+    assert.deepStrictEqual(merged.books.map(b => [b.enchantments, b.copies]), [[{}, 1], [{ protection: 3 }, 2]]);
+
+    // Kept: a lower book that is still needed, and one with other enchantments.
+    const needed = logic.addBook(boots([entry({ protection: 2 }, 1)], { protection: 3 }), "protection", 2); // II + II = III
+    assert.deepStrictEqual(needed.removed, []);
+    const mixed = entry({ protection: 1, unbreaking: 3 });
+    assert.deepStrictEqual(logic.addBook(boots([mixed]), "protection", 4).removed, []);
+
+    // Replaced even with prior work, and items too, but never the last item.
+    const worked = entry({ protection: 2 }, 1, 3);
+    assert.deepStrictEqual(logic.addBook(boots([worked]), "protection", 4).removed, [worked]);
+    const old_boots = { id: 7, type: "item", enchantments: { protection: 1 }, prior_work: 2, copies: 1 };
+    assert.deepStrictEqual(logic.addBook(boots([old_boots]), "protection", 4).removed, [old_boots]); // the plain boots remain
+    const only_boots = { ...baseState("boots"), wanted: { protection: 4 }, auto_books: false, books: [old_boots] };
+    const kept = logic.addBook(only_boots, "protection", 4);
+    assert.deepStrictEqual(kept.removed, []);
+    assert.deepStrictEqual(kept.books.map(b => b.type), ["item", "book"]);
+});
+
+test("an entry's twin: same kind, enchantments (any order) and prior work", () => {
+    const books = [
+        { id: 1, type: "book", enchantments: { unbreaking: 3, mending: 1 }, prior_work: 0, copies: 1 },
+        { id: 2, type: "book", enchantments: { mending: 1 }, prior_work: 1, copies: 1 }
+    ];
+    assert.strictEqual(logic.twinOf(books, { id: 3, type: "book", enchantments: { mending: 1, unbreaking: 3 }, prior_work: 0 }), books[0]);
+    assert.strictEqual(logic.twinOf(books, { id: 4, type: "book", enchantments: { mending: 1 }, prior_work: 0 }), undefined);
+    assert.strictEqual(logic.twinOf(books, { id: 5, type: "item", enchantments: { mending: 1 }, prior_work: 1 }), undefined);
+    assert.strictEqual(logic.twinOf(books, books[0]), undefined); // not itself
+});
+
 test("ranking helpers", () => {
     assert.deepStrictEqual(movePriority(CRITERIA, 2, -1), ["levels", "max_step", "xp", "prior_work"]);
     assert.deepStrictEqual(movePriority(CRITERIA, 0, -1), CRITERIA);

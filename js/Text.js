@@ -41,7 +41,11 @@ export const TEXT = {
         group_some_conflict: "Some conflict",
         group_allowed: "Conflict (allowed)",
         replaces: name => `Replaces ${name}`,
-        conflicts_with: name => `Conflicts with ${name}`
+        conflicts_with: name => `Conflicts with ${name}`,
+        // Marks on chosen enchantments that the custom books can't reach.
+        books_reach: level => `Books reach ${level}`,
+        not_on_books: "Not on any book",
+        short_help: "Your books and items in section 3 can't reach the level chosen here."
     },
 
     // Section 3: the books and item copies going on the anvil.
@@ -52,6 +56,8 @@ export const TEXT = {
         automatic: "Automatic",
         book: "Book",
         type_label: "Type",
+        reorder_label: number => `Move entry ${number}`,
+        reorder_help: "Drag to reorder, or focus and press the up and down arrow keys",
         copies: "Copies",
         copies_help: "How many identical copies of this you have, e.g. a stack of the same book",
         prior_work: "Prior work",
@@ -65,6 +71,17 @@ export const TEXT = {
         remove_enchantment_label: name => `Remove ${name}`,
         // Checks on a custom list, shown before calculating.
         still_needed: names => `Still needed: ${names.join(", ")}`,
+        // Badge on the section heading: how many chosen enchantments can't be reached.
+        alert: count => `⚠ ${count}`,
+        alert_label: count => `${count} chosen ${count === 1 ? "enchantment" : "enchantments"} can't be reached`,
+        // Suggestions in the badge's bubble, each a button that changes the list.
+        fix_best: level => `best now: ${level}`,
+        fix_new_book: name => `Add 1 ${name} book`,
+        fix_replaces: names => `Replaces ${names.join(" and ")}, no longer needed`,
+        replaced_item: (item, enchantment) => `${item} (${enchantment})`,
+        undo: "↶ Undo",
+        undo_help: "Undo the last suggestion you applied",
+        path_step: (count, level) => `${count}× ${level}`,
         short_of: (wanted, best) => `${wanted} (best possible: ${best})`,
         unwanted_label: "Not chosen",
         unwanted_help: "Not chosen in Enchantments. It will still go on the item and cost levels."

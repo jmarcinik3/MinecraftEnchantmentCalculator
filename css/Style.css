@@ -263,8 +263,31 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     border: 1px solid var(--border);
     border-radius: var(--radius);
 }
-.book-editor-head { display: flex; align-items: center; gap: 8px; font-size: 14px; }
+/* The grip has its own column, centered down the header and the enchantments. */
+.book-editor { grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; }
+.book-editor > .drag-handle { grid-row: 1 / span 2; align-self: center; }
+.book-editor-head { display: flex; align-items: center; gap: 8px; font-size: 14px; flex-wrap: wrap; row-gap: 6px; }
+/* Never squeeze the book/item switch or split a stepper's label; on a narrow screen the
+   steppers move to a second line instead. */
+.book-editor-head > .segmented { flex: none; }
+.book-editor-head .stepper { white-space: nowrap; }
 .book-editor-head .spacer { flex: 1; }
+/* Reordering entries: the grip, and the entry being dragged and the drop spot. */
+.drag-handle {
+    font: inherit;
+    font-size: 16px;
+    line-height: 1;
+    padding: 4px 2px;
+    border: none;
+    border-radius: 4px;
+    background: none;
+    color: var(--text-muted);
+    cursor: grab;
+    touch-action: none; /* only the grip takes over touch; the rest of the entry scrolls */
+}
+.drag-handle:hover { color: var(--text); background: var(--surface-alt); }
+.book-editor.dragging { opacity: 0.55; }
+.book-editor.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
 
 .tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .tag {
@@ -425,6 +448,56 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     margin-bottom: 12px;
 }
 .warning { background: var(--warning-bg); color: var(--warning-text); }
+/* A: the badge on the Books and items heading (an .info-tip in warning colors). */
+.info-tip.alert .info-tip-button {
+    width: auto;
+    padding: 0 6px;
+    border-radius: 9px;
+    border-color: transparent;
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+.info-tip.alert .info-tip-button:hover, .info-tip.alert.open .info-tip-button { background: var(--warning-text); color: var(--warning-bg); }
+/* B: the mark next to a chosen enchantment's name. */
+.ench-title { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.short-mark {
+    font-size: 11px;
+    font-weight: normal;
+    padding: 0 6px;
+    border-radius: 9px;
+    background: var(--warning-bg);
+    color: var(--warning-text);
+}
+/* C: ways to fix each short enchantment, inside the badge's bubble. */
+/* Anchored to the heading, not the badge, so on a phone it starts at the card's edge
+   instead of being squeezed against the right side of the screen. */
+.card h2 { position: relative; }
+.info-tip.alert { position: static; }
+.info-tip.alert .info-tip-bubble { max-width: min(320px, 100%); display: none; }
+.info-tip.alert:hover .info-tip-bubble, .info-tip.alert.open .info-tip-bubble { display: grid; gap: 10px; }
+/* Covers the gap between badge and bubble, so the pointer can reach the buttons. */
+.info-tip-bubble::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+.fix { display: grid; gap: 4px; }
+.fix + .fix { padding-top: 8px; border-top: 1px solid var(--border); }
+.fix-title { font-weight: 600; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
+.fix-best { font-weight: normal; font-size: 12px; color: var(--text-muted); }
+.fix-option {
+    display: grid;
+    gap: 1px;
+    text-align: left;
+    font: inherit;
+    padding: 5px 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface-alt);
+    color: var(--text);
+    cursor: pointer;
+}
+.fix-option:hover { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+.fix-action::before { content: "+ "; color: var(--accent); font-weight: 700; }
+.fix-replaces { font-size: 12px; color: var(--warning-text); }
+.toolbar .undo { margin-left: auto; }
+
 /* Information that is not a problem, e.g. enchantments that came along unasked. */
 .note-box {
     padding: 8px 12px;

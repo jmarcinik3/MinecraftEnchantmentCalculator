@@ -13,7 +13,8 @@ export function normalizePriority(priority) {
     return [...unique, ...CRITERIA.filter(c => !unique.includes(c))];
 }
 
-// Moves the criterion at `index` by `offset` places, returning a new list.
+// Moves the element at `index` by `offset` places, returning a new list (used for the
+// ranking and for custom entries).
 export function movePriority(priority, index, offset) {
     const target = index + offset;
     if (target < 0 || target >= priority.length) return priority;
@@ -269,25 +270,76 @@ export function createLogic(meta) {
     // equal levels gives one level higher (up to the max) and unequal ones keep the
     // higher, so it works like carrying in addition: two IIs make a III, and so on.
     function bestLevels(state) {
-        const counts = {}; // ns -> level -> how many copies have it
-        for (const book of currentBooks(state)) {
+        const best = {};
+        for (const [ns, by_level] of Object.entries(levelCounts(currentBooks(state)))) best[ns] = topLevel(ns, by_level);
+        return best;
+    }
+
+    // ns -> { level: how many copies have it }, over a list of entries.
+    function levelCounts(books) {
+        const counts = {};
+        for (const book of books) {
             for (const [ns, level] of Object.entries(book.enchantments)) {
                 counts[ns] = counts[ns] || {};
                 counts[ns][level] = (counts[ns][level] || 0) + (book.copies || 1);
             }
         }
-        const best = {};
-        for (const [ns, by_level] of Object.entries(counts)) {
-            let carry = 0;
-            let top = 0;
-            for (let level = 1; level <= maxLevel(ns); level++) {
-                const here = (by_level[level] || 0) + carry;
-                if (here > 0) top = level;
-                carry = level < maxLevel(ns) ? Math.floor(here / 2) : 0;
-            }
-            best[ns] = top;
+        return counts;
+    }
+
+    // Highest level `by_level` copies of `ns` can make (pairs carry up, as above).
+    function topLevel(ns, by_level) {
+        let carry = 0;
+        let top = 0;
+        for (let level = 1; level <= maxLevel(ns); level++) {
+            const here = (by_level[level] || 0) + carry;
+            if (here > 0) top = level;
+            carry = level < maxLevel(ns) ? Math.floor(here / 2) : 0;
         }
-        return best;
+        return top;
+    }
+
+    // The entry in `books` that `entry` is a copy of (same kind, enchantments and prior
+    // work), or undefined.
+    function twinOf(books, entry) {
+        const key = book => book.type + "|" + book.prior_work + "|" +
+            Object.entries(book.enchantments).sort(([a], [b]) => (a < b ? -1 : 1)).map(([ns, level]) => ns + level).join(",");
+        return books.find(book => book !== entry && key(book) === key(entry));
+    }
+
+    // Adds one plain book with `ns` at `level` to the custom list, returning the new list
+    // (the old one is not changed) and the entries it made unnecessary:
+    //  - an identical plain book (same enchantments, no prior work) gets one more copy
+    //    instead of a second entry;
+    //  - entries whose only enchantment is that one at a lower level are dropped, books
+    //    and items alike and whatever their prior work, lowest first, as long as the list
+    //    still reaches the chosen level (Protection IV replaces a Protection I and II).
+    //    Entries with other enchantments stay, and so does the last item entry, since
+    //    without it there is nothing to enchant.
+    // New entries have id null; the page gives them one.
+    function addBook(state, ns, level) {
+        const plain = book => book.type === "book" && book.prior_work === 0;
+        const only = (book, name) => Object.keys(book.enchantments).length === 1 && name in book.enchantments;
+        let books = state.books.map(book => ({ ...book }));
+        const same = books.find(book => plain(book) && only(book, ns) && book.enchantments[ns] === level);
+        if (same) same.copies = Math.min(MAX_COPIES, (same.copies || 1) + 1);
+        else books.push({ id: null, type: "book", enchantments: { [ns]: level }, prior_work: 0, copies: 1 });
+
+        const wanted = state.wanted[ns] || level;
+        const reaches = list => (bestLevels({ ...state, auto_books: false, books: list })[ns] || 0) >= wanted;
+        const removed = [];
+        const lower = books
+            .filter(book => only(book, ns) && book.enchantments[ns] < level)
+            .sort((a, b) => a.enchantments[ns] - b.enchantments[ns]);
+        for (const book of lower) {
+            const without = books.filter(other => other !== book);
+            const keeps_an_item = book.type !== "item" || without.some(other => other.type === "item");
+            if (keeps_an_item && reaches(without)) {
+                books = without;
+                removed.push(book);
+            }
+        }
+        return { books, removed, merged: Boolean(same) };
     }
 
     // Problems with a custom list that can be seen before calculating:
@@ -415,7 +467,7 @@ export function createLogic(meta) {
     return {
         enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
-        bestLevels, checkBooks,
+        bestLevels, checkBooks, addBook, twinOf,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, serialize, deserialize
     };
 }

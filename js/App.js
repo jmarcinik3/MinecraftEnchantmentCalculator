@@ -14,6 +14,7 @@ let meta = null;
 let logic = null;
 let state = defaultState();
 let next_book_id = 1;
+let undo_books = null; // the custom list before the last suggestion was applied
 
 let worker = null;
 let request_id = 0;
@@ -69,7 +70,9 @@ function icon(item_ns, small = false) {
 
 // ---------- State changes ----------
 
-function commit() {
+// `keep_undo` is only for applying a suggestion: any other change ends the chance to undo it.
+function commit(keep_undo = false) {
+    if (!keep_undo) undo_books = null;
     saveToUrl();
     render();
     scheduleCalculation();
@@ -193,6 +196,9 @@ function renderWanted() {
         )
     ));
 
+    // B: chosen enchantments the custom books can't reach (none in automatic mode).
+    const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
+
     // Conflicting enchantments are boxed together where the first of them would be listed.
     let curses_shown = false;
     for (const group of logic.enchantmentGroups(state.item)) {
@@ -201,21 +207,22 @@ function renderWanted() {
             curses_shown = true;
         }
         if (group.members.length === 1) {
-            box.append(wantedRow(group.members[0], false));
+            box.append(wantedRow(group.members[0], false, short.get(group.members[0])));
             continue;
         }
         box.append(h("div", { class: "ench-group" + (group.exclusive ? " exclusive" : "") },
             h("div", { class: "ench-group-label" },
                 state.allow_incompatible ? TEXT.wanted.group_allowed
                     : group.exclusive ? TEXT.wanted.group_pick_one : TEXT.wanted.group_some_conflict),
-            group.members.map(ns => wantedRow(ns, group.exclusive))
+            group.members.map(ns => wantedRow(ns, group.exclusive, short.get(ns)))
         ));
     }
 }
 
 // One enchantment with its level buttons. In a "Pick one" group the box already says
 // they conflict, so the per-row note is left out.
-function wantedRow(ns, in_exclusive_group) {
+// `short`: { best } when the custom books can't reach this chosen level.
+function wantedRow(ns, in_exclusive_group, short = null) {
     const chosen = state.wanted[ns] || 0;
     const blocker = !chosen && Object.keys(state.wanted).find(other => clashes(other, ns));
 
@@ -233,7 +240,12 @@ function wantedRow(ns, in_exclusive_group) {
 
     return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") },
         h("div", { class: "ench-name" },
-            logic.enchName(ns),
+            // The mark shares the name's line, so rows never get taller.
+            h("span", { class: "ench-title" },
+                logic.enchName(ns),
+                short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
+                    short.best ? TEXT.wanted.books_reach(roman(short.best)) : TEXT.wanted.not_on_books) : null
+            ),
             blocker && !in_exclusive_group ? h("span", { class: "note" }, TEXT.wanted.conflicts_with(logic.enchName(blocker))) : null
         ),
         h("div", { class: "levels" }, levels)
@@ -247,7 +259,9 @@ function onAnvil() {
 }
 
 // `unwanted`: enchantments not chosen in section 2, flagged since they still cost levels.
-function enchantmentEditor(enchantments, unwanted = new Set()) {
+// `book`: the entry being edited, so a new book that turns out identical to another
+// entry becomes one more copy of it.
+function enchantmentEditor(enchantments, unwanted = new Set(), book = null) {
     const tags = Object.entries(enchantments).map(([ns, level]) => {
         const is_unwanted = unwanted.has(ns);
         let level_select = null;
@@ -281,7 +295,17 @@ function enchantmentEditor(enchantments, unwanted = new Set()) {
         "aria-label": TEXT.books.add_enchantment_label,
         onchange: event => {
             const ns = event.target.value;
-            if (ns) { enchantments[ns] = logic.maxLevel(ns); commit(); }
+            if (!ns) return;
+            const was_empty = Object.keys(enchantments).length === 0;
+            enchantments[ns] = logic.maxLevel(ns);
+            // Only when a new, empty book gets its first enchantment: changing an entry later
+            // never makes it disappear into another.
+            const twin = was_empty && book ? logic.twinOf(state.books, book) : null;
+            if (twin) {
+                twin.copies = Math.min(MAX_COPIES, (twin.copies || 1) + (book.copies || 1));
+                state.books = state.books.filter(other => other !== book);
+            }
+            commit();
         }
     }, h("option", { value: "" }, TEXT.books.add_enchantment), available.map(ns => h("option", { value: ns }, logic.enchName(ns)))) : null;
 
@@ -305,6 +329,7 @@ function stepLimit() {
 function renderBooks() {
     const box = $("#books");
     box.replaceChildren();
+    $("#books-alert").replaceChildren();
     if (!state.item) return;
 
     const books = logic.currentBooks(state);
@@ -325,17 +350,19 @@ function renderBooks() {
     box.append(h("div", { class: "toolbar" },
         h("button", { type: "button", class: "btn small", onclick: () => addBook("book") }, icon("book", true), TEXT.books.add_book),
         h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item(item_name)),
-        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, TEXT.books.automatic)
+        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, TEXT.books.automatic),
+        // In the toolbar's row, so it appearing does not move the entries.
+        undo_books ? h("button", {
+            type: "button", class: "btn small undo", title: TEXT.books.undo_help,
+            onclick: () => { state.books = undo_books; commit(); }
+        }, TEXT.books.undo) : null
     ));
     const check = logic.checkBooks(state);
-    if (check.short.length) {
-        box.append(h("div", { class: "warning" }, TEXT.books.still_needed(check.short.map(({ ns, wanted, best }) =>
-            best ? TEXT.books.short_of(logic.displayName(ns, wanted), logic.displayName(ns, best))
-                : logic.displayName(ns, wanted)))));
-    }
+    renderBooksAlert(check);
     const unwanted = new Set(check.unwanted);
     books.forEach((book, index) => {
-        box.append(h("div", { class: "book-editor" },
+        box.append(h("div", { class: "book-editor", "data-index": index },
+            entryHandle(index, books.length), // its own column, centered down the whole entry
             h("div", { class: "book-editor-head" },
                 typeToggle(book, item_name),
                 h("span", { class: "spacer" }),
@@ -348,9 +375,84 @@ function renderBooks() {
                     onclick: () => { state.books = state.books.filter(b => b !== book); commit(); }
                 }, "×")
             ),
-            enchantmentEditor(book.enchantments, unwanted)
+            enchantmentEditor(book.enchantments, unwanted, book)
         ));
     });
+}
+
+// A: "⚠ 1" next to the section heading when chosen enchantments can't be reached; it
+// opens the details. It sits in the heading's empty space, so it never moves anything.
+function renderBooksAlert(check) {
+    const box = $("#books-alert");
+    if (!check.short.length) {
+        open_tips.delete("books-alert-tip");
+        box.replaceChildren();
+        return;
+    }
+    const details = check.short.map(fixSuggestion);
+    box.replaceChildren(infoTip("books-alert-tip", TEXT.books.alert(check.short.length),
+        TEXT.books.alert_label(check.short.length), details, "alert"));
+}
+
+// One chosen enchantment the list can't reach, and the fix: a single book at the chosen
+// level, replacing the lower books of it that are then unnecessary. The button says what
+// it replaces before it is clicked, and Undo in the toolbar takes it back.
+function fixSuggestion({ ns, wanted, best }) {
+    const adding = logic.addBook(state, ns, wanted);
+    const replaced = adding.removed.map(book => {
+        const name = logic.displayName(ns, book.enchantments[ns]);
+        const entry = book.type === "item" ? TEXT.books.replaced_item(logic.itemName(state.item), name) : name;
+        return (book.copies > 1 ? TEXT.books.path_step(book.copies, "") : "") + entry;
+    });
+    const fix = h("button", {
+        type: "button", class: "fix-option",
+        onclick: event => {
+            // The list redraws, so this click would look like one outside the bubble.
+            event.stopPropagation();
+            undo_books = state.books.map(book => ({ ...book }));
+            state.books = adding.books.map(book => (book.id == null ? { ...book, id: next_book_id++ } : book));
+            commit(true);
+        }
+    },
+        h("span", { class: "fix-action" }, TEXT.books.fix_new_book(logic.displayName(ns, wanted))),
+        replaced.length ? h("span", { class: "fix-replaces" }, TEXT.books.fix_replaces(replaced)) : null
+    );
+    return h("div", { class: "fix" },
+        h("div", { class: "fix-title" }, logic.displayName(ns, wanted),
+            h("span", { class: "fix-best" }, best ? TEXT.books.fix_best(roman(best)) : TEXT.wanted.not_on_books)),
+        fix
+    );
+}
+
+// Moves custom entry `from` to position `to`. The order is only for the user: the
+// search tries every order anyway.
+function moveEntry(from, to) {
+    state.books = movePriority(state.books, from, to - from);
+    commit();
+}
+
+// The grip for reordering an entry: drag it (mouse or touch), or focus it and use the
+// up/down arrow keys. Only the grip takes over touch, so the page still scrolls by
+// swiping on the rest of the entry.
+function entryHandle(index, count) {
+    return h("button", {
+        type: "button",
+        class: "drag-handle",
+        "aria-label": TEXT.books.reorder_label(index + 1),
+        title: TEXT.books.reorder_help,
+        onpointerdown: event => dragToReorder(event, event.currentTarget.closest(".book-editor"), index, ".book-editor",
+            moveEntry, renderBooks),
+        onkeydown: event => {
+            const offset = event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
+            const to = index + offset;
+            if (!offset || to < 0 || to >= count) return;
+            event.preventDefault();
+            moveEntry(index, to);
+            // The list was redrawn: keep the keyboard on the entry that moved.
+            const handles = document.querySelectorAll("#books .drag-handle");
+            if (handles[to]) handles[to].focus();
+        }
+    }, "⠿");
 }
 
 // Switches an entry between a book and another copy of the item being enchanted.
@@ -373,45 +475,53 @@ function setPriority(priority) {
     commit();
 }
 
-// Drags a ranking tile to a new place. Pointer events cover mouse, pen and touch alike
-// (the HTML drag-and-drop API does not work on touch screens). The tile under the
-// pointer is outlined, and the order changes when the pointer is released over it.
-function startRankDrag(event, from_index) {
-    if (!event.isPrimary || event.button > 0 || event.target.closest("button")) return;
-    const tile = event.currentTarget;
-    const list = tile.parentElement;
+// Drag to reorder, for the ranking tiles and the custom entries. Pointer events cover
+// mouse, pen and touch alike (the HTML drag-and-drop API does not work on touch screens).
+// `event` starts on the grabbed element (the tile, or an entry's handle); `item` is what
+// moves, found again under the pointer by `selector` among its siblings. The item under
+// the pointer is outlined, and `reorder(from, to)` runs when the pointer is released over
+// it; otherwise `restore()` clears the drag styling.
+function dragToReorder(event, item, from_index, selector, reorder, restore) {
+    if (!event.isPrimary || event.button > 0) return;
+    const grabbed = event.currentTarget;
+    const list = item.parentElement;
     let target_index = from_index;
     try {
-        tile.setPointerCapture(event.pointerId); // keep getting moves after leaving the tile
+        grabbed.setPointerCapture(event.pointerId); // keep getting moves after leaving it
     } catch {
-        // Some browsers refuse capture for synthetic pointers; moves over the tile still work.
+        // Some browsers refuse capture for synthetic pointers; moves over it still work.
     }
-    tile.classList.add("dragging");
+    item.classList.add("dragging");
 
-    const tileAt = (x, y) => {
+    const itemAt = (x, y) => {
         const found = document.elementFromPoint(x, y);
-        const over = found && found.closest(".rank-tile");
+        const over = found && found.closest(selector);
         return over && list.contains(over) ? over : null;
     };
     const onMove = move => {
-        const over = tileAt(move.clientX, move.clientY);
+        const over = itemAt(move.clientX, move.clientY);
         if (!over) return;
         target_index = Number(over.dataset.index);
-        for (const other of list.children) other.classList.toggle("drop-target", other === over && other !== tile);
+        for (const other of list.querySelectorAll(selector)) other.classList.toggle("drop-target", other === over && other !== item);
     };
     const finish = drop => {
-        tile.removeEventListener("pointermove", onMove);
-        tile.removeEventListener("pointerup", finish);
-        tile.removeEventListener("pointercancel", finish);
-        if (drop.type === "pointerup" && target_index !== from_index) {
-            setPriority(movePriority(state.priority, from_index, target_index - from_index));
-        } else {
-            renderMetrics(true); // clears the drag styling
-        }
+        grabbed.removeEventListener("pointermove", onMove);
+        grabbed.removeEventListener("pointerup", finish);
+        grabbed.removeEventListener("pointercancel", finish);
+        if (drop.type === "pointerup" && target_index !== from_index) reorder(from_index, target_index);
+        else restore();
     };
-    tile.addEventListener("pointermove", onMove);
-    tile.addEventListener("pointerup", finish);
-    tile.addEventListener("pointercancel", finish);
+    grabbed.addEventListener("pointermove", onMove);
+    grabbed.addEventListener("pointerup", finish);
+    grabbed.addEventListener("pointercancel", finish);
+}
+
+// Starts dragging a ranking tile (not from its arrow buttons).
+function startRankDrag(event, from_index) {
+    if (event.target.closest("button")) return;
+    dragToReorder(event, event.currentTarget, from_index, ".rank-tile",
+        (from, to) => setPriority(movePriority(state.priority, from, to - from)),
+        () => renderMetrics(true));
 }
 
 // The result tiles double as the ranking for the best order: most important first,
@@ -805,17 +915,41 @@ function loadFromUrl() {
 // pressing Escape closes it.
 function setupInfoTip() {
     const button = $("#rank-help");
-    const tip = button.closest(".info-tip");
-    const setOpen = open => {
-        tip.classList.toggle("open", open);
-        button.setAttribute("aria-expanded", String(open));
-    };
-    button.addEventListener("click", event => {
-        event.stopPropagation();
-        setOpen(!tip.classList.contains("open"));
+    button.addEventListener("click", event => toggleTip(event, button.closest(".info-tip")));
+    // Any open tip closes on a click elsewhere or on Escape.
+    document.addEventListener("click", event => {
+        for (const tip of document.querySelectorAll(".info-tip.open")) if (!tip.contains(event.target)) setTipOpen(tip, false);
     });
-    document.addEventListener("click", event => { if (!tip.contains(event.target)) setOpen(false); });
-    document.addEventListener("keydown", event => { if (event.key === "Escape") setOpen(false); });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape") for (const tip of document.querySelectorAll(".info-tip.open")) setTipOpen(tip, false);
+    });
+}
+
+// Tips redrawn while open (the books badge, on every edit) stay open: remembered by id.
+const open_tips = new Set();
+
+function setTipOpen(tip, open) {
+    tip.classList.toggle("open", open);
+    tip.querySelector("button").setAttribute("aria-expanded", String(open));
+    if (tip.id) open ? open_tips.add(tip.id) : open_tips.delete(tip.id);
+}
+
+function toggleTip(event, tip) {
+    event.stopPropagation();
+    setTipOpen(tip, !tip.classList.contains("open"));
+}
+
+// A small button that shows `text` in a bubble on hover, focus or tap.
+function infoTip(id, button_text, label, text, extra_class = "") {
+    const tip = h("span", { class: "info-tip " + extra_class, id },
+        h("button", {
+            type: "button", class: "info-tip-button", "aria-label": label, "aria-expanded": "false",
+            onclick: event => toggleTip(event, tip)
+        }, button_text),
+        h("span", { class: "info-tip-bubble", role: typeof text === "string" ? "tooltip" : "group" }, text)
+    );
+    if (open_tips.has(id)) setTipOpen(tip, true);
+    return tip;
 }
 
 function setupCopyLink() {

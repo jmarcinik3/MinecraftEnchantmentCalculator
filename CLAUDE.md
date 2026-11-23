@@ -32,13 +32,15 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
 - App.js extras: the step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
-  keyed by its steps (`orderKey`); the result tiles are also the ranking (`renderMetrics`; dragged with pointer events in
-  `startRankDrag` so touch works; values update in place so a result arriving mid-drag does not redraw them).
+  keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys; order is cosmetic);
+  the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
   (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable
-  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks` (pre-calculation warnings: still needed, not chosen), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
+  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 3
+  heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
+  items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 2 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
