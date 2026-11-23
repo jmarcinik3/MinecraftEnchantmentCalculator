@@ -409,6 +409,10 @@ function fixSuggestion({ ns, wanted, best }) {
         onclick: event => {
             // The list redraws, so this click would look like one outside the bubble.
             event.stopPropagation();
+            // Stay open for the remaining warnings, also when it was opened by hovering:
+            // the redrawn bubble is new, so hover alone would not keep it up. It closes
+            // by itself once nothing is short (renderBooksAlert forgets it then).
+            open_tips.add("books-alert-tip");
             undo_books = state.books.map(book => ({ ...book }));
             state.books = adding.books.map(book => (book.id == null ? { ...book, id: next_book_id++ } : book));
             commit(true);
