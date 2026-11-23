@@ -58,6 +58,44 @@ h1 { font-size: 22px; }
 h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+
+/* The header's controls: one height, font, border and radius, so they read as one toolbar. */
+.header-control {
+    box-sizing: border-box;
+    height: 32px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--text);
+    font: 13px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    white-space: nowrap;
+    cursor: pointer;
+}
+.header-control:hover { background: var(--surface-alt); }
+.header-control.segmented { padding: 0; overflow: hidden; }
+.header-control.segmented button { height: 100%; font-size: 13px; padding: 0 10px; }
+.header-control.segmented:hover { background: transparent; }
+.copy-link .link-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; flex: none; }
+
+/* Phones: the title on its own line, then the toolbar across the full width. */
+@media (max-width: 600px) {
+    /* "header." raises these over the general .site-header rules further down. */
+    header.site-header { flex-direction: column; align-items: stretch; gap: 10px; }
+    header .header-actions { justify-content: flex-start; position: relative; }
+    #language { margin-left: auto; }
+    /* The Saved menu opens across the whole toolbar, since its button is mid-row. */
+    .header-actions .saved-menu { position: static; }
+    .header-actions .saved-panel { left: 0; right: 0; width: auto; }
+}
+/* Small phones: Copy link is just its icon (the label returns while it says "Copied"). */
+@media (max-width: 440px) {
+    .copy-link:not(.copied) .copy-label { display: none; }
+    .copy-link { padding: 0 9px; }
+}
 .check-row { color: var(--text-secondary); cursor: pointer; }
 .check-row input { margin: 0; }
 
@@ -86,7 +124,8 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     .results-card { max-height: calc(100vh - 32px); overflow-y: auto; }
 }
 
-.inputs { display: grid; gap: 16px; }
+/* minmax(0, ...): a closed section's one-line summary is cut short, not widening the page. */
+.inputs { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; }
 
 .card {
     background: var(--surface);
@@ -340,8 +379,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .segmented button.selected { background: var(--accent-bg); color: var(--accent-text); }
 
 .ranking { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
-.ranking-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13px; }
-.ranking-label { color: var(--text-secondary); min-width: 64px; }
 .rank-move {
     font: inherit;
     font-size: 15px;
@@ -353,26 +390,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     cursor: pointer;
 }
 .rank-move:disabled { opacity: 0.25; cursor: default; }
-.step-limit {
-    font: inherit;
-    width: 56px;
-    padding: 3px 6px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text);
-}
-
-/* With no limit the box shows "∞" in the accent color and a dashed outline. */
-.step-limit.unlimited {
-    text-align: center;
-    border-style: dashed;
-    border-color: var(--accent);
-    background: var(--accent-bg);
-    color: var(--accent-text);
-    font-weight: 600;
-    cursor: default;
-}
 .check-option { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
 .rename-input {
     font: inherit;
@@ -385,7 +402,229 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     background: var(--surface);
     color: var(--text);
 }
-.no-limit { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; color: var(--text-secondary); cursor: pointer; }
+
+/* Options above the results: labels in one column, controls (32px tall) in the next. */
+.options {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr);
+    align-items: center;
+    gap: 10px 14px;
+    font-size: 13px;
+}
+.option-label { color: var(--text-secondary); }
+.option-control { min-width: 0; }
+.option-wide { grid-column: 2; min-width: 0; }
+
+/* Level limit: 1 ──●── 39 [∞] [value] */
+.limit { display: flex; align-items: center; gap: 8px; height: 32px; min-width: 0; }
+.limit-end { font-size: 11px; color: var(--text-muted); }
+.limit-slider {
+    --fill: 100%;
+    flex: 1;
+    min-width: 60px;
+    height: 32px;
+    margin: 0;
+    background: transparent;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+.limit-slider::-webkit-slider-runnable-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent) var(--fill), var(--surface-alt) var(--fill));
+    border: 1px solid var(--border);
+}
+.limit-slider::-moz-range-track {
+    height: 6px;
+    border-radius: 3px;
+    background: linear-gradient(to right, var(--accent) var(--fill), var(--surface-alt) var(--fill));
+    border: 1px solid var(--border);
+}
+.limit-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    margin-top: -7px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--surface);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+.limit-slider::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    border: 2px solid var(--accent);
+    background: var(--surface);
+}
+.limit-slider:focus-visible { outline: none; }
+.limit-slider:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* With no limit the track fades: the ∞ stop is the one in use. */
+.limit-slider.off { opacity: 0.45; }
+.limit-infinity {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border: 1px dashed var(--border-strong);
+    border-radius: 50%;
+    background: none;
+    color: var(--text-secondary);
+    font: 600 17px/1 system-ui, sans-serif;
+    cursor: pointer;
+}
+.limit-infinity:hover { border-color: var(--accent); color: var(--accent-text); }
+.limit-infinity.on { border-style: solid; border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+/* The value, in the anvil's green cost text; tap to type a number. */
+.limit-value, .limit-edit {
+    flex: none;
+    box-sizing: border-box;
+    width: 44px;
+    height: 32px;
+    border-radius: var(--radius);
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 15px;
+    text-align: center;
+}
+.limit-value {
+    border: 1px solid transparent;
+    background: #3b3b3b;
+    color: #80ff20;
+    text-shadow: 1px 1px 0 #203f08;
+    cursor: text;
+}
+.limit-value:hover { border-color: var(--border-strong); }
+.limit-value.unlimited { color: #d4c6fb; text-shadow: none; font-family: system-ui, sans-serif; font-size: 18px; }
+.limit-edit { border: 1px solid var(--accent); background: var(--surface); color: var(--text); padding: 0 4px; }
+
+/* Your level: [−][ 30 / XP bar ][+] (30) (Max) */
+.level-control { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.xp-box {
+    display: flex;
+    align-items: stretch;
+    height: 32px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    overflow: hidden;
+    background: var(--surface);
+}
+.xp-step {
+    width: 30px;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    font: 16px/1 system-ui, sans-serif;
+    cursor: pointer;
+    touch-action: manipulation;
+    user-select: none;
+}
+.xp-step:hover { background: var(--surface-alt); color: var(--text); }
+.xp-field { position: relative; width: 56px; background: #3b3b3b; }
+.xp-value {
+    width: 100%;
+    height: 100%;
+    padding: 0 0 6px;
+    border: none;
+    background: transparent;
+    color: #80ff20;
+    text-shadow: 1px 1px 0 #203f08;
+    font: 15px/1 "Minecraft", system-ui, sans-serif;
+    text-align: center;
+    appearance: textfield;
+    -moz-appearance: textfield;
+}
+.xp-value::-webkit-outer-spin-button, .xp-value::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.xp-value::placeholder { color: #8b8b8b; text-shadow: none; }
+.xp-value:focus { outline: none; }
+.xp-field:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
+/* The game's XP bar: dark track, green fill toward what the order needs. */
+.xp-bar { position: absolute; left: 5px; right: 5px; bottom: 4px; height: 4px; background: #1b1b1b; border: 1px solid #000; }
+.xp-fill { height: 100%; width: 0; background: #e0a23a; transition: width 0.15s; }
+.xp-bar.enough .xp-fill { background: #80ff20; }
+/* Off: the steps ignore your level, so ∞ takes the number's place (as with no level
+   limit) and − / + fade. */
+.xp-infinity {
+    display: none;
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: #3b3b3b;
+    color: #d4c6fb;
+    font: 18px/1 system-ui, sans-serif;
+    cursor: pointer;
+    align-items: center;
+    justify-content: center;
+}
+.xp-box.off .xp-infinity { display: flex; }
+.xp-box.off .xp-step { opacity: 0.45; }
+/* On/off for following your level: a round button with an XP orb, like the ∞ stop. */
+.level-toggle {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed var(--border-strong);
+    border-radius: 50%;
+    background: none;
+    cursor: pointer;
+}
+.level-toggle:hover { border-color: var(--accent); }
+.level-toggle.on { border-style: solid; border-color: var(--accent); background: var(--accent-bg); }
+/* The game's orb, kept sharp. The image has empty space around the orb, so it is drawn
+   larger than the button's other icons. Gray while off, glowing while on. */
+.xp-orb { display: block; width: 28px; height: 28px; image-rendering: pixelated; filter: grayscale(1) opacity(0.6); }
+.level-toggle.on .xp-orb { filter: drop-shadow(0 0 3px rgba(128, 255, 32, 0.7)); }
+
+/* Rename: a name tag toggle, then the anvil's name box under it. */
+.name-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px 0 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 16px;
+    background: none;
+    color: var(--text-secondary);
+    font: 13px/1 system-ui, sans-serif;
+    cursor: pointer;
+}
+.name-tag:hover { border-color: var(--accent); }
+.name-tag.on { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+/* The game's name tag, kept sharp. Gray while off, as the XP orb. */
+.name-tag-icon { display: block; width: 20px; height: 20px; image-rendering: pixelated; filter: grayscale(1) opacity(0.6); }
+.name-tag.on .name-tag-icon { filter: none; }
+.anvil-name {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 32px;
+    padding: 0 8px;
+    border: 2px solid;
+    border-color: #373737 #ffffff #ffffff #373737;
+    background: #000;
+}
+.anvil-name:focus-within { border-color: #a0a0a0; }
+.anvil-name-input {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: #fff;
+    font: italic 14px/1 "Minecraft", system-ui, sans-serif;
+    text-shadow: 1px 1px 0 #3f3f3f;
+}
+.anvil-name-input::placeholder { color: #8b8b8b; font-style: normal; text-shadow: none; }
+.anvil-name-input:focus { outline: none; }
+.name-count { flex: none; font-size: 11px; color: #a0a0a0; font-family: system-ui, sans-serif; }
+@media (prefers-reduced-motion: reduce) { .xp-fill { transition: none; } }
 
 /* Result tiles, which are also the ranking (drag or use the arrows). */
 .metrics-box { margin-bottom: 14px; container: metrics / inline-size; }
@@ -480,6 +719,48 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 /* Anchored to the heading, not the badge, so on a phone it starts at the card's edge
    instead of being squeezed against the right side of the screen. */
 .card h2 { position: relative; }
+
+/* Collapsible sections: the heading opens and closes the section. */
+.card.collapsible > h2 { cursor: pointer; user-select: none; min-width: 0; }
+.card.collapsible .section-title, .card.collapsible .step-badge { flex: none; }
+.card.collapsed > h2 { margin-bottom: 0; }
+.section-summary {
+    display: none;
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 13px/1.4 system-ui, sans-serif;
+    color: var(--text-secondary);
+}
+.card.collapsed .section-summary { display: block; }
+.collapse-toggle {
+    margin-left: auto;
+    flex: none;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.collapse-toggle::before {
+    content: "";
+    display: inline-block;
+    width: 7px;
+    height: 7px;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    /* Open: points up (click to close). Closed: points down (click to open). */
+    transform: translateY(1px) rotate(-135deg);
+    transition: transform 0.15s;
+}
+.card.collapsed .collapse-toggle::before { transform: translateY(-2px) rotate(45deg); }
+.collapse-toggle:hover, .collapse-toggle:focus-visible { background: var(--surface-alt); color: var(--text); }
+@media (prefers-reduced-motion: reduce) { .collapse-toggle::before { transition: none; } }
 .info-tip.alert { position: static; }
 .info-tip.alert .info-tip-bubble { max-width: min(320px, 100%); display: none; }
 .info-tip.alert:hover .info-tip-bubble, .info-tip.alert.open .info-tip-bubble { display: grid; gap: 10px; }
@@ -713,19 +994,11 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 
 /* Language picker and the Saved menu in the header */
-.language-select {
-    font: inherit;
-    font-size: 13px;
-    padding: 3px 6px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    background: var(--surface);
-    color: var(--text);
-}
+.language-select { padding: 0 6px; background: var(--surface); }
 .saved-menu { position: relative; }
 .saved-menu > summary { list-style: none; }
 .saved-menu > summary::-webkit-details-marker { display: none; }
-.saved-menu > summary::after { content: "▾"; font-size: 10px; }
+.saved-menu > summary::after { content: "▾"; font-size: 10px; color: var(--text-secondary); }
 .saved-panel {
     position: absolute;
     top: calc(100% + 6px);
@@ -787,7 +1060,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .saved-panel .hint { margin: 8px 0 0; font-size: 13px; }
 
 /* "Your level" and what it shows on each step */
-.step-limit.player-level { width: 84px; }
 .level-track {
     font-size: 11px;
     white-space: nowrap;

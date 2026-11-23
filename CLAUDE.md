@@ -6,7 +6,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 
 ## Files
 - `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking` options, `#metrics` tiles, `#edition`, `#copy-link`,
-  `#language`, and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills).
+  `#language`, and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
+  `.header-control` (one height); under 600px they form a full-width row below the title, under 440px Copy link is icon-only).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
   (`rename_to` is display-only: italic name on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
@@ -39,6 +40,15 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
+- Options above the results (`renderRanking`, a 2-column `.options` grid, refocusing by `data-focus` after redraws):
+  level limit slider 1-39 plus an ∞ button (= `no_step_limit`), commits on release, value tappable to type
+  (`editLimit`); "Your level" −/+ (`holdButton` repeats while held) around a green number with an XP bar filling
+  toward the order's total levels (`updateLevelMeter`), and an on/off toggle showing `img/experience_orb.png` (off shows ∞ in place of the number) (`level_on`,
+  `LEVEL_ON_STORAGE_KEY`; `activeLevel()` is what the steps use; changing the number turns it on); Rename is a toggle showing `img/name_tag.png` with an
+  anvil-style name box and character count. Only limit/rename commit; your level redraws just the results.
+- Sections 1-3 collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
+  `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
+  the heading is excluded from the toggle click.
 - App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
   (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps/Tree view
   (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,

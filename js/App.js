@@ -11,9 +11,11 @@ const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
 // Kept in this browser only (not in share links): they are about the viewer, not the setup.
 const LEVEL_STORAGE_KEY = "enchantment-calculator-level";
+const LEVEL_ON_STORAGE_KEY = "enchantment-calculator-level-on";
 const VIEW_STORAGE_KEY = "enchantment-calculator-view";
 const SAVED_STORAGE_KEY = "enchantment-calculator-saved";
 const LANGUAGE_STORAGE_KEY = "enchantment-calculator-language";
+const COLLAPSED_STORAGE_KEY = "enchantment-calculator-collapsed";
 const MAX_PLAYER_LEVEL = 24791; // the highest level in either edition
 const MAX_SETUP_NAME = 100;
 const COPIED_MS = 1500; // how long "Copied" shows on a copy button
@@ -34,6 +36,8 @@ let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", nod
 
 let language = "en";
 let player_level = readStorage(LEVEL_STORAGE_KEY, null); // "Your level", or null when blank
+// Whether the steps follow "Your level". Off keeps the number for when it is turned on again.
+let level_on = readStorage(LEVEL_ON_STORAGE_KEY, player_level != null) === true;
 let result_view = readStorage(VIEW_STORAGE_KEY, "steps") === "tree" ? "tree" : "steps";
 let saved_name = ""; // what is typed in the Saved menu's name box
 let removed_setup = null; // { setup, index } of the last setup removed, until Undo or the menu closes
@@ -101,15 +105,17 @@ function writeStorage(key, value) {
     }
 }
 
-// Copies `text`, showing "Copied" on `button` for a moment, then `label` again.
-async function copyText(button, text, label) {
+// Copies `text`, showing "Copied" in `target` for a moment, then `label` again.
+// `button` gets the class "copied" meanwhile (an icon-only button shows its text then).
+async function copyText(target, text, label, button = target) {
     try {
         await navigator.clipboard.writeText(text);
-        button.textContent = TEXT.results.copied;
+        target.textContent = TEXT.results.copied;
     } catch {
-        button.textContent = TEXT.results.copy_failed;
+        target.textContent = TEXT.results.copy_failed;
     }
-    setTimeout(() => { button.textContent = label; }, COPIED_MS);
+    button.classList.add("copied");
+    setTimeout(() => { target.textContent = label; button.classList.remove("copied"); }, COPIED_MS);
 }
 
 // ---------- State changes ----------
@@ -195,6 +201,7 @@ function addBook(type) {
 // ---------- Rendering ----------
 
 function render() {
+    renderSummaries();
     renderLanguage();
     renderSaved();
     renderItems();
@@ -205,15 +212,65 @@ function render() {
     renderResults();
 }
 
+// ---------- Collapsing sections ----------
+// Sections 1-3 close from their heading (the arrow, or anywhere on the heading but its
+// badge), so the results are easier to reach once things are set. Closed sections are
+// remembered in this browser, and their heading says what is chosen inside.
+
+let collapsed = new Set(readStorage(COLLAPSED_STORAGE_KEY, []));
+
+function setCollapsed(section, closed) {
+    closed ? collapsed.add(section) : collapsed.delete(section);
+    writeStorage(COLLAPSED_STORAGE_KEY, [...collapsed]);
+    applyCollapsed();
+}
+
+function applyCollapsed() {
+    for (const card of document.querySelectorAll(".card.collapsible")) {
+        const section = card.dataset.section;
+        const closed = collapsed.has(section);
+        card.classList.toggle("collapsed", closed);
+        const button = card.querySelector(".collapse-toggle");
+        const title = card.querySelector(".section-title").textContent;
+        button.setAttribute("aria-expanded", String(!closed));
+        button.setAttribute("aria-label", closed ? TEXT.page.expand_label({ section: title }) : TEXT.page.collapse_label({ section: title }));
+        button.title = button.getAttribute("aria-label");
+        card.querySelector(".section-body").hidden = closed;
+    }
+}
+
+function setupCollapsing() {
+    for (const card of document.querySelectorAll(".card.collapsible")) {
+        card.querySelector("h2").addEventListener("click", event => {
+            if (event.target.closest(".info-tip")) return; // the warning badge has its own bubble
+            setCollapsed(card.dataset.section, !collapsed.has(card.dataset.section));
+        });
+    }
+    applyCollapsed();
+}
+
+// What each section holds, shown in its heading while it is closed.
+function renderSummaries() {
+    const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
+    const entries = state.books.reduce((total, book) => total + (book.copies || 1), 0);
+    $("#item-summary").textContent = state.item ? logic.itemName(state.item) : TEXT.page.summary_none;
+    $("#wanted-summary").textContent = chosen.length ? logic.summary(chosen) : TEXT.page.summary_none;
+    $("#books-summary").textContent = state.auto_books ? TEXT.page.summary_automatic : TEXT.page.summary_entries({ count: entries });
+}
+
 // ---------- Language ----------
 
 function renderLanguage() {
+    // Short codes ("EN"), so the picker stays small; each option's full name is its tooltip
+    // and what screen readers announce.
     $("#language").replaceChildren(h("select", {
-        class: "language-select",
+        class: "language-select header-control",
         "aria-label": TEXT.page.language_label,
-        title: TEXT.page.language_label,
+        title: TEXT.page.language_label + ": " + LANGUAGES[language],
         onchange: event => switchLanguage(event.target.value)
-    }, Object.entries(LANGUAGES).map(([code, label]) => h("option", { value: code, selected: code === language }, label))));
+    }, Object.entries(LANGUAGES).map(([code, label]) => h("option", {
+        value: code, selected: code === language, title: label, "aria-label": label
+    }, code.toUpperCase()))));
 }
 
 // The saved choice, else the browser's language if there is text for it, else English.
@@ -235,6 +292,7 @@ async function applyLanguage(code) {
     }
     document.documentElement.lang = language;
     fillPageText();
+    applyCollapsed(); // the toggles' labels
 }
 
 async function switchLanguage(code) {
@@ -780,85 +838,277 @@ function rankTile(criterion, index) {
     );
 }
 
-// The level limit, no-limit and rename options above the results.
+// ---------- Options above the results ----------
+// One aligned panel: level limit, your level, rename. Each label sits in the first
+// column and its control in the second, every control 32px tall. The panel is redrawn
+// on every change; the control that had focus gets it back, so keyboard users keep
+// their place while stepping a slider or a stepper.
+
+const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
+const HOLD_DELAY_MS = 400;          // holding − / +: wait this long, then repeat
+const HOLD_REPEAT_MS = 70;
+
 function renderRanking() {
     const box = $("#ranking");
+    const active = document.activeElement;
+    const focused = active && box.contains(active) ? active.dataset.focus : null;
+    box.replaceChildren(h("div", { class: "options" },
+        optionRow(TEXT.ranking.level_limit, TEXT.ranking.level_limit_help, limitControl()),
+        optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help, levelControl()),
+        optionRow(TEXT.ranking.rename, TEXT.ranking.rename_help, renameToggle()),
+        state.rename ? h("div", { class: "option-wide" }, nameField()) : null
+    ));
+    if (focused) {
+        const again = box.querySelector(`[data-focus="${focused}"]`);
+        if (again) again.focus();
+    }
+    updateLevelMeter();
+}
 
-    // The saved number comes back when the limit is turned on again.
-    const limit = state.no_step_limit ? h("input", {
-        type: "text", class: "step-limit unlimited", value: TEXT.ranking.unlimited, readonly: true, tabindex: "-1",
-        "aria-label": TEXT.ranking.no_limit_label
-    }) : h("input", {
-        type: "number", class: "step-limit", min: 1, max: MAX_STEP_LEVELS, value: state.max_step,
-        "aria-label": TEXT.ranking.level_limit_label,
-        onchange: event => {
-            state.max_step = clampStepLimit(event.target.value);
-            event.target.value = state.max_step;
-            commit();
-        }
+function optionRow(label, help, control) {
+    return [
+        h("span", { class: "option-label", title: help }, label),
+        h("div", { class: "option-control" }, control)
+    ];
+}
+
+// Level limit: a slider from 1 to 39 that ends in an ∞ stop (no limit, for mods that
+// remove "Too Expensive!"). The number on the right can be tapped to type a value.
+// Dragging only redraws the number; the new limit is used when the slider is let go.
+function limitControl() {
+    const unlimited = state.no_step_limit;
+    const shown = value => (unlimited && value === state.max_step ? TEXT.ranking.unlimited : String(value));
+    const value_button = h("button", {
+        type: "button", class: "limit-value" + (unlimited ? " unlimited" : ""), "data-focus": "limit-value",
+        title: TEXT.ranking.level_limit_edit_label, "aria-label": TEXT.ranking.level_limit_edit_label,
+        onclick: () => editLimit(value_button)
+    }, shown(state.max_step));
+    const slider = h("input", {
+        type: "range", class: "limit-slider" + (unlimited ? " off" : ""), min: 1, max: MAX_STEP_LEVELS, step: 1,
+        value: state.max_step, "data-focus": "limit-slider", "aria-label": TEXT.ranking.level_limit_label,
+        oninput: event => {
+            value_button.textContent = event.target.value;
+            value_button.classList.remove("unlimited");
+            event.target.classList.remove("off");
+            paintSlider(event.target);
+        },
+        onchange: event => setLimit(event.target.value)
     });
-
-    box.replaceChildren(
-        h("div", { class: "ranking-row", title: TEXT.ranking.level_limit_help },
-            h("span", { class: "ranking-label" }, TEXT.ranking.level_limit), limit,
-            h("label", { class: "no-limit", title: TEXT.ranking.no_limit_help },
-                h("input", {
-                    type: "checkbox", checked: state.no_step_limit,
-                    onchange: event => { state.no_step_limit = event.target.checked; commit(); }
-                }),
-                TEXT.ranking.no_limit
-            ),
-            h("label", { class: "no-limit", title: TEXT.ranking.rename_help },
-                h("input", {
-                    type: "checkbox", checked: state.rename,
-                    onchange: event => { state.rename = event.target.checked; commit(); }
-                }),
-                TEXT.ranking.rename
-            ),
-            state.rename ? nameInput() : null
-        ),
-        h("div", { class: "ranking-row", title: TEXT.ranking.your_level_help },
-            h("span", { class: "ranking-label" }, TEXT.ranking.your_level),
-            levelInput()
-        )
+    paintSlider(slider);
+    return h("div", { class: "limit" },
+        h("span", { class: "limit-end", "aria-hidden": "true" }, "1"),
+        slider,
+        h("button", {
+            type: "button", class: "limit-infinity" + (unlimited ? " on" : ""), "data-focus": "limit-infinity",
+            "aria-pressed": String(unlimited), "aria-label": TEXT.ranking.no_limit, title: TEXT.ranking.no_limit_help,
+            onclick: () => { state.no_step_limit = !state.no_step_limit; commit(); }
+        }, TEXT.ranking.unlimited),
+        value_button
     );
 }
 
-// "Your level": only changes what the steps show, so typing redraws just the results.
-function levelInput() {
-    return h("input", {
-        type: "number", class: "step-limit player-level", min: 0, max: MAX_PLAYER_LEVEL, inputmode: "numeric",
-        value: player_level, placeholder: TEXT.ranking.your_level_placeholder,
-        "aria-label": TEXT.ranking.your_level_label,
-        oninput: event => {
-            const text = event.target.value.trim();
-            player_level = text === "" ? null : Math.min(MAX_PLAYER_LEVEL, Math.max(0, Math.floor(Number(text)) || 0));
-            writeStorage(LEVEL_STORAGE_KEY, player_level);
-            renderResults();
-        }
-    });
+// The filled part of the track, up to the handle.
+function paintSlider(slider) {
+    const share = (slider.value - slider.min) / (slider.max - slider.min);
+    slider.style.setProperty("--fill", (share * 100).toFixed(1) + "%");
 }
 
-// The new name for the finished item. It does not change the cost, so typing only
-// redraws the results (redrawing this box would drop the cursor mid-word).
-function nameInput() {
-    return h("input", {
-        type: "text",
-        class: "rename-input",
-        value: state.rename_to,
-        maxlength: MAX_NAME_LENGTH[state.edition],
-        placeholder: TEXT.ranking.rename_placeholder,
-        "aria-label": TEXT.ranking.rename_label,
-        oninput: event => {
-            state.rename_to = cleanName(event.target.value, state.edition);
-            saveToUrl();
-            renderResults();
-        }
+// Moving the slider or typing a number always means "use this limit".
+function setLimit(value) {
+    state.max_step = clampStepLimit(value);
+    state.no_step_limit = false;
+    commit();
+}
+
+// Swaps the number for a box to type in: Enter or leaving it uses the value, Escape
+// puts the number back.
+function editLimit(button) {
+    let done = false;
+    const finish = use => {
+        if (done) return;
+        done = true;
+        if (use && input.value.trim() !== "") setLimit(input.value);
+        else renderRanking();
+    };
+    const input = h("input", {
+        type: "number", class: "limit-edit", min: 1, max: MAX_STEP_LEVELS, inputmode: "numeric",
+        value: state.max_step, "data-focus": "limit-value", "aria-label": TEXT.ranking.level_limit_label,
+        onkeydown: event => {
+            if (event.key === "Enter") finish(true);
+            if (event.key === "Escape") { event.stopPropagation(); finish(false); }
+        },
+        onblur: () => finish(true)
     });
+    button.replaceWith(input);
+    input.focus();
+    input.select();
+}
+
+// Your level: − / + around a game-style green number with an XP bar under it, which
+// fills toward the levels the current order needs. Holding − or + repeats. The XP orb
+// button turns following your level on or off. Off, the number shows ∞ (as the level
+// limit does with no limit), and tapping it, typing or − / + turns it back on. It only
+// changes what the steps show, so it redraws just the results.
+function levelControl() {
+    const input = h("input", {
+        type: "number", class: "xp-value", id: "player-level", "data-focus": "player-level",
+        min: 0, max: MAX_PLAYER_LEVEL, inputmode: "numeric", value: player_level, placeholder: "–",
+        "aria-label": TEXT.ranking.your_level_label,
+        oninput: event => setPlayerLevel(event.target.value.trim() === "" ? null : Number(event.target.value), false)
+    });
+    const step = (delta, sign, label) => holdButton({
+        class: "xp-step", "data-focus": "level-" + (delta < 0 ? "down" : "up"), "aria-label": label
+    }, sign, () => setPlayerLevel((player_level == null ? 0 : player_level) + delta, true));
+    return h("div", { class: "level-control" },
+        h("div", { class: "xp-box" + (level_on ? "" : " off") },
+            step(-1, "−", TEXT.ranking.level_down_label),
+            h("div", { class: "xp-field" },
+                input,
+                h("div", { class: "xp-bar", id: "xp-bar" }, h("div", { class: "xp-fill" })),
+                // Off: ∞ in place of the number; the number is kept for turning it on.
+                h("button", {
+                    type: "button", class: "xp-infinity", "data-focus": "xp-infinity", tabindex: level_on ? "-1" : null,
+                    "aria-label": TEXT.ranking.use_level, title: TEXT.ranking.use_level_help,
+                    onclick: () => { setLevelOn(true); $("#player-level").focus(); }
+                }, TEXT.ranking.unlimited)
+            ),
+            step(1, "+", TEXT.ranking.level_up_label)
+        ),
+        h("button", {
+            type: "button", class: "level-toggle" + (level_on ? " on" : ""), "data-focus": "level-toggle",
+            "aria-pressed": String(level_on), "aria-label": TEXT.ranking.use_level, title: TEXT.ranking.use_level_help,
+            onclick: () => setLevelOn(!level_on)
+        }, xpOrb())
+    );
+}
+
+// The game's experience orb (img/experience_orb.png).
+function xpOrb() {
+    return h("img", { class: "xp-orb", src: "img/experience_orb.png", alt: "", "aria-hidden": "true" });
+}
+
+// Turning it on with no number yet starts at 30 (the enchanting table's top level).
+function setLevelOn(on) {
+    level_on = on;
+    writeStorage(LEVEL_ON_STORAGE_KEY, level_on);
+    if (on && player_level == null) {
+        player_level = ENCHANTING_TABLE_LEVEL;
+        writeStorage(LEVEL_STORAGE_KEY, player_level);
+    }
+    renderRanking();
+    renderResults();
+}
+
+// The level the steps follow, or null when "Your level" is off or blank.
+function activeLevel() {
+    return level_on ? player_level : null;
+}
+
+// A button that acts once when pressed and keeps acting while held. Keyboard presses
+// (Enter, Space) act once through the click.
+function holdButton(attrs, text, act) {
+    let delay = null, repeat = null;
+    const stop = () => { clearTimeout(delay); clearInterval(repeat); };
+    return h("button", {
+        type: "button", ...attrs,
+        onpointerdown: event => {
+            if (event.button > 0) return;
+            act();
+            delay = setTimeout(() => { repeat = setInterval(act, HOLD_REPEAT_MS); }, HOLD_DELAY_MS);
+        },
+        onpointerup: stop, onpointerleave: stop, onpointercancel: stop,
+        onclick: event => { if (event.detail === 0) act(); }
+    }, text);
+}
+
+// `null` clears it. `update_input`: also show the new value in the box (not while
+// typing in it, which would move the cursor).
+function setPlayerLevel(value, update_input) {
+    player_level = value == null || Number.isNaN(value) ? null : Math.min(MAX_PLAYER_LEVEL, Math.max(0, Math.floor(value)));
+    writeStorage(LEVEL_STORAGE_KEY, player_level);
+    if (update_input) $("#player-level").value = player_level == null ? "" : player_level;
+    // Changing the number means using it.
+    if (!level_on && player_level != null) {
+        level_on = true;
+        writeStorage(LEVEL_ON_STORAGE_KEY, true);
+        $(".xp-box").classList.remove("off");
+        $(".xp-infinity").tabIndex = -1;
+        const toggle = $(".level-toggle");
+        toggle.classList.add("on");
+        toggle.setAttribute("aria-pressed", "true");
+    }
+    renderResults();
+}
+
+// The finished order, or null while there is none.
+function resultNode() {
+    const node = last_result && last_result.status === "ok" ? last_result.node : null;
+    return node && node.left ? node : null;
+}
+
+// The XP bar under "Your level": how far the level goes toward what the order needs.
+function updateLevelMeter() {
+    const bar = $("#xp-bar");
+    if (!bar) return;
+    const node = resultNode();
+    const needed = node ? node.cumulative_levels : 0;
+    const active = activeLevel();
+    const level = active == null ? 0 : active;
+    const share = needed && active != null ? Math.min(1, level / needed) : 0;
+    bar.firstChild.style.width = (share * 100).toFixed(1) + "%";
+    bar.classList.toggle("enough", Boolean(needed) && active != null && level >= needed);
+    bar.title = !needed || active == null ? ""
+        : level >= needed ? TEXT.ranking.level_enough({ needed })
+            : TEXT.ranking.level_short_of({ short: needed - level, needed });
+}
+
+// Rename: a name tag toggle. When on, the anvil's name box opens under it.
+function renameToggle() {
+    return h("button", {
+        type: "button", class: "name-tag" + (state.rename ? " on" : ""), "data-focus": "rename",
+        "aria-pressed": String(state.rename), title: TEXT.ranking.rename_help,
+        onclick: () => { state.rename = !state.rename; commit(); }
+    },
+        nameTagIcon(),
+        state.rename ? TEXT.ranking.rename_on : TEXT.ranking.rename_off
+    );
+}
+
+// The game's name tag (img/name_tag.png).
+function nameTagIcon() {
+    return h("img", { class: "name-tag-icon", src: "img/name_tag.png", alt: "", "aria-hidden": "true" });
+}
+
+// The new name, typed in a box drawn like the anvil's, in italics as the game shows a
+// renamed item, with a count against the edition's limit. It does not change the cost,
+// so typing only redraws the results (redrawing this box would drop the cursor mid-word).
+function nameField() {
+    const limit = MAX_NAME_LENGTH[state.edition];
+    const count = h("span", { class: "name-count" });
+    const showCount = () => {
+        const used = [...state.rename_to].length;
+        count.textContent = TEXT.ranking.name_count({ count: used, max: limit });
+        count.title = TEXT.ranking.name_count_label({ count: used, max: limit });
+    };
+    showCount();
+    return h("div", { class: "anvil-name" },
+        h("input", {
+            type: "text", class: "anvil-name-input", value: state.rename_to, maxlength: limit, "data-focus": "rename-to",
+            placeholder: TEXT.ranking.rename_placeholder, "aria-label": TEXT.ranking.rename_label,
+            oninput: event => {
+                state.rename_to = cleanName(event.target.value, state.edition);
+                showCount();
+                saveToUrl();
+                renderResults();
+            }
+        }),
+        count
+    );
 }
 
 function renderResults() {
     renderMetrics();
+    updateLevelMeter();
     const box = $("#results");
     box.replaceChildren();
     const entries = logic.buildEntries(state);
@@ -926,7 +1176,7 @@ function renderResults() {
     content.append(h("p", { class: "print-only" }, TEXT.results.text_wanted({ item: logic.itemName(state.item), enchantments: logic.summary(node.enchantments) })));
 
     // With "Your level" filled in: the level before and after each step, in step order.
-    const track = player_level == null ? null : levelTrack(steps.map(step => step.node.merge_levels), player_level);
+    const track = activeLevel() == null ? null : levelTrack(steps.map(step => step.node.merge_levels), activeLevel());
     content.append(h("div", { class: "result-facts" },
         h("span", { title: TEXT.results.anvil_wear_help },
             TEXT.results.anvil_wear({ uses: steps.length, chance: percentText(anvilBreakChance(steps.length)) })),
@@ -1276,7 +1526,7 @@ function infoTip(id, button_text, label, text, extra_class = "") {
 
 function setupCopyLink() {
     const button = $("#copy-link");
-    button.addEventListener("click", () => copyText(button, location.href, TEXT.page.copy_link));
+    button.addEventListener("click", () => copyText(button.querySelector(".copy-label"), location.href, TEXT.page.copy_link, button));
 }
 
 // ---------- Start ----------
@@ -1317,6 +1567,7 @@ async function init() {
     setupCopyLink();
     setupInfoTip();
     setupSavedMenu();
+    setupCollapsing();
     render();
     runCalculation();
     registerOffline();

@@ -20,6 +20,11 @@
         "delete_saved_label": "Quitar {name}",
         "removed_saved": "Quitado: {name}",
         "undo_remove": "Deshacer",
+        "collapse_label": "Ocultar {section}",
+        "expand_label": "Mostrar {section}",
+        "summary_none": "Nada elegido",
+        "summary_automatic": "Automático",
+        "summary_entries": {"plural": "count", "one": "{count} entrada", "other": "{count} entradas"},
         "editions": {
             "java": { "label": "Java", "help": "Reglas del yunque de Java Edition" },
             "bedrock": { "label": "Bedrock", "help": "Bedrock Edition: cada encantamiento cuesta solo los niveles que añade, Empalamiento es más barato y no existe Barrido" }
@@ -81,7 +86,7 @@
     },
 
     "ranking": {
-        "rank_by": "El mejor orden se ordena por estos criterios, el primero primero. Arrastra para reordenar.",
+        "rank_by": "El mejor orden se elige con las cuatro casillas de abajo: gana el orden con el valor más bajo en la primera, y las siguientes deshacen los empates. Arrastra una casilla, o usa sus flechas ‹ ›, para cambiar cuál cuenta más.",
         "rank_help_label": "Cómo se elige el mejor orden",
         "no_value": "–",
         "criteria": {
@@ -97,7 +102,6 @@
         "level_limit_label": "Máximo de niveles por uso del yunque",
         "no_limit": "Sin límite (mods)",
         "no_limit_help": "Para mods que quitan \"¡Demasiado caro!\"",
-        "no_limit_label": "Sin límite de niveles",
         "unlimited": "∞",
         "rename": "Renombrar",
         "rename_help": "Renombra el objeto en el último paso. Renombrar añade 1 nivel a ese paso.",
@@ -105,8 +109,18 @@
         "rename_label": "Nombre nuevo del objeto terminado",
         "your_level": "Tu nivel",
         "your_level_help": "Tu nivel de experiencia actual, para ver lo que te queda tras cada paso",
-        "your_level_placeholder": "opcional",
-        "your_level_label": "Tu nivel de experiencia actual"
+        "your_level_label": "Tu nivel de experiencia actual",
+        "level_limit_edit_label": "Escribe un límite de niveles",
+        "level_down_label": "Un nivel menos",
+        "level_up_label": "Un nivel más",
+        "use_level": "Usar tu nivel",
+        "use_level_help": "Sigue tu nivel en los pasos: el nivel antes y después de cada uno",
+        "level_enough": "Suficiente: este orden necesita {needed}",
+        "level_short_of": {"plural": "short", "one": "Falta {short} nivel: este orden necesita {needed}", "other": "Faltan {short} niveles: este orden necesita {needed}"},
+        "rename_off": "No",
+        "rename_on": "Sí · +1 nivel",
+        "name_count": "{count} / {max}",
+        "name_count_label": "{count} de {max} caracteres"
     },
 
     "results": {

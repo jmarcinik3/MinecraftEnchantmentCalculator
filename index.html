@@ -14,32 +14,39 @@
 <body>
     <header class="site-header">
         <h1 data-text="page.heading"></h1>
+        <!-- One toolbar: every control the same height (.header-control). On phones it is a
+             full-width row under the title, and Copy link shrinks to its icon. -->
         <div class="header-actions">
-            <div id="language"></div>
+            <div id="edition" class="segmented header-control" role="group" data-text-label="page.edition_label"></div>
             <details id="saved" class="saved-menu">
-                <summary class="btn small" data-text="page.saved"></summary>
+                <summary class="header-control" data-text="page.saved"></summary>
                 <div id="saved-panel" class="saved-panel"></div>
             </details>
-            <div id="edition" class="segmented" role="group" data-text-label="page.edition_label"></div>
-            <button id="copy-link" class="btn small" type="button" data-text="page.copy_link"></button>
+            <button id="copy-link" class="header-control copy-link" type="button" data-text-label="page.copy_link">
+                <svg class="link-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M10 14a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5"/><path d="M14 10a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5"/></svg>
+                <span class="copy-label" data-text="page.copy_link"></span>
+            </button>
+            <div id="language"></div>
         </div>
     </header>
 
     <main class="layout">
         <div class="inputs">
-            <section class="card">
-                <h2><span class="step-badge">1</span><span data-text="page.item_heading"></span></h2>
-                <div id="items" class="item-grid"></div>
+            <!-- Each section can collapse from its heading (App.js setupCollapsing); the
+                 summary says what is chosen while it is closed. -->
+            <section class="card collapsible" data-section="item">
+                <h2><span class="step-badge">1</span><span class="section-title" data-text="page.item_heading"></span><span class="section-summary" id="item-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="item-body"></button></h2>
+                <div id="item-body" class="section-body"><div id="items" class="item-grid"></div></div>
             </section>
 
-            <section class="card">
-                <h2><span class="step-badge">2</span><span data-text="page.enchantments_heading"></span></h2>
-                <div id="wanted"></div>
+            <section class="card collapsible" data-section="wanted">
+                <h2><span class="step-badge">2</span><span class="section-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
+                <div id="wanted-body" class="section-body"><div id="wanted"></div></div>
             </section>
 
-            <section class="card">
-                <h2><span class="step-badge">3</span><span data-text="page.books_heading"></span><span id="books-alert"></span></h2>
-                <div id="books"></div>
+            <section class="card collapsible" data-section="books">
+                <h2><span class="step-badge">3</span><span class="section-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
+                <div id="books-body" class="section-body"><div id="books"></div></div>
             </section>
         </div>
 
