@@ -1355,7 +1355,14 @@ function renderRanking() {
             optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch())
         )
     );
-    $("#options-summary").textContent = optionsSummary();
+    const summary = optionsSummary();
+    $("#options-summary").textContent = summary;
+    // On phones the button is the gear alone: a dot on it says a rule isn't the game's own,
+    // and the label still says how they are set.
+    const button = $("#options-menu > summary");
+    button.classList.toggle("changed", state.no_step_limit || state.max_step !== MAX_STEP_LEVELS || state.allow_incompatible);
+    button.setAttribute("aria-label", TEXT.ranking.options + ": " + summary);
+    button.title = TEXT.ranking.options + ": " + summary;
 
     // Under the tiles: one grid, so the labels share a column.
     box.replaceChildren(h("div", { class: "options" },
@@ -1406,8 +1413,7 @@ function conflictsSwitch() {
 function setupOptionsMenu() {
     const menu = $("#options-menu");
     const panel = $("#limit-panel");
-    menu.querySelector("summary").title = TEXT.ranking.options;
-    setupMenuClosing(menu);
+    setupMenuClosing(menu); // its title and label come from renderRanking
     const place = () => {
         if (!menu.open) return;
         const button = menu.querySelector("summary").getBoundingClientRect();

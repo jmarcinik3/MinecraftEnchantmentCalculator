@@ -46,7 +46,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - Section 3 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
   heading and, beside it in a `.section-head`, the settings menu (`#options-menu` `<details>`: a button showing
   `optionsSummary` + gear, opening `#limit-panel`, "Game rules": the level limit slider and the Allow conflicts switch (`conflictsSwitch`; the
-  button's summary adds "Conflicts allowed" when on); closes on outside click/Escape via
+  button's summary adds "Conflicts allowed" when on; under 600px the button is the gear alone, with a dot (`.changed`) when a
+  rule isn't the default); closes on outside click/Escape via
   `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
   Rename and Your level; `updateLevelMeter` fills its XP bar and "Set to N"). Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.

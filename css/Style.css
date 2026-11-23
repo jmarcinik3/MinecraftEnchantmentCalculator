@@ -733,6 +733,23 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .options-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gear-icon { flex: none; width: 16px; height: 16px; transition: transform 0.25s; }
 .options-menu[open] .gear-icon { transform: rotate(45deg); }
+/* Phones: the gear alone (the summary is too long beside the heading), with an accent
+   dot when a rule isn't the game's own. */
+@media (max-width: 600px) {
+    .options-button { position: relative; width: 26px; padding: 0; justify-content: center; }
+    .options-summary { display: none; }
+    .options-button.changed::after {
+        content: "";
+        position: absolute;
+        top: -2px;
+        right: -2px;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--accent);
+        box-shadow: 0 0 0 2px var(--surface);
+    }
+}
 .options-panel-title {
     margin-bottom: 10px;
     font-size: 11px;
