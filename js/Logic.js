@@ -40,6 +40,15 @@ export function clampStepLimit(value) {
 // Game editions with their own anvil rules (must match Engine.js).
 export const EDITIONS = ["java", "bedrock"];
 
+// Longest name the anvil accepts, per edition (Minecraft Wiki, "Anvil mechanics").
+export const MAX_NAME_LENGTH = { java: 50, bedrock: 30 };
+
+// A rename as the anvil would take it: text only, cut to the edition's length.
+export function cleanName(name, edition) {
+    const text = typeof name === "string" ? name.replace(/[\u0000-\u001f\u007f]/g, "") : "";
+    return [...text].slice(0, MAX_NAME_LENGTH[edition] || MAX_NAME_LENGTH.java).join("");
+}
+
 // The metadata as one edition sees it: an enchantment's `bedrock` object replaces its
 // fields in Bedrock Edition, as Engine.js does (e.g. "items": [] where Bedrock has no
 // such enchantment, so it is never offered).
@@ -50,6 +59,21 @@ export function editionMetadata(meta, edition) {
         enchantments[ns] = data.bedrock ? { ...data, ...data.bedrock } : data;
     }
     return { ...meta, enchantments };
+}
+
+// Share-link text: URL-safe base64 of the UTF-8 bytes, so names with any characters
+// work (plain btoa only takes Latin-1). ASCII-only text encodes exactly as before, so
+// older links still load.
+function toLinkText(text) {
+    const bytes = new TextEncoder().encode(text);
+    let binary = "";
+    for (const byte of bytes) binary += String.fromCharCode(byte);
+    return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromLinkText(link) {
+    const binary = atob(link.replace(/-/g, "+").replace(/_/g, "/"));
+    return new TextDecoder().decode(Uint8Array.from(binary, char => char.charCodeAt(0)));
 }
 
 // Most groups of entries the search may remember (must match Engine.js): as many as
@@ -290,13 +314,14 @@ export function createLogic(meta) {
             n: state.no_step_limit ? 1 : 0,
             x: state.allow_incompatible ? 1 : 0,
             e: EDITIONS.indexOf(state.edition),
-            r: state.rename ? 1 : 0
+            r: state.rename ? 1 : 0,
+            m: state.rename_to || undefined
         };
-        return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+        return toLinkText(JSON.stringify(data));
     }
 
     function deserialize(text, makeId) {
-        const data = JSON.parse(atob(text.replace(/-/g, "+").replace(/_/g, "/")));
+        const data = JSON.parse(fromLinkText(text));
         const item = typeof data.i === "string" && data.i in meta.items && data.i !== "book" ? data.i : null;
         if (!item) return null;
         const books = Array.isArray(data.b) ? data.b : [];
@@ -305,6 +330,7 @@ export function createLogic(meta) {
             item,
             edition: EDITIONS[data.e] || EDITIONS[0],
             rename: data.r === 1,
+            rename_to: cleanName(data.m, EDITIONS[data.e] || EDITIONS[0]),
             allow_incompatible,
             wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
             auto_books: data.a !== 0,

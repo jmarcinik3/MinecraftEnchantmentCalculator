@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic, editionMetadata, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+const { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT } = await import("data:text/javascript," + encodeURIComponent(read("../js/Text.js")));
 const logic = createLogic(meta);
@@ -24,7 +24,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false, edition: "java", rename: false });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false, edition: "java", rename: false, rename_to: "" });
 
 test("every item has an icon file", () => {
     for (const item of Object.keys(meta.items)) {
@@ -185,6 +185,22 @@ test("shared links keep the edition and rename; old links default to Java", () =
     const old = logic.deserialize(btoa(JSON.stringify({ i: "sword", w: {}, a: 1, b: [] })).replace(/=+$/, ""), () => 0);
     assert.strictEqual(old.edition, "java");
     assert.strictEqual(old.rename, false);
+    assert.strictEqual(old.rename_to, "");
+});
+
+test("the new name is saved in links and cut to the edition's length", () => {
+    const state = { ...baseState("sword"), rename: true, rename_to: "Excalibur" };
+    assert.strictEqual(logic.deserialize(logic.serialize(state), () => 0).rename_to, "Excalibur");
+    // Any characters, not just Latin-1.
+    const fancy = { ...state, rename_to: "Lumière ★ 剣 🗡" };
+    assert.strictEqual(logic.deserialize(logic.serialize(fancy), () => 0).rename_to, "Lumière ★ 剣 🗡");
+    const long = "x".repeat(60);
+    assert.strictEqual(cleanName(long, "java").length, MAX_NAME_LENGTH.java);
+    assert.strictEqual(cleanName(long, "bedrock").length, MAX_NAME_LENGTH.bedrock);
+    assert.strictEqual(cleanName("a\nb", "java"), "ab");
+    assert.strictEqual(cleanName(42, "java"), "");
+    const bedrock_link = logic.serialize({ ...state, edition: "bedrock", rename_to: long });
+    assert.strictEqual(logic.deserialize(bedrock_link, () => 0).rename_to.length, MAX_NAME_LENGTH.bedrock);
 });
 
 test("ranking helpers", () => {

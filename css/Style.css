@@ -355,6 +355,17 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     cursor: default;
 }
 .check-option { display: inline-flex; align-items: center; gap: 4px; margin-left: auto; font-size: 13px; color: var(--text-secondary); cursor: pointer; }
+.rename-input {
+    font: inherit;
+    font-size: 13px;
+    width: 170px;
+    max-width: 100%;
+    padding: 3px 6px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+}
 .no-limit { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; color: var(--text-secondary); cursor: pointer; }
 
 .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(90px, 1fr)); gap: 8px; margin-bottom: 14px; }
@@ -546,6 +557,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     /* Wrap only between words (a single word too long for the box is the one exception). */
     overflow-wrap: break-word;
 }
+.mc-name.renamed { font-style: italic; } /* renamed items show their name in italics */
 .mc-name.rarity-common { color: #ffffff; }
 .mc-name.rarity-uncommon { color: #ffff55; text-shadow: 1px 1px 0 #3f3f15; }
 .mc-name.rarity-rare { color: #55ffff; text-shadow: 1px 1px 0 #153f3f; }

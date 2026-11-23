@@ -82,8 +82,10 @@ export const TEXT = {
         no_limit_help: "For mods that remove \"Too Expensive!\"",
         no_limit_label: "No level limit",
         unlimited: "∞",
-        rename: "Rename in the last step",
-        rename_help: "Renaming the item adds 1 level to that step"
+        rename: "Rename",
+        rename_help: "Rename the item in the last step. Renaming adds 1 level to that step.",
+        rename_placeholder: "New name (optional)",
+        rename_label: "New name for the finished item"
     },
 
     // The results: progress, messages, and the anvil steps.

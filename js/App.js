@@ -1,4 +1,4 @@
-import { createLogic, editionMetadata, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
+import { createLogic, editionMetadata, cleanName, MAX_NAME_LENGTH, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
 import { TEXT } from "./Text.js";
 
 const META_URL = "json/metadata.json";
@@ -34,7 +34,8 @@ function defaultState() {
         no_step_limit: false,        // ignore max_step and "Too Expensive!" (for mods that remove it)
         allow_incompatible: false,   // let conflicting enchantments go together (for mods that allow it)
         edition: "java",             // "java" | "bedrock": their anvil rules differ
-        rename: false                // rename the item in the last step (+1 level)
+        rename: false,               // rename the item in the last step (+1 level)
+        rename_to: ""                // the new name shown on the result (optional)
     };
 }
 
@@ -108,6 +109,7 @@ function useEdition(edition) {
 function setEdition(edition) {
     if (state.edition === edition) return;
     state.edition = edition;
+    state.rename_to = cleanName(state.rename_to, edition); // Bedrock names are shorter
     useEdition(edition);
     if (state.item) sanitizeAll();
     commit();
@@ -451,16 +453,35 @@ function renderRanking() {
                     onchange: event => { state.no_step_limit = event.target.checked; commit(); }
                 }),
                 TEXT.ranking.no_limit
-            )
-        ),
-        h("label", { class: "ranking-row check-row", title: TEXT.ranking.rename_help },
-            h("input", {
-                type: "checkbox", checked: state.rename,
-                onchange: event => { state.rename = event.target.checked; commit(); }
-            }),
-            TEXT.ranking.rename
+            ),
+            h("label", { class: "no-limit", title: TEXT.ranking.rename_help },
+                h("input", {
+                    type: "checkbox", checked: state.rename,
+                    onchange: event => { state.rename = event.target.checked; commit(); }
+                }),
+                TEXT.ranking.rename
+            ),
+            state.rename ? nameInput() : null
         )
     );
+}
+
+// The new name for the finished item. It does not change the cost, so typing only
+// redraws the results (redrawing this box would drop the cursor mid-word).
+function nameInput() {
+    return h("input", {
+        type: "text",
+        class: "rename-input",
+        value: state.rename_to,
+        maxlength: MAX_NAME_LENGTH[state.edition],
+        placeholder: TEXT.ranking.rename_placeholder,
+        "aria-label": TEXT.ranking.rename_label,
+        oninput: event => {
+            state.rename_to = cleanName(event.target.value, state.edition);
+            saveToUrl();
+            renderResults();
+        }
+    });
 }
 
 function renderResults() {
@@ -620,8 +641,11 @@ function anvilStep(step, done, order_key) {
 function anvilCell(node, changed, role) {
     const is_book = node.item_namespace === "book";
     const enchanted = node.enchantments.length > 0;
-    const name = is_book && enchanted ? TEXT.results.enchanted_book : logic.itemName(node.item_namespace);
-    const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted);
+    // A renamed item shows its new name in italics, as in the game.
+    const renamed = Boolean(node.renamed && state.rename_to.trim());
+    const name = renamed ? state.rename_to
+        : is_book && enchanted ? TEXT.results.enchanted_book : logic.itemName(node.item_namespace);
+    const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "");
     const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
         class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
     }, logic.displayName(e.namespace, e.level)));
