@@ -2239,17 +2239,30 @@ function mergeTree(root, steps, done, order_key) {
                     (before && before.get(e.namespace) !== e.level ? " changed" : "")
             }, logic.displayName(e.namespace, e.level))
         ]);
-        return h("li", { class: "tree-node" },
-            h("div", { class: "tree-line" + (number ? " merge" : "") + (number && done.has(number) ? " done" : "") },
+        // A merge folds and unfolds like its step in the Steps view (the same fold state):
+        // done ones start folded, hiding what went into them; a click on the line (but
+        // the tick) or its ▾/▴ button switches it.
+        const folded = Boolean(number) && isFolded(order_key, number, done);
+        const fold_label = folded ? TEXT.results.expand_step : TEXT.results.collapse_step;
+        return h("li", { class: "tree-node" + (folded ? " folded" : "") },
+            h("div", {
+                class: "tree-line" + (number ? " merge" : "") + (number && done.has(number) ? " done" : ""),
+                "data-step-card": number || null, title: number ? fold_label : null,
+                onclick: number ? event => { if (!event.target.closest(".tree-step, .step-fold")) toggleFold(order_key, number, !folded); } : null
+            },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
                 h("span", { class: "mc-tooltip tree-tooltip" },
                     h("span", { class: "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "") }, nodeName(node)),
                     enchanted ? h("span", { class: "mc-ench tree-ench" }, enchantments) : null),
                 number ? h("label", { class: "tree-step", title: TEXT.results.step_done_help },
                     stepTick(number, done, order_key, steps),
-                    TEXT.results.tree_step({ number, levels: node.merge_levels })) : null
+                    TEXT.results.tree_step({ number, levels: node.merge_levels })) : null,
+                number ? h("button", {
+                    type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
+                    onclick: () => toggleFold(order_key, number, !folded)
+                }, folded ? "▾" : "▴") : null
             ),
-            node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
+            node.left && !folded ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
         );
     };
     return h("ul", { class: "merge-tree" }, branch(root));
@@ -2325,13 +2338,19 @@ function stepTick(number, done, order_key, steps) {
         "aria-label": TEXT.results.step_done_label({ number }),
         onchange: event => {
             const checked = event.target.checked;
-            saveTicks(order_key, steps, done, logic.tickStep(steps, done, number, checked));
-            renderResults();
-            const again = document.querySelector(`input[data-step="${number}"]`);
+            const selector = `input[data-step="${number}"]`;
+            keepInPlace(selector, () => {
+                saveTicks(order_key, steps, done, logic.tickStep(steps, done, number, checked));
+                renderResults();
+            });
+            const again = document.querySelector(selector);
             if (again) again.focus({ preventScroll: true }); // keyboard users keep their place
-            // Ticking brings the next step to do into view (in the Steps view).
-            const next = checked && document.querySelector("#results .anvil-step.current");
-            if (next) next.scrollIntoView({ block: "nearest", behavior: motion_ok() ? "smooth" : "auto" });
+            // Ticking brings the next unticked step after this one into view (in the Steps
+            // view), only if it isn't already: never back up to an earlier one left unticked.
+            if (!checked) return;
+            const later = [...document.querySelectorAll("#results .anvil-step[data-step-card]:not(.done)")]
+                .find(card => Number(card.dataset.stepCard) > number);
+            if (later) revealBelow(later);
         }
     });
 }
@@ -2374,8 +2393,10 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         onkeydown: event => {
             if (event.key !== " " || event.target !== event.currentTarget) return;
             event.preventDefault();
-            saveTicks(order_key, steps, done, logic.tickStep(steps, done, number, !is_done));
-            renderResults();
+            keepInPlace(`[data-step-card="${number}"]`, () => {
+                saveTicks(order_key, steps, done, logic.tickStep(steps, done, number, !is_done));
+                renderResults();
+            });
             const again = document.querySelector(`[data-step-card="${number}"]`);
             if (again) again.focus({ preventScroll: true });
         }
@@ -2407,6 +2428,42 @@ function levelMeter(level) {
         level.short ? TEXT.results.level_short({ count: level.short }) : TEXT.results.level_track({ before: level.before, after: level.after }));
 }
 
+// Scrolls down just enough to show `card` when it is below the visible part of the steps
+// (their own box on desktop, the window on phones); never up.
+function revealBelow(card) {
+    const box = card.closest(".steps-scroll");
+    const scrolls = box && box.scrollHeight > box.clientHeight;
+    const bottom = scrolls ? box.getBoundingClientRect().bottom : innerHeight;
+    const rect = card.getBoundingClientRect();
+    const over = Math.min(rect.bottom - bottom, rect.top - (scrolls ? box.getBoundingClientRect().top : 0));
+    if (over <= 0) return;
+    const behavior = motion_ok() ? "smooth" : "auto";
+    if (scrolls) box.scrollBy({ top: over, behavior });
+    else scrollBy({ top: over, behavior });
+}
+
+// Runs `redraw` (which rebuilds the steps), then scrolls so the element matching
+// `selector` is where it was on screen. Ticking or folding a step folds or unfolds others
+// too (ticking one ticks the steps it needs), which moves everything below them; without
+// this the list would jump, and the old scroll position would land somewhere else.
+// The steps scroll inside their own box on desktop and with the page on phones.
+function keepInPlace(selector, redraw) {
+    const before = document.querySelector(selector);
+    const top = before ? before.getBoundingClientRect().top : null;
+    redraw();
+    const after = document.querySelector(selector);
+    if (top == null || !after) return;
+    const shift = after.getBoundingClientRect().top - top;
+    if (Math.abs(shift) < 1) return;
+    const box = after.closest(".steps-scroll");
+    if (box && box.scrollHeight > box.clientHeight) {
+        box.scrollTop += shift;
+        steps_scroll.top = box.scrollTop;
+    } else {
+        scrollBy(0, shift);
+    }
+}
+
 // A folded step's line: "Thorns III + Mending · 2 levels".
 function stepLine(step) {
     return TEXT.results.step_line({ left: stepPart(step.left), right: stepPart(step.right), levels: step.node.merge_levels });
@@ -2422,7 +2479,7 @@ function stepPart(side) {
 function toggleFold(order_key, number, fold) {
     if (step_folds.key !== order_key) step_folds = { key: order_key, folded: new Map() };
     step_folds.folded.set(number, fold);
-    renderResults();
+    keepInPlace(`[data-step-card="${number}"]`, renderResults);
     const again = document.querySelector(`[data-step-card="${number}"] .step-fold`);
     if (again) again.focus({ preventScroll: true });
 }
@@ -2468,7 +2525,8 @@ function stepProgress(steps, done, levels, order_key) {
     const count = steps.filter(step => done.has(step.number)).length;
     return h("div", { class: "step-progress" },
         h("div", { class: "step-progress-track", role: "progressbar", "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) },
-            h("div", { class: "step-progress-fill", style: `width: ${total ? (count / total * 100).toFixed(1) : 0}%` })),
+            // Drawn like the game's experience bar: one segment per step, filling from the left.
+            steps.map((step, index) => h("span", { class: "step-progress-cell" + (index < count ? " filled" : "") }))),
         h("span", { class: "step-progress-text" }, count === total
             ? TEXT.results.progress_done({ total })
             : TEXT.results.progress({ done: count, total, levels })),

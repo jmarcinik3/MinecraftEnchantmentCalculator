@@ -1791,9 +1791,11 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
 /* At least 260px, so on a phone it takes its own row rather than cutting its text. */
-.step-progress { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; }
-.step-progress-track { flex: 0 0 72px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--border); }
-.step-progress-fill { height: 100%; background: #3c8d3f; transition: width 0.25s ease-out; }
+.step-progress { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; }
+/* An experience bar: black frame, dark empty segments, bright green filled ones. */
+.step-progress-track { display: flex; flex: 0 1 140px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
+.step-progress-cell { flex: 1; background: #2a2a2a; box-shadow: inset 0 1px 0 #3d3d3d; transition: background-color 0.25s ease-out; }
+.step-progress-cell.filled { background: linear-gradient(#b2ff4d, #80ff20 40%, #3d9b0a); box-shadow: none; }
 .step-progress-text { min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-reset {
     flex: none;
@@ -1809,7 +1811,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 }
 .step-reset:hover:not(:disabled) { background: var(--surface-alt); color: var(--text); }
 .step-reset:disabled { opacity: 0.35; cursor: default; }
-@media (prefers-reduced-motion: reduce) { .step-progress-fill { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .step-progress-cell { transition: none; } }
 
 /* The break risk in section 4's heading: [anvil] 4%, a pill colored by risk. */
 .info-tip.anvil-risk { flex: none; }
@@ -1833,6 +1835,8 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 
 .result-tools .copy-steps { margin-left: auto; }
 .result-tools .btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
+/* Phones: Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
+@media (max-width: 599px) { .result-tools .step-progress { order: 1; flex-basis: 100%; } }
 
 /* The order as a tree: each merge with its two inputs indented below it */
 .merge-tree, .tree-children { list-style: none; margin: 0; padding: 0; }
@@ -1856,6 +1860,10 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     border-left: 3px solid var(--surface);
 }
 .tree-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; min-width: 0; }
+/* A merge's line folds what went into it, like a step's head. */
+.tree-line.merge { cursor: pointer; }
+.tree-line.merge > .step-fold { margin-left: -4px; }
+.tree-line.merge:hover > .step-fold { background: var(--surface); color: var(--text); }
 .tree-slot {
     position: relative;
     flex: none;
@@ -1948,3 +1956,13 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     /* Game colors on paper: keep the slots and tooltips as drawn. */
     .mc-slot, .mc-tooltip, .tree-slot, .anvil-cost { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
+/* The bar's ends round off in pixel steps, as in the game: the frame loses 2-pixel stair
+   corners, and the end segments 1-pixel ones, so the frame still shows all the way round. */
+.step-progress-track {
+    clip-path: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px,
+        100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px),
+        calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px),
+        0 2px, 1px 2px, 1px 1px, 2px 1px);
+}
+.step-progress-cell:first-child { clip-path: polygon(1px 0, 100% 0, 100% 100%, 1px 100%, 1px calc(100% - 1px), 0 calc(100% - 1px), 0 1px, 1px 1px); }
+.step-progress-cell:last-child { clip-path: polygon(0 0, calc(100% - 1px) 0, calc(100% - 1px) 1px, 100% 1px, 100% calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 100%, 0 100%); }

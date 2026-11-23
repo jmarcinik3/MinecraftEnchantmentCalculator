@@ -99,7 +99,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - Section 4 Steps view (`renderResults`): toolbar = Steps/Tree, `stepProgress` ("3 of 7 done · N levels to go" bar + ↺ untick
   all), Copy steps, Print; a
   `.rounds.timeline` rail (round labels as breaks, a `.step-node` per step). `anvilStep`: a `.step-head` (the whole
-  "☐ Step N" ticks; the first unticked step is `.current`, and ticking a step scrolls the next one into view; Space on a
+  "☐ Step N" ticks; the first unticked step is `.current`; ticking, folding and Space keep that step where it was on screen
+  (`keepInPlace`), and ticking scrolls down to the next unticked step only when it is below view (`revealBelow`, never up); Space on a
   focused step ticks it), steps fold to one line (`stepLine`; done ones by default, any by a click on the head or its button: `isFolded`/
   `toggleFold`, `step_folds` overrides, dropped for a step whose tick changes via `saveTicks`), the row is an anvil-window
   panel (`--gui-*` tokens), inputs show their section 2 entry (`entryRef`/`entryIndexOf`: "#3", hover highlights the card,
@@ -112,7 +113,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps/Tree view
   (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,
   loaded via `readLink`; × removes one, with Undo until the menu closes: `removed_setup`), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
-  step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks). Ticking a step also ticks
+  step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks); each merge folds its inputs away like its step does (same `isFolded`/`toggleFold` state, ▾/▴ `.step-fold`). Ticking a step also ticks
   the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Section 4's heading always shows the uses (`renderStepsSummary`) and the break risk (`anvilRisk`: an
   `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
