@@ -521,8 +521,13 @@ function renderWanted() {
         presetChips()
     ), wantedList());
     if (old_height != null) {
-        growSmoothly(box.querySelector(".wanted-preview"), old_height);
-        openLines(box.querySelectorAll(".wanted-preview .mc-ench.fresh"));
+        const preview = box.querySelector(".wanted-preview");
+        const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
+        growSmoothly(preview, old_height);
+        // Swapping one enchantment for another leaves the tooltip the same size: the new
+        // line then only fades in, since opening it from 0 would shrink the box and grow it back.
+        openLines(preview.querySelectorAll(".mc-ench.fresh"), same_size);
+
     }
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
@@ -650,13 +655,16 @@ function growSmoothly(element, from) {
 // New tooltip lines open from no height in their own place (and fade in), so the lines
 // below them slide down with the box, wherever in the list they were added. Same
 // duration and easing as growSmoothly, so the lines and the box move together.
-function openLines(lines) {
+// `same_size`: the box ends as tall as it was, so the lines only fade in.
+function openLines(lines, same_size = false) {
     if (!motion_ok()) return;
     for (const line of lines) {
         const height = line.getBoundingClientRect().height;
-        line.style.overflow = "hidden";
-        line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" })
-            .finished.then(() => { line.style.overflow = ""; }, () => {});
+        if (!same_size) {
+            line.style.overflow = "hidden";
+            line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" })
+                .finished.then(() => { line.style.overflow = ""; }, () => {});
+        }
         line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
     }
 }
