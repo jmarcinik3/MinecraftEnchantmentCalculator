@@ -13,8 +13,8 @@ const CACHE = "enchantment-calculator-" + VERSION;
 // Loaded up front, so the site works offline after one visit. Images are saved as the
 // page shows them.
 const FILES = [
-    "css/Style.css", "js/App.js", "js/Logic.js", "js/Text.js", "js/TextSpanish.js",
-    "js/Calculator.js", "js/Engine.js", "json/metadata.json"
+    "css/Style.css", "js/App.js", "js/Logic.js", "js/Text.js", "js/Calculator.js", "js/Engine.js",
+    "json/metadata.json", "json/text/en.json", "json/text/es.json"
 ].map(file => (VERSION === "dev" ? file : file + "?v=" + VERSION));
 const PAGES = ["./", "index.html", "manifest.webmanifest", "font/minecraft.woff"];
 

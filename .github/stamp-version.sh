@@ -29,7 +29,7 @@ stamp js/App.js 'from "./Text.js"' "from \"./Text.js?v=$version\""
 stamp js/App.js '"js/Calculator.js"' "\"js/Calculator.js?v=$version\""
 stamp js/App.js '"json/metadata.json"' "\"json/metadata.json?v=$version\""
 stamp js/Calculator.js 'importScripts("Engine.js")' "importScripts(\"Engine.js?v=$version\")"
-stamp js/Text.js 'from "./TextSpanish.js"' "from \"./TextSpanish.js?v=$version\""
+stamp js/Text.js 'const TEXT_VERSION = ""' "const TEXT_VERSION = \"?v=$version\""
 # The offline copy: its file list gets the same addresses, and each release a new cache.
 stamp ServiceWorker.js 'const VERSION = "dev"' "const VERSION = \"$version\""
 echo "Stamped site files with version $version"

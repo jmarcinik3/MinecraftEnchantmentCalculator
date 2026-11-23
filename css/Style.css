@@ -388,7 +388,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .no-limit { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; color: var(--text-secondary); cursor: pointer; }
 
 /* Result tiles, which are also the ranking (drag or use the arrows). */
-.metrics-box { margin-bottom: 14px; }
+.metrics-box { margin-bottom: 14px; container: metrics / inline-size; }
 /* "?" next to the Best order heading, with a bubble shown on hover, focus or tap. */
 .info-tip { position: relative; display: inline-flex; }
 .info-tip-button {
@@ -422,7 +422,12 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .info-tip:hover .info-tip-bubble,
 .info-tip-button:focus-visible + .info-tip-bubble,
 .info-tip.open .info-tip-bubble { display: block; }
-.metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+/* Four in a row while each tile can be 120px wide (enough for "Trabajo anterior" on one
+   line), else two rows of two, never three and one. */
+.metrics { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin: 0; padding: 0; list-style: none; }
+@container metrics (max-width: 503px) {
+    .metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
 .rank-tile {
     cursor: grab;
     user-select: none;
@@ -430,12 +435,15 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 .rank-tile.dragging { opacity: 0.55; cursor: grabbing; }
 .rank-tile.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
-.rank-tile-head { display: flex; align-items: center; gap: 4px; }
-.rank-tile-head .metric-label { flex: 1; min-width: 0; }
-.rank-num { font-size: 11px; font-weight: 600; min-width: 12px; color: var(--text-muted); }
+.rank-tile-head { display: flex; align-items: baseline; gap: 5px; }
+/* One line: the narrowest tile (120px) fits "Trabajo anterior"; longer names end in "…". */
+.rank-tile-head .metric-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rank-num { flex: none; font-size: 11px; font-weight: 600; color: var(--text-muted); }
+.rank-tile-body { display: flex; align-items: center; gap: 2px; }
+.rank-tile-body .metric-value { flex: 1; min-width: 0; }
 .rank-tile.primary .rank-num { color: inherit; }
 .metrics-box.updating .metric-value { opacity: 0.4; }
-.metric { background: var(--surface-alt); border-radius: var(--radius); padding: 10px 12px; }
+.metric { background: var(--surface-alt); border-radius: var(--radius); padding: 10px; }
 .metric-label { font-size: 12px; color: var(--text-secondary); }
 .metric.primary { background: var(--accent-bg); color: var(--accent-text); }
 .metric.primary .metric-label { color: inherit; }

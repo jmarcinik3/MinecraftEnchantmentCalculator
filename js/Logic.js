@@ -78,18 +78,6 @@ function fromLinkText(link) {
     return new TextDecoder().decode(Uint8Array.from(binary, char => char.charCodeAt(0)));
 }
 
-// The metadata with item and enchantment names in another language: `names` is
-// { items: {ns: name}, enchantments: {ns: name} } (Text.js `names`); missing ones stay English.
-export function localizedMetadata(meta, names) {
-    if (!names) return meta;
-    const enchantments = {};
-    for (const [ns, data] of Object.entries(meta.enchantments)) {
-        const name = names.enchantments && names.enchantments[ns];
-        enchantments[ns] = name ? { ...data, stylized: name } : data;
-    }
-    return { ...meta, enchantments, items: { ...meta.items, ...(names.items || {}) } };
-}
-
 // Each anvil use has a 12% chance to damage the anvil (Java and Bedrock alike), and a
 // new anvil breaks on its 3rd damage (anvil -> chipped -> damaged -> gone).
 export const ANVIL_DAMAGE_CHANCE = 0.12;
@@ -164,13 +152,17 @@ export function roman(number) {
     return out;
 }
 
-export function createLogic(meta) {
+// `names`: the item and enchantment names in the page's language, { items: {ns: name},
+// enchantments: {ns: name} } (`names` in json/text/<language>.json). A missing name
+// shows as its namespace.
+export function createLogic(meta, names = {}) {
     const enchantments = meta.enchantments;
+    const items = new Set(meta.items);
 
-    const enchName = ns => enchantments[ns].stylized;
+    const enchName = ns => (names.enchantments && names.enchantments[ns]) || ns;
     const maxLevel = ns => Number(enchantments[ns].max_level);
     const isCurse = ns => ns.endsWith("_curse");
-    const itemName = ns => meta.items[ns];
+    const itemName = ns => (names.items && names.items[ns]) || ns;
 
     function conflicts(a, b) {
         if (a === b) return false;
@@ -237,7 +229,7 @@ export function createLogic(meta) {
     }
 
     function enchantableItems() {
-        return Object.keys(meta.items).filter(item => item !== "book" && applicable(item).length > 0);
+        return meta.items.filter(item => item !== "book" && applicable(item).length > 0);
     }
 
     // Keep only valid, applicable enchantments, dropping conflicts unless they are allowed.
@@ -482,7 +474,7 @@ export function createLogic(meta) {
 
     function deserialize(text, makeId) {
         const data = JSON.parse(fromLinkText(text));
-        const item = typeof data.i === "string" && data.i in meta.items && data.i !== "book" ? data.i : null;
+        const item = typeof data.i === "string" && items.has(data.i) && data.i !== "book" ? data.i : null;
         if (!item) return null;
         const books = Array.isArray(data.b) ? data.b : [];
         const allow_incompatible = data.x === 1;
@@ -512,7 +504,7 @@ export function createLogic(meta) {
     }
 
     return {
-        enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
+        isItem: ns => items.has(ns), enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, serialize, deserialize

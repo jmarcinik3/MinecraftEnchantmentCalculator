@@ -1,5 +1,5 @@
-import { createLogic, editionMetadata, localizedMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
-import { TEXT, LANGUAGES, setLanguage } from "./Text.js";
+import { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
+import { TEXT, LANGUAGES, loadLanguage } from "./Text.js";
 
 const META_URL = "json/metadata.json";
 const WORKER_URL = "js/Calculator.js";
@@ -150,7 +150,7 @@ function setAllowIncompatible(allowed) {
 // Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the
 // helpers are rebuilt for it and anything it does not have is dropped.
 function useEdition(edition) {
-    logic = createLogic(localizedMetadata(editionMetadata(meta, edition), TEXT.names));
+    logic = createLogic(editionMetadata(meta, edition), TEXT.names);
 }
 
 function setEdition(edition) {
@@ -213,7 +213,7 @@ function renderLanguage() {
         "aria-label": TEXT.page.language_label,
         title: TEXT.page.language_label,
         onchange: event => switchLanguage(event.target.value)
-    }, Object.entries(LANGUAGES).map(([code, { label }]) => h("option", { value: code, selected: code === language }, label))));
+    }, Object.entries(LANGUAGES).map(([code, label]) => h("option", { value: code, selected: code === language }, label))));
 }
 
 // The saved choice, else the browser's language if there is text for it, else English.
@@ -224,14 +224,21 @@ function startingLanguage() {
     return LANGUAGES[browser] ? browser : "en";
 }
 
-function applyLanguage(code) {
-    language = setLanguage(code);
+// Loads a language's text (json/text/<code>.json), falling back to English if it
+// can't be loaded. Throws only when English can't be loaded either.
+async function applyLanguage(code) {
+    try {
+        language = await loadLanguage(code);
+    } catch (error) {
+        console.warn(error);
+        language = await loadLanguage("en");
+    }
     document.documentElement.lang = language;
     fillPageText();
 }
 
-function switchLanguage(code) {
-    applyLanguage(code);
+async function switchLanguage(code) {
+    await applyLanguage(code);
     writeStorage(LANGUAGE_STORAGE_KEY, language);
     useEdition(state.edition); // item and enchantment names
     renderMetrics(true);
@@ -272,17 +279,17 @@ function renderSaved() {
         list.length
             ? h("ul", { class: "saved-list" }, list.map((setup, index) => h("li", {},
                 h("button", { type: "button", class: "saved-load", title: setup.name, onclick: () => loadSetup(setup.link) },
-                    setup.item && meta.items[setup.item] ? icon(setup.item, true) : null,
+                    logic.isItem(setup.item) ? icon(setup.item, true) : null,
                     h("span", { class: "saved-name" }, setup.name)),
                 h("button", {
                     type: "button", class: "saved-delete", title: TEXT.page.delete_saved,
-                    "aria-label": TEXT.page.delete_saved_label(setup.name),
+                    "aria-label": TEXT.page.delete_saved_label({ name: setup.name }),
                     onclick: () => deleteSetup(index)
                 }, "×")
             )))
             : h("p", { class: "hint" }, TEXT.page.saved_empty),
         removed_setup ? h("div", { class: "saved-removed" },
-            h("span", { class: "saved-name" }, TEXT.page.removed_saved(removed_setup.setup.name)),
+            h("span", { class: "saved-name" }, TEXT.page.removed_saved({ name: removed_setup.setup.name })),
             h("button", { type: "button", class: "link", onclick: undoRemoveSetup }, TEXT.page.undo_remove)
         ) : null
     ).childNodes);
@@ -420,7 +427,7 @@ function wantedRow(ns, in_exclusive_group, short = null) {
             class: "level" + (chosen === level ? " selected" : ""),
             "aria-pressed": String(chosen === level),
             "aria-label": logic.displayName(ns, level),
-            title: blocker ? TEXT.wanted.replaces(logic.enchName(blocker)) : null,
+            title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
             onclick: () => setWanted(ns, chosen === level ? 0 : level)
         }, roman(level)));
     }
@@ -431,9 +438,9 @@ function wantedRow(ns, in_exclusive_group, short = null) {
             h("span", { class: "ench-title" },
                 logic.enchName(ns),
                 short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
-                    short.best ? TEXT.wanted.books_reach(roman(short.best)) : TEXT.wanted.not_on_books) : null
+                    short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
             ),
-            blocker && !in_exclusive_group ? h("span", { class: "note" }, TEXT.wanted.conflicts_with(logic.enchName(blocker))) : null
+            blocker && !in_exclusive_group ? h("span", { class: "note" }, TEXT.wanted.conflicts_with({ name: logic.enchName(blocker) })) : null
         ),
         h("div", { class: "levels" }, levels)
     );
@@ -458,7 +465,7 @@ function enchantmentEditor(enchantments, unwanted = new Set(), book = null) {
                 options.push(h("option", { value: l, selected: l === level }, roman(l)));
             }
             level_select = h("select", {
-                "aria-label": TEXT.books.level_of_label(logic.enchName(ns)),
+                "aria-label": TEXT.books.level_of_label({ name: logic.enchName(ns) }),
                 onchange: event => { enchantments[ns] = Number(event.target.value); commit(); }
             }, options);
         }
@@ -469,7 +476,7 @@ function enchantmentEditor(enchantments, unwanted = new Set(), book = null) {
             h("button", {
                 type: "button",
                 class: "tag-remove",
-                "aria-label": TEXT.books.remove_enchantment_label(logic.enchName(ns)),
+                "aria-label": TEXT.books.remove_enchantment_label({ name: logic.enchName(ns) }),
                 onclick: () => { delete enchantments[ns]; commit(); }
             }, "×")
         );
@@ -502,9 +509,9 @@ function enchantmentEditor(enchantments, unwanted = new Set(), book = null) {
 function stepper(label, value, min, max, onSet, help) {
     return h("span", { class: "stepper", title: help },
         label,
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label(label), disabled: value <= min, onclick: () => onSet(value - 1) }, "−"),
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label({ label }), disabled: value <= min, onclick: () => onSet(value - 1) }, "−"),
         h("span", { class: "stepper-value" }, value),
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label(label), disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label({ label }), disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
     );
 }
 
@@ -536,7 +543,7 @@ function renderBooks() {
 
     box.append(h("div", { class: "toolbar" },
         h("button", { type: "button", class: "btn small", onclick: () => addBook("book") }, icon("book", true), TEXT.books.add_book),
-        h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item(item_name)),
+        h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item({ item: item_name.toLowerCase() })),
         h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, TEXT.books.automatic),
         // In the toolbar's row, so it appearing does not move the entries.
         undo_books ? h("button", {
@@ -558,7 +565,7 @@ function renderBooks() {
                 h("button", {
                     type: "button",
                     class: "tag-remove",
-                    "aria-label": TEXT.books.remove_entry_label(index + 1),
+                    "aria-label": TEXT.books.remove_entry_label({ number: index + 1 }),
                     onclick: () => { state.books = state.books.filter(b => b !== book); commit(); }
                 }, "×")
             ),
@@ -577,8 +584,8 @@ function renderBooksAlert(check) {
         return;
     }
     const details = check.short.map(fixSuggestion);
-    box.replaceChildren(infoTip("books-alert-tip", TEXT.books.alert(check.short.length),
-        TEXT.books.alert_label(check.short.length), details, "alert"));
+    box.replaceChildren(infoTip("books-alert-tip", TEXT.books.alert({ count: check.short.length }),
+        TEXT.books.alert_label({ count: check.short.length }), details, "alert"));
 }
 
 // One chosen enchantment the list can't reach, and the fix: a single book at the chosen
@@ -588,8 +595,8 @@ function fixSuggestion({ ns, wanted, best }) {
     const adding = logic.addBook(state, ns, wanted);
     const replaced = adding.removed.map(book => {
         const name = logic.displayName(ns, book.enchantments[ns]);
-        const entry = book.type === "item" ? TEXT.books.replaced_item(logic.itemName(state.item), name) : name;
-        return (book.copies > 1 ? TEXT.books.path_step(book.copies, "") : "") + entry;
+        const entry = book.type === "item" ? TEXT.books.replaced_item({ item: logic.itemName(state.item), enchantment: name }) : name;
+        return book.copies > 1 ? TEXT.books.copies_of({ count: book.copies, name: entry }) : entry;
     });
     const fix = h("button", {
         type: "button", class: "fix-option",
@@ -605,12 +612,12 @@ function fixSuggestion({ ns, wanted, best }) {
             commit(true);
         }
     },
-        h("span", { class: "fix-action" }, TEXT.books.fix_new_book(logic.displayName(ns, wanted))),
-        replaced.length ? h("span", { class: "fix-replaces" }, TEXT.books.fix_replaces(replaced)) : null
+        h("span", { class: "fix-action" }, TEXT.books.fix_new_book({ name: logic.displayName(ns, wanted) })),
+        replaced.length ? h("span", { class: "fix-replaces" }, TEXT.books.fix_replaces({ names: replaced })) : null
     );
     return h("div", { class: "fix" },
         h("div", { class: "fix-title" }, logic.displayName(ns, wanted),
-            h("span", { class: "fix-best" }, best ? TEXT.books.fix_best(roman(best)) : TEXT.wanted.not_on_books)),
+            h("span", { class: "fix-best" }, best ? TEXT.books.fix_best({ level: roman(best) }) : TEXT.wanted.not_on_books)),
         fix
     );
 }
@@ -629,7 +636,7 @@ function entryHandle(index, count) {
     return h("button", {
         type: "button",
         class: "drag-handle",
-        "aria-label": TEXT.books.reorder_label(index + 1),
+        "aria-label": TEXT.books.reorder_label({ number: index + 1 }),
         title: TEXT.books.reorder_help,
         onpointerdown: event => dragToReorder(event, event.currentTarget.closest(".book-editor"), index, ".book-editor",
             moveEntry, renderBooks),
@@ -753,19 +760,23 @@ function rankTile(criterion, index) {
         title: TEXT.ranking.criteria[criterion].help,
         onpointerdown: event => startRankDrag(event, index)
     },
+        // The name gets the whole top line, so longer ones ("Trabajo anterior") stay on one
+        // line; the arrows sit beside the value below.
         h("div", { class: "rank-tile-head" },
             h("span", { class: "rank-num" }, index + 1),
-            h("span", { class: "metric-label" }, label),
+            h("span", { class: "metric-label" }, label)
+        ),
+        h("div", { class: "rank-tile-body" },
+            h("div", { class: "metric-value" }),
             h("button", {
                 type: "button", class: "rank-move", disabled: index === 0,
-                "aria-label": TEXT.ranking.rank_higher_label(label), onclick: () => setPriority(movePriority(state.priority, index, -1))
+                "aria-label": TEXT.ranking.rank_higher_label({ label }), onclick: () => setPriority(movePriority(state.priority, index, -1))
             }, "‹"),
             h("button", {
                 type: "button", class: "rank-move", disabled: last,
-                "aria-label": TEXT.ranking.rank_lower_label(label), onclick: () => setPriority(movePriority(state.priority, index, 1))
+                "aria-label": TEXT.ranking.rank_lower_label({ label }), onclick: () => setPriority(movePriority(state.priority, index, 1))
             }, "›")
-        ),
-        h("div", { class: "metric-value" })
+        )
     );
 }
 
@@ -855,7 +866,7 @@ function renderResults() {
     // Only while it runs: once the result is in, the wait is over.
     const size = searchSize(entries);
     if (running && size.groups <= MAX_GROUPS && size.splits > SLOW_SPLITS) {
-        box.append(h("div", { class: "warning" }, TEXT.results.slow_search(entries.length)));
+        box.append(h("div", { class: "warning" }, TEXT.results.slow_search({ count: entries.length })));
     }
 
     if (running && show_progress) {
@@ -892,7 +903,7 @@ function renderResults() {
         content.append(h("div", { class: "warning" },
             state.no_step_limit
                 ? TEXT.results.no_valid_order
-                : TEXT.results.no_valid_order_within(state.max_step)));
+                : TEXT.results.no_valid_order_within({ limit: state.max_step })));
         return;
     }
     if (!node.left) {
@@ -904,24 +915,24 @@ function renderResults() {
 
     const missing = logic.missing(state, node);
     if (missing.length) {
-        content.append(h("div", { class: "warning" }, TEXT.results.missing(missing)));
+        content.append(h("div", { class: "warning" }, TEXT.results.missing({ names: missing })));
     }
     const extra = logic.extra(state, node);
     if (extra.length) {
-        content.append(h("div", { class: "note-box", title: TEXT.results.extra_help }, TEXT.results.extra(extra)));
+        content.append(h("div", { class: "note-box", title: TEXT.results.extra_help }, TEXT.results.extra({ names: extra })));
     }
 
     // Only on paper: what is being made, since the inputs are not printed.
-    content.append(h("p", { class: "print-only" }, TEXT.results.text_wanted(logic.itemName(state.item), logic.summary(node.enchantments))));
+    content.append(h("p", { class: "print-only" }, TEXT.results.text_wanted({ item: logic.itemName(state.item), enchantments: logic.summary(node.enchantments) })));
 
     // With "Your level" filled in: the level before and after each step, in step order.
     const track = player_level == null ? null : levelTrack(steps.map(step => step.node.merge_levels), player_level);
     content.append(h("div", { class: "result-facts" },
         h("span", { title: TEXT.results.anvil_wear_help },
-            TEXT.results.anvil_wear(steps.length, percentText(anvilBreakChance(steps.length)))),
+            TEXT.results.anvil_wear({ uses: steps.length, chance: percentText(anvilBreakChance(steps.length)) })),
         track ? h("span", { class: track.short ? "short" : null }, track.short
-            ? TEXT.results.levels_needed(track.short, node.cumulative_levels)
-            : TEXT.results.levels_left(track.end)) : null
+            ? TEXT.results.levels_needed({ short: track.short, start: node.cumulative_levels })
+            : TEXT.results.levels_left({ level: track.end })) : null
     ));
 
     content.append(h("div", { class: "toolbar result-tools" },
@@ -948,7 +959,7 @@ function renderResults() {
     const rounds = logic.stepRounds(steps);
     content.append(h("div", { class: "rounds" }, rounds.map((round, index) => h("section", { class: "round" },
         h("div", { class: "round-label", title: round.length > 1 ? TEXT.results.round_help : null },
-            TEXT.results.round(index + 1, round.length)),
+            TEXT.results.round({ number: index + 1, steps: round.length })),
         h("ol", { class: "anvil-steps" }, round.map(step => anvilStep(step, done, order_key, track && track.steps[step.number - 1])))
     ))));
 }
@@ -979,7 +990,7 @@ function mergeTree(root, steps) {
                 h("span", { class: "tree-text" },
                     h("span", { class: "tree-name" + (node.renamed && state.rename_to.trim() ? " renamed" : "") }, nodeName(node)),
                     enchanted ? h("span", { class: "tree-ench" }, logic.summary(node.enchantments)) : null),
-                number ? h("span", { class: "tree-step" }, TEXT.results.tree_step(number, node.merge_levels)) : null
+                number ? h("span", { class: "tree-step" }, TEXT.results.tree_step({ number, levels: node.merge_levels })) : null
             ),
             node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
         );
@@ -992,17 +1003,20 @@ function mergeTree(root, steps) {
 function stepsText(root, steps) {
     const text = TEXT.results;
     const part = side => side.kind === "step"
-        ? text.text_result_of(side.index)
-        : text.text_entry(nodeName(side.node), logic.summary(side.node.enchantments));
+        ? text.text_result_of({ number: side.index })
+        : side.node.enchantments.length
+            ? text.text_entry({ name: nodeName(side.node), enchantments: logic.summary(side.node.enchantments) })
+            : nodeName(side.node);
     const lines = [
-        text.text_wanted(logic.itemName(state.item), logic.summary(root.enchantments)),
-        text.text_totals(root.cumulative_levels, Math.round(root.cumulative_xp).toLocaleString(language), root.max_step)
+        text.text_wanted({ item: logic.itemName(state.item), enchantments: logic.summary(root.enchantments) }),
+        text.text_totals({ levels: root.cumulative_levels, xp: Math.round(root.cumulative_xp).toLocaleString(language), max_step: root.max_step })
     ];
     logic.stepRounds(steps).forEach((round, index) => {
-        lines.push("", text.round(index + 1, round.length));
+        lines.push("", text.round({ number: index + 1, steps: round.length }));
         for (const step of round) {
-            const rename = step.node.renamed ? " (" + text.text_rename(state.rename_to.trim()) + ")" : "";
-            lines.push(text.text_step(step.number, part(step.left), part(step.right), step.node.merge_levels) + rename);
+            const new_name = state.rename_to.trim();
+            const rename = !step.node.renamed ? "" : " (" + (new_name ? text.text_rename_to({ name: new_name }) : text.text_rename) + ")";
+            lines.push(text.text_step({ number: step.number, left: part(step.left), right: part(step.right), levels: step.node.merge_levels }) + rename);
         }
     });
     lines.push("", location.href);
@@ -1048,7 +1062,7 @@ function anvilStep(step, done, order_key, level = null) {
     const tick = h("input", {
         type: "checkbox",
         checked: done.has(number),
-        "aria-label": TEXT.results.step_done_label(number),
+        "aria-label": TEXT.results.step_done_label({ number }),
         onchange: event => {
             if (event.target.checked) done.add(number);
             else done.delete(number);
@@ -1070,11 +1084,11 @@ function anvilStep(step, done, order_key, level = null) {
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
                 h("span", { class: "anvil-cost" }, step.node.renamed
-                    ? TEXT.results.cost_renamed(step.node.merge_levels)
-                    : TEXT.results.cost(step.node.merge_levels)),
+                    ? TEXT.results.cost_renamed({ levels: step.node.merge_levels })
+                    : TEXT.results.cost({ levels: step.node.merge_levels })),
                 level ? h("span", { class: "level-track" + (level.short ? " short" : "") }, level.short
-                    ? TEXT.results.level_short(level.short)
-                    : TEXT.results.level_track(level.before, level.after)) : null
+                    ? TEXT.results.level_short({ count: level.short })
+                    : TEXT.results.level_track({ before: level.before, after: level.after })) : null
             ),
             anvilCell(step.node, changed, "result")
         )
@@ -1282,7 +1296,13 @@ function fillPageText() {
 }
 
 async function init() {
-    applyLanguage(startingLanguage());
+    try {
+        await applyLanguage(startingLanguage());
+    } catch (error) {
+        // Without any text there is nothing to show; the console says why.
+        console.error(error);
+        return;
+    }
     try {
         const response = await fetch(META_URL);
         meta = await response.json();

@@ -17,13 +17,16 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   conflict-free unless `allow_incompatible` is on.
   Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
   Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one.
-- `js/Text.js` (ES module): `TEXT`, every string the page shows (labels, tooltips, messages), grouped by
-  section; templated ones are functions (`name => ...`). index.html headings use `data-text="section.key"`.
-  Add new UI text here, not inline in App.js. A test checks the criteria and `data-text` keys exist.
-  Languages: `EN` lives in Text.js, others in `js/Text<Language>.js` (`TextSpanish.js` = `ES`), listed in `LANGUAGES`;
-  `setLanguage(code)` swaps `TEXT`'s contents in place. Each language has the same keys (a test checks keys, kinds
-  and template arity), plus `names: { items, enchantments }` (English: `null`, from metadata) that Logic.js
-  `localizedMetadata` puts into the metadata App.js `useEdition` gives `createLogic`. A new string goes in every language.
+- `json/text/<language>.json` (`en`, `es`): every string the page shows (labels, tooltips, messages), grouped by
+  section, plus `names: { items, enchantments }` (the only place item and enchantment names live, English included).
+  Templates use `{placeholder}` (arrays join as a localized list); number-dependent text is
+  `{ "plural": "<value>", "one": ..., "other": ... }` (Intl.PluralRules forms). index.html headings use
+  `data-text="section.key"`. Add new UI text there, in every language, not inline in App.js. Tests check each
+  language has the same entries, kinds and placeholders as English, and every item/enchantment name.
+- `js/Text.js` (ES module): the loader. `LANGUAGES` (code -> name; add a language here and as a JSON file),
+  `loadLanguage(code)` fetches and compiles into `TEXT` in place, so templates are called with named values:
+  `TEXT.wanted.replaces({ name })`. `compileText`/`setText` are the pure parts (used by tests).
+  App.js `useEdition` passes `TEXT.names` to `createLogic(meta, names)`.
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta, { edition }) -> { solve, combine, makeLeaf }`,
   `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `EDITIONS`, `MAXIMUM_MERGE_LEVELS`, `MAXIMUM_GROUPS`.
@@ -47,15 +50,15 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
   (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
-- `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable
+- `js/Logic.js` (ES module): `createLogic(meta, names)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 3
   heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
   items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 2 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
-- `json/metadata.json`: keys `enchantments` ({incompatible, items, max_level, stylized, weight}), `items`,
-  `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
+- `json/metadata.json`: game data only, no names: keys `enchantments` ({incompatible, items, max_level, weight,
+  optional `bedrock`}), `items` (list of item namespaces), `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
 - `ServiceWorker.js` (site root, since a worker only covers its folder): offline copy, network first (with `cache: "no-cache"`, so the HTTP cache never serves a stale file). Precaches the
   JS/CSS/JSON files (add new ones to `FILES`); `VERSION` is stamped on deploy so the URLs match and old caches go.
   `manifest.webmanifest` + `img/app_icon_*.png` make it installable.
@@ -70,21 +73,21 @@ levels it gains over the target's. A metadata enchantment's `bedrock` object ove
 (Impaling `weight` 1; Sweeping Edge `items: []`, since Bedrock lacks it). Logic.js `editionMetadata` applies the same overrides.
 
 ## Adding an item or enchantment
-Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add an image to
-`img/`, then run the tests.
+Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add its name to
+`names` in every `json/text/*.json`, add an image to `img/`, then run the tests.
 
 ## Tests (run after engine/logic changes)
 `node test/Engine.test.js` (includes brute-force cross-check) and `node test/Logic.test.mjs`
-(loads Logic.js and Text.js through data: URLs, `moduleUrl` inlining their `./X.js` imports).
+(loads Logic.js and Text.js through data: URLs, `moduleUrl` inlining their `./X.js` imports, and reads json/text directly).
 
 ## CI and hosting
 `.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run. On `main`,
 if the tests pass, it copies `index.html ServiceWorker.js manifest.webmanifest css js json img font` into `_site/` and deploys to GitHub Pages at
 https://jmarcinik3.github.io/MinecraftEnchantmentCalculator/. New top-level site folders must be added to that copy step.
 Deploy then runs `.github/stamp-version.sh`, which adds `?v=<commit>` to the page's references to its CSS, JS modules
-(including Text.js's language imports), worker, Engine.js and metadata, and sets ServiceWorker.js `VERSION` (in `_site` only), so cached copies (phones especially) are not reused. It fails if a
+(and Text.js `TEXT_VERSION` for the json/text files), worker, Engine.js and metadata, and sets ServiceWorker.js `VERSION` (in `_site` only), so cached copies (phones especially) are not reused. It fails if a
 reference is missing: when renaming or adding one of those files or imports, update the script.
 
 ## Conventions
 camelCase functions, PascalCase classes/filenames, snake_case variables, UPPER_CASE constants.
-Keep Engine.js DOM-free and UMD. Keep UI text short, and in `js/Text.js`.
+Keep Engine.js DOM-free and UMD. Keep UI text short, and in `json/text/*.json`.

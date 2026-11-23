@@ -10,10 +10,12 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 // data: URLs too (a data: URL has no folder to resolve "./" against).
 const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path)
     .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
-const { createLogic, editionMetadata, localizedMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import(moduleUrl("../js/Logic.js"));
+const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
-const { TEXT, LANGUAGES, setLanguage } = await import(moduleUrl("../js/Text.js"));
-const logic = createLogic(meta);
+const { TEXT, LANGUAGES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
+const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
+setText(TEXTS.en, "en");
+const logic = createLogic(meta, TEXTS.en.names);
 
 let passed = 0;
 function test(name, fn) {
@@ -31,7 +33,7 @@ function test(name, fn) {
 const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false, edition: "java", rename: false, rename_to: "" });
 
 test("every item has an icon file", () => {
-    for (const item of Object.keys(meta.items)) {
+    for (const item of meta.items) {
         const file = (meta.icons && meta.icons[item]) || `${item}.png`;
         assert.doesNotThrow(() => readFileSync(new URL(`../img/${file}`, import.meta.url)), file);
     }
@@ -148,39 +150,56 @@ test("Text.js has every ranking criterion and every page string", () => {
 });
 
 test("every language has the same text entries as English, of the same kind", () => {
-    const shape = (text, path = "") => Object.entries(text).flatMap(([key, value]) =>
-        key === "names" ? [] // English names come from the metadata
-            : value && typeof value === "object" ? shape(value, path + key + ".")
-                : [path + key + ":" + typeof value]);
-    const english = shape(LANGUAGES.en.text).sort();
-    for (const [language, { label, text }] of Object.entries(LANGUAGES)) {
-        assert.ok(label, language);
+    // Each entry's path, kind (plain, template or plural) and the values it fills in.
+    const placeholders = text => [...new Set([...text.matchAll(/\{([a-z_]+)\}/g)].map(m => m[1]))].sort().join(",");
+    const shape = (text, path = "") => Object.entries(text).flatMap(([key, value]) => {
+        if (key === "names") return [];
+        if (typeof value === "string") return [path + key + " " + (placeholders(value) ? "template:" + placeholders(value) : "plain")];
+        if (value && "plural" in value) {
+            assert.ok(value.other, path + key + " needs an \"other\" form");
+            const forms = Object.keys(value).filter(form => form !== "plural");
+            return [path + key + " plural:" + value.plural + ":" + [...new Set(forms.map(form => placeholders(value[form])))].join("|")];
+        }
+        return shape(value, path + key + ".");
+    });
+    const english = shape(TEXTS.en).sort();
+    assert.deepStrictEqual(Object.keys(TEXTS), Object.keys(LANGUAGES));
+    for (const [language, text] of Object.entries(TEXTS)) {
+        assert.ok(LANGUAGES[language], language);
         assert.deepStrictEqual(shape(text).sort(), english, language);
-        // Templates take the same values.
-        for (const section of Object.keys(LANGUAGES.en.text)) {
-            for (const [key, value] of Object.entries(LANGUAGES.en.text[section] || {})) {
-                if (typeof value === "function") assert.strictEqual(text[section][key].length, value.length, language + " " + section + "." + key);
-            }
-        }
-        // Every item and enchantment is named (English uses the metadata).
-        if (text.names) {
-            assert.deepStrictEqual(Object.keys(text.names.items).sort(), Object.keys(meta.items).sort(), language);
-            assert.deepStrictEqual(Object.keys(text.names.enchantments).sort(), Object.keys(meta.enchantments).sort(), language);
-        }
+        // Every item and enchantment is named, and nothing else.
+        assert.deepStrictEqual(Object.keys(text.names.items).sort(), [...meta.items].sort(), language);
+        assert.deepStrictEqual(Object.keys(text.names.enchantments).sort(), Object.keys(meta.enchantments).sort(), language);
     }
-    assert.strictEqual(setLanguage("es"), "es");
-    assert.strictEqual(TEXT.books.add_book, "Añadir libro");
-    assert.strictEqual(setLanguage("xx"), "en"); // unknown: English
-    assert.strictEqual(TEXT.books.add_book, "Add book");
 });
 
-test("translated names replace the metadata's, in every helper", () => {
-    const spanish = createLogic(localizedMetadata(meta, LANGUAGES.es.text.names));
+test("text templates fill in values, plurals and lists in the language's way", () => {
+    const english = compileText(TEXTS.en, "en"), spanish = compileText(TEXTS.es, "es");
+    assert.strictEqual(english.books.add_book, "Add book");
+    assert.strictEqual(english.wanted.replaces({ name: "Smite" }), "Replaces Smite");
+    assert.strictEqual(english.results.level_short({ count: 1 }), "Need 1 more level");
+    assert.strictEqual(english.results.level_short({ count: 3 }), "Need 3 more levels");
+    assert.strictEqual(english.results.round({ number: 2, steps: 1 }), "Round 2");
+    assert.strictEqual(english.results.round({ number: 2, steps: 3 }), "Round 2 · any order");
+    assert.strictEqual(english.books.fix_replaces({ names: ["A", "B", "C"] }), "Replaces A, B, and C, no longer needed");
+    assert.strictEqual(spanish.books.fix_replaces({ names: ["A", "B"] }), "Sustituye a A y B, que ya no hacen falta");
+    assert.strictEqual(spanish.results.level_short({ count: 1 }), "Falta 1 nivel");
+    assert.strictEqual(english.names.items.boots, "Boots"); // names are kept as they are
+    // TEXT is filled in place, so modules holding it see the language change.
+    const held = TEXT;
+    setText(TEXTS.es, "es");
+    assert.strictEqual(held.books.add_book, "Añadir libro");
+    setText(TEXTS.en, "en");
+    assert.strictEqual(held.books.add_book, "Add book");
+});
+
+test("names come from the language's text, in every helper", () => {
+    const spanish = createLogic(meta, TEXTS.es.names);
     assert.strictEqual(spanish.displayName("protection", 4), "Protección IV");
     assert.strictEqual(spanish.itemName("boots"), "Botas");
-    assert.strictEqual(spanish.maxLevel("protection"), 4);
-    assert.strictEqual(localizedMetadata(meta, null), meta);
-    assert.strictEqual(meta.items.boots, "Boots"); // the original is not changed
+    assert.strictEqual(logic.displayName("protection", 4), "Protection IV");
+    assert.strictEqual(createLogic(meta).itemName("boots"), "boots"); // no names: the namespace
+    assert.ok(logic.isItem("boots") && !logic.isItem("boot"));
 });
 
 test("level track: the level before and after each step, and what is short", () => {
@@ -236,7 +255,7 @@ test("search size counts identical entries once, matching the engine", () => {
 
 test("editions: Bedrock has no Sweeping Edge and cheaper Impaling", () => {
     assert.deepStrictEqual(EDITIONS, createRequire(import.meta.url)("../js/Engine.js").EDITIONS);
-    const bedrock = createLogic(editionMetadata(meta, "bedrock"));
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
     assert.ok(logic.applicable("sword").includes("sweeping"));
     assert.ok(!bedrock.applicable("sword").includes("sweeping"));
     assert.strictEqual(editionMetadata(meta, "bedrock").enchantments.impaling.weight, 1);

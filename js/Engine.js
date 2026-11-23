@@ -65,7 +65,7 @@
                 items: new Set(data.items)
             };
         }
-        const item_namespaces = new Set(Object.keys(metadata.items));
+        const item_namespaces = new Set(metadata.items);
 
         function canApply(item_namespace, enchantment_namespace) {
             return item_namespace === "book" || enchantments[enchantment_namespace].items.has(item_namespace);
