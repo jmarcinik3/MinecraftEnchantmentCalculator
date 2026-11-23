@@ -23,6 +23,10 @@
     --danger-text: #8f2525;
     --curse: #b3261e;
     --row-glint: rgba(140, 80, 255, 0.13);
+    --gui-bg: #c6c6c6;
+    --gui-light: #ffffff;
+    --gui-dark: #555555;
+    --gui-text: #404040;
     --radius: 8px;
     color-scheme: light;
 }
@@ -49,6 +53,10 @@
         --danger-text: #f3b0b0;
         --curse: #ff6b6b;
         --row-glint: rgba(190, 140, 255, 0.16);
+        --gui-bg: #3a3a3d;
+        --gui-light: #5c5c60;
+        --gui-dark: #1c1c1e;
+        --gui-text: #c8c8c8;
         color-scheme: dark;
     }
 }
@@ -72,6 +80,10 @@
     --danger-text: #f3b0b0;
     --curse: #ff6b6b;
     --row-glint: rgba(190, 140, 255, 0.16);
+    --gui-bg: #3a3a3d;
+    --gui-light: #5c5c60;
+    --gui-dark: #1c1c1e;
+    --gui-text: #c8c8c8;
     color-scheme: dark;
 }
 
@@ -1430,54 +1442,118 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .icon-toggle .item-icon.small { width: 20px; height: 20px; }
 
 /* Anvil steps: drawn like the in-game anvil and tooltips */
-.anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; container: steps / inline-size; }
+.anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; container: steps / inline-size; }
 
 /* Rounds: groups of steps that don't depend on each other. */
-.rounds { display: grid; gap: 14px; }
-.round { display: grid; gap: 10px; }
-.round + .round { padding-top: 12px; border-top: 1px dashed var(--border-strong); }
+.rounds { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; }
+.round { display: grid; grid-template-columns: minmax(0, 1fr); gap: 10px; min-width: 0; }
+/* Shrinkable, so a folded step's one-line summary ellipsizes instead of widening the list. */
+.anvil-steps, .anvil-step { min-width: 0; }
+/* The timeline: a rail down the left with a node per step (numbered; green ✓ once done;
+   ringed for the current one), and each round's label as a break on the rail. */
+.rounds.timeline { position: relative; padding-left: 32px; }
+.rounds.timeline::before {
+    content: "";
+    position: absolute;
+    left: 12px;
+    top: 4px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 1px;
+    background: var(--border-strong);
+}
 .round-label {
+    position: relative;
+    z-index: 1;
+    width: fit-content;
+    margin-left: -32px;
+    padding: 2px 9px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+    background: var(--surface);
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
     color: var(--text-muted);
 }
+.step-node {
+    position: absolute;
+    z-index: 1;
+    left: -32px;
+    top: 9px;
+    width: 26px;
+    height: 26px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text-secondary);
+    font: 600 11px/1 system-ui, sans-serif;
+}
+.anvil-step.done .step-node { border-color: #3c8d3f; background: #3c8d3f; color: #fff; }
+.anvil-step.current .step-node { border-color: var(--accent); color: var(--accent-text); box-shadow: 0 0 0 4px var(--accent-bg); }
 
 .anvil-step {
     position: relative;
-    padding: 12px 10px 10px;
+    padding: 8px 10px 10px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface-alt);
 }
 
-.anvil-step-num {
-    position: absolute;
-    top: -9px;
-    left: 10px;
-    min-width: 20px;
-    height: 18px;
-    padding: 0 6px;
-    border-radius: 9px;
-    background: var(--accent-bg);
-    color: var(--accent-text);
-    font-size: 11px;
-    line-height: 18px;
-    text-align: center;
-    /* Holds the step's tick box next to its number. */
+/* The step's head: the tick (the whole "☐ Step 3" is the target) and a folded step's line. */
+.anvil-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.anvil-step.current { border-color: var(--accent); }
+.step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; }
+.step-tick {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 6px;
+    flex: none;
+    padding: 3px 8px 3px 5px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
     cursor: pointer;
 }
-.anvil-step-num input { margin: 0; width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; }
-/* A ticked-off step fades back so the next one stands out. */
-.anvil-step.done .anvil-row { opacity: 0.4; }
-.anvil-step.done .anvil-step-num { background: var(--surface); color: var(--text-muted); }
+.step-tick:hover { background: var(--surface); }
+.step-tick input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+/* The whole head (but the tick) folds and unfolds the step; ▾/▴ says which it will do. */
+.step-head { cursor: pointer; }
+.step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.step-fold {
+    flex: none;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    border: none;
+    border-radius: 6px;
+    background: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    cursor: pointer;
+}
+.step-head:hover .step-fold, .step-fold:focus-visible { background: var(--surface); color: var(--text); }
+.step-head:hover .step-summary { color: var(--text); }
+/* Folded steps (done ones by default) show only their head; a done one opened again is faded. */
+.anvil-step.folded { padding-top: 6px; padding-bottom: 6px; }
+.anvil-step.folded .step-head { margin-bottom: 0; }
+.anvil-step.folded .step-node { top: 7px; }
+.anvil-step.folded .anvil-row { display: none; }
+.anvil-step.done .anvil-row { opacity: 0.55; }
 
-/* Wide: [left] + [right] -> [result] on one line. */
+/* Wide: [left] + [right] -> [result] on one line, on a panel drawn like the game's anvil
+   window (light gray, a light top-left edge and a dark bottom-right one). */
 .anvil-row {
+    padding: 8px;
+    border: 2px solid;
+    border-color: var(--gui-light) var(--gui-dark) var(--gui-dark) var(--gui-light);
+    border-radius: 2px;
+    background: var(--gui-bg);
     display: grid;
     grid-template-columns: minmax(0, 1fr) 12px minmax(0, 1fr) auto minmax(0, 1fr);
     grid-template-areas: "left plus right arrow result";
@@ -1517,7 +1593,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     align-items: center;
     justify-content: center;
     font-family: "Minecraft", system-ui, sans-serif;
-    color: var(--text-secondary);
+    color: var(--gui-text);
 }
 .anvil-op { font-size: 18px; }
 .anvil-arrow { flex-direction: column; gap: 2px; }
@@ -1683,6 +1759,57 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     font-family: system-ui, sans-serif;
 }
 .level-track.short { color: var(--danger-text); font-weight: 600; }
+/* What is left of your level after the step, as a small XP-style bar. */
+.level-track { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.level-meter { display: block; width: 56px; height: 4px; overflow: hidden; border-radius: 2px; background: rgba(0, 0, 0, 0.25); }
+.level-meter-fill { display: block; height: 100%; background: #80ff20; }
+.level-track.short .level-meter { background: var(--danger-text); opacity: 0.5; }
+/* The cost near the level limit (amber) and at it (red, like "Too Expensive!"). */
+.anvil-cost.near-limit { color: #ffcf40; text-shadow: 1px 1px 0 #3f3008; }
+.anvil-cost.at-limit { color: #ff6060; text-shadow: 1px 1px 0 #3f1010; }
+/* Under a slot's tooltip: the entry it is ("#3"), the step that made it, or the result's
+   prior work. */
+.cell-meta { font: 11px/1.3 system-ui, sans-serif; color: var(--gui-text); text-align: center; }
+.entry-ref {
+    height: 18px;
+    padding: 0 7px;
+    border: 1px solid var(--gui-dark);
+    border-radius: 9px;
+    background: var(--gui-light);
+    color: var(--gui-text);
+    font: 600 11px/1 system-ui, sans-serif;
+    cursor: pointer;
+}
+.entry-ref:hover, .entry-ref:focus-visible { border-color: var(--accent); color: var(--accent-text); background: var(--accent-bg); }
+.entry-card.highlight { outline: 2px solid var(--accent); outline-offset: 2px; }
+.entry-card.flash { animation: entry-flash 1.4s ease-out; }
+@keyframes entry-flash {
+    from { box-shadow: 0 0 0 6px var(--accent-bg); }
+    to { box-shadow: 0 0 0 0 transparent; }
+}
+@media (prefers-reduced-motion: reduce) { .entry-card.flash { animation: none; } }
+
+/* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
+/* At least 260px, so on a phone it takes its own row rather than cutting its text. */
+.step-progress { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; min-width: 0; }
+.step-progress-track { flex: 0 0 72px; height: 6px; overflow: hidden; border-radius: 3px; background: var(--border); }
+.step-progress-fill { height: 100%; background: #3c8d3f; transition: width 0.25s ease-out; }
+.step-progress-text { min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.step-reset {
+    flex: none;
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-secondary);
+    font-size: 15px;
+    cursor: pointer;
+}
+.step-reset:hover:not(:disabled) { background: var(--surface-alt); color: var(--text); }
+.step-reset:disabled { opacity: 0.35; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .step-progress-fill { transition: none; } }
 
 /* The break risk in section 4's heading: [anvil] 4%, a pill colored by risk. */
 .info-tip.anvil-risk { flex: none; }
@@ -1804,7 +1931,9 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     body { font-size: 12px; }
     .inputs, .collapse-toggle, .section-summary,
     .header-actions, #ranking, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
-    .anvil-step-num input, .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
+    .step-tick input, .step-fold, .step-summary, .step-reset,
+    .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
+    .anvil-step.folded .anvil-row { display: grid !important; }
     .site-header { padding: 0 0 8px; }
     .layout { display: block; padding: 0; max-width: none; }
     /* Sections 4 and 5 print, even if they were closed. */

@@ -23,6 +23,21 @@ function levelsOf(node) {
     return Object.fromEntries(node.enchantments.map(e => [e.namespace, e.level]));
 }
 
+test("next_best: another finished order with the same enchantments, ranked after the best", () => {
+    const entries = [["sword", [], 0], ["book", [["sharpness", 5]], 0], ["book", [["unbreaking", 3]], 0],
+        ["book", [["mending", 1]], 0], ["book", [["looting", 3]], 0], ["book", [["fire_aspect", 2]], 0]];
+    assert.strictEqual(engine.solve(entries).next_best, undefined); // only when asked
+    const best = engine.solve(entries, { next_best: true });
+    const next = best.next_best;
+    assert.ok(next, "an alternative exists");
+    const key = node => [node.cumulative_levels, node.cumulative_xp, node.max_step, node.prior_work];
+    const [a, b] = [key(best), key(next)];
+    const first = a.findIndex((value, index) => value !== b[index]);
+    assert.ok(first >= 0 && b[first] > a[first], "ranked after the best: " + a + " vs " + b);
+    const names = node => node.enchantments.map(e => e.namespace + e.level).sort().join();
+    assert.strictEqual(names(next), names(best));
+});
+
 test("experience formula matches the wiki", () => {
     assert.strictEqual(experienceFromLevel(0), 0);
     assert.strictEqual(experienceFromLevel(16), 352);

@@ -21,6 +21,7 @@ onmessage = function(event) {
                 priority: data.priority,
                 max_merge_levels: data.max_merge_levels,
                 rename: data.rename,
+                next_best: data.next_best,
                 onProgress: (done, total) => {
                     postMessage({ message: "progress", request_id: request_id, done: done, total: total });
                 }

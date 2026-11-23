@@ -36,7 +36,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta, { edition }) -> { solve, combine, makeLeaf }`,
   `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `EDITIONS`, `MAXIMUM_MERGE_LEVELS`, `MAXIMUM_GROUPS`.
-  `solve(entries, { priority, max_merge_levels, rename, onProgress })` memoizes on groups of entries, keeping the best
+  `solve(entries, { priority, max_merge_levels, rename, next_best, onProgress })` (`next_best`: also sets `root.next_best`, the best other finished
+  order with the same enchantments that the ranking puts after it, or null; the page doesn't ask for it yet) memoizes on groups of entries, keeping the best
   nodes per (prior work, enchantment signature); returns the root merge-tree node (`left`/`right` children) or null.
   Totals (levels, XP) are additive, so one node per bucket is exact; when `max_step` outranks a total, the bucket
   keeps a Pareto front over (max step, totals) instead (see `dominance`). Old `objective` option still accepted.
@@ -95,6 +96,15 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (`entry_popover.ns`, `.spot`), a Cards | List switch (`viewSwitch`, `BOOKS_VIEW_STORAGE_KEY`; List = `.entry-card.compact`
   grid rows; switching morphs each card from its old box, `animateCards(..., morph)`), a type box making one book of every typed enchantment (`addTyped`, Logic.js `parseBooks` per piece: "prot 4, mending"), and dragging a tooltip line
   onto another card moves it (`lineDragStart`: mouse after 6px, touch after a 350ms hold; `moveEnchantment`).
+- Section 4 Steps view (`renderResults`): toolbar = Steps/Tree, `stepProgress` ("3 of 7 done · N levels to go" bar + ↺ untick
+  all), Copy steps, Print; a
+  `.rounds.timeline` rail (round labels as breaks, a `.step-node` per step). `anvilStep`: a `.step-head` (the whole
+  "☐ Step N" ticks; the first unticked step is `.current`, and ticking a step scrolls the next one into view; Space on a
+  focused step ticks it), steps fold to one line (`stepLine`; done ones by default, any by a click on the head or its button: `isFolded`/
+  `toggleFold`, `step_folds` overrides, dropped for a step whose tick changes via `saveTicks`), the row is an anvil-window
+  panel (`--gui-*` tokens), inputs show their section 2 entry (`entryRef`/`entryIndexOf`: "#3", hover highlights the card,
+  tap scrolls to it) or "From step N", the result its prior work, the cost is amber within 5 of the level limit and red at
+  it, and `levelMeter` draws "Lv 30 → 28" with a bar.
 - All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
