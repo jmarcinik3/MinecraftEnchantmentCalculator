@@ -48,7 +48,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `optionsSummary` + gear, opening `#limit-panel`, "Game rules": the level limit slider and the Allow conflicts switch (`conflictsSwitch`; the
   button's summary adds "Conflicts allowed" when on); closes on outside click/Escape via
   `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
-  Rename and Your level, with "You end at level…" beside it, written by `updateLevelMeter`). Ticked steps count as 0 for your
+  Rename and Your level; `updateLevelMeter` fills its XP bar and "Set to N"). Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.
   On desktop (900px+) the right column is a window-high flex column (section 3 natural height, section 4 the rest) and only `.steps-scroll` (the steps or tree, under the Steps/Tree row)
   scrolls; `steps_scroll` keeps its position across redraws of the same order and view. Phones scroll the page.
@@ -93,8 +93,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,
   loaded via `readLink`; × removes one, with Undo until the menu closes: `removed_setup`), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
   step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks). Ticking a step also ticks
-  the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Results also show anvil wear (`anvilWear`: `img/anvil.png` in a slot, the uses, and a badge colored by
-  Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
+  the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Section 4's heading always shows the uses (`renderStepsSummary`) and the break risk (`anvilRisk`: an
+  `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
   keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).

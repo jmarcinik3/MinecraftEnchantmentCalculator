@@ -192,15 +192,10 @@
             "one": "Need {count} more level",
             "other": "Need {count} more levels"
         },
-        "levels_left": "You end at level {level}.",
-        "levels_needed": {
-            "plural": "short",
-            "one": "{short} more level needed in total.",
-            "other": "{short} more levels needed in total."
-        },
         "anvil_uses": {"plural": "uses", "one": "{uses} anvil use", "other": "{uses} anvil uses"},
         "anvil_break": "{chance} chance a new anvil breaks",
         "anvil_safe": "A new anvil won't break",
+        "anvil_safe_short": "Safe",
         "anvil_wear_help": "Each anvil use has a 12% chance to damage the anvil. A new anvil breaks on its third damage.",
         "under_one_percent": "under 1%",
         "view_label": "Show the order as",

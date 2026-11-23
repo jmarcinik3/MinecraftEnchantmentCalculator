@@ -192,15 +192,10 @@
             "one": "Falta {count} nivel",
             "other": "Faltan {count} niveles"
         },
-        "levels_left": "Terminas en el nivel {level}.",
-        "levels_needed": {
-            "plural": "short",
-            "one": "Falta {short} nivel en total.",
-            "other": "Faltan {short} niveles en total."
-        },
         "anvil_uses": {"plural": "uses", "one": "{uses} uso del yunque", "other": "{uses} usos del yunque"},
         "anvil_break": "{chance} de probabilidad de que un yunque nuevo se rompa",
         "anvil_safe": "Un yunque nuevo no se romperá",
+        "anvil_safe_short": "Seguro",
         "anvil_wear_help": "Cada uso del yunque tiene un 12 % de probabilidad de dañarlo. Un yunque nuevo se rompe al tercer daño.",
         "under_one_percent": "menos del 1 %",
         "view_label": "Mostrar el orden como",

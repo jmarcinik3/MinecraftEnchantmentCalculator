@@ -275,9 +275,12 @@ function renderSummaries() {
 }
 
 // Section 4's summary while closed: how many steps the order takes.
+// Shown in the heading open or closed, with the anvil's break risk beside it (anvilRisk).
 function renderStepsSummary() {
     const node = resultNode();
-    $("#steps-summary").textContent = node ? TEXT.page.summary_steps({ count: logic.collectSteps(node).length }) : TEXT.ranking.no_value;
+    const uses = node ? logic.collectSteps(node).length : 0;
+    $("#steps-summary").textContent = node ? TEXT.page.summary_steps({ count: uses }) : TEXT.ranking.no_value;
+    $("#anvil-risk").replaceChildren(...(node ? [anvilRisk(uses)] : []));
 }
 
 // Section 3's summary while closed: all four results in ranking order, e.g.
@@ -1358,7 +1361,7 @@ function renderRanking() {
     box.replaceChildren(h("div", { class: "options" },
         optionRow(TEXT.ranking.rename, TEXT.ranking.rename_help, nameField()),
         optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help,
-            h("div", { class: "level-line" }, levelControl(), h("span", { class: "level-summary", id: "level-summary" })))
+            levelControl())
     ));
 
     if (focused) {
@@ -1634,14 +1637,6 @@ function updateLevelMeter() {
         : level >= needed ? TEXT.ranking.level_enough({ needed })
             : TEXT.ranking.level_short_of({ short: needed - level, needed });
 
-    // Beside it: where you end up, or how many levels are missing.
-    const summary = $("#level-summary");
-    const track = levels && active != null ? levelTrack(levels.costs, active) : null;
-    summary.textContent = !track ? ""
-        : track.short ? TEXT.results.levels_needed({ short: track.short })
-            : TEXT.results.levels_left({ level: track.end });
-    summary.classList.toggle("short", Boolean(track && track.short));
-
     const set = $("#level-set");
     set.textContent = TEXT.ranking.set_needed({ levels: levels ? needed : TEXT.ranking.no_value });
     set.disabled = !levels;
@@ -1780,8 +1775,8 @@ function renderResults() {
     // Ticked steps are already paid for, so the level follows only the ones left.
     const remaining = remainingLevels(steps);
     const track = activeLevel() == null ? null : levelTrack(remaining.costs, activeLevel());
-    // (Where your level ends up is beside "Your level", above.)
-    content.append(anvilWear(steps.length)); // right above the Steps/Tree row
+    // Only on paper: the anvil wear (on screen it is in the heading, which isn't printed).
+    content.append(h("p", { class: "print-only" }, TEXT.results.anvil_uses({ uses: steps.length }) + " · " + anvilRiskText(steps.length)));
 
     content.append(h("div", { class: "toolbar result-tools" },
         h("div", { class: "segmented", role: "group", "aria-label": TEXT.results.view_label },
@@ -1831,16 +1826,25 @@ function renderResults() {
 const ANVIL_RISK_MEDIUM = 0.1;
 const ANVIL_RISK_HIGH = 0.5;
 
-function anvilWear(uses) {
+// The break risk in section 4's heading: the anvil and the chance ("4%"), colored by risk
+// (green unlikely or impossible, amber possible, red likely). Tap or hover for the
+// sentence and how wear works; its bubble floats over the page, like the other tips.
+function anvilRisk(uses) {
     const chance = anvilBreakChance(uses);
     const risk = chance === 0 ? "none" : chance < ANVIL_RISK_MEDIUM ? "low" : chance < ANVIL_RISK_HIGH ? "medium" : "high";
-    return h("div", { class: "anvil-wear", title: TEXT.results.anvil_wear_help },
-        // In a slot like the steps' items, so the dark anvil shows in dark mode too.
-        h("span", { class: "anvil-wear-slot" }, h("img", { class: "anvil-wear-icon", src: "img/anvil.png", alt: "" })),
-        h("span", { class: "anvil-wear-uses" }, TEXT.results.anvil_uses({ uses })),
-        h("span", { class: "anvil-wear-chance risk-" + risk },
-            chance === 0 ? TEXT.results.anvil_safe : TEXT.results.anvil_break({ chance: percentText(chance) }))
-    );
+    const tip = infoTip("anvil-risk-tip",
+        [h("img", { class: "anvil-risk-icon", src: "img/anvil.png", alt: "" }), chance === 0 ? TEXT.results.anvil_safe_short : percentText(chance)],
+        anvilRiskText(uses),
+        h("span", {}, h("strong", {}, anvilRiskText(uses)), " ", TEXT.results.anvil_wear_help),
+        "anvil-risk risk-" + risk);
+    tip.querySelector(".info-tip-bubble").setAttribute("role", "tooltip");
+    floatBubble(tip);
+    return tip;
+}
+
+function anvilRiskText(uses) {
+    const chance = anvilBreakChance(uses);
+    return chance === 0 ? TEXT.results.anvil_safe : TEXT.results.anvil_break({ chance: percentText(chance) });
 }
 
 // 0.04 as "4%" in the page's language; tiny chances as "under 1%" rather than "0%".
