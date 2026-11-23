@@ -25,7 +25,6 @@ let logic = null;
 let state = defaultState();
 let next_book_id = 1;
 let undo_books = null; // the custom list before the last suggestion was applied
-let undo_item = null; // { item, wanted, books } before switching to an item that dropped some of them
 let item_menu_open = false; // section 1's item menu (on the item's slot)
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
 // the enchantments that are new.
@@ -128,35 +127,18 @@ async function copyText(target, text, label, button = target) {
 
 // `keep_undo` is only for applying a suggestion: any other change ends the chance to undo it.
 function commit(keep_undo = false) {
-    if (!keep_undo) {
-        undo_books = null;
-        undo_item = null;
-    }
+    if (!keep_undo) undo_books = null;
     saveToUrl();
     render();
     scheduleCalculation();
 }
 
-// Switching item drops the enchantments the new one can't take; if that loses any, the
-// toolbar offers to switch back with everything as it was.
+// Switching item drops the enchantments the new one can't take.
 function selectItem(item) {
     item_menu_open = false;
     if (state.item === item) { renderWanted(); return; }
-    const before = { item: state.item, wanted: { ...state.wanted }, books: state.books.map(book => ({ ...book, enchantments: { ...book.enchantments } })) };
-    const count = () => Object.keys(state.wanted).length + state.books.reduce((total, book) => total + Object.keys(book.enchantments).length, 0);
-    const had = count();
     state.item = item;
     sanitizeAll();
-    undo_books = null;
-    undo_item = before.item && count() < had ? before : null;
-    commit(true);
-}
-
-function undoItem() {
-    const { item, wanted, books } = undo_item;
-    state.item = item;
-    state.wanted = wanted;
-    state.books = books;
     commit();
 }
 
@@ -228,6 +210,7 @@ function addBook(type) {
 // ---------- Rendering ----------
 
 function render() {
+    const scroll = scrollY; // redrawn sections are emptied first, which can pull the page up
     renderSummaries();
     renderLanguage();
     renderSaved();
@@ -236,6 +219,7 @@ function render() {
     renderEdition();
     renderRanking();
     renderResults();
+    if (scrollY !== scroll) scrollTo(scrollX, scroll);
 }
 
 // ---------- Collapsing sections ----------
@@ -512,10 +496,6 @@ function renderWanted() {
 
     box.append(wantedHead(
         h("div", { class: "toolbar" },
-            undo_item ? h("button", {
-                type: "button", class: "btn small undo", "data-focus": "undo-item",
-                title: TEXT.wanted.undo_item_help, onclick: undoItem
-            }, TEXT.wanted.undo_item({ item: logic.itemName(undo_item.item) })) : null,
             h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
             h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear),
             h("label", { class: "check-option", title: TEXT.wanted.allow_conflicts_help },
@@ -768,12 +748,13 @@ function wantedRow(ns, short = null) {
 // level: tap a segment to choose it (the chosen one again clears it), drag across them
 // (off the left end clears), or use the arrow keys, Home/End and digits. Every bar is as
 // wide as five segments with its own from the left, so the I segments share a column.
-function levelBar(ns, chosen, blocker) {
+// `onChoose(level)` defaults to section 1's choice; `focus` is the data-focus prefix.
+function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, level), focus = "bar-") {
     const max = logic.maxLevel(ns);
     const segments = [];
     for (let level = 1; level <= max; level++) segments.push(h("span", { class: "level-seg", "data-level": level }, roman(level)));
     const bar = h("div", {
-        class: "level-bar", role: "slider", tabindex: "0", "data-focus": "bar-" + ns,
+        class: "level-bar", role: "slider", tabindex: "0", "data-focus": focus + ns,
         "aria-label": TEXT.wanted.level_label({ name: logic.enchName(ns) }),
         "aria-valuemin": "0", "aria-valuemax": String(max),
         title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
@@ -786,7 +767,7 @@ function levelBar(ns, chosen, blocker) {
         for (const seg of segments) seg.classList.toggle("filled", Number(seg.dataset.level) <= level);
     };
     show(chosen);
-    const choose = level => { if (level !== chosen) setWanted(ns, level); };
+    const choose = level => { if (level !== chosen) onChoose(level); };
 
     bar.addEventListener("keydown", event => {
         const keys = { ArrowRight: chosen + 1, ArrowUp: chosen + 1, ArrowLeft: chosen - 1, ArrowDown: chosen - 1, Home: 0, End: max, Delete: 0, Backspace: 0 };
@@ -840,72 +821,13 @@ function levelBar(ns, chosen, blocker) {
     return bar;
 }
 
-// Every enchantment on any custom entry. In vanilla, a new one must not conflict with
-// any of them, since the engine does not check conflicts.
-function onAnvil() {
-    return state.books.flatMap(book => Object.keys(book.enchantments));
-}
-
-// `unwanted`: enchantments not chosen in section 1, flagged since they still cost levels.
-// `book`: the entry being edited, so a new book that turns out identical to another
-// entry becomes one more copy of it.
-function enchantmentEditor(enchantments, unwanted = new Set(), book = null) {
-    const tags = Object.entries(enchantments).map(([ns, level]) => {
-        const is_unwanted = unwanted.has(ns);
-        let level_select = null;
-        if (logic.maxLevel(ns) > 1) {
-            const options = [];
-            for (let l = 1; l <= logic.maxLevel(ns); l++) {
-                options.push(h("option", { value: l, selected: l === level }, roman(l)));
-            }
-            level_select = h("select", {
-                "aria-label": TEXT.books.level_of_label({ name: logic.enchName(ns) }),
-                onchange: event => { enchantments[ns] = Number(event.target.value); commit(); }
-            }, options);
-        }
-        return h("span", { class: "tag" + (is_unwanted ? " unwanted" : ""), title: is_unwanted ? TEXT.books.unwanted_help : null },
-            is_unwanted ? h("span", { class: "tag-flag", "aria-label": TEXT.books.unwanted_label }, "!") : null,
-            logic.enchName(ns),
-            level_select,
-            h("button", {
-                type: "button",
-                class: "tag-remove",
-                "aria-label": TEXT.books.remove_enchantment_label({ name: logic.enchName(ns) }),
-                onclick: () => { delete enchantments[ns]; commit(); }
-            }, "×")
-        );
-    });
-
-    const available = logic.applicable(state.item).filter(ns =>
-        !(ns in enchantments) && !onAnvil().some(other => clashes(other, ns)));
-    const add_select = available.length ? h("select", {
-        class: "add-ench",
-        "aria-label": TEXT.books.add_enchantment_label,
-        onchange: event => {
-            const ns = event.target.value;
-            if (!ns) return;
-            const was_empty = Object.keys(enchantments).length === 0;
-            enchantments[ns] = logic.maxLevel(ns);
-            // Only when a new, empty book gets its first enchantment: changing an entry later
-            // never makes it disappear into another.
-            const twin = was_empty && book ? logic.twinOf(state.books, book) : null;
-            if (twin) {
-                twin.copies = Math.min(MAX_COPIES, (twin.copies || 1) + (book.copies || 1));
-                state.books = state.books.filter(other => other !== book);
-            }
-            commit();
-        }
-    }, h("option", { value: "" }, TEXT.books.add_enchantment), available.map(ns => h("option", { value: ns }, logic.enchName(ns)))) : null;
-
-    return h("div", { class: "tags" }, tags, add_select);
-}
-
-function stepper(label, value, min, max, onSet, help) {
+// `focus`: a data-focus prefix, so its buttons keep the focus across redraws.
+function stepper(label, value, min, max, onSet, help, focus = null) {
     return h("span", { class: "stepper", title: help },
-        label,
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label({ label }), disabled: value <= min, onclick: () => onSet(value - 1) }, "−"),
+        h("span", { class: "stepper-label" }, label),
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label({ label }), "data-focus": focus && focus + "-minus", disabled: value <= min, onclick: () => onSet(value - 1) }, "−"),
         h("span", { class: "stepper-value" }, value),
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label({ label }), disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
+        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label({ label }), "data-focus": focus && focus + "-plus", disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
     );
 }
 
@@ -914,58 +836,304 @@ function stepLimit() {
     return state.no_step_limit ? Infinity : state.max_step;
 }
 
+// Section 2: an Automatic | Custom switch, then one card per entry, drawn like the game
+// (an inventory slot and a tooltip), two to a row where the section is wide enough. In
+// Custom mode the cards are editable (see entryCard) and the last cell adds an entry.
+// Cards slide to their new places when the list changes (animateCards).
 function renderBooks() {
     const box = $("#books");
+    const focus = focusState(box);
+    const old_rects = cardRects(box);
+    const old_grid = box.querySelector(".entry-grid");
+    const old_height = old_grid ? old_grid.getBoundingClientRect().height : null;
+    // Emptying the section shortens the page for a moment, and near its bottom the
+    // browser scrolls up to fit; the scroll goes back once the cards are in again.
+    const scroll = scrollY;
     box.replaceChildren();
     $("#books-alert").replaceChildren();
     if (!state.item) return;
 
     const books = logic.currentBooks(state);
-    const item_name = logic.itemName(state.item);
+    const custom = !state.auto_books;
+    const check = custom ? logic.checkBooks(state) : null;
+    if (check) renderBooksAlert(check);
+    const unwanted = new Set(check ? check.unwanted : []);
+    if (entry_popover && !(custom && state.books.some(book => book.id === entry_popover.id))) entry_popover = null;
 
-    if (state.auto_books) {
-        box.append(h("div", { class: "toolbar" },
-            h("div", { class: "chips" }, books.map(book => {
-                const enchantments = logic.summary(Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level })));
-                const is_item = book.type === "item";
-                return h("span", { class: "chip" }, icon(is_item ? state.item : "book", true), enchantments || (is_item ? item_name : TEXT.books.book));
-            })),
-            h("button", { type: "button", class: "btn small", onclick: customizeBooks }, TEXT.books.edit)
-        ));
-        return;
+    const grid = h("div", { class: "entry-grid" },
+        books.map((book, index) => entryCard(book, index, books.length, custom, unwanted)),
+        custom ? addCard() : null
+    );
+    box.append(
+        h("div", { class: "toolbar" },
+            modeSwitch(),
+            // In the toolbar's row, so it appearing does not move the entries.
+            undo_books ? h("button", {
+                type: "button", class: "btn small undo", title: TEXT.books.undo_help,
+                onclick: () => { state.books = undo_books; commit(); }
+            }, TEXT.books.undo) : null
+        ),
+        grid
+    );
+    if (entry_popover) placePopover(grid);
+    animateCards(box, old_rects, old_height); // holds the old height while it slides
+    if (scrollY !== scroll) scrollTo(scrollX, scroll);
+    restoreFocus(box, focus);
+}
+
+// Automatic (one book per chosen enchantment) or Custom (your own list). Custom starts
+// from the automatic list; going back to Automatic drops the custom one.
+function modeSwitch() {
+    const option = (auto, label, help) => h("button", {
+        type: "button", class: state.auto_books === auto ? "selected" : "", "aria-pressed": String(state.auto_books === auto),
+        "data-focus": "mode-" + (auto ? "auto" : "custom"), title: help,
+        onclick: () => {
+            if (state.auto_books === auto) return;
+            if (auto) {
+                state.auto_books = true;
+                state.books = [];
+                entry_popover = null;
+                commit();
+            } else {
+                customizeBooks();
+            }
+        }
+    }, label);
+    return h("div", { class: "segmented mode-switch", role: "group", "aria-label": TEXT.books.mode_label },
+        option(true, TEXT.books.automatic, TEXT.books.automatic_help),
+        option(false, TEXT.books.custom, TEXT.books.custom_help)
+    );
+}
+
+// One entry as the game draws it: a slot (with the stack count when there are several
+// copies) and a tooltip (its name, then its enchantments; "!" on ones not chosen in
+// section 1). Editable cards also have: the grip (drag to reorder), the slot as a
+// book/item switch, the copies and prior work badges (they open a small popover), the
+// tooltip's lines and "+ Add enchantment" (they open the enchantment picker), and ×.
+// Read-only cards (Automatic) show a badge only when it isn't the default.
+function entryCard(book, index, count, editable, unwanted) {
+    const key = String(book.id);
+    const is_item = book.type === "item";
+    const item_name = logic.itemName(state.item);
+    const list = Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level }));
+    const enchanted = list.length > 0;
+    const copies = book.copies || 1;
+    const prior_work = book.prior_work || 0;
+    const name = is_item ? item_name : enchanted ? TEXT.results.enchanted_book : TEXT.books.book;
+    const open = entry_popover && entry_popover.id === book.id ? entry_popover.kind : null;
+
+    const slot = h("div", { class: "mc-slot" + (enchanted ? " glint" : "") },
+        icon(is_item ? state.item : "book"),
+        copies > 1 ? h("span", { class: "stack-count", "aria-hidden": "true" }, copies) : null
+    );
+    const switch_label = is_item ? TEXT.books.switch_to_book : TEXT.books.switch_to_item({ item: item_name });
+    const slot_part = editable ? h("button", {
+        type: "button", class: "entry-slot", "data-focus": "slot-" + key, title: switch_label, "aria-label": switch_label,
+        onclick: () => { book.type = is_item ? "book" : "item"; commit(); }
+    }, slot) : slot;
+
+    const badge = (kind, content, label, is_default) => {
+        if (!editable) return is_default ? null : h("span", { class: "entry-badge", title: label, "aria-label": label }, content);
+        return h("button", {
+            type: "button", class: "entry-badge popover-toggle" + (is_default ? " muted" : "") + (open === "count" ? " open" : ""),
+            "data-focus": kind + "-" + key, "aria-label": label, title: TEXT.books.count_help,
+            "aria-expanded": String(open === "count"), onclick: () => togglePopover(book.id, "count", kind + "-" + key)
+        }, content);
+    };
+    const badges = h("div", { class: "entry-badges" },
+        badge("copies", "×" + copies, TEXT.books.copies_badge({ count: copies }), copies === 1),
+        badge("work", [h("img", { class: "badge-anvil", src: "img/anvil.png", alt: "" }), prior_work], TEXT.books.work_badge({ count: prior_work }), prior_work === 0)
+    );
+
+    const lines = logic.tooltipSort(list).map(e => {
+        const flagged = unwanted.has(e.namespace);
+        const content = [
+            flagged ? h("span", { class: "tag-flag", "aria-label": TEXT.books.unwanted_label }, "!") : null,
+            logic.displayName(e.namespace, e.level)
+        ];
+        const cls = "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (flagged ? " unwanted" : "");
+        if (!editable) return h("div", { class: cls, title: flagged ? TEXT.books.unwanted_help : null }, content);
+        return h("button", {
+            type: "button", class: cls + " entry-line popover-toggle", "data-focus": "line-" + key + "-" + e.namespace,
+            title: flagged ? TEXT.books.unwanted_help : TEXT.books.edit_line,
+            onclick: () => togglePopover(book.id, "enchant", "line-" + key + "-" + e.namespace)
+        }, content);
+    });
+    if (editable) {
+        lines.push(h("button", {
+            type: "button", class: "mc-ench entry-add popover-toggle" + (open === "enchant" ? " open" : ""),
+            "data-focus": "add-" + key, "aria-expanded": String(open === "enchant"),
+            onclick: () => togglePopover(book.id, "enchant", "add-" + key)
+        }, TEXT.books.add_enchantment));
     }
 
-    box.append(h("div", { class: "toolbar" },
-        h("button", { type: "button", class: "btn small", onclick: () => addBook("book") }, icon("book", true), TEXT.books.add_book),
-        h("button", { type: "button", class: "btn small", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item({ item: item_name.toLowerCase() })),
-        h("button", { type: "button", class: "btn small ghost", onclick: () => { state.auto_books = true; state.books = []; commit(); } }, TEXT.books.automatic),
-        // In the toolbar's row, so it appearing does not move the entries.
-        undo_books ? h("button", {
-            type: "button", class: "btn small undo", title: TEXT.books.undo_help,
-            onclick: () => { state.books = undo_books; commit(); }
-        }, TEXT.books.undo) : null
-    ));
-    const check = logic.checkBooks(state);
-    renderBooksAlert(check);
-    const unwanted = new Set(check.unwanted);
-    books.forEach((book, index) => {
-        box.append(h("div", { class: "book-editor", "data-index": index },
-            entryHandle(index, books.length), // its own column, centered down the whole entry
-            h("div", { class: "book-editor-head" },
-                typeToggle(book, item_name),
-                h("span", { class: "spacer" }),
-                stepper(TEXT.books.copies, book.copies || 1, 1, MAX_COPIES, value => { book.copies = value; commit(); }, TEXT.books.copies_help),
-                stepper(TEXT.books.prior_work, book.prior_work, 0, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, TEXT.books.prior_work_help),
-                h("button", {
-                    type: "button",
-                    class: "tag-remove",
-                    "aria-label": TEXT.books.remove_entry_label({ number: index + 1 }),
-                    onclick: () => { state.books = state.books.filter(b => b !== book); commit(); }
-                }, "×")
-            ),
-            enchantmentEditor(book.enchantments, unwanted, book)
-        ));
+    return h("div", { class: "entry-card" + (open ? " popover-open" : ""), "data-index": index, "data-key": key },
+        h("div", { class: "entry-top" },
+            editable ? entryHandle(index, count) : null,
+            slot_part,
+            badges,
+            editable ? h("button", {
+                type: "button", class: "tag-remove entry-remove",
+                "aria-label": TEXT.books.remove_entry_label({ number: index + 1 }),
+                onclick: () => { state.books = state.books.filter(other => other !== book); commit(); }
+            }, "×") : null
+        ),
+        h("div", { class: "mc-tooltip entry-tooltip" },
+            h("div", { class: "mc-name rarity-" + logic.rarity(is_item ? state.item : "book", enchanted) }, name),
+            lines
+        )
+    );
+}
+
+// The grid's last cell in Custom mode: add a book or another copy of the item.
+function addCard() {
+    const item_name = logic.itemName(state.item);
+    return h("div", { class: "entry-add-card" },
+        h("button", { type: "button", class: "btn small", "data-focus": "add-book", onclick: () => addBook("book") }, icon("book", true), TEXT.books.add_book),
+        h("button", { type: "button", class: "btn small", "data-focus": "add-item", onclick: () => addBook("item") }, icon(state.item, true), TEXT.books.add_item({ item: item_name.toLowerCase() }))
+    );
+}
+
+// The open popover in section 2: { id: the entry's id, kind: "count" | "enchant",
+// toggle: the data-focus of the button that opened it }, or null.
+let entry_popover = null;
+
+function togglePopover(id, kind, toggle) {
+    const same = entry_popover && entry_popover.id === id && entry_popover.kind === kind;
+    entry_popover = same ? null : { id, kind, toggle };
+    renderBooks();
+}
+
+// The popover goes in the grid (so it can be as wide as the grid) just under its card.
+// "count" is the copies and prior work steppers, lined up with its card; "enchant" is
+// the enchantment picker, the grid's full width.
+function placePopover(grid) {
+    const book = state.books.find(other => other.id === entry_popover.id);
+    const card = grid.querySelector(`.entry-card[data-key="${book.id}"]`);
+    const popover = entry_popover.kind === "count" ? countPopover(book) : enchantPicker(book);
+    grid.append(popover);
+    popover.style.top = card.offsetTop + card.offsetHeight + 6 + "px";
+    if (entry_popover.kind === "count") popover.style.left = card.offsetLeft + "px";
+}
+
+function countPopover(book) {
+    const key = book.id;
+    const prior_work = book.prior_work || 0;
+    const penalty = 2 ** prior_work - 1;
+    return h("div", { class: "entry-popover count", role: "group", "aria-label": TEXT.books.count_help },
+        stepper(TEXT.books.copies, book.copies || 1, 1, MAX_COPIES, value => { book.copies = value; commit(); }, TEXT.books.copies_help, "pop-copies-" + key),
+        stepper(TEXT.books.prior_work, prior_work, 0, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, TEXT.books.prior_work_help, "pop-work-" + key),
+        h("p", { class: "popover-note" }, penalty ? TEXT.books.prior_work_cost({ levels: penalty }) : TEXT.books.prior_work_none)
+    );
+}
+
+// Every enchantment this entry can take, each with a level bar (0 takes it off): the
+// ones chosen in section 1 first. One that conflicts with an enchantment on this entry
+// is dimmed and replaces it; one that conflicts with another entry can't be added.
+function enchantPicker(book) {
+    const key = book.id;
+    const others = state.books.filter(other => other !== book).flatMap(other => Object.keys(other.enchantments));
+    const options = logic.applicable(state.item);
+    const wanted = options.filter(ns => ns in state.wanted);
+    const rest = options.filter(ns => !(ns in state.wanted));
+    const row = ns => {
+        const level = book.enchantments[ns] || 0;
+        const elsewhere = !level && others.find(other => clashes(other, ns));
+        const here = !level && Object.keys(book.enchantments).find(other => clashes(other, ns));
+        return h("div", { class: "picker-row" + (level ? " chosen" : "") + (elsewhere ? " blocked" : here ? " conflict" : "") + (logic.isCurse(ns) ? " curse" : "") },
+            h("span", { class: "picker-name" }, logic.enchName(ns),
+                elsewhere ? h("span", { class: "note" }, TEXT.books.on_other_entry({ name: logic.enchName(elsewhere) })) : null),
+            elsewhere ? null : levelBar(ns, level, here, value => setEntryLevel(book, ns, value), "pick-" + key + "-")
+        );
+    };
+    return h("div", { class: "entry-popover enchant", role: "group", "aria-label": TEXT.books.picker_label },
+        wanted.length && rest.length ? h("div", { class: "picker-head" }, TEXT.books.picker_chosen) : null,
+        wanted.map(row),
+        wanted.length && rest.length ? h("div", { class: "picker-head" }, TEXT.books.picker_other) : null,
+        rest.map(row),
+        h("div", { class: "popover-foot" },
+            h("button", { type: "button", class: "btn small", "data-focus": "pick-done-" + key, onclick: () => closePopover(true) }, TEXT.books.done))
+    );
+}
+
+// A level for `ns` on an entry (0 takes it off). It replaces a conflicting enchantment
+// on the same entry. Only when a new, empty book gets its first enchantment does it
+// become one more copy of an identical entry: changing an entry later never makes it
+// disappear into another.
+function setEntryLevel(book, ns, level) {
+    if (level) {
+        const was_empty = Object.keys(book.enchantments).length === 0;
+        for (const other of Object.keys(book.enchantments)) if (clashes(other, ns)) delete book.enchantments[other];
+        book.enchantments[ns] = level;
+        const twin = was_empty ? logic.twinOf(state.books, book) : null;
+        if (twin) {
+            twin.copies = Math.min(MAX_COPIES, (twin.copies || 1) + (book.copies || 1));
+            state.books = state.books.filter(other => other !== book);
+            entry_popover = null;
+        }
+    } else {
+        delete book.enchantments[ns];
+    }
+    commit();
+}
+
+// Closes the popover; `refocus` puts the focus back on the button that opened it.
+function closePopover(refocus) {
+    const toggle = entry_popover && entry_popover.toggle;
+    entry_popover = null;
+    renderBooks();
+    const again = refocus && toggle && document.querySelector(`#books [data-focus="${toggle}"]`);
+    if (again) again.focus();
+}
+
+// The popover closes on a click outside it (and the buttons that open one) or on Escape.
+function setupEntryPopover() {
+    document.addEventListener("click", event => {
+        if (!entry_popover) return;
+        const path = event.composedPath();
+        if (path.some(el => el.classList && (el.classList.contains("entry-popover") || el.classList.contains("popover-toggle")))) return;
+        closePopover(false);
     });
+    document.addEventListener("keydown", event => {
+        if (event.key === "Escape" && entry_popover) closePopover(true);
+    });
+}
+
+// Where each card was before a redraw (by entry id), for animateCards: relative to the
+// grid, so only moves inside it animate (not the whole section moving with the page).
+function cardRects(box) {
+    const rects = new Map();
+    const grid = box.querySelector(".entry-grid");
+    if (!grid) return rects;
+    const base = grid.getBoundingClientRect();
+    for (const card of grid.querySelectorAll(".entry-card[data-key]")) {
+        const rect = card.getBoundingClientRect();
+        rects.set(card.dataset.key, { left: rect.left - base.left, top: rect.top - base.top });
+    }
+    return rects;
+}
+
+// After a redraw, each card slides from where it was to where it is now (reordering,
+// or the cards after an added or removed one), new cards fade in, and the grid's height
+// slides too (growSmoothly), so nothing jumps.
+function animateCards(box, old_rects, old_height) {
+    if (!motion_ok() || !old_rects.size) return;
+    const grid = box.querySelector(".entry-grid");
+    if (!grid) return;
+    if (old_height != null) growSmoothly(grid, old_height);
+    const now_rects = cardRects(box);
+    for (const card of grid.querySelectorAll(".entry-card[data-key]")) {
+        const old = old_rects.get(card.dataset.key);
+        if (!old) {
+            card.animate([{ opacity: 0, transform: "scale(0.96)" }, { opacity: 1, transform: "none" }], { duration: 250, easing: "ease-out" });
+            continue;
+        }
+        const now = now_rects.get(card.dataset.key);
+        const dx = old.left - now.left;
+        const dy = old.top - now.top;
+        if (Math.abs(dx) < 1 && Math.abs(dy) < 1) continue;
+        card.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 250, easing: "ease-out" });
+    }
 }
 
 // A: "⚠ 1" next to the section heading when chosen enchantments can't be reached; it
@@ -1032,7 +1200,7 @@ function entryHandle(index, count) {
         class: "drag-handle",
         "aria-label": TEXT.books.reorder_label({ number: index + 1 }),
         title: TEXT.books.reorder_help,
-        onpointerdown: event => dragToReorder(event, event.currentTarget.closest(".book-editor"), index, ".book-editor",
+        onpointerdown: event => dragToReorder(event, event.currentTarget.closest(".entry-card"), index, ".entry-card",
             moveEntry, renderBooks),
         onkeydown: event => {
             const offset = event.key === "ArrowUp" ? -1 : event.key === "ArrowDown" ? 1 : 0;
@@ -1045,21 +1213,6 @@ function entryHandle(index, count) {
             if (handles[to]) handles[to].focus();
         }
     }, "⠿");
-}
-
-// Switches an entry between a book and another copy of the item being enchanted.
-function typeToggle(book, item_name) {
-    const options = [["book", "book", TEXT.books.book], ["item", state.item, item_name]];
-    return h("div", { class: "segmented icon-toggle", role: "group", "aria-label": TEXT.books.type_label }, options.map(([type, icon_ns, label]) =>
-        h("button", {
-            type: "button",
-            class: book.type === type ? "selected" : "",
-            "aria-pressed": String(book.type === type),
-            title: label,
-            "aria-label": label,
-            onclick: () => { if (book.type !== type) { book.type = type; commit(); } }
-        }, icon(icon_ns, true))
-    ));
 }
 
 function setPriority(priority) {
@@ -2049,6 +2202,7 @@ async function init() {
     setupInfoTip();
     setupSavedMenu();
     setupItemMenu();
+    setupEntryPopover();
     setupOptionsMenu();
     setupCollapsing();
     render();

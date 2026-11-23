@@ -64,8 +64,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   hover, focus and scroll, so it never adds height to the scrolling right column.
 - Section 1 (`renderWanted`): until an item is picked, `itemGrid`; then a preview of the finished item (`wantedPreview`, the game
   slot + tooltip via `anvilCell`; the slot is `.item-menu-button`, opening `itemGrid` in `.item-menu` (`item_menu_open`;
-  static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). Switching item keeps `undo_item` when
-  it dropped enchantments (toolbar "Back to X", `undoItem`), cleared by any other commit. The preview and the controls
+  static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). The preview and the controls
   (toolbar, presets) form `wantedHead`: side by side when `#wanted` is 460px+ (container query; the preview has a fixed
   width there). The preview's height slides on change (`growSmoothly`, 0.25s, a timer clears it) and new lines open from
   0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`); toggling "Allow conflicts" slides and fades each
@@ -76,6 +75,14 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `levelBar`: role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide so the I segments line up),
   "Pick one" groups as a switch (`groupSwitch`) plus the chosen one's row, partial conflicts in a left bracket
   (`.ench-group`), conflicting rows dimmed. Chosen rows get a CSS glint. Focus is restored by `data-focus` after redraws.
+- Section 2 (`renderBooks`): an Automatic | Custom switch (`modeSwitch`; Custom = `customizeBooks`), then `.entry-grid`
+  (2 columns once `#books` is 440px+, container query) of `entryCard`s: slot (stack count when copies > 1) + game
+  tooltip; editable in Custom: grip, slot = book/item switch, copies/prior work badges (open `countPopover`), tooltip
+  lines and "+ Add enchantment" (open `enchantPicker`: level bars via `levelBar(ns, level, blocker, onChoose, focus)`,
+  section-1 picks first, conflicts on this entry replace, on other entries blocked; `setEntryLevel`, twin merge), ×; the
+  last cell is `addCard`. One popover at a time (`entry_popover`, `placePopover` puts it in the grid under its card;
+  outside click/Escape close). Cards slide on change (`cardRects`/`animateCards`, grid-relative, FLIP), and `render`
+  and `renderBooks` keep the scroll position across the redraw.
 - All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
@@ -87,7 +94,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Results also show anvil wear (`anvilWear`: `img/anvil.png` in a slot, the uses, and a badge colored by
   Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
-  keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys; order is cosmetic);
+  keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
   (with `edition`, `rename`). Out: `progress`,

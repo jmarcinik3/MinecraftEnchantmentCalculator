@@ -220,7 +220,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
 .toolbar .hint { flex: 1; margin: 0; }
-.toolbar .chips { flex: 1; }
 
 /* Item grid */
 .item-grid {
@@ -507,10 +506,151 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     border-top: 1px dashed var(--border-strong);
 }
 
-/* Books and tags */
-.chips { display: flex; flex-wrap: wrap; gap: 6px; }
-/* An enchantment on a book that wasn't chosen in section 1. */
-.tag.unwanted { border-style: dashed; border-color: var(--warning-text); }
+/* Books and items: cards drawn like the game, in a grid (two to a row once the section
+   is 440px wide; a container query, so it follows the card, not the window). */
+#books { container: books / inline-size; }
+.mode-switch button { padding: 4px 12px; }
+.entry-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; }
+@container books (min-width: 440px) {
+    .entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.entry-card {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 0;
+    padding: 8px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+}
+.entry-card.popover-open { border-color: var(--accent); }
+.entry-card.dragging { opacity: 0.55; }
+.entry-card.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.entry-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.entry-top > .drag-handle { margin-left: -2px; }
+.entry-remove { margin-left: auto; align-self: flex-start; color: var(--text-muted); }
+.entry-remove:hover { color: var(--text); }
+
+/* The slot is the book/item switch: a purple ring on hover. The stack count sits in its
+   corner in the game's white with a drop shadow, above the glint. */
+.entry-slot { flex: none; padding: 0; border: none; border-radius: 2px; background: none; cursor: pointer; }
+.entry-slot:hover .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
+.entry-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.entry-card > .entry-top > .mc-slot { flex: none; }
+.stack-count {
+    position: absolute;
+    right: 2px;
+    bottom: 0;
+    z-index: 1;
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 15px;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 2px 2px 0 #3f3f3f;
+    pointer-events: none;
+}
+
+/* Copies and prior work: badges that open the steppers (dashed while at the default). */
+.entry-badges { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+.entry-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    height: 24px;
+    padding: 0 8px;
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    background: transparent;
+    color: var(--text);
+    font: inherit;
+    font-size: 12px;
+    white-space: nowrap;
+}
+button.entry-badge { cursor: pointer; }
+button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color: var(--accent-text); background: var(--accent-bg); }
+.entry-badge.muted { border-style: dashed; color: var(--text-muted); }
+.badge-anvil { width: 16px; height: 16px; image-rendering: pixelated; }
+
+/* The tooltip: its lines (and "+ Add enchantment") open the enchantment picker. */
+.entry-tooltip { width: 100%; }
+.entry-line, .entry-add {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    width: 100%;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    text-align: left;
+    text-shadow: inherit;
+    cursor: pointer;
+}
+.entry-line:hover, .entry-line:focus-visible { color: #ffffff; }
+.entry-line.curse:hover { color: #ff8080; }
+.entry-add { color: #7d7d7d; margin-top: 2px; }
+.entry-add:hover, .entry-add.open, .entry-add:focus-visible { color: #55ffff; }
+.entry-line:focus-visible, .entry-add:focus-visible { outline: 1px solid #55ffff; outline-offset: 1px; }
+.mc-ench .tag-flag { flex: none; text-shadow: none; }
+
+/* The add cell: a dashed card with the two add buttons. */
+.entry-add-card {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-start;
+    gap: 6px;
+    padding: 8px;
+    border: 1px dashed var(--border-strong);
+    border-radius: var(--radius);
+}
+
+/* A popover under its card: the copies/prior work steppers, or the enchantment picker
+   (the grid's full width). App.js placePopover sets its top (and left for the steppers). */
+.entry-popover {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    padding: 10px 12px;
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius);
+    background: var(--surface);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+}
+.entry-popover.count { right: auto; display: grid; gap: 8px; width: max-content; max-width: 100%; }
+.entry-popover.count .stepper { justify-content: space-between; }
+.stepper-label { min-width: 80px; }
+.popover-note { margin: 0; max-width: 260px; font-size: 12px; color: var(--text-secondary); }
+.picker-head {
+    padding: 6px 0 2px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+.picker-head:first-child { padding-top: 0; }
+.picker-row { display: flex; align-items: center; gap: 10px; padding: 4px 0; }
+.picker-name {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    font-family: "Minecraft", system-ui, sans-serif;
+    font-size: 14px;
+    color: var(--text-secondary);
+}
+.picker-row.chosen .picker-name { color: var(--text); }
+.picker-row.curse .picker-name { color: var(--curse); }
+.picker-row.conflict .picker-name, .picker-row.blocked .picker-name { color: var(--text-muted); }
+.picker-row.conflict .level-bar { opacity: 0.45; }
+.picker-row.conflict .level-bar:hover, .picker-row.conflict .level-bar:focus-visible { opacity: 0.8; }
+.picker-row .note { font-family: system-ui, sans-serif; }
+.popover-foot { display: flex; justify-content: flex-end; margin-top: 8px; }
+
+/* An enchantment on an entry that wasn't chosen in section 1. */
 .tag-flag {
     display: inline-flex;
     align-items: center;
@@ -523,35 +663,17 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     font-size: 10px;
     font-weight: 700;
 }
-.chip {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 4px 10px 4px 6px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    background: var(--surface-alt);
-    font-size: 13px;
+.tag-remove {
+    font: inherit;
+    border: none;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    font-size: 16px;
+    line-height: 1;
+    padding: 0 4px;
 }
-
-.book-editor {
-    display: grid;
-    gap: 8px;
-    padding: 10px 12px;
-    margin-top: 8px;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-}
-/* The grip has its own column, centered down the header and the enchantments. */
-.book-editor { grid-template-columns: auto minmax(0, 1fr); column-gap: 6px; }
-.book-editor > .drag-handle { grid-row: 1 / span 2; align-self: center; }
-.book-editor-head { display: flex; align-items: center; gap: 8px; font-size: 14px; flex-wrap: wrap; row-gap: 6px; }
-/* Never squeeze the book/item switch or split a stepper's label; on a narrow screen the
-   steppers move to a second line instead. */
-.book-editor-head > .segmented { flex: none; }
-.book-editor-head .stepper { white-space: nowrap; }
-.book-editor-head .spacer { flex: 1; }
-/* Reordering entries: the grip, and the entry being dragged and the drop spot. */
+/* Reordering entries: the grip. */
 .drag-handle {
     font: inherit;
     font-size: 16px;
@@ -565,39 +687,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     touch-action: none; /* only the grip takes over touch; the rest of the entry scrolls */
 }
 .drag-handle:hover { color: var(--text); background: var(--surface-alt); }
-.book-editor.dragging { opacity: 0.55; }
-.book-editor.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
-
-.tags { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.tag {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 4px 2px 10px;
-    border-radius: var(--radius);
-    background: var(--accent-bg);
-    color: var(--accent-text);
-    font-size: 13px;
-}
-.tag select, .add-ench {
-    font: inherit;
-    font-size: 13px;
-    border: 1px solid var(--border-strong);
-    border-radius: 6px;
-    background: var(--surface);
-    color: var(--text);
-    padding: 2px 4px;
-}
-.tag-remove {
-    font: inherit;
-    border: none;
-    background: none;
-    color: inherit;
-    cursor: pointer;
-    font-size: 16px;
-    line-height: 1;
-    padding: 0 4px;
-}
 
 .stepper { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
 .stepper-value { min-width: 16px; text-align: center; color: var(--text); }

@@ -383,14 +383,17 @@ export function createLogic(meta, names = {}) {
     //    still reaches the chosen level (Protection IV replaces a Protection I and II).
     //    Entries with other enchantments stay, and so does the last item entry, since
     //    without it there is nothing to enchant.
-    // New entries have id null; the page gives them one.
+    // A new book takes the place of the first entry it replaces (at the end if it
+    // replaces none). New entries have id null; the page gives them one.
     function addBook(state, ns, level) {
         const plain = book => book.type === "book" && book.prior_work === 0;
         const only = (book, name) => Object.keys(book.enchantments).length === 1 && name in book.enchantments;
         let books = state.books.map(book => ({ ...book }));
+        const position = new Map(books.map((book, index) => [book, index]));
         const same = books.find(book => plain(book) && only(book, ns) && book.enchantments[ns] === level);
+        const added = same ? null : { id: null, type: "book", enchantments: { [ns]: level }, prior_work: 0, copies: 1 };
         if (same) same.copies = Math.min(MAX_COPIES, (same.copies || 1) + 1);
-        else books.push({ id: null, type: "book", enchantments: { [ns]: level }, prior_work: 0, copies: 1 });
+        else books.push(added);
 
         const wanted = state.wanted[ns] || level;
         const reaches = list => (bestLevels({ ...state, auto_books: false, books: list })[ns] || 0) >= wanted;
@@ -405,6 +408,11 @@ export function createLogic(meta, names = {}) {
                 books = without;
                 removed.push(book);
             }
+        }
+        if (added && removed.length) {
+            const first = Math.min(...removed.map(book => position.get(book)));
+            books = books.filter(book => book !== added);
+            books.splice(books.filter(book => position.get(book) < first).length, 0, added);
         }
         return { books, removed, merged: Boolean(same) };
     }

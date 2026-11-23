@@ -376,6 +376,13 @@ test("adding a suggested book: merges with an identical one, drops books it repl
     assert.strictEqual(result.merged, false);
     assert.strictEqual(state.books.length, 3); // the old list is not changed
 
+    // The new book goes where the first book it replaces was, not at the end.
+    const mending = entry({ mending: 1 });
+    const in_place = logic.addBook(boots([entry({ protection: 1 }), mending]), "protection", 4);
+    assert.deepStrictEqual(in_place.books.map(b => b.enchantments), [{}, { protection: 4 }, { mending: 1 }]);
+    const nothing_replaced = logic.addBook(boots([mending]), "protection", 4);
+    assert.deepStrictEqual(nothing_replaced.books.map(b => b.enchantments), [{}, { mending: 1 }, { protection: 4 }]);
+
     // A second Protection III becomes 2 copies; nothing lower to drop.
     const three = entry({ protection: 3 });
     const merged = logic.addBook(boots([three]), "protection", 3);
