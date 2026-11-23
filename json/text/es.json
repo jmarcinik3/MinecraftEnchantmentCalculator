@@ -231,8 +231,6 @@
         "collapse_step": "Plegar este paso",
         "progress": {"plural": "levels", "one": "{done} de {total} hechos · falta {levels} nivel", "other": "{done} de {total} hechos · faltan {levels} niveles"},
         "progress_done": "Hechos los {total} pasos",
-        "entry_ref_help": "Entrada {number} de Libros y objetos (toca para verla)",
-        "entry_ref_label": "Entrada {number}",
         "from_step": "Del paso {number}",
         "result_work": "Trabajo anterior {count}",
         "uncheck_all": "Desmarcar todo",

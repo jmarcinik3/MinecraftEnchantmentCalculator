@@ -231,8 +231,6 @@
         "collapse_step": "Fold this step",
         "progress": {"plural": "levels", "one": "{done} of {total} done · {levels} level to go", "other": "{done} of {total} done · {levels} levels to go"},
         "progress_done": "All {total} steps done",
-        "entry_ref_help": "Entry {number} in Books and items (tap to show it)",
-        "entry_ref_label": "Entry {number}",
         "from_step": "From step {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Uncheck all",

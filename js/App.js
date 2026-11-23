@@ -2248,7 +2248,9 @@ function mergeTree(root, steps, done, order_key) {
             h("div", {
                 class: "tree-line" + (number ? " merge" : "") + (number && done.has(number) ? " done" : ""),
                 "data-step-card": number || null, title: number ? fold_label : null,
-                onclick: number ? event => { if (!event.target.closest(".tree-step, .step-fold")) toggleFold(order_key, number, !folded); } : null
+                onclick: number ? event => { if (!event.target.closest(".tree-step, .step-fold")) toggleFold(order_key, number, !folded); } : null,
+                // A starting item lights its card in section 2 (entryHover), as in the Steps view.
+                ...(node.left ? {} : entryHover(node))
             },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
                 h("span", { class: "mc-tooltip tree-tooltip" },
@@ -2404,9 +2406,9 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         h("span", { class: "step-node", "aria-hidden": "true" }, is_done ? "✓" : number),
         head,
         h("div", { class: "anvil-row" },
-            anvilCell(step.left.node, null, "left", entryRef(step.left)),
+            anvilCell(step.left.node, null, "left", entryRef(step.left), step.left.kind === "step" ? {} : entryHover(step.left.node)),
             h("div", { class: "anvil-op", "aria-hidden": "true" }, "+"),
-            anvilCell(step.right.node, null, "right", entryRef(step.right)),
+            anvilCell(step.right.node, null, "right", entryRef(step.right), step.right.kind === "step" ? {} : entryHover(step.right.node)),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
                 h("span", { class: "anvil-cost" + cost_class }, step.node.renamed
@@ -2484,29 +2486,21 @@ function toggleFold(order_key, number, fold) {
     if (again) again.focus({ preventScroll: true });
 }
 
-// Under a step's input: which section 2 entry it is ("#3"; hover or focus highlights that
-// card, a tap scrolls to it), or which step made it.
+// Under a step's input: which step made it (a starting item has no line; hovering it
+// highlights its section 2 card instead, see entryHover).
 function entryRef(side) {
-    if (side.kind === "step") return h("span", { class: "cell-meta" }, TEXT.results.from_step({ number: side.index }));
-    const index = entryIndexOf(side.node);
-    if (index < 0) return null;
-    const number = index + 1;
+    return side.kind === "step" ? h("span", { class: "cell-meta" }, TEXT.results.from_step({ number: side.index })) : null;
+}
+
+// Hover and focus handlers that highlight the section 2 card of a starting slot.
+function entryHover(leaf) {
+    const index = entryIndexOf(leaf);
+    if (index < 0) return {};
     const light = on => {
         const card = document.querySelector(`#books .entry-card[data-index="${index}"]`);
         if (card) card.classList.toggle("highlight", on);
     };
-    return h("button", {
-        type: "button", class: "entry-ref", title: TEXT.results.entry_ref_help({ number }), "aria-label": TEXT.results.entry_ref_label({ number }),
-        onmouseenter: () => light(true), onmouseleave: () => light(false), onfocus: () => light(true), onblur: () => light(false),
-        onclick: () => {
-            const card = document.querySelector(`#books .entry-card[data-index="${index}"]`);
-            if (!card) return;
-            card.scrollIntoView({ block: "center", behavior: motion_ok() ? "smooth" : "auto" });
-            card.classList.remove("flash");
-            void card.offsetWidth; // restart the flash
-            card.classList.add("flash");
-        }
-    }, "#" + number);
+    return { onmouseenter: () => light(true), onmouseleave: () => light(false), onfocus: () => light(true), onblur: () => light(false) };
 }
 
 // The section 2 entry a starting slot is (by what it is, its enchantments and prior work;
@@ -2539,8 +2533,9 @@ function stepProgress(steps, done, levels, order_key) {
 
 // An inventory slot with a game-style tooltip underneath. The name is colored by rarity.
 // `role` is "left", "right" or "result", for the layout.
-// `meta`: an optional small line under the tooltip (the entry number, prior work...).
-function anvilCell(node, changed, role, meta = null) {
+// `meta`: an optional small line under the tooltip (the step it came from, prior work...).
+// `attrs`: extra attributes for the cell (hover handlers).
+function anvilCell(node, changed, role, meta = null, attrs = {}) {
     const enchanted = node.enchantments.length > 0;
     // A renamed item shows its new name in italics, as in the game.
     const renamed = Boolean(node.renamed && state.rename_to.trim());
@@ -2550,7 +2545,7 @@ function anvilCell(node, changed, role, meta = null) {
         class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : "")
     }, logic.displayName(e.namespace, e.level)));
 
-    return h("div", { class: "anvil-cell " + role },
+    return h("div", { class: "anvil-cell " + role, ...attrs },
         h("div", { class: "mc-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace)),
         h("div", { class: "mc-tooltip" }, h("div", { class: name_class }, name), lines),
         meta
