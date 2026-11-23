@@ -361,63 +361,88 @@ function setPriority(priority) {
     commit();
 }
 
-// Drags a ranking chip to a new place. Pointer events cover mouse, pen and touch alike
-// (the HTML drag-and-drop API does not work on touch screens). The chip under the
+// Drags a ranking tile to a new place. Pointer events cover mouse, pen and touch alike
+// (the HTML drag-and-drop API does not work on touch screens). The tile under the
 // pointer is outlined, and the order changes when the pointer is released over it.
-function startChipDrag(event, from_index) {
+function startRankDrag(event, from_index) {
     if (!event.isPrimary || event.button > 0 || event.target.closest("button")) return;
-    const chip = event.currentTarget;
-    const list = chip.parentElement;
+    const tile = event.currentTarget;
+    const list = tile.parentElement;
     let target_index = from_index;
     try {
-        chip.setPointerCapture(event.pointerId); // keep getting moves after leaving the chip
+        tile.setPointerCapture(event.pointerId); // keep getting moves after leaving the tile
     } catch {
-        // Some browsers refuse capture for synthetic pointers; moves over the chip still work.
+        // Some browsers refuse capture for synthetic pointers; moves over the tile still work.
     }
-    chip.classList.add("dragging");
+    tile.classList.add("dragging");
 
-    const chipAt = (x, y) => {
+    const tileAt = (x, y) => {
         const found = document.elementFromPoint(x, y);
-        const over = found && found.closest(".rank-chip");
+        const over = found && found.closest(".rank-tile");
         return over && list.contains(over) ? over : null;
     };
     const onMove = move => {
-        const over = chipAt(move.clientX, move.clientY);
+        const over = tileAt(move.clientX, move.clientY);
         if (!over) return;
         target_index = Number(over.dataset.index);
-        for (const other of list.children) other.classList.toggle("drop-target", other === over && other !== chip);
+        for (const other of list.children) other.classList.toggle("drop-target", other === over && other !== tile);
     };
     const finish = drop => {
-        chip.removeEventListener("pointermove", onMove);
-        chip.removeEventListener("pointerup", finish);
-        chip.removeEventListener("pointercancel", finish);
+        tile.removeEventListener("pointermove", onMove);
+        tile.removeEventListener("pointerup", finish);
+        tile.removeEventListener("pointercancel", finish);
         if (drop.type === "pointerup" && target_index !== from_index) {
             setPriority(movePriority(state.priority, from_index, target_index - from_index));
         } else {
-            renderRanking(); // clears the drag styling
+            renderMetrics(true); // clears the drag styling
         }
     };
-    chip.addEventListener("pointermove", onMove);
-    chip.addEventListener("pointerup", finish);
-    chip.addEventListener("pointercancel", finish);
+    tile.addEventListener("pointermove", onMove);
+    tile.addEventListener("pointerup", finish);
+    tile.addEventListener("pointercancel", finish);
 }
 
-// Ranked criteria, most important first. Drag a chip or use its arrows to reorder;
-// later criteria break ties.
-function renderRanking() {
-    const box = $("#ranking");
+// The result tiles double as the ranking for the best order: most important first,
+// highlighted, and later ones break ties. Drag a tile or use its arrows to reorder.
+// They stay on screen (showing "-") when there is no result, so the ranking can always
+// be changed. While the order is unchanged the values are updated in place, so a result
+// arriving mid-drag or mid-tap does not redraw the tiles under the pointer.
+function renderMetrics(rebuild = false) {
+    const box = $("#metrics");
+    const order = state.priority.join(",");
+    if (rebuild || box.dataset.order !== order) {
+        box.dataset.order = order;
+        box.replaceChildren(h("ol", { class: "metrics" }, state.priority.map(rankTile)));
+    }
 
-    const chips = state.priority.map((criterion, index) => {
-        const last = index === state.priority.length - 1;
-        const label = TEXT.ranking.criteria[criterion].label;
-        return h("li", {
-            class: "rank-chip",
-            "data-index": index,
-            title: TEXT.ranking.criteria[criterion].help,
-            onpointerdown: event => startChipDrag(event, index)
-        },
+    const result = last_result && last_result.status === "ok" ? last_result.node : null;
+    const node = result && result.left ? result : null; // nothing to show without a step
+    const values = node && {
+        levels: node.cumulative_levels,
+        xp: Math.round(node.cumulative_xp).toLocaleString(),
+        max_step: node.max_step,
+        prior_work: node.prior_work
+    };
+    for (const tile of box.querySelectorAll(".rank-tile")) {
+        tile.querySelector(".metric-value").textContent = values ? values[tile.dataset.criterion] : TEXT.ranking.no_value;
+    }
+    // A new result is on its way: fade the old numbers.
+    box.classList.toggle("updating", running);
+}
+
+function rankTile(criterion, index) {
+    const label = TEXT.ranking.criteria[criterion].label;
+    const last = index === state.priority.length - 1;
+    return h("li", {
+        class: "metric rank-tile" + (index === 0 ? " primary" : ""),
+        "data-index": index,
+        "data-criterion": criterion,
+        title: TEXT.ranking.criteria[criterion].help,
+        onpointerdown: event => startRankDrag(event, index)
+    },
+        h("div", { class: "rank-tile-head" },
             h("span", { class: "rank-num" }, index + 1),
-            label,
+            h("span", { class: "metric-label" }, label),
             h("button", {
                 type: "button", class: "rank-move", disabled: index === 0,
                 "aria-label": TEXT.ranking.rank_higher_label(label), onclick: () => setPriority(movePriority(state.priority, index, -1))
@@ -426,8 +451,14 @@ function renderRanking() {
                 type: "button", class: "rank-move", disabled: last,
                 "aria-label": TEXT.ranking.rank_lower_label(label), onclick: () => setPriority(movePriority(state.priority, index, 1))
             }, "›")
-        );
-    });
+        ),
+        h("div", { class: "metric-value" })
+    );
+}
+
+// The level limit, no-limit and rename options above the results.
+function renderRanking() {
+    const box = $("#ranking");
 
     // The saved number comes back when the limit is turned on again.
     const limit = state.no_step_limit ? h("input", {
@@ -444,7 +475,6 @@ function renderRanking() {
     });
 
     box.replaceChildren(
-        h("div", { class: "ranking-row" }, h("span", { class: "ranking-label" }, TEXT.ranking.rank_by), h("ol", { class: "rank-list" }, chips)),
         h("div", { class: "ranking-row", title: TEXT.ranking.level_limit_help },
             h("span", { class: "ranking-label" }, TEXT.ranking.level_limit), limit,
             h("label", { class: "no-limit", title: TEXT.ranking.no_limit_help },
@@ -485,6 +515,7 @@ function nameInput() {
 }
 
 function renderResults() {
+    renderMetrics();
     const box = $("#results");
     box.replaceChildren();
     const entries = logic.buildEntries(state);
@@ -538,15 +569,6 @@ function renderResults() {
     }
 
     const steps = logic.collectSteps(node);
-    const values = {
-        levels: node.cumulative_levels,
-        xp: Math.round(node.cumulative_xp).toLocaleString(),
-        max_step: node.max_step,
-        prior_work: node.prior_work
-    };
-    content.append(h("div", { class: "metrics" },
-        state.priority.map((criterion, index) => metric(TEXT.ranking.criteria[criterion].label, values[criterion], index === 0))
-    ));
 
     const missing = logic.missing(state, node);
     if (missing.length) {
@@ -562,10 +584,6 @@ function renderResults() {
             TEXT.results.round(index + 1, round.length)),
         h("ol", { class: "anvil-steps" }, round.map(step => anvilStep(step, done, order_key)))
     ))));
-}
-
-function metric(label, value, primary = false) {
-    return h("div", { class: "metric" + (primary ? " primary" : "") }, h("div", { class: "metric-label" }, label), h("div", { class: "metric-value" }, value));
 }
 
 // ---------- Step checklist ----------
@@ -766,6 +784,24 @@ function loadFromUrl() {
     }
 }
 
+// The "?" next to "Best order": shows how the tiles rank on hover or keyboard focus (CSS),
+// and on tap for touch screens, where hover tooltips never appear. Tapping elsewhere or
+// pressing Escape closes it.
+function setupInfoTip() {
+    const button = $("#rank-help");
+    const tip = button.closest(".info-tip");
+    const setOpen = open => {
+        tip.classList.toggle("open", open);
+        button.setAttribute("aria-expanded", String(open));
+    };
+    button.addEventListener("click", event => {
+        event.stopPropagation();
+        setOpen(!tip.classList.contains("open"));
+    });
+    document.addEventListener("click", event => { if (!tip.contains(event.target)) setOpen(false); });
+    document.addEventListener("keydown", event => { if (event.key === "Escape") setOpen(false); });
+}
+
 function setupCopyLink() {
     const button = $("#copy-link");
     button.addEventListener("click", async () => {
@@ -812,6 +848,7 @@ async function init() {
     }
     startWorker();
     setupCopyLink();
+    setupInfoTip();
     render();
     runCalculation();
 }

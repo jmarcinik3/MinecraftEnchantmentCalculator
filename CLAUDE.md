@@ -5,7 +5,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 `python -m http.server 8080`.
 
 ## Files
-- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking`, `#copy-link`).
+- `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking` options, `#metrics` tiles, `#edition`, `#copy-link`).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
   (`rename_to` is display-only: italic name on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
@@ -32,7 +32,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
 - App.js extras: the step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
-  keyed by its steps (`orderKey`); ranking chips are dragged with pointer events (`startChipDrag`) so touch works.
+  keyed by its steps (`orderKey`); the result tiles are also the ranking (`renderMetrics`; dragged with pointer events in
+  `startRankDrag` so touch works; values update in place so a result arriving mid-drag does not redraw them).
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
   (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).

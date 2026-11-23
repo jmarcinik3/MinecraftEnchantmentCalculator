@@ -37,9 +37,17 @@
         <aside class="results-column">
             <section class="card results-card">
                 <div class="results-header">
-                    <h2 data-text="page.results_heading"></h2>
+                    <h2>
+                        <span data-text="page.results_heading"></span>
+                        <span class="info-tip">
+                            <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
+                                aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
+                            <span id="rank-help-text" class="info-tip-bubble" role="tooltip" data-text="ranking.rank_by"></span>
+                        </span>
+                    </h2>
                 </div>
                 <div id="ranking" class="ranking"></div>
+                <div id="metrics" class="metrics-box"></div>
                 <div id="results"></div>
             </section>
         </aside>

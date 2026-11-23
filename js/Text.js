@@ -65,7 +65,10 @@ export const TEXT = {
 
     // The "Rank by" chips and the level limit, above the results.
     ranking: {
-        rank_by: "Rank by",
+        // Shown from the "?" next to "Best order".
+        rank_by: "Best order ranks by these, first one first. Drag to reorder.",
+        rank_help_label: "How the best order is chosen",
+        no_value: "–",
         // One entry per ranking criterion: the chip/tile name and its tooltip.
         criteria: {
             levels: { label: "Levels", help: "Total levels spent" },
