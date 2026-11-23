@@ -253,7 +253,22 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Wanted enchantments */
 /* The finished item as the game shows it: the slot, then a tooltip as wide as its text. */
-.wanted-preview { position: relative; margin-bottom: 12px; }
+/* The top of section 1: the preview, then the controls, side by side once the section
+   is 460px wide (a container query, so it follows the card, not the window). On the wide
+   layout the preview has a fixed width, so longer names never push the controls aside. */
+#wanted { container: wanted / inline-size; }
+.wanted-head { position: relative; display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 4px; }
+.wanted-preview { flex: 1 1 100%; margin-bottom: 12px; }
+/* While its height slides (App.js growSmoothly), new lines show as the box opens. */
+.resizing { overflow: hidden; transition: height 0.25s ease-out; }
+/* New lines (.fresh) open and fade in from App.js openLines. */
+.wanted-controls { flex: 1 1 100%; min-width: 0; }
+.wanted-controls .toolbar { margin-bottom: 8px; }
+@container wanted (min-width: 460px) {
+    .wanted-preview { flex: 0 0 250px; }
+    .wanted-controls { flex: 1 1 0; }
+    .wanted-controls .check-option { margin-left: 0; }
+}
 #wanted > .hint { margin: 0 0 10px; }
 
 /* The slot is the item menu's button: a caret in its corner, a purple ring on hover. */
@@ -287,7 +302,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .menu-open .item-menu-caret { transform: rotate(180deg); }
 .item-menu {
     position: absolute;
-    top: calc(100% + 8px);
+    top: 62px; /* under the slot */
     left: 0;
     z-index: 20;
     width: min(440px, 100%);
@@ -299,7 +314,8 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 /* On phones the grid opens in the card's flow, full width, so its buttons stay big. */
 @media (max-width: 600px) {
-    .item-menu { position: static; width: auto; margin-top: 10px; box-shadow: none; }
+    .item-menu { position: static; order: -1; flex: 1 1 100%; width: auto; margin: 0 0 12px; box-shadow: none; }
+    .wanted-preview { order: -2; }
 }
 .anvil-cell.preview { flex-direction: row; align-items: flex-start; gap: 10px; }
 .anvil-cell.preview .mc-tooltip { width: auto; flex: 0 1 auto; min-width: 0; }

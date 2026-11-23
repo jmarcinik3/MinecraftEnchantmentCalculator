@@ -27,6 +27,10 @@ let next_book_id = 1;
 let undo_books = null; // the custom list before the last suggestion was applied
 let undo_item = null; // { item, wanted, books } before switching to an item that dropped some of them
 let item_menu_open = false; // section 1's item menu (on the item's slot)
+// What section 1's preview showed last, so a redraw can grow it smoothly and fade in
+// the enchantments that are new.
+let preview_shown = { item: null, enchantments: new Set() };
+let conflicts_toggled = false; // the next redraw follows "Allow conflicts" changing, so it animates the groups
 
 let worker = null;
 let request_id = 0;
@@ -170,6 +174,7 @@ function clashes(a, b) {
 // Turning conflicts back off drops the later of each conflicting pair.
 function setAllowIncompatible(allowed) {
     state.allow_incompatible = allowed;
+    conflicts_toggled = true;
     sanitizeAll();
     commit();
 }
@@ -489,6 +494,15 @@ function itemGrid() {
 function renderWanted() {
     const box = $("#wanted");
     const focus = focusState(box);
+    const old_preview = box.querySelector(".wanted-preview");
+    const old_height = old_preview && preview_shown.item === state.item ? old_preview.getBoundingClientRect().height : null;
+    // "Allow conflicts" turns each conflict group from a switch into plain rows (and
+    // back): their old heights, so the new ones can slide from them.
+    const old_groups = new Map();
+    if (conflicts_toggled) {
+        for (const group of box.querySelectorAll(".ench-group[data-group]")) old_groups.set(group.dataset.group, group.getBoundingClientRect().height);
+    }
+    conflicts_toggled = false;
     box.replaceChildren();
     if (!state.item) {
         box.append(h("p", { class: "hint" }, TEXT.wanted.pick_item_first), itemGrid());
@@ -496,8 +510,7 @@ function renderWanted() {
         return;
     }
 
-    box.append(...[
-        wantedPreview(),
+    box.append(wantedHead(
         h("div", { class: "toolbar" },
             undo_item ? h("button", {
                 type: "button", class: "btn small undo", "data-focus": "undo-item",
@@ -510,9 +523,17 @@ function renderWanted() {
                 TEXT.wanted.allow_conflicts
             )
         ),
-        presetChips(),
-        wantedList()
-    ].filter(Boolean));
+        presetChips()
+    ), wantedList());
+    if (old_height != null) {
+        growSmoothly(box.querySelector(".wanted-preview"), old_height);
+        openLines(box.querySelectorAll(".wanted-preview .mc-ench.fresh"));
+    }
+    for (const group of box.querySelectorAll(".ench-group[data-group]")) {
+        if (!old_groups.has(group.dataset.group)) continue;
+        growSmoothly(group, old_groups.get(group.dataset.group));
+        if (motion_ok()) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+    }
     restoreFocus(box, focus);
 }
 
@@ -547,13 +568,23 @@ function wantedList() {
         } else if (members.length === 1) {
             rows.push(wantedRow(members[0], short.get(members[0])));
         } else {
-            rows.push(h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : "") },
+            rows.push(h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : ""), "data-group": members[0] },
                 h("div", { class: "ench-group-label" }, state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict),
                 members.map(ns => wantedRow(ns, short.get(ns)))
             ));
         }
     }
     return h("div", { class: "wanted-list" }, rows);
+}
+
+// The top of section 1: the preview, with `controls` (the toolbar and presets) beside it
+// where the card is wide enough, else under it.
+function wantedHead(...controls) {
+    return h("div", { class: "wanted-head" + (item_menu_open ? " menu-open" : "") },
+        wantedPreview(),
+        h("div", { class: "wanted-controls" }, controls),
+        item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null
+    );
 }
 
 // The finished item as the game shows it: its slot, then a tooltip with its name (in
@@ -564,6 +595,14 @@ function wantedPreview() {
     const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
     const node = { item_namespace: state.item, enchantments: chosen, renamed: true };
     const cell = anvilCell(node, null, "preview");
+    // Enchantments just added fade in (not on a new item, which redraws it all).
+    if (preview_shown.item === state.item) {
+        const lines = cell.querySelectorAll(".mc-ench");
+        logic.tooltipSort(chosen).forEach((e, index) => {
+            if (!preview_shown.enchantments.has(e.namespace)) lines[index].classList.add("fresh");
+        });
+    }
+    preview_shown = { item: state.item, enchantments: new Set(Object.keys(state.wanted)) };
     const slot = cell.querySelector(".mc-slot");
     const button = h("button", {
         type: "button", class: "item-menu-button", "data-focus": "item-menu",
@@ -581,10 +620,50 @@ function wantedPreview() {
     });
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
-    return h("div", { class: "wanted-preview" + (item_menu_open ? " menu-open" : "") },
-        h("div", { role: "group", "aria-label": TEXT.wanted.preview_label }, cell),
-        item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null
-    );
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
+}
+
+// Section 1's preview changes height as enchantments come and go, and its conflict
+// groups as "Allow conflicts" changes: each slides from its old height to the new one,
+// so what is below moves smoothly instead of jumping. A redraw mid-slide starts from
+// wherever it had got to.
+const motion_ok = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function growSmoothly(element, from) {
+    const to = element.getBoundingClientRect().height;
+    if (Math.abs(to - from) < 1 || !motion_ok()) return;
+    element.classList.add("resizing");
+    element.style.height = from + "px";
+    element.getBoundingClientRect(); // apply the old height before the transition starts
+    element.style.height = to + "px";
+    // Back to its natural height once done. The timer covers a slide that never ends
+    // (the section closed mid-slide, or a hidden tab), so it can never stay stuck.
+    let done = false;
+    const finish = () => {
+        if (done) return;
+        done = true;
+        element.classList.remove("resizing");
+        element.style.height = "";
+    };
+    // Only its own height transition (the level bars inside have short ones of their own).
+    const own = event => { if (event.target === element && event.propertyName === "height") finish(); };
+    element.addEventListener("transitionend", own);
+    element.addEventListener("transitioncancel", own);
+    setTimeout(finish, 400);
+}
+
+// New tooltip lines open from no height in their own place (and fade in), so the lines
+// below them slide down with the box, wherever in the list they were added. Same
+// duration and easing as growSmoothly, so the lines and the box move together.
+function openLines(lines) {
+    if (!motion_ok()) return;
+    for (const line of lines) {
+        const height = line.getBoundingClientRect().height;
+        line.style.overflow = "hidden";
+        line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" })
+            .finished.then(() => { line.style.overflow = ""; }, () => {});
+        line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
+    }
 }
 
 // The item menu closes on a click outside it (or its button) and on Escape, which puts
@@ -650,7 +729,7 @@ function groupSwitch(members, short) {
             else setWanted(chosen, 0);
         }
     }, label);
-    return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : "") },
+    return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : ""), "data-group": members[0] },
         h("div", { class: "ench-group-label", id: label_id }, TEXT.wanted.group_pick_one),
         h("div", { class: "group-switch", role: "radiogroup", "aria-labelledby": label_id },
             option(null, TEXT.wanted.none),

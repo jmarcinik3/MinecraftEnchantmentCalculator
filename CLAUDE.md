@@ -65,7 +65,11 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - Section 1 (`renderWanted`): until an item is picked, `itemGrid`; then a preview of the finished item (`wantedPreview`, the game
   slot + tooltip via `anvilCell`; the slot is `.item-menu-button`, opening `itemGrid` in `.item-menu` (`item_menu_open`;
   static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). Switching item keeps `undo_item` when
-  it dropped enchantments (toolbar "Back to X", `undoItem`), cleared by any other commit. Then
+  it dropped enchantments (toolbar "Back to X", `undoItem`), cleared by any other commit. The preview and the controls
+  (toolbar, presets) form `wantedHead`: side by side when `#wanted` is 460px+ (container query; the preview has a fixed
+  width there). The preview's height slides on change (`growSmoothly`, 0.25s, a timer clears it) and new lines open from
+  0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`); toggling "Allow conflicts" slides and fades each
+  conflict group (`conflicts_toggled`, `.ench-group[data-group]`); all off with reduced motion. Then
   the toolbar, presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
   entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: name in the game font, curses red, an `.ench-info` tip with
   `names.descriptions` (Logic `describe`), a `+N` hint once chosen (Logic `bookCost`: level x book multiplier), and a
