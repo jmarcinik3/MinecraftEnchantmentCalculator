@@ -46,9 +46,19 @@
         };
     }
 
-    function createEngine(metadata) {
+    // Game rules differ by edition (see `preview`). Metadata entries may carry a `bedrock`
+    // object whose fields replace theirs in Bedrock Edition, e.g. { "weight": 1 }, or
+    // { "items": [] } for an enchantment Bedrock does not have.
+    const EDITIONS = ["java", "bedrock"];
+
+    function createEngine(metadata, options = {}) {
+        const edition = options.edition === "bedrock" ? "bedrock" : "java";
+        // Java charges an enchantment's final level on the result; Bedrock only the levels
+        // it gains over the target's (Minecraft Wiki, "Anvil mechanics").
+        const charge_increase_only = edition === "bedrock";
         const enchantments = {};
-        for (const [namespace, data] of Object.entries(metadata.enchantments)) {
+        for (const [namespace, raw] of Object.entries(metadata.enchantments)) {
+            const data = edition === "bedrock" && raw.bedrock ? { ...raw, ...raw.bedrock } : raw;
             enchantments[namespace] = {
                 weight: Number(data.weight),
                 max_level: Number(data.max_level),
@@ -117,7 +127,8 @@
         // Both enchantment lists are sorted by name, so one pass merges them.
         // Conflicts between enchantments are not checked here: the page only sends
         // entries whose enchantments may all go together.
-        function preview(left, right, max_merge_levels) {
+        // `extra_levels` is added to the step before the limit check (1 for a rename).
+        function preview(left, right, max_merge_levels, extra_levels = 0) {
             const right_is_book = right.item_namespace === "book";
             if (!right_is_book && left.item_namespace !== right.item_namespace) return -1;
 
@@ -148,10 +159,11 @@
                 const data = enchantments[namespace];
                 const final_level = existing === level ? Math.min(level + 1, data.max_level) : Math.max(existing, level);
                 pushScratch(namespace, final_level);
-                merge_levels += final_level * data.weight * multiplier;
+                const charged_levels = charge_increase_only ? final_level - existing : final_level;
+                merge_levels += charged_levels * data.weight * multiplier;
             }
 
-            merge_levels += priorWorkPenalty(left.prior_work) + priorWorkPenalty(right.prior_work);
+            merge_levels += priorWorkPenalty(left.prior_work) + priorWorkPenalty(right.prior_work) + extra_levels;
             // A huge prior work makes the penalty Infinity, which would pass an Infinity limit.
             if (!(merge_levels <= max_merge_levels) || !Number.isFinite(merge_levels)) return -1;
             return merge_levels;
@@ -226,8 +238,8 @@
         // Put `left` in the first anvil slot and `right` in the second.
         // Returns the resulting node, or null if the game would not allow it or the
         // step would cost more than `max_merge_levels` (see `preview`).
-        function combine(left, right, max_merge_levels = MAXIMUM_MERGE_LEVELS) {
-            const merge_levels = preview(left, right, max_merge_levels);
+        function combine(left, right, max_merge_levels = MAXIMUM_MERGE_LEVELS, extra_levels = 0) {
+            const merge_levels = preview(left, right, max_merge_levels, extra_levels);
             if (merge_levels < 0) return null;
             return buildNode(left, right, merge_levels, previewTotals(left, right, merge_levels, {}));
         }
@@ -320,6 +332,12 @@
             const report_every = Math.max(1, Math.floor(total_splits / 200));
             let splits_done = 0;
 
+            // The group with every entry (every digit full) is only ever the final step.
+            // Renaming there adds 1 level to that step, which can push it past the limit, so
+            // it is counted while searching rather than added afterwards.
+            const everything = code_count - 1;
+            const rename_levels = options.rename ? 1 : 0;
+
             // Reused for every previewed merge; a node is built only once it is kept.
             const totals = {};
 
@@ -374,7 +392,7 @@
                     const right_nodes = frontier(code - left_code);
                     for (const left of left_nodes) {
                         for (const right of right_nodes) {
-                            const merge_levels = preview(left, right, cap);
+                            const merge_levels = preview(left, right, cap, code === everything ? rename_levels : 0);
                             if (merge_levels < 0) continue;
                             previewTotals(left, right, merge_levels, totals);
                             const key = previewKey(totals.prior_work, layout);
@@ -404,7 +422,7 @@
                 return result;
             }
 
-            const candidates = frontier(code_count - 1); // every digit full: all entries
+            const candidates = frontier(everything);
             if (on_progress) on_progress(total_splits, total_splits);
             let chosen = null;
             for (const node of candidates) {
@@ -415,13 +433,14 @@
                 const value_diff = enchantmentValue(node) - enchantmentValue(chosen);
                 if (value_diff > 0 || (value_diff === 0 && compare(node, chosen) < 0)) chosen = node;
             }
+            if (chosen && rename_levels > 0) chosen.renamed = true;
             return chosen;
         }
 
         return { solve, combine, makeLeaf };
     }
 
-    const api = { createEngine, experienceFromLevel, priorWorkPenalty, normalizePriority, CRITERIA, MAXIMUM_MERGE_LEVELS, MAXIMUM_GROUPS };
+    const api = { createEngine, experienceFromLevel, priorWorkPenalty, normalizePriority, CRITERIA, EDITIONS, MAXIMUM_MERGE_LEVELS, MAXIMUM_GROUPS };
     if (typeof module !== "undefined" && module.exports) {
         module.exports = api;
     } else {

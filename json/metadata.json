@@ -110,7 +110,8 @@
             "items": ["trident"],
             "max_level": 5,
             "stylized": "Impaling",
-            "weight": 2
+            "weight": 2,
+            "bedrock": { "weight": 1 }
         },
         "infinity": {
             "incompatible": ["mending"],
@@ -264,7 +265,8 @@
             "items": ["sword"],
             "max_level": 3,
             "stylized": "Sweeping Edge",
-            "weight": 2
+            "weight": 2,
+            "bedrock": { "items": [] }
         },
         "swift_sneak": {
             "incompatible": [],

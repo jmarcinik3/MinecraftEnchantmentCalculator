@@ -37,6 +37,21 @@ export function clampStepLimit(value) {
     return Number.isInteger(n) ? Math.min(MAX_STEP_LEVELS, Math.max(1, n)) : MAX_STEP_LEVELS;
 }
 
+// Game editions with their own anvil rules (must match Engine.js).
+export const EDITIONS = ["java", "bedrock"];
+
+// The metadata as one edition sees it: an enchantment's `bedrock` object replaces its
+// fields in Bedrock Edition, as Engine.js does (e.g. "items": [] where Bedrock has no
+// such enchantment, so it is never offered).
+export function editionMetadata(meta, edition) {
+    if (edition !== "bedrock") return meta;
+    const enchantments = {};
+    for (const [ns, data] of Object.entries(meta.enchantments)) {
+        enchantments[ns] = data.bedrock ? { ...data, ...data.bedrock } : data;
+    }
+    return { ...meta, enchantments };
+}
+
 // Most groups of entries the search may remember (must match Engine.js): as many as
 // 20 all-different entries. Repeated entries add far fewer.
 export const MAX_GROUPS = 2 ** 20;
@@ -225,18 +240,43 @@ export function createLogic(meta) {
             .map(([ns, level]) => displayName(ns, level));
     }
 
-    // Flattens the merge tree into anvil steps, children before parents.
+    // Flattens the merge tree into anvil steps, grouped into rounds. A step's round is one
+    // after the latest round among the steps it needs (round 1 uses only starting items),
+    // so steps in the same round don't depend on each other and can be done in any order.
+    // Steps come round by round, cheapest first within a round, and are numbered 1, 2, ...
+    // in that order. Each step is { left, right, node, round, number }, where `left` and
+    // `right` are { kind: "leaf", node } or { kind: "step", index: <that step's number>, node }.
     function collectSteps(root) {
         const steps = [];
         function visit(node) {
-            if (!node.left) return { kind: "leaf", node };
+            if (!node.left) return { kind: "leaf", node, round: 0 };
             const left = visit(node.left);
             const right = visit(node.right);
-            steps.push({ left, right, node });
-            return { kind: "step", index: steps.length, node };
+            const step = { left, right, node, round: Math.max(left.round, right.round) + 1 };
+            steps.push(step);
+            return { kind: "step", step, node, round: step.round };
         }
         visit(root);
+
+        // Sort by round, then cost; ties keep the tree order (Array.prototype.sort is stable).
+        steps.sort((a, b) => a.round - b.round || a.node.merge_levels - b.node.merge_levels);
+        steps.forEach((step, position) => { step.number = position + 1; });
+        for (const step of steps) {
+            for (const side of ["left", "right"]) {
+                const part = step[side];
+                step[side] = part.kind === "step"
+                    ? { kind: "step", index: part.step.number, node: part.node }
+                    : { kind: "leaf", node: part.node };
+            }
+        }
         return steps;
+    }
+
+    // Splits collectSteps' list into its rounds: [[steps of round 1], [round 2], ...].
+    function stepRounds(steps) {
+        const rounds = [];
+        for (const step of steps) (rounds[step.round - 1] ||= []).push(step);
+        return rounds;
     }
 
     function serialize(state) {
@@ -248,7 +288,9 @@ export function createLogic(meta) {
             p: state.priority.map(c => CRITERIA.indexOf(c)),
             c: state.max_step,
             n: state.no_step_limit ? 1 : 0,
-            x: state.allow_incompatible ? 1 : 0
+            x: state.allow_incompatible ? 1 : 0,
+            e: EDITIONS.indexOf(state.edition),
+            r: state.rename ? 1 : 0
         };
         return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     }
@@ -261,6 +303,8 @@ export function createLogic(meta) {
         const allow_incompatible = data.x === 1;
         return {
             item,
+            edition: EDITIONS[data.e] || EDITIONS[0],
+            rename: data.r === 1,
             allow_incompatible,
             wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
             auto_books: data.a !== 0,
@@ -283,6 +327,6 @@ export function createLogic(meta) {
     return {
         enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
         applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, maxAll,
-        currentBooks, buildEntries, missing, collectSteps, serialize, deserialize
+        currentBooks, buildEntries, missing, collectSteps, stepRounds, serialize, deserialize
     };
 }

@@ -19,7 +19,13 @@ export const TEXT = {
         results_heading: "Best order",
         copy_link: "Copy link",
         copied: "Copied",
-        copy_failed: "Copy failed"
+        copy_failed: "Copy failed",
+        edition_label: "Edition",
+        // The edition toggle in the header.
+        editions: {
+            java: { label: "Java", help: "Java Edition anvil rules" },
+            bedrock: { label: "Bedrock", help: "Bedrock Edition: each enchantment costs only the levels it adds, Impaling is cheaper, and there is no Sweeping Edge" }
+        }
     },
 
     // Section 2: the enchantments wanted on the final item.
@@ -75,7 +81,9 @@ export const TEXT = {
         no_limit: "No limit (modded)",
         no_limit_help: "For mods that remove \"Too Expensive!\"",
         no_limit_label: "No level limit",
-        unlimited: "∞"
+        unlimited: "∞",
+        rename: "Rename in the last step",
+        rename_help: "Renaming the item adds 1 level to that step"
     },
 
     // The results: progress, messages, and the anvil steps.
@@ -92,6 +100,12 @@ export const TEXT = {
         nothing_to_combine: "Nothing to combine",
         missing: names => `Missing: ${names.join(", ")}`,
         cost: levels => `Cost: ${levels}`,
+        cost_renamed: levels => `Cost: ${levels} (with rename)`,
+        step_done_label: number => `Step ${number} done`,
+        // Heading for each group of steps that don't depend on each other.
+        round: (number, step_count) => step_count > 1 ? `Round ${number} · any order` : `Round ${number}`,
+        round_help: "These steps don't need each other's results, so do them in any order.",
+        step_done_help: "Tick off steps as you do them. Kept in this browser.",
         enchanted_book: "Enchanted Book",
         worker_failed: "The calculator failed to load. Check the browser console for details.",
         metadata_failed: "Couldn't load the enchantment data. Serve this folder over HTTP instead of opening the file directly."

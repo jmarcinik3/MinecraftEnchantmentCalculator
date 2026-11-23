@@ -7,7 +7,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Files
 - `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking`, `#copy-link`).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
-  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible }`
+  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename }`
   (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`;
   `allow_incompatible` is for mods that let conflicting enchantments go together). The engine never checks conflicts:
   Logic.js `sanitizeEnchantments`/`sanitizeBooks` and the editors keep every entry, and entries against each other,
@@ -18,9 +18,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   section; templated ones are functions (`name => ...`). index.html headings use `data-text="section.key"`.
   Add new UI text here, not inline in App.js. A test checks the criteria and `data-text` keys exist.
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
-  (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta) -> { solve, combine, makeLeaf }`,
-  `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `MAXIMUM_MERGE_LEVELS`.
-  `solve(entries, { priority, max_merge_levels, onProgress })` memoizes on groups of entries, keeping the best
+  (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta, { edition }) -> { solve, combine, makeLeaf }`,
+  `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `EDITIONS`, `MAXIMUM_MERGE_LEVELS`, `MAXIMUM_GROUPS`.
+  `solve(entries, { priority, max_merge_levels, rename, onProgress })` memoizes on groups of entries, keeping the best
   nodes per (prior work, enchantment signature); returns the root merge-tree node (`left`/`right` children) or null.
   Totals (levels, XP) are additive, so one node per bucket is exact; when `max_step` outranks a total, the bucket
   keeps a Pareto front over (max step, totals) instead (see `dominance`). Old `objective` option still accepted.
@@ -29,10 +29,13 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
-- `js/Calculator.js`: worker. Messages in: `instantiate_metadata`, `calculate_optimal`. Out: `progress`,
+- App.js extras: the step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
+  keyed by its steps (`orderKey`); ranking chips are dragged with pointer events (`startChipDrag`) so touch works.
+- `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
+  (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable
-  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `collectSteps(root)`, `serialize`/`deserialize`
+  enchantments, `maxAll`, `buildEntries(state)`, `missing`, `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
@@ -43,6 +46,10 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Game rules implemented (Engine.js)
 Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps,
 merges of 40+ levels are "Too Expensive" (the user can lower this cap or remove it). Ties break on the next-ranked criterion.
+Renaming (`rename`) adds 1 level to the final step, counted during the search since it can push that step past the limit.
+Editions (Minecraft Wiki, "Anvil mechanics"): Java charges each enchantment's final level x multiplier; Bedrock only the
+levels it gains over the target's. A metadata enchantment's `bedrock` object overrides its fields in Bedrock
+(Impaling `weight` 1; Sweeping Edge `items: []`, since Bedrock lacks it). Logic.js `editionMetadata` applies the same overrides.
 
 ## Adding an item or enchantment
 Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add an image to

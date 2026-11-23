@@ -57,6 +57,10 @@ h1, h2 { font-family: "Minecraft", system-ui, sans-serif; font-weight: normal; m
 h1 { font-size: 22px; }
 h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
 
+.header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
+.check-row { color: var(--text-secondary); cursor: pointer; }
+.check-row input { margin: 0; }
+
 .site-header {
     display: flex;
     align-items: center;
@@ -312,8 +316,11 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     background: var(--surface);
     cursor: grab;
     user-select: none;
+    touch-action: none; /* a finger drags the chip instead of scrolling the page */
 }
 .rank-chip:first-child { background: var(--accent-bg); color: var(--accent-text); border-color: transparent; }
+.rank-chip.dragging { opacity: 0.55; cursor: grabbing; }
+.rank-chip.drop-target { outline: 2px dashed var(--accent); outline-offset: 1px; }
 .rank-num { font-size: 11px; font-weight: 600; min-width: 12px; text-align: center; color: var(--text-muted); }
 .rank-chip:first-child .rank-num { color: inherit; }
 .rank-move {
@@ -384,6 +391,18 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 /* Anvil steps: drawn like the in-game anvil and tooltips */
 .anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; gap: 12px; }
 
+/* Rounds: groups of steps that don't depend on each other. */
+.rounds { display: grid; gap: 14px; }
+.round { display: grid; gap: 10px; }
+.round + .round { padding-top: 12px; border-top: 1px dashed var(--border-strong); }
+.round-label {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
 .anvil-step {
     position: relative;
     padding: 12px 10px 10px;
@@ -405,7 +424,16 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     font-size: 11px;
     line-height: 18px;
     text-align: center;
+    /* Holds the step's tick box next to its number. */
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    cursor: pointer;
 }
+.anvil-step-num input { margin: 0; width: 12px; height: 12px; accent-color: var(--accent); cursor: pointer; }
+/* A ticked-off step fades back so the next one stands out. */
+.anvil-step.done .anvil-row { opacity: 0.4; }
+.anvil-step.done .anvil-step-num { background: var(--surface); color: var(--text-muted); }
 
 .anvil-row {
     display: grid;

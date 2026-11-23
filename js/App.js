@@ -1,4 +1,4 @@
-import { createLogic, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
+import { createLogic, editionMetadata, roman, movePriority, clampStepLimit, maxPriorWork, searchSize, CRITERIA, EDITIONS, MAX_STEP_LEVELS, MAX_GROUPS } from "./Logic.js";
 import { TEXT } from "./Text.js";
 
 const META_URL = "json/metadata.json";
@@ -8,6 +8,7 @@ const WORKER_URL = "js/Calculator.js";
 const SLOW_SPLITS = 1000000;
 const CALC_DELAY_MS = 250;      // wait for the user to stop clicking
 const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
+const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
 
 let meta = null;
 let logic = null;
@@ -31,7 +32,9 @@ function defaultState() {
         priority: [...CRITERIA],     // ranking for the best order, most important first
         max_step: MAX_STEP_LEVELS,   // no single step may cost more levels than this
         no_step_limit: false,        // ignore max_step and "Too Expensive!" (for mods that remove it)
-        allow_incompatible: false    // let conflicting enchantments go together (for mods that allow it)
+        allow_incompatible: false,   // let conflicting enchantments go together (for mods that allow it)
+        edition: "java",             // "java" | "bedrock": their anvil rules differ
+        rename: false                // rename the item in the last step (+1 level)
     };
 }
 
@@ -96,6 +99,20 @@ function setAllowIncompatible(allowed) {
     commit();
 }
 
+// Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the
+// helpers are rebuilt for it and anything it does not have is dropped.
+function useEdition(edition) {
+    logic = createLogic(editionMetadata(meta, edition));
+}
+
+function setEdition(edition) {
+    if (state.edition === edition) return;
+    state.edition = edition;
+    useEdition(edition);
+    if (state.item) sanitizeAll();
+    commit();
+}
+
 function setWanted(ns, level) {
     if (level) {
         for (const other of Object.keys(state.wanted)) {
@@ -131,8 +148,19 @@ function render() {
     renderItems();
     renderWanted();
     renderBooks();
+    renderEdition();
     renderRanking();
     renderResults();
+}
+
+function renderEdition() {
+    $("#edition").replaceChildren(...EDITIONS.map(edition => h("button", {
+        type: "button",
+        class: state.edition === edition ? "selected" : "",
+        "aria-pressed": String(state.edition === edition),
+        title: TEXT.page.editions[edition].help,
+        onclick: () => setEdition(edition)
+    }, TEXT.page.editions[edition].label)));
 }
 
 function renderItems() {
@@ -331,29 +359,60 @@ function setPriority(priority) {
     commit();
 }
 
+// Drags a ranking chip to a new place. Pointer events cover mouse, pen and touch alike
+// (the HTML drag-and-drop API does not work on touch screens). The chip under the
+// pointer is outlined, and the order changes when the pointer is released over it.
+function startChipDrag(event, from_index) {
+    if (!event.isPrimary || event.button > 0 || event.target.closest("button")) return;
+    const chip = event.currentTarget;
+    const list = chip.parentElement;
+    let target_index = from_index;
+    try {
+        chip.setPointerCapture(event.pointerId); // keep getting moves after leaving the chip
+    } catch {
+        // Some browsers refuse capture for synthetic pointers; moves over the chip still work.
+    }
+    chip.classList.add("dragging");
+
+    const chipAt = (x, y) => {
+        const found = document.elementFromPoint(x, y);
+        const over = found && found.closest(".rank-chip");
+        return over && list.contains(over) ? over : null;
+    };
+    const onMove = move => {
+        const over = chipAt(move.clientX, move.clientY);
+        if (!over) return;
+        target_index = Number(over.dataset.index);
+        for (const other of list.children) other.classList.toggle("drop-target", other === over && other !== chip);
+    };
+    const finish = drop => {
+        chip.removeEventListener("pointermove", onMove);
+        chip.removeEventListener("pointerup", finish);
+        chip.removeEventListener("pointercancel", finish);
+        if (drop.type === "pointerup" && target_index !== from_index) {
+            setPriority(movePriority(state.priority, from_index, target_index - from_index));
+        } else {
+            renderRanking(); // clears the drag styling
+        }
+    };
+    chip.addEventListener("pointermove", onMove);
+    chip.addEventListener("pointerup", finish);
+    chip.addEventListener("pointercancel", finish);
+}
+
 // Ranked criteria, most important first. Drag a chip or use its arrows to reorder;
 // later criteria break ties.
 function renderRanking() {
     const box = $("#ranking");
-    let dragged = null;
 
     const chips = state.priority.map((criterion, index) => {
         const last = index === state.priority.length - 1;
         const label = TEXT.ranking.criteria[criterion].label;
         return h("li", {
             class: "rank-chip",
-            draggable: "true",
+            "data-index": index,
             title: TEXT.ranking.criteria[criterion].help,
-            ondragstart: event => {
-                dragged = index;
-                event.dataTransfer.effectAllowed = "move";
-                event.dataTransfer.setData("text/plain", criterion);
-            },
-            ondragover: event => event.preventDefault(),
-            ondrop: event => {
-                event.preventDefault();
-                if (dragged !== null && dragged !== index) setPriority(movePriority(state.priority, dragged, index - dragged));
-            }
+            onpointerdown: event => startChipDrag(event, index)
         },
             h("span", { class: "rank-num" }, index + 1),
             label,
@@ -393,6 +452,13 @@ function renderRanking() {
                 }),
                 TEXT.ranking.no_limit
             )
+        ),
+        h("label", { class: "ranking-row check-row", title: TEXT.ranking.rename_help },
+            h("input", {
+                type: "checkbox", checked: state.rename,
+                onchange: event => { state.rename = event.target.checked; commit(); }
+            }),
+            TEXT.ranking.rename
         )
     );
 }
@@ -466,29 +532,83 @@ function renderResults() {
         content.append(h("div", { class: "warning" }, TEXT.results.missing(missing)));
     }
 
-    content.append(h("ol", { class: "anvil-steps" }, steps.map(anvilStep)));
+    const order_key = orderKey(steps);
+    const done = loadChecklist(order_key);
+    // One group per round: its steps don't depend on each other, so any order works.
+    const rounds = logic.stepRounds(steps);
+    content.append(h("div", { class: "rounds" }, rounds.map((round, index) => h("section", { class: "round" },
+        h("div", { class: "round-label", title: round.length > 1 ? TEXT.results.round_help : null },
+            TEXT.results.round(index + 1, round.length)),
+        h("ol", { class: "anvil-steps" }, round.map(step => anvilStep(step, done, order_key)))
+    ))));
 }
 
 function metric(label, value, primary = false) {
     return h("div", { class: "metric" + (primary ? " primary" : "") }, h("div", { class: "metric-label" }, label), h("div", { class: "metric-value" }, value));
 }
 
-// One anvil step drawn like the game's anvil: [left] + [right] -> [result].
-function anvilStep(step, index) {
+// ---------- Step checklist ----------
+// Steps can be ticked off while following along in-game. Ticks are kept in this browser
+// for the order on screen only: a different order starts unticked. Storage can be
+// unavailable (private windows, blocked site data), so every access is guarded.
+
+// Identifies an order by its steps, so ticks survive changes that leave it the same.
+function orderKey(steps) {
+    return JSON.stringify(steps.map(step => [
+        step.left.node.item_namespace, step.left.node.enchantments,
+        step.right.node.item_namespace, step.right.node.enchantments, step.node.merge_levels
+    ]));
+}
+
+function loadChecklist(order_key) {
+    try {
+        const saved = JSON.parse(localStorage.getItem(CHECKLIST_STORAGE_KEY));
+        if (saved && saved.key === order_key && Array.isArray(saved.done)) return new Set(saved.done);
+    } catch {
+        // No storage: start unticked.
+    }
+    return new Set();
+}
+
+function saveChecklist(order_key, done) {
+    try {
+        localStorage.setItem(CHECKLIST_STORAGE_KEY, JSON.stringify({ key: order_key, done: [...done] }));
+    } catch {
+        // No storage: ticks last until the page reloads.
+    }
+}
+
+// One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a
+// box to tick it off.
+function anvilStep(step, done, order_key) {
+    const number = step.number;
+    const tick = h("input", {
+        type: "checkbox",
+        checked: done.has(number),
+        "aria-label": TEXT.results.step_done_label(number),
+        onchange: event => {
+            if (event.target.checked) done.add(number);
+            else done.delete(number);
+            saveChecklist(order_key, done);
+            event.target.closest(".anvil-step").classList.toggle("done", event.target.checked);
+        }
+    });
     const left_levels = new Map(step.left.node.enchantments.map(e => [e.namespace, e.level]));
     const changed = new Set(step.node.enchantments
         .filter(e => left_levels.get(e.namespace) !== e.level)
         .map(e => e.namespace));
 
-    return h("li", { class: "anvil-step" },
-        h("span", { class: "anvil-step-num" }, index + 1),
+    return h("li", { class: "anvil-step" + (done.has(number) ? " done" : "") },
+        h("label", { class: "anvil-step-num", title: TEXT.results.step_done_help }, tick, number),
         h("div", { class: "anvil-row" },
             anvilCell(step.left.node),
             h("div", { class: "anvil-op", "aria-hidden": "true" }, "+"),
             anvilCell(step.right.node),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
-                h("span", { class: "anvil-cost" }, TEXT.results.cost(step.node.merge_levels))
+                h("span", { class: "anvil-cost" }, step.node.renamed
+                    ? TEXT.results.cost_renamed(step.node.merge_levels)
+                    : TEXT.results.cost(step.node.merge_levels))
             ),
             anvilCell(step.node, changed)
         )
@@ -567,7 +687,9 @@ function runCalculation() {
         request_id: request_id,
         item_entries: entries,
         priority: state.priority,
-        max_merge_levels: stepLimit()
+        max_merge_levels: stepLimit(),
+        edition: state.edition,
+        rename: state.rename
     });
     renderResults();
 }
@@ -641,6 +763,11 @@ function fillPageText() {
         const [section, key] = el.dataset.text.split(".");
         el.textContent = TEXT[section][key];
     }
+    // `data-text-label` sets a screen-reader label instead of visible text.
+    for (const el of document.querySelectorAll("[data-text-label]")) {
+        const [section, key] = el.dataset.textLabel.split(".");
+        el.setAttribute("aria-label", TEXT[section][key]);
+    }
 }
 
 async function init() {
@@ -652,8 +779,12 @@ async function init() {
         $("#results").replaceChildren(h("div", { class: "error" }, TEXT.results.metadata_failed));
         return;
     }
-    logic = createLogic(meta);
+    useEdition("java");
     loadFromUrl();
+    if (state.edition !== "java") {
+        useEdition(state.edition);
+        if (state.item) sanitizeAll();
+    }
     startWorker();
     setupCopyLink();
     render();

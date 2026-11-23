@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+const { createLogic, editionMetadata, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT } = await import("data:text/javascript," + encodeURIComponent(read("../js/Text.js")));
 const logic = createLogic(meta);
@@ -24,7 +24,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false, edition: "java", rename: false });
 
 test("every item has an icon file", () => {
     for (const item of Object.keys(meta.items)) {
@@ -138,7 +138,7 @@ test("ranking criteria match the engine's", () => {
 test("Text.js has every ranking criterion and every page string", () => {
     assert.deepStrictEqual(Object.keys(TEXT.ranking.criteria), CRITERIA);
     for (const { label, help } of Object.values(TEXT.ranking.criteria)) assert.ok(label && help);
-    const keys = [...read("../index.html").matchAll(/data-text="([a-z_]+)\.([a-z_]+)"/g)];
+    const keys = [...read("../index.html").matchAll(/data-text(?:-label)?="([a-z_]+)\.([a-z_]+)"/g)];
     assert.ok(keys.length >= 6);
     for (const [, section, key] of keys) assert.strictEqual(typeof TEXT[section][key], "string", section + "." + key);
 });
@@ -164,6 +164,27 @@ test("search size counts identical entries once, matching the engine", () => {
     assert.ok(searchSize(Array(40).fill(book("sharpness", 1))).groups <= MAX_GROUPS);
     const many = Array.from({ length: 21 }, (_, i) => book("sharpness", 1, i));
     assert.ok(searchSize(many).groups > MAX_GROUPS);
+});
+
+test("editions: Bedrock has no Sweeping Edge and cheaper Impaling", () => {
+    assert.deepStrictEqual(EDITIONS, createRequire(import.meta.url)("../js/Engine.js").EDITIONS);
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"));
+    assert.ok(logic.applicable("sword").includes("sweeping"));
+    assert.ok(!bedrock.applicable("sword").includes("sweeping"));
+    assert.strictEqual(editionMetadata(meta, "bedrock").enchantments.impaling.weight, 1);
+    assert.strictEqual(editionMetadata(meta, "java"), meta);
+    // Switching to Bedrock drops what it does not have.
+    assert.deepStrictEqual(bedrock.sanitizeEnchantments({ sweeping: 3, sharpness: 5 }, "sword"), { sharpness: 5 });
+});
+
+test("shared links keep the edition and rename; old links default to Java", () => {
+    const state = { ...baseState("sword"), edition: "bedrock", rename: true };
+    const loaded = logic.deserialize(logic.serialize(state), () => 0);
+    assert.strictEqual(loaded.edition, "bedrock");
+    assert.strictEqual(loaded.rename, true);
+    const old = logic.deserialize(btoa(JSON.stringify({ i: "sword", w: {}, a: 1, b: [] })).replace(/=+$/, ""), () => 0);
+    assert.strictEqual(old.edition, "java");
+    assert.strictEqual(old.rename, false);
 });
 
 test("ranking helpers", () => {
@@ -242,6 +263,25 @@ test("steps are listed children first", () => {
     assert.strictEqual(steps.length, 2);
     assert.strictEqual(steps[0].node, inner);
     assert.deepStrictEqual([steps[1].right.kind, steps[1].right.index], ["step", 1]);
+});
+
+test("steps are grouped into rounds of independent steps, cheapest first", () => {
+    const leaf = ns => ({ item_namespace: ns, enchantments: [], left: null, right: null });
+    const merge = (left, right, cost) => ({ item_namespace: left.item_namespace, enchantments: [], merge_levels: cost, left, right });
+    // Two independent first steps (costs 5 and 2), then one using the cheap one, then the last.
+    const a = merge(leaf("book"), leaf("book"), 5);
+    const b = merge(leaf("book"), leaf("book"), 2);
+    const c = merge(b, leaf("book"), 7);
+    const root = merge(merge(leaf("sword"), a, 9), c, 4);
+    const steps = logic.collectSteps(root);
+    const shape = steps.map(s => [s.number, s.round, s.node.merge_levels]);
+    assert.deepStrictEqual(shape, [[1, 1, 2], [2, 1, 5], [3, 2, 7], [4, 2, 9], [5, 3, 4]]);
+    // Children always come before the steps that use them, and references use the new numbers.
+    for (const step of steps) {
+        for (const part of [step.left, step.right]) if (part.kind === "step") assert.ok(part.index < step.number);
+    }
+    assert.deepStrictEqual([steps[2].left.kind, steps[2].left.index], ["step", 1]); // c uses b, now step 1
+    assert.deepStrictEqual(logic.stepRounds(steps).map(round => round.map(s => s.number)), [[1, 2], [3, 4], [5]]);
 });
 
 console.log(`${passed} passed`);

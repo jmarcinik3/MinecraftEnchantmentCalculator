@@ -145,22 +145,32 @@ test("memoized search matches brute force on random inputs", () => {
 });
 
 // Every complete merge tree, for checking any ranking against the memoized search.
-function allTrees(entries, cap) {
-    function all(nodes) {
+// `rename` adds 1 level to the final step only, as renaming in the last anvil use does.
+function allTrees(entries, cap, eng = engine, rename = false) {
+    function all(nodes, extra) {
         if (nodes.length === 1) return nodes;
         const out = [];
         const n = nodes.length;
         for (let mask = 1; mask < (1 << n) - 1; mask++) {
             const left = nodes.filter((_, i) => mask & (1 << i));
             const right = nodes.filter((_, i) => !(mask & (1 << i)));
-            for (const l of all(left)) for (const r of all(right)) {
-                const c = engine.combine(l, r, cap);
+            for (const l of all(left, 0)) for (const r of all(right, 0)) {
+                const c = eng.combine(l, r, cap, extra);
                 if (c) out.push(c);
             }
         }
         return out;
     }
-    return all(entries.map(engine.makeLeaf));
+    return all(entries.map(eng.makeLeaf), rename ? 1 : 0);
+}
+
+// The best of `trees` by enchantments first, then by `priority`.
+function bestTree(trees, priority) {
+    const best_value = Math.max(...trees.map(valueOf));
+    return trees.filter(t => valueOf(t) === best_value).sort((a, b) => {
+        for (const c of priority) if (a[FIELDS[c]] !== b[FIELDS[c]]) return a[FIELDS[c]] - b[FIELDS[c]];
+        return 0;
+    })[0];
 }
 
 const FIELDS = { levels: "cumulative_levels", xp: "cumulative_xp", max_step: "max_step", prior_work: "prior_work" };
@@ -251,6 +261,83 @@ test("many different enchantments fall back to text keys and stay exact", () => 
     const slow = allTrees(entries, Infinity).sort((a, b) => a.cumulative_levels - b.cumulative_levels || a.cumulative_xp - b.cumulative_xp)[0];
     assert.strictEqual(fast.enchantments.length, names.length);
     assert.strictEqual(fast.cumulative_levels, slow.cumulative_levels);
+});
+
+test("Bedrock charges only the levels an enchantment gains", () => {
+    const bedrock = createEngine(metadata, { edition: "bedrock" });
+    const looting = ["sword", [["looting", 3]], 0];
+    // Wiki example: an unchanged Looting III from an item adds 12 in Java and 0 in Bedrock.
+    assert.strictEqual(engine.combine(engine.makeLeaf(looting), engine.makeLeaf(looting)).merge_levels, 12);
+    assert.strictEqual(bedrock.combine(bedrock.makeLeaf(looting), bedrock.makeLeaf(looting)).merge_levels, 0);
+    // Sharpness II + II = III: Java charges 3, Bedrock the 1 level gained.
+    const sharp = edition_engine => edition_engine.combine(
+        edition_engine.makeLeaf(["sword", [["sharpness", 2]], 0]), edition_engine.makeLeaf(["book", [["sharpness", 2]], 0]));
+    assert.strictEqual(sharp(engine).merge_levels, 3);
+    assert.strictEqual(sharp(bedrock).merge_levels, 1);
+});
+
+test("Bedrock: cheaper Impaling, no Sweeping Edge", () => {
+    const bedrock = createEngine(metadata, { edition: "bedrock" });
+    const impaling = e => e.combine(e.makeLeaf(["trident", [], 0]), e.makeLeaf(["book", [["impaling", 5]], 0])).merge_levels;
+    assert.strictEqual(impaling(engine), 10);
+    assert.strictEqual(impaling(bedrock), 5);
+    assert.ok(engine.makeLeaf(["sword", [["sweeping", 3]], 0]));
+    assert.throws(() => bedrock.makeLeaf(["sword", [["sweeping", 3]], 0]));
+});
+
+test("Bedrock search matches brute force", () => {
+    const bedrock = createEngine(metadata, { edition: "bedrock" });
+    const pool = ["sharpness", "unbreaking", "looting", "mending"];
+    let seed = 31;
+    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    for (let trial = 0; trial < 25; trial++) {
+        const entries = [["sword", [], rand(2)]];
+        for (let i = 0, extra = 2 + rand(3); i < extra; i++) {
+            const ns = pool[rand(pool.length)];
+            entries.push([rand(4) === 0 ? "sword" : "book", [[ns, 1 + rand(metadata.enchantments[ns].max_level)]], rand(2)]);
+        }
+        for (const priority of [["levels", "xp"], ["max_step", "levels"]]) {
+            const fast = bedrock.solve(entries, { priority });
+            const trees = allTrees(entries, 39, bedrock);
+            assert.strictEqual(fast === null, trees.length === 0);
+            if (!fast) continue;
+            const slow = bestTree(trees, normalizePriority(priority));
+            for (const c of priority) assert.strictEqual(fast[FIELDS[c]], slow[FIELDS[c]], JSON.stringify({ entries, priority, c }));
+        }
+    }
+});
+
+test("renaming adds 1 level to the last step and can make it too expensive", () => {
+    const entries = [["sword", [], 5], ["book", [["sharpness", 5], ["unbreaking", 3]], 0]];
+    const plain = engine.solve(entries);
+    assert.strictEqual(plain.merge_levels, 39); // 31 prior work + 5 + 3
+    assert.strictEqual(plain.renamed, undefined);
+    assert.strictEqual(engine.solve(entries, { rename: true }), null);
+    const renamed = engine.solve(entries, { rename: true, max_merge_levels: Infinity });
+    assert.strictEqual(renamed.merge_levels, 40);
+    assert.strictEqual(renamed.renamed, true);
+});
+
+test("renaming matches brute force, including which order is best", () => {
+    let seed = 77;
+    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    const pool = ["sharpness", "unbreaking", "looting", "fire_aspect"];
+    for (let trial = 0; trial < 30; trial++) {
+        const entries = [["sword", [], rand(3)]];
+        for (let i = 0, extra = 2 + rand(3); i < extra; i++) {
+            const ns = pool[rand(pool.length)];
+            entries.push(["book", [[ns, 1 + rand(metadata.enchantments[ns].max_level)]], rand(3)]);
+        }
+        const cap = [39, 12, 9][rand(3)];
+        for (const priority of [["levels", "xp"], ["max_step", "levels"], ["xp", "levels"]]) {
+            const fast = engine.solve(entries, { priority, max_merge_levels: cap, rename: true });
+            const trees = allTrees(entries, cap, engine, true);
+            assert.strictEqual(fast === null, trees.length === 0, JSON.stringify({ entries, cap }));
+            if (!fast) continue;
+            const slow = bestTree(trees, normalizePriority(priority));
+            for (const c of priority) assert.strictEqual(fast[FIELDS[c]], slow[FIELDS[c]], JSON.stringify({ entries, cap, priority, c }));
+        }
+    }
 });
 
 test("step limit lowers the most expensive step", () => {
