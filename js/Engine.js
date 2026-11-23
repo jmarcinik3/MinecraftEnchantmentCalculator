@@ -104,7 +104,8 @@
 
         // Put `left` in the first anvil slot and `right` in the second.
         // Returns the resulting node, or null if the game would not allow it or the
-        // step would cost more than `max_merge_levels`.
+        // step would cost more than `max_merge_levels` (Infinity: no limit, as with mods
+        // that remove "Too Expensive!").
         function combine(left, right, max_merge_levels = MAXIMUM_MERGE_LEVELS) {
             const right_is_book = right.item_namespace === "book";
             if (!right_is_book && left.item_namespace !== right.item_namespace) return null;
@@ -127,7 +128,8 @@
             }
 
             merge_levels += priorWorkPenalty(left.prior_work) + priorWorkPenalty(right.prior_work);
-            if (merge_levels > Math.min(max_merge_levels, MAXIMUM_MERGE_LEVELS)) return null;
+            // A huge prior work makes the penalty Infinity, which would pass an Infinity limit.
+            if (!(merge_levels <= max_merge_levels) || !Number.isFinite(merge_levels)) return null;
 
             const list = Array.from(levels, ([namespace, level]) => ({ namespace, level }));
             return makeNode(
@@ -155,7 +157,7 @@
         // is kept. The max step is not: max(30, 36) ties max(35, 36), letting a node that
         // lost on max step win later on totals. So if max step outranks a total, keep every
         // node that is not beaten on both the max step and the totals (a Pareto front,
-        // at most 39 nodes since steps cost 1-39 levels).
+        // at most one node per distinct max step, so at most 39 with the vanilla limit).
         function dominance(priority) {
             const ranked = priority.filter(c => c !== "prior_work"); // equal within a bucket
             if (ranked[ranked.length - 1] === "max_step") {
@@ -173,7 +175,9 @@
             const compare = lexicographic(priority);
             const dominates = dominance(priority);
             const cap = options.max_merge_levels == null ? MAXIMUM_MERGE_LEVELS : Number(options.max_merge_levels);
-            if (!Number.isInteger(cap) || cap < 1) throw new Error("Step limit must be a positive integer");
+            if (cap !== Infinity && (!Number.isInteger(cap) || cap < 1)) {
+                throw new Error("Step limit must be a positive integer or Infinity");
+            }
             const leaves = entries.map(makeLeaf);
             const count = leaves.length;
             if (count === 0) return null;

@@ -7,7 +7,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Files
 - `index.html`: shell with 4 mount points: `#items`, `#wanted`, `#books`, `#results` (+ `#ranking`, `#copy-link`).
 - `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
-  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39 }`.
+  State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work }], priority: [criteria, most important first], max_step: 1-39, no_step_limit }`
+  (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`).
   Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
   Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one.
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
@@ -21,7 +22,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `collectSteps(root)`, `serialize`/`deserialize`
-  (share links; old `o` objective links still load). Also exports `roman`, `MAX_PRIOR_WORK` (6), `MAX_STEP_LEVELS` (39),
+  (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
+  prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
 - `json/metadata.json`: keys `enchantments` ({incompatible, items, max_level, stylized, weight}), `items`,
   `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
@@ -29,7 +31,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 
 ## Game rules implemented (Engine.js)
 Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps, incompatible enchantments
-dropped but cost 1 level, merges of 40+ levels are "Too Expensive" (the user can lower this cap). Ties break on the next-ranked criterion.
+dropped but cost 1 level, merges of 40+ levels are "Too Expensive" (the user can lower this cap or remove it). Ties break on the next-ranked criterion.
 
 ## Adding an item or enchantment
 Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add an image to

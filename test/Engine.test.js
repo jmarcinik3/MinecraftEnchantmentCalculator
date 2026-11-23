@@ -181,7 +181,7 @@ test("every ranking and step limit matches brute force", () => {
             const list = [...picks].map(ns => [ns, 1 + rand(metadata.enchantments[ns].max_level)]);
             entries.push([rand(4) === 0 ? "sword" : "book", list, rand(3)]);
         }
-        const cap = [39, 39, 20, 12, 8][rand(5)];
+        const cap = [39, 39, 20, 12, 8, Infinity][rand(6)];
         const trees = allTrees(entries, cap);
         for (const priority of orders) {
             const fast = engine.solve(entries, { priority, max_merge_levels: cap });
@@ -222,6 +222,24 @@ test("step limit lowers the most expensive step", () => {
 test("unknown or partial rankings are completed in default order", () => {
     assert.deepStrictEqual(normalizePriority(["max_step", "bogus", "max_step"]), ["max_step", "levels", "xp", "prior_work"]);
     assert.deepStrictEqual(normalizePriority(undefined), CRITERIA);
+});
+
+test("no step limit allows 40+ level steps", () => {
+    const entries = [["sword", [], 5], ["book", [["sharpness", 5], ["unbreaking", 3], ["mending", 1]], 0]];
+    const result = engine.solve(entries, { max_merge_levels: Infinity });
+    assert.ok(result && result.max_step > 39);
+    assert.throws(() => engine.solve(entries, { max_merge_levels: 0 }));
+});
+
+test("an infinite prior work penalty is never allowed", () => {
+    const entries = [["sword", [], 1024], ["book", [["sharpness", 5]], 0]];
+    assert.strictEqual(engine.solve(entries, { max_merge_levels: Infinity }), null);
+});
+
+test("the highest prior work the step limit allows can still be used", () => {
+    // Prior work 5 costs 31; 6 would cost 63, more than 39.
+    assert.ok(engine.solve([["sword", [], 5], ["book", [["mending", 1]], 0]]));
+    assert.strictEqual(engine.solve([["sword", [], 6], ["book", [["mending", 1]], 0]]), null);
 });
 
 test("full god sword solves quickly", () => {

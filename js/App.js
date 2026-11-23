@@ -1,4 +1,4 @@
-import { createLogic, roman, movePriority, clampStepLimit, CRITERIA, MAX_PRIOR_WORK, MAX_STEP_LEVELS } from "./Logic.js";
+import { createLogic, roman, movePriority, clampStepLimit, maxPriorWork, CRITERIA, MAX_STEP_LEVELS } from "./Logic.js";
 
 const META_URL = "json/metadata.json";
 const WORKER_URL = "js/Calculator.js";
@@ -26,7 +26,8 @@ function defaultState() {
         auto_books: true,  // derive entries from `wanted`
         books: [],         // custom entries: { id, type: "book" | "item", enchantments: {ns: level}, prior_work }
         priority: [...CRITERIA],     // ranking for the best order, most important first
-        max_step: MAX_STEP_LEVELS    // no single step may cost more levels than this
+        max_step: MAX_STEP_LEVELS,   // no single step may cost more levels than this
+        no_step_limit: false         // ignore max_step and "Too Expensive!" (for mods that remove it)
     };
 }
 
@@ -136,35 +137,49 @@ function renderWanted() {
         h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, "Clear")
     ));
 
+    // Conflicting enchantments are boxed together where the first of them would be listed.
     let curses_shown = false;
-    for (const ns of logic.applicable(state.item)) {
-        if (logic.isCurse(ns) && !curses_shown) {
+    for (const group of logic.enchantmentGroups(state.item)) {
+        if (logic.isCurse(group.members[0]) && !curses_shown) {
             box.append(h("div", { class: "divider" }, "Curses"));
             curses_shown = true;
         }
-        const chosen = state.wanted[ns] || 0;
-        const blocker = !chosen && Object.keys(state.wanted).find(other => logic.conflicts(other, ns));
-
-        const levels = [];
-        for (let level = 1; level <= logic.maxLevel(ns); level++) {
-            levels.push(h("button", {
-                type: "button",
-                class: "level" + (chosen === level ? " selected" : ""),
-                "aria-pressed": String(chosen === level),
-                "aria-label": logic.displayName(ns, level),
-                title: blocker ? `Replaces ${logic.enchName(blocker)}` : null,
-                onclick: () => setWanted(ns, chosen === level ? 0 : level)
-            }, roman(level)));
+        if (group.members.length === 1) {
+            box.append(wantedRow(group.members[0], false));
+            continue;
         }
-
-        box.append(h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") },
-            h("div", { class: "ench-name" },
-                logic.enchName(ns),
-                blocker ? h("span", { class: "note" }, `Conflicts with ${logic.enchName(blocker)}`) : null
-            ),
-            h("div", { class: "levels" }, levels)
+        box.append(h("div", { class: "ench-group" + (group.exclusive ? " exclusive" : "") },
+            h("div", { class: "ench-group-label" }, group.exclusive ? "Pick one" : "Some conflict"),
+            group.members.map(ns => wantedRow(ns, group.exclusive))
         ));
     }
+}
+
+// One enchantment with its level buttons. In a "Pick one" group the box already says
+// they conflict, so the per-row note is left out.
+function wantedRow(ns, in_exclusive_group) {
+    const chosen = state.wanted[ns] || 0;
+    const blocker = !chosen && Object.keys(state.wanted).find(other => logic.conflicts(other, ns));
+
+    const levels = [];
+    for (let level = 1; level <= logic.maxLevel(ns); level++) {
+        levels.push(h("button", {
+            type: "button",
+            class: "level" + (chosen === level ? " selected" : ""),
+            "aria-pressed": String(chosen === level),
+            "aria-label": logic.displayName(ns, level),
+            title: blocker ? `Replaces ${logic.enchName(blocker)}` : null,
+            onclick: () => setWanted(ns, chosen === level ? 0 : level)
+        }, roman(level)));
+    }
+
+    return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") },
+        h("div", { class: "ench-name" },
+            logic.enchName(ns),
+            blocker && !in_exclusive_group ? h("span", { class: "note" }, `Conflicts with ${logic.enchName(blocker)}`) : null
+        ),
+        h("div", { class: "levels" }, levels)
+    );
 }
 
 function enchantmentEditor(enchantments) {
@@ -206,13 +221,18 @@ function enchantmentEditor(enchantments) {
     return h("div", { class: "tags" }, tags, add_select);
 }
 
-function stepper(label, value, onSet, help) {
+function stepper(label, value, max, onSet, help) {
     return h("span", { class: "stepper", title: help },
         label,
-        h("button", { type: "button", class: "btn tiny", "aria-label": `Decrease ${label}`, onclick: () => onSet(Math.max(0, value - 1)) }, "−"),
+        h("button", { type: "button", class: "btn tiny", "aria-label": `Decrease ${label}`, disabled: value <= 0, onclick: () => onSet(value - 1) }, "−"),
         h("span", { class: "stepper-value" }, value),
-        h("button", { type: "button", class: "btn tiny", "aria-label": `Increase ${label}`, onclick: () => onSet(Math.min(MAX_PRIOR_WORK, value + 1)) }, "+")
+        h("button", { type: "button", class: "btn tiny", "aria-label": `Increase ${label}`, disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
     );
+}
+
+// The step limit in effect, or Infinity when it is turned off.
+function stepLimit() {
+    return state.no_step_limit ? Infinity : state.max_step;
 }
 
 const PRIOR_WORK_HELP = "How many times this has already been used on an anvil. Each use makes later merges more expensive.";
@@ -247,7 +267,7 @@ function renderBooks() {
             h("div", { class: "book-editor-head" },
                 typeToggle(book, item_name),
                 h("span", { class: "spacer" }),
-                stepper("Prior work", book.prior_work, value => { book.prior_work = value; commit(); }, PRIOR_WORK_HELP),
+                stepper("Prior work", book.prior_work, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, PRIOR_WORK_HELP),
                 h("button", {
                     type: "button",
                     class: "tag-remove",
@@ -325,7 +345,11 @@ function renderRanking() {
         );
     });
 
-    const limit = h("input", {
+    // The saved number comes back when the limit is turned on again.
+    const limit = state.no_step_limit ? h("input", {
+        type: "text", class: "step-limit unlimited", value: "∞", readonly: true, tabindex: "-1",
+        "aria-label": "No step limit"
+    }) : h("input", {
         type: "number", class: "step-limit", min: 1, max: MAX_STEP_LEVELS, value: state.max_step,
         "aria-label": "Most levels allowed per step",
         onchange: event => {
@@ -337,8 +361,15 @@ function renderRanking() {
 
     box.replaceChildren(
         h("div", { class: "ranking-row" }, h("span", { class: "ranking-label" }, "Rank by"), h("ol", { class: "rank-list" }, chips)),
-        h("label", { class: "ranking-row", title: "Every step must cost at most this many levels" },
-            h("span", { class: "ranking-label" }, "Step limit"), limit, h("span", { class: "hint" }, "levels")
+        h("div", { class: "ranking-row", title: "Every step must cost at most this many levels" },
+            h("span", { class: "ranking-label" }, "Step limit"), limit, h("span", { class: "hint" }, "levels"),
+            h("label", { class: "no-limit", title: "For mods that remove \"Too Expensive!\"" },
+                h("input", {
+                    type: "checkbox", checked: state.no_step_limit,
+                    onchange: event => { state.no_step_limit = event.target.checked; commit(); }
+                }),
+                "No limit (modded)"
+            )
         )
     );
 }
@@ -385,7 +416,9 @@ function renderResults() {
 
     if (!node) {
         content.append(h("div", { class: "warning" },
-            `No valid order: every step must cost ${state.max_step} levels or less.`));
+            state.no_step_limit
+                ? "No valid order: these can't be combined."
+                : `No valid order: every step must cost ${state.max_step} levels or less.`));
         return;
     }
     if (!node.left) {
@@ -505,7 +538,7 @@ function runCalculation() {
         request_id: request_id,
         item_entries: entries,
         priority: state.priority,
-        max_merge_levels: state.max_step
+        max_merge_levels: stepLimit()
     });
     renderResults();
 }

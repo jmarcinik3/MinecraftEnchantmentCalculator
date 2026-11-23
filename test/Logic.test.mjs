@@ -6,7 +6,7 @@ import { readFileSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
-const { createLogic, normalizePriority, movePriority, clampStepLimit, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
+const { createLogic, normalizePriority, movePriority, clampStepLimit, maxPriorWork, CRITERIA } = await import("data:text/javascript," + encodeURIComponent(read("../js/Logic.js")));
 const meta = JSON.parse(read("../json/metadata.json"));
 const logic = createLogic(meta);
 
@@ -23,7 +23,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39 });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false });
 
 test("every item has an icon file", () => {
     for (const item of Object.keys(meta.items)) {
@@ -108,12 +108,14 @@ test("shared links round-trip and drop invalid data", () => {
         auto_books: false,
         books: [{ id: 1, enchantments: { sharpness: 5, smite: 5, power: 2 }, prior_work: 9 }],
         priority: ["max_step", "xp", "levels", "prior_work"],
-        max_step: 25
+        max_step: 25,
+        no_step_limit: true
     };
     const loaded = logic.deserialize(logic.serialize(state), () => 1);
-    assert.deepStrictEqual(loaded.books, [{ id: 1, type: "book", enchantments: { sharpness: 5 }, prior_work: 6 }]);
+    assert.deepStrictEqual(loaded.books, [{ id: 1, type: "book", enchantments: { sharpness: 5 }, prior_work: 9 }]);
     assert.deepStrictEqual(loaded.priority, ["max_step", "xp", "levels", "prior_work"]);
     assert.strictEqual(loaded.max_step, 25);
+    assert.strictEqual(loaded.no_step_limit, true);
 });
 
 test("old single-objective links still load", () => {
@@ -121,6 +123,7 @@ test("old single-objective links still load", () => {
     const old = logic.deserialize(encode({ i: "sword", w: {}, a: 1, b: [], o: 1 }), () => 0);
     assert.deepStrictEqual(old.priority, ["xp", "levels", "max_step", "prior_work"]);
     assert.strictEqual(old.max_step, 39);
+    assert.strictEqual(old.no_step_limit, false);
     const bad = logic.deserialize(encode({ i: "sword", w: {}, a: 1, b: [], p: [2, 2, 9], c: 99 }), () => 0);
     assert.deepStrictEqual(bad.priority, ["max_step", "levels", "xp", "prior_work"]);
     assert.strictEqual(bad.max_step, 39);
@@ -138,6 +141,32 @@ test("ranking helpers", () => {
     assert.strictEqual(clampStepLimit(0), 1);
     assert.strictEqual(clampStepLimit("12"), 12);
     assert.strictEqual(clampStepLimit("x"), 39);
+});
+
+test("conflicting enchantments are grouped in list order", () => {
+    const names = groups => groups.map(g => (g.exclusive ? "!" : "") + g.members.join("/"));
+    const sword = logic.enchantmentGroups("sword");
+    assert.ok(names(sword).includes("!bane_of_arthropods/sharpness/smite"));
+    // Every applicable enchantment appears exactly once, in `applicable` order.
+    assert.deepStrictEqual(sword.flatMap(g => g.members).sort(), logic.applicable("sword").sort());
+    const firsts = sword.map(g => logic.applicable("sword").indexOf(g.members[0]));
+    assert.deepStrictEqual(firsts, [...firsts].sort((a, b) => a - b));
+    // Riptide conflicts with Loyalty and Channeling, which work together: not "pick one".
+    assert.ok(names(logic.enchantmentGroups("trident")).includes("channeling/loyalty/riptide"));
+    assert.ok(names(logic.enchantmentGroups("boots")).includes("!depth_strider/frost_walker"));
+    for (const item of logic.enchantableItems()) {
+        const groups = logic.enchantmentGroups(item);
+        const curse_start = groups.findIndex(g => logic.isCurse(g.members[0]));
+        if (curse_start >= 0) assert.ok(groups.slice(curse_start).every(g => logic.isCurse(g.members[0])), item);
+    }
+});
+
+test("max prior work follows the step limit", () => {
+    assert.deepStrictEqual([39, 31, 30, 20, 12, 1].map(maxPriorWork), [5, 5, 4, 4, 3, 1]);
+    assert.strictEqual(maxPriorWork(Infinity), Infinity);
+    assert.strictEqual(logic.clampPriorWork(12), 12);
+    assert.strictEqual(logic.clampPriorWork(-1), 0);
+    assert.strictEqual(logic.clampPriorWork(1.5), 0);
 });
 
 test("steps are listed children first", () => {

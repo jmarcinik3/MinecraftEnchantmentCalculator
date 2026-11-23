@@ -1,6 +1,5 @@
 // Pure helpers for the prototype UI: no DOM access, so they can be tested on their own.
 
-export const MAX_PRIOR_WORK = 6;
 export const MAX_STEP_LEVELS = 39; // a step costing 40+ levels is "Too Expensive!"
 
 // Ranking criteria for the best order, in default order (must match Engine.js).
@@ -21,6 +20,16 @@ export function movePriority(priority, index, offset) {
     const [moved] = result.splice(index, 1);
     result.splice(target, 0, moved);
     return result;
+}
+
+// Highest prior work an item can have and still be used: each merge it is in costs at
+// least its penalty, 2^n - 1 levels, so that must fit within the step limit.
+// With no limit (Infinity) there is no maximum.
+export function maxPriorWork(step_limit) {
+    if (step_limit === Infinity) return Infinity;
+    let prior_work = 0;
+    while (2 ** (prior_work + 1) - 1 <= step_limit) prior_work++;
+    return prior_work;
 }
 
 export function clampStepLimit(value) {
@@ -89,6 +98,32 @@ export function createLogic(meta) {
             .sort((a, b) => (isCurse(a) - isCurse(b)) || enchName(a).localeCompare(enchName(b)));
     }
 
+    // Applicable enchantments split into conflict groups (linked by incompatibility), in
+    // `applicable` order: each group sits where its first member would, so curses stay last.
+    // In an `exclusive` group every pair conflicts, so at most one can be chosen.
+    function enchantmentGroups(item) {
+        const list = applicable(item);
+        const placed = new Set();
+        const groups = [];
+        for (const ns of list) {
+            if (placed.has(ns)) continue;
+            const linked = [ns];
+            placed.add(ns);
+            for (let i = 0; i < linked.length; i++) {
+                for (const other of list) {
+                    if (!placed.has(other) && conflicts(linked[i], other)) {
+                        placed.add(other);
+                        linked.push(other);
+                    }
+                }
+            }
+            const members = list.filter(other => linked.includes(other));
+            const exclusive = members.length > 1 && members.every(a => members.every(b => a === b || conflicts(a, b)));
+            groups.push({ members, exclusive });
+        }
+        return groups;
+    }
+
     function enchantableItems() {
         return Object.keys(meta.items).filter(item => item !== "book" && applicable(item).length > 0);
     }
@@ -109,7 +144,7 @@ export function createLogic(meta) {
 
     function clampPriorWork(value) {
         const n = Number(value);
-        return Number.isInteger(n) ? Math.min(MAX_PRIOR_WORK, Math.max(0, n)) : 0;
+        return Number.isInteger(n) && n >= 0 ? n : 0;
     }
 
     function maxAll(item, wanted) {
@@ -174,7 +209,8 @@ export function createLogic(meta) {
             a: state.auto_books ? 1 : 0,
             b: state.auto_books ? [] : state.books.map(book => [book.enchantments, book.prior_work, book.type === "item" ? 1 : 0]),
             p: state.priority.map(c => CRITERIA.indexOf(c)),
-            c: state.max_step
+            c: state.max_step,
+            n: state.no_step_limit ? 1 : 0
         };
         return btoa(JSON.stringify(data)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
     }
@@ -198,13 +234,14 @@ export function createLogic(meta) {
             priority: Array.isArray(data.p)
                 ? normalizePriority(data.p.map(index => CRITERIA[index]))
                 : normalizePriority(data.o === 1 ? ["xp", "levels"] : []),
-            max_step: data.c == null ? MAX_STEP_LEVELS : clampStepLimit(data.c)
+            max_step: data.c == null ? MAX_STEP_LEVELS : clampStepLimit(data.c),
+            no_step_limit: data.n === 1
         };
     }
 
     return {
         enchName, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        applicable, enchantableItems, sanitizeEnchantments, clampPriorWork, maxAll,
+        applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, clampPriorWork, maxAll,
         currentBooks, buildEntries, missing, collectSteps, serialize, deserialize
     };
 }
