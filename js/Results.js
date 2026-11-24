@@ -1,6 +1,6 @@
 // Section 4: the steps and the tree, ticking and folding, progress, and the text of the steps.
 import { updateCostMeter } from "./Wanted.js";
-import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, searchSize } from "./Logic.js";
+import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searchSize } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { SLOW_SPLITS, language, logic, meta, state } from "./Store.js";
 import { $, copyText, h, icon, motion_ok, readStorage, writeStorage } from "./Dom.js";
@@ -13,7 +13,11 @@ import { renderOrderSummary, renderStepsSummary } from "./App.js";
 
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
 const VIEW_STORAGE_KEY = "enchantment-calculator-view";
-let result_view = readStorage(VIEW_STORAGE_KEY, "steps") === "tree" ? "tree" : "steps";
+const COMPACT_STORAGE_KEY = "enchantment-calculator-tree-compact";
+// "steps": a card per step; "slots": one line of slots per step; "tree".
+let result_view = ["tree", "slots"].includes(readStorage(VIEW_STORAGE_KEY, "steps")) ? readStorage(VIEW_STORAGE_KEY, "steps") : "steps";
+// Tree view: only the slots, with the details on hover.
+let tree_compact = readStorage(COMPACT_STORAGE_KEY, false) === true;
 // Each redraw (a tick, a new name, a new level) rebuilds the steps; their scroll position
 // is kept when the same view of the same order comes back.
 export let steps_scroll = { key: null, top: 0 };
@@ -22,9 +26,9 @@ export let steps_scroll = { key: null, top: 0 };
 // screen; ticking or unticking a step drops its entry, so it follows its new state.
 let step_folds = { key: null, folded: new Map() };
 
-function isFolded(order_key, number, done) {
+function isFolded(order_key, number, done, by_default = false) {
     if (step_folds.key !== order_key) step_folds = { key: order_key, folded: new Map() };
-    return step_folds.folded.has(number) ? step_folds.folded.get(number) : done.has(number);
+    return step_folds.folded.has(number) ? step_folds.folded.get(number) : done.has(number) || by_default;
 }
 
 // Saves new ticks, forgetting the hand folding of the steps whose tick changed.
@@ -119,13 +123,30 @@ export function renderResults() {
     const order_key = orderKey(steps);
     const done = loadChecklist(order_key);
 
+    const left = steps.map(step => step.number).filter(number => !done.has(number));
+    const current = left.length ? Math.min(...left) : null;
+    const setView = view => { result_view = view; writeStorage(VIEW_STORAGE_KEY, view); renderResults(); };
+    // Tree: a button for showing only the slots. Steps and Tree: Expand all / Collapse all.
+    const compact = result_view === "tree" ? h("button", {
+        type: "button", class: "btn small density", "aria-pressed": String(tree_compact), title: TEXT.results.compact_help,
+        onclick: () => { tree_compact = !tree_compact; writeStorage(COMPACT_STORAGE_KEY, tree_compact); renderResults(); }
+    }, TEXT.results.compact) : null;
+    const foldAll = fold => {
+        if (step_folds.key !== order_key) step_folds = { key: order_key, folded: new Map() };
+        for (const step of steps) step_folds.folded.set(step.number, fold);
+        renderResults();
+    };
+    const fold_buttons = result_view === "slots" ? null : h("span", { class: "fold-buttons" },
+        h("button", { type: "button", class: "btn small", onclick: () => foldAll(false) }, TEXT.results.expand_all),
+        h("button", { type: "button", class: "btn small", onclick: () => foldAll(true) }, TEXT.results.collapse_all));
+
     content.append(h("div", { class: "toolbar result-tools" },
         h("div", { class: "segmented", role: "group", "aria-label": TEXT.results.view_label },
-            [["steps", TEXT.results.view_steps], ["tree", TEXT.results.view_tree]].map(([view, label]) => h("button", {
+            [["steps", TEXT.results.view_steps], ["slots", TEXT.results.view_slots], ["tree", TEXT.results.view_tree]].map(([view, label]) => h("button", {
                 type: "button", class: result_view === view ? "selected" : "", "aria-pressed": String(result_view === view),
-                onclick: () => { result_view = view; writeStorage(VIEW_STORAGE_KEY, view); renderResults(); }
+                "data-view": view, onclick: () => setView(view)
             }, label))),
-        stepProgress(steps, done, remaining.needed, order_key),
+        stepProgress(steps, done, remaining.needed, order_key, [compact, fold_buttons]),
         h("button", {
             type: "button", class: "btn small copy-steps", title: TEXT.results.copy_steps_help,
             onclick: event => copyText(event.currentTarget, stepsText(node, steps), TEXT.results.copy_steps)
@@ -143,23 +164,38 @@ export function renderResults() {
     } else {
         // A timeline: one group per round (its steps don't depend on each other, so any
         // order works), a node per step on the rail. The first step not done is the one
-        // "you are here" (highlighted); done steps fold to one line.
+        // "you are here" (highlighted); done steps fold to one line, and in Focus the
+        // others too. The Slots view shows each step as one line of slots.
+        const slots = result_view === "slots";
         const rounds = logic.stepRounds(steps);
-        const left = steps.map(step => step.number).filter(number => !done.has(number));
-        const current = left.length ? Math.min(...left) : null;
-        scroller.append(h("div", { class: "rounds timeline" }, rounds.map((round, index) => h("section", { class: "round" },
-            h("div", { class: "round-label", title: round.length > 1 ? TEXT.results.round_help : null },
-                TEXT.results.round({ number: index + 1, steps: round.length })),
+        scroller.append(h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
+            h("div", { class: "round-label" },
+                TEXT.results.round({ number: index + 1, steps: round.length }),
+                round.length > 1 ? roundTip(index) : null),
             h("ol", { class: "anvil-steps" }, round.map(step =>
                 anvilStep(step, done, order_key, steps,
                     track && !done.has(step.number) ? track.steps[step.number - 1] : null,
-                    step.number === current, isFolded(order_key, step.number, done))))
+                    step.number === current, !slots && isFolded(order_key, step.number, done, step.number !== current))))
         ))));
+        // The finished item, after the last step.
+        scroller.append(h("section", { class: "final-card" + (current == null ? " done" : "") },
+            h("div", { class: "final-title" }, current == null ? TEXT.results.final_done : TEXT.results.final_title),
+            anvilCell(node, null, "final")));
+        // Phones: the current step and a Done button stay at the bottom while scrolling.
+        if (current != null) scroller.append(currentBar(steps, done, order_key, current));
     }
 
     const scroll_key = result_view + "|" + order_key;
     if (steps_scroll.key === scroll_key) scroller.scrollTop = steps_scroll.top;
     steps_scroll = { key: scroll_key, top: scroller.scrollTop };
+}
+
+// The "?" in a round's label: why its steps can go in any order (a bubble that floats over the page).
+function roundTip(index) {
+    const tip = infoTip("round-tip-" + index, "?", TEXT.results.round_tip_label, TEXT.results.round_help);
+    tip.querySelector(".info-tip-bubble").setAttribute("role", "tooltip");
+    floatBubble(tip);
+    return tip;
 }
 
 // [anvil] 7 anvil uses · (4% chance a new anvil breaks). The chance is a badge colored
@@ -237,6 +273,8 @@ function mergeTree(root, steps, done, order_key) {
                 ...(node.left ? {} : entryHover(node))
             },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
+                // Compact: a one-line caption next to the slot; the tooltip shows on hover.
+                h("span", { class: "tree-caption" }, enchanted ? logic.summary(node.enchantments) : nodeName(node)),
                 h("span", { class: "mc-tooltip tree-tooltip" },
                     h("span", { class: "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "") }, nodeName(node)),
                     enchanted ? h("span", { class: "mc-ench tree-ench" }, enchantments) : null),
@@ -251,7 +289,22 @@ function mergeTree(root, steps, done, order_key) {
             node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
         );
     };
-    return h("ul", { class: "merge-tree" }, branch(root));
+    const tree = h("ul", { class: "merge-tree" + (tree_compact ? " compact" : "") }, branch(root));
+    // Hovering or focusing an entry lights the path it takes: the merges it goes into (up to the
+    // finished item) and what went into it.
+    const light = line => {
+        for (const el of tree.querySelectorAll(".path-self, .path-up, .path-down")) el.classList.remove("path-self", "path-up", "path-down");
+        if (!line) return;
+        const node = line.parentElement;
+        line.classList.add("path-self");
+        for (let up = node.parentElement.closest("li.tree-node"); up; up = up.parentElement.closest("li.tree-node")) up.querySelector(":scope > .tree-line").classList.add("path-up");
+        for (const down of node.querySelectorAll("li.tree-node")) down.querySelector(":scope > .tree-line").classList.add("path-down");
+    };
+    tree.addEventListener("mouseover", event => light(event.target.closest(".tree-line")));
+    tree.addEventListener("mouseleave", () => light(null));
+    tree.addEventListener("focusin", event => light(event.target.closest(".tree-line")));
+    tree.addEventListener("focusout", () => light(null));
+    return tree;
 }
 
 // The steps as plain text, for pasting in a chat: what is made, the totals, then each
@@ -347,9 +400,10 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
     const is_done = done.has(number);
     const tick = stepTick(number, done, order_key, steps);
     const left_levels = new Map(step.left.node.enchantments.map(e => [e.namespace, e.level]));
-    const changed = new Set(step.node.enchantments
+    // What this step adds or raises over its first slot, with the level it had (undefined: new).
+    const changed = new Map(step.node.enchantments
         .filter(e => left_levels.get(e.namespace) !== e.level)
-        .map(e => e.namespace));
+        .map(e => [e.namespace, left_levels.get(e.namespace)]));
 
     // The cost in the game's green, amber within 5 levels of the level limit, red at it
     // (with no limit, measured against the game's own 39).
@@ -389,20 +443,92 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
     },
         h("span", { class: "step-node", "aria-hidden": "true" }, is_done ? "✓" : number),
         head,
+        // With "Your level" filled in and too low: how many levels to gain before this step.
+        level && level.short ? h("div", { class: "level-checkpoint" }, TEXT.results.checkpoint({ count: level.short, level: cost })) : null,
+        h("p", { class: "step-instruction" }, stepInstruction(step)),
         h("div", { class: "anvil-row" },
-            anvilCell(step.left.node, null, "left", entryRef(step.left), step.left.kind === "step" ? {} : entryHover(step.left.node)),
+            anvilCell(step.left.node, null, "left", entryRef(step.left), step.left.kind === "step" ? {} : entryHover(step.left.node), TEXT.results.slot_left),
             h("div", { class: "anvil-op", "aria-hidden": "true" }, "+"),
-            anvilCell(step.right.node, null, "right", entryRef(step.right), step.right.kind === "step" ? {} : entryHover(step.right.node)),
+            anvilCell(step.right.node, null, "right", entryRef(step.right), step.right.kind === "step" ? {} : entryHover(step.right.node), TEXT.results.slot_right),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
-                h("span", { class: "anvil-cost" + cost_class }, step.node.renamed
-                    ? TEXT.results.cost_renamed({ levels: cost })
-                    : TEXT.results.cost({ levels: cost })),
-                level ? levelMeter(level) : null
+                costChip(step, cost_class),
+                // A step you can't afford says so in the checkpoint above, not here too.
+                level && !level.short ? levelMeter(level) : null
             ),
-            anvilCell(step.node, changed, "result", h("span", { class: "cell-meta" }, TEXT.results.result_work({ count: step.node.prior_work })))
+            anvilCell(step.node, changed, "result", h("span", { class: "cell-meta" }, TEXT.results.result_work({ count: step.node.prior_work })), {}, TEXT.results.slot_result)
         )
     );
+}
+
+// What goes in each slot, in words: "Put Boots in the left slot and Enchanted Book (Mending) in
+// the right slot. Take the result: it costs 2 levels."
+function slotWords(side) {
+    if (side.kind === "step") return TEXT.results.words_result_of({ number: side.index });
+    return side.node.enchantments.length ? `${nodeName(side.node)} (${logic.summary(side.node.enchantments)})` : nodeName(side.node);
+}
+
+function stepInstruction(step) {
+    const text = TEXT.results.step_instruction({ left: slotWords(step.left), right: slotWords(step.right), levels: step.node.merge_levels });
+    return step.node.renamed && state.rename_to.trim() ? text + " " + TEXT.results.step_rename_note({ name: state.rename_to.trim() }) : text;
+}
+
+// The cost in the game's green; hovering, focusing or tapping it shows where the levels come
+// from: the enchantments, each side's prior work (2^n - 1) and the rename, as numbers and a bar.
+function costChip(step, cost_class) {
+    const cost = step.node.merge_levels;
+    const penalty = work => 2 ** (work || 0) - 1;
+    const renamed = step.node.renamed ? 1 : 0;
+    const parts = [
+        [TEXT.results.cost_part_left, penalty(step.left.node.prior_work), "work"],
+        [TEXT.results.cost_part_right, penalty(step.right.node.prior_work), "work2"],
+        [TEXT.results.cost_part_rename, renamed, "rename"]
+    ];
+    const enchants = Math.max(0, cost - parts.reduce((sum, part) => sum + part[1], 0));
+    const rows = [[TEXT.results.cost_part_enchants, enchants, "enchants"], ...parts].filter(([, value]) => value > 0);
+    const bubble = h("span", { class: "cost-breakdown", role: "tooltip" },
+        h("strong", {}, TEXT.results.cost_breakdown_title({ levels: cost })),
+        h("span", { class: "cost-bar", "aria-hidden": "true" }, rows.map(([, value, kind]) => h("span", { class: "cost-seg " + kind, style: `flex: ${value}` }))),
+        rows.map(([label, value, kind]) => h("span", { class: "cost-row" }, h("i", { class: "cost-dot " + kind }), label, h("b", {}, "+" + value))));
+    const chip = h("span", {
+        class: "anvil-cost has-breakdown" + cost_class, tabindex: "0",
+        onmouseenter: () => showCost(chip, bubble), onfocus: () => showCost(chip, bubble),
+        onmouseleave: () => chip.classList.remove("open"), onblur: () => chip.classList.remove("open"),
+        onclick: () => (chip.classList.contains("open") ? chip.classList.remove("open") : showCost(chip, bubble))
+    }, step.node.renamed ? TEXT.results.cost_renamed({ levels: cost }) : TEXT.results.cost({ levels: cost }), bubble);
+    return chip;
+}
+
+// The breakdown floats over the page (fixed), so the steps' scrolling box never clips it.
+function showCost(chip, bubble) {
+    chip.classList.add("open");
+    const box = chip.getBoundingClientRect();
+    bubble.style.left = Math.max(8, Math.min(box.left + box.width / 2 - 100, innerWidth - 216)) + "px";
+    bubble.style.top = box.bottom + 6 + "px";
+}
+
+// Phones: the current step's line and a Done button, kept at the bottom of the screen while
+// the steps scroll (CSS shows it under 900px).
+function currentBar(steps, done, order_key, current) {
+    const step = steps.find(entry => entry.number === current);
+    const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
+    return h("div", { class: "current-bar" },
+        h("div", { class: "current-bar-text" },
+            h("strong", {}, TEXT.results.bar_step({ number: current, total: steps.length })),
+            h("span", {}, stepLine(step))),
+        h("button", {
+            type: "button", class: "btn small", title: TEXT.results.bar_show,
+            onclick: () => { const el = card(); if (el) el.scrollIntoView({ block: "center", behavior: motion_ok() ? "smooth" : "auto" }); }
+        }, "↑"),
+        h("button", {
+            type: "button", class: "btn small primary",
+            onclick: () => {
+                saveTicks(order_key, steps, done, logic.tickStep(steps, done, current, true));
+                renderResults();
+                const next = document.querySelector("#results .anvil-step.current");
+                if (next) next.scrollIntoView({ block: "nearest", behavior: motion_ok() ? "smooth" : "auto" });
+            }
+        }, TEXT.results.bar_done));
 }
 
 // "Lv 30 → 28" with a small XP-style bar of what is left after the step, or the levels
@@ -496,7 +622,7 @@ function announce(text, order_key, count) {
     if (same_order && changed) $("#live").textContent = text;
 }
 
-function stepProgress(steps, done, levels, order_key) {
+function stepProgress(steps, done, levels, order_key, extra = null) {
     const total = steps.length;
     const count = steps.filter(step => done.has(step.number)).length;
     const level_up = total > 0 && count === total && celebrated !== order_key;
@@ -511,7 +637,8 @@ function stepProgress(steps, done, levels, order_key) {
         h("button", {
             type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
             disabled: count === 0, onclick: () => { saveTicks(order_key, steps, done, new Set()); renderResults(); }
-        }, "↺")
+        }, "↺"),
+        extra
     );
 }
 
@@ -519,18 +646,23 @@ function stepProgress(steps, done, levels, order_key) {
 // `role` is "left", "right" or "result", for the layout.
 // `meta`: an optional small line under the tooltip (the step it came from, prior work...).
 // `attrs`: extra attributes for the cell (hover handlers).
-export function anvilCell(node, changed, role, meta = null, attrs = {}) {
+export function anvilCell(node, changed, role, meta = null, attrs = {}, label = null) {
     const enchanted = node.enchantments.length > 0;
     // A renamed item shows its new name in italics, as in the game.
     const renamed = Boolean(node.renamed && state.rename_to.trim());
     const name = nodeName(node);
     const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "");
-    const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
-        class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : ""),
-        "data-ns": e.namespace, "data-level": e.level
-    }, logic.displayName(e.namespace, e.level)));
+    // `changed`: the enchantments to mark (a Set, or a Map to the level they had, shown as "← III").
+    const lines = logic.tooltipSort(node.enchantments).map(e => {
+        const from = changed && changed.get ? changed.get(e.namespace) : undefined;
+        return h("div", {
+            class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : ""),
+            "data-ns": e.namespace, "data-level": e.level
+        }, logic.displayName(e.namespace, e.level), from ? h("span", { class: "mc-from" }, " ← " + roman(from)) : null);
+    });
 
     return h("div", { class: "anvil-cell " + role, ...attrs },
+        label ? h("span", { class: "cell-label" }, label) : null,
         h("div", { class: "mc-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace)),
         h("div", { class: "mc-tooltip" }, h("div", { class: name_class }, name), lines),
         meta

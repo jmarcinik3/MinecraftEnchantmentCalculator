@@ -1947,9 +1947,9 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
 /* At least 260px, so on a phone it takes its own row rather than cutting its text. */
-.step-progress { display: flex; align-items: center; gap: 8px; flex: 1 1 0; min-width: 0; }
+.step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* An experience bar: black frame, dark empty segments, bright green filled ones. */
-.step-progress-track { display: flex; flex: 0 1 140px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
+.step-progress-track { display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
 .step-progress-cell { flex: 1; background: #2a2a2a; box-shadow: inset 0 1px 0 #3d3d3d; transition: background-color 0.25s ease-out; }
 .step-progress-cell.filled { background: linear-gradient(#b2ff4d, #80ff20 40%, #3d9b0a); box-shadow: none; }
 /* Level up: the bar flashes bright and a glow rises once, as when the XP bar fills in the game. */
@@ -1960,7 +1960,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     100% { filter: brightness(1); }
 }
 @media (prefers-reduced-motion: reduce) { .step-progress-track.level-up { animation: none; } }
-.step-progress-text { min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .step-reset {
     flex: none;
     width: 24px;
@@ -2001,7 +2001,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .result-tools .copy-steps { margin-left: auto; }
 .result-tools .btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
 /* Phones: Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
-@media (max-width: 599px) { .result-tools .step-progress { order: 1; flex-basis: 100%; } }
+.result-tools .step-progress { order: 1; flex-basis: 100%; }
 
 /* The order as a tree: each merge with its two inputs indented below it */
 .merge-tree, .tree-children { list-style: none; margin: 0; padding: 0; }
@@ -2254,3 +2254,82 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .entry-card.slotcell.dragging { opacity: 1; }
 .entry-card.slotcell.dragging .mc-slot { opacity: 0.6; }
 .entry-card.slotcell.drop-target { z-index: 31; }
+
+/* Anvil uses: the density switch, slot labels, instruction, cost breakdown,
+   final card, phone bar, the Slots view and the compact tree. */
+.btn.density[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+.round-label { display: inline-flex; align-items: center; }
+.round-label .info-tip { margin-left: 6px; }
+.round-label .info-tip-button { width: 16px; height: 16px; font-size: 10px; }
+.cell-label { font: 600 10px/1 system-ui, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gui-text); }
+.step-instruction { margin: 0 0 8px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); }
+.anvil-step.folded .step-instruction { display: none; }
+.level-checkpoint { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 12px; }
+.mc-from { font-size: 11px; color: #8a8a8a; }
+.anvil-cell.result .mc-ench:not(.changed) { opacity: 0.6; }
+.anvil-cost.has-breakdown { position: relative; cursor: help; }
+.anvil-cost.has-breakdown:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cost-breakdown {
+    position: fixed;
+    z-index: 60;
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    width: 200px;
+    padding: 8px 10px;
+    border: 1px solid var(--border-strong);
+    border-radius: 8px;
+    background: var(--surface);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    color: var(--text);
+    font: 12px/1.35 system-ui, sans-serif;
+    text-shadow: none;
+    white-space: normal;
+    cursor: default;
+}
+.has-breakdown.open .cost-breakdown { display: flex; }
+.cost-bar { display: flex; gap: 1px; height: 6px; overflow: hidden; border-radius: 3px; }
+.cost-seg, .cost-dot { background: #3d9b0a; }
+.cost-seg.work, .cost-dot.work { background: #7a3fd6; }
+.cost-seg.work2, .cost-dot.work2 { background: #b58cff; }
+.cost-seg.rename, .cost-dot.rename { background: #e0a030; }
+.cost-row { display: flex; align-items: center; gap: 6px; }
+.cost-row b { margin-left: auto; font-weight: 600; }
+.cost-dot { flex: none; width: 8px; height: 8px; border-radius: 2px; }
+.final-card { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0 32px; padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius); }
+.final-title { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.final-card .anvil-cell { flex-direction: row; align-items: flex-start; gap: 10px; width: max-content; max-width: 100%; }
+.final-card.done { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
+.final-card.done .final-title { color: var(--success-text); }
+.final-card.done .mc-slot { box-shadow: 0 0 0 3px #80ff20; }
+.current-bar { display: none; }
+@media (max-width: 899px) {
+    .current-bar { position: sticky; bottom: 8px; z-index: 40; display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
+    .current-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: 12px; }
+    .current-bar-text span { overflow: hidden; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+}
+@media print { .current-bar, .density { display: none !important; } }
+/* The Slots view: a step is one line of slots; tooltips show on hover or focus. */
+.slots-mode .anvil-step { padding-bottom: 6px; }
+.slots-mode .step-head { margin-bottom: 6px; }
+.slots-mode .anvil-row, .slots-mode .anvil-row .anvil-arrow { }
+.slots-mode .anvil-row { grid-template-columns: auto auto auto auto auto; grid-template-areas: "left plus right arrow result"; justify-content: start; align-items: center; column-gap: 10px; padding: 6px 8px; }
+.slots-mode .anvil-row .anvil-arrow { height: 48px; flex-direction: column; padding: 0; gap: 2px; }
+.slots-mode .anvil-row .arrow-glyph { transform: none; font-size: 18px; }
+.slots-mode .anvil-cell.result { justify-self: start; width: auto; min-width: 0; }
+.slots-mode .anvil-cell { position: relative; }
+.slots-mode .cell-label, .slots-mode .cell-meta, .slots-mode .step-instruction, .slots-mode .anvil-cell .mc-tooltip { display: none; }
+.slots-mode .anvil-cell:hover .mc-tooltip, .slots-mode .anvil-cell:focus-within .mc-tooltip { display: block; position: absolute; top: 54px; left: 0; z-index: 30; width: max-content; max-width: 240px; pointer-events: none; }
+.slots-mode .anvil-cell.result:hover .mc-tooltip { left: auto; right: 0; }
+.slots-mode .anvil-step.folded .anvil-row { display: none; }
+/* The compact tree: each entry a slot and a one-line caption; the tooltip shows on hover. */
+.tree-caption { display: none; }
+.merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.merge-tree.compact .tree-line { position: relative; }
+.merge-tree.compact .tree-tooltip { display: none; }
+.merge-tree.compact .tree-line:hover > .tree-tooltip, .merge-tree.compact .tree-line:focus-within > .tree-tooltip { display: flex; position: absolute; top: 100%; left: 44px; z-index: 30; width: max-content; max-width: 260px; pointer-events: none; }
+.tree-line.path-self { border-radius: 6px; background: var(--accent-bg); }
+.tree-line.path-up { border-radius: 6px; box-shadow: inset 3px 0 0 var(--accent); }
+.tree-line.path-down { border-radius: 6px; background: color-mix(in srgb, var(--accent-bg) 55%, transparent); }
+.round-label .info-tip-bubble { text-transform: none; letter-spacing: 0; font-weight: normal; }
+.fold-buttons { display: inline-flex; gap: 4px; margin-left: auto; }

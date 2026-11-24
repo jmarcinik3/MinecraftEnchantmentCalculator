@@ -126,6 +126,14 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   panel (`--gui-*` tokens), hovering a starting input highlights its section 2 card and clicking scrolls to it (`entryHover`/`entryIndexOf`), an input
   made by a step says "From step N" (`entryRef`), the result its prior work, the cost is amber within 5 of the level limit and red at
   it, and `levelMeter` draws "Lv 30 → 28" with a bar.
+- Section 4 extras (`renderResults`): the toolbar is the Steps | Slots | Tree switch (`result_view`), Copy steps, Print, and the progress on its own row with Expand all / Collapse all (`.fold-buttons`, Steps and Tree; by default only the current step is in full
+  and the rest fold to a line, hand folds win) and, in Tree, Compact (`tree_compact`). Heading summary is "N steps". Each step says Left slot / Right slot / Result (`cell-label`), has a sentence
+  (`stepInstruction`: what to put where, the rename note), a cost chip with a floating breakdown (`costChip`/`showCost`: enchantments, each side's
+  prior work 2^n - 1, rename), the result dims lines it didn't change and shows a raised enchantment's old level (`.mc-from`, `anvilCell` takes a Set or a
+  Map to the old level), a `.level-checkpoint` when Your level is too low, and the rounds have a floating "?" (`roundTip`). The Slots view is the same markup with
+  `.slots-mode` CSS (one line of slots, tooltips on hover). After the steps a `.final-card` shows the finished item (green once every step is ticked). Under 900px a sticky
+  `.current-bar` (`currentBar`) keeps the current step and a Done button on screen. The compact tree shows a slot and a one-line caption, the tooltip on hover;
+  hovering or focusing an entry lights its path (`.path-self`/`.path-up`/`.path-down`, `mergeTree`). Density, anvil count and view stay in this browser, not in links.
 - All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
