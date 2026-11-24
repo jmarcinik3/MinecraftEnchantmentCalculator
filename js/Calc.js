@@ -78,6 +78,30 @@ export function runCalculation() {
     renderResults();
 }
 
+// What merging two entries would cost, from a second worker so a running search isn't
+// disturbed (section 2's drag preview). `left` is the first slot, `right` the second; both
+// are [item or "book", [[enchantment, level], ...], prior work]. Resolves { ok, levels, enchantments }.
+let preview_worker = null;
+let preview_id = 0;
+const preview_waiting = new Map();
+
+export function previewMerge(left, right) {
+    if (!preview_worker) {
+        preview_worker = new Worker(WORKER_URL);
+        preview_worker.onmessage = event => {
+            const resolve = preview_waiting.get(event.data.request_id);
+            preview_waiting.delete(event.data.request_id);
+            if (resolve) resolve(event.data);
+        };
+        preview_worker.postMessage({ message: "instantiate_metadata", metadata: meta });
+    }
+    return new Promise(resolve => {
+        const request_id = ++preview_id;
+        preview_waiting.set(request_id, resolve);
+        preview_worker.postMessage({ message: "merge_preview", request_id, edition: state.edition, left, right });
+    });
+}
+
 export function cancelCalculation() {
     if (!running) return;
     restartWorker();

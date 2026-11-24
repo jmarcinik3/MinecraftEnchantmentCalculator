@@ -1,12 +1,13 @@
 // Section 2: books and items to start from (automatic or custom entries, cards and list, pickers, dragging).
-import { MAX_COPIES, maxPriorWork, movePriority, roman } from "./Logic.js";
+import { MAX_COPIES, MAX_STEP_LEVELS, maxPriorWork, movePriority, roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, nextBookId, state } from "./Store.js";
 import { $, h, icon, motion_ok, readStorage, writeStorage } from "./Dom.js";
 import { animateCards, cardRects, closeLines, openLines, rollLines } from "./Motion.js";
 import { focusState, levelBar, restoreFocus } from "./Wanted.js";
 import { dragToReorder } from "./Ranking.js";
-import { stepLimit, stepper } from "./Options.js";
+import { stepLimit } from "./Options.js";
+import { previewMerge } from "./Calc.js";
 import { infoTip, open_tips } from "./Tips.js";
 import { addBook, clashes, commit, customizeBooks } from "./App.js";
 
@@ -54,7 +55,7 @@ export function renderBooks() {
     const unwanted = new Set(check ? check.unwanted : []);
     if (entry_popover && !(custom && state.books.some(book => book.id === entry_popover.id))) entry_popover = null;
 
-    const grid = h("div", { class: "entry-grid" + (books_view === "list" ? " list" : "") },
+    const grid = h("div", { class: "entry-grid" + (books_view === "list" ? " list" : books_view === "slots" ? " slots" : "") },
         books.map((book, index) => entryCard(book, index, books.length, custom, unwanted)),
         custom ? addCard() : null
     );
@@ -153,38 +154,43 @@ function entryCard(book, index, count, editable, unwanted) {
     const name = is_item ? item_name : enchanted ? TEXT.results.enchanted_book : TEXT.books.book;
     const open = entry_popover && entry_popover.id === book.id ? entry_popover.kind : null;
     const compact = books_view === "list";
+    if (books_view === "slots") return slotCell(book, index, count, editable, unwanted);
 
     const slot = h("div", { class: "mc-slot" + (enchanted ? " glint" : "") },
         icon(is_item ? state.item : "book"),
         copies > 1 ? h("span", { class: "stack-count", "aria-hidden": "true" }, copies) : null
     );
     const switch_label = is_item ? TEXT.books.switch_to_book : TEXT.books.switch_to_item({ item: item_name });
-    const slot_part = editable ? h("button", {
+    const slot_button = editable ? h("button", {
         type: "button", class: "entry-slot", "data-focus": "slot-" + key, title: switch_label, "aria-label": switch_label,
-        onclick: () => { book.type = is_item ? "book" : "item"; commit(); }
+        onclick: () => { book.type = is_item ? "book" : "item"; commit(); },
+        onpointerdown: event => mergeDrag(event, book)
     }, slot, h("span", { class: "swap-glyph", "aria-hidden": "true" }, svgIcon("0 0 12 12", [
         ["path", { d: "M1.5 4h8.5M8 2l2 2-2 2" }], ["path", { d: "M10.5 8H2M4 6l-2 2 2 2" }]
     ], { fill: "none", stroke: "currentColor", "stroke-width": "1.3", "stroke-linecap": "round", "stroke-linejoin": "round" }))) : slot;
+    // The corner of the slot edits the number of copies (a click opens a stepper, the wheel changes it).
+    if (!editable) slot.addEventListener("pointerdown", event => mergeDrag(event, book));
+    const slot_part = editable ? h("div", { class: "entry-slot-wrap" }, slot_button, stackButton(book, key, copies, open)) : slot;
 
-    // Copies show as the stack count on the slot; prior work is a badge only when it isn't 0.
-    // Without that badge an editable entry has a quiet ⋯ that opens the steppers for both,
-    // shown while the entry is hovered or focused (always on touch).
-    const count_open = open === "count";
-    const badge = (kind, content, label) => {
+    // Copies show as the stack count on the slot (its corner edits them); prior work is an
+    // anvil badge only when it isn't 0. Without that badge an editable entry has a quiet ⋯
+    // that opens the prior work track, shown while the entry is hovered or focused (always on touch).
+    const work_open = open === "work";
+    const badge = (content, label) => {
         if (!editable) return h("span", { class: "entry-badge", title: label, "aria-label": label }, content);
         return h("button", {
-            type: "button", class: "entry-badge popover-toggle" + (count_open ? " open" : ""),
-            "data-focus": kind + "-" + key, "aria-label": label, title: TEXT.books.count_help,
-            "aria-expanded": String(count_open), onclick: () => togglePopover(book.id, "count", kind + "-" + key)
+            type: "button", class: "entry-badge popover-toggle" + (work_open ? " open" : ""),
+            "data-focus": "work-" + key, "aria-label": label, title: TEXT.books.count_help,
+            "aria-expanded": String(work_open), onclick: () => togglePopover(book.id, "work", "work-" + key)
         }, content);
     };
     const set_badges = [
-        prior_work ? badge("work", [h("img", { class: "badge-anvil", src: "img/anvil.png", alt: "" }), prior_work], TEXT.books.work_badge({ count: prior_work })) : null
+        prior_work ? badge([h("img", { class: "badge-anvil", src: "img/anvil.png", alt: "" }), prior_work], TEXT.books.work_badge({ count: prior_work })) : null
     ].filter(Boolean);
     const more = editable && !set_badges.length ? h("button", {
-        type: "button", class: "entry-more popover-toggle" + (count_open ? " open" : ""), "data-focus": "more-" + key,
-        title: TEXT.books.count_help, "aria-label": TEXT.books.count_help, "aria-expanded": String(count_open),
-        onclick: () => togglePopover(book.id, "count", "more-" + key)
+        type: "button", class: "entry-more popover-toggle" + (work_open ? " open" : ""), "data-focus": "more-" + key,
+        title: TEXT.books.count_help, "aria-label": TEXT.books.count_help, "aria-expanded": String(work_open),
+        onclick: () => togglePopover(book.id, "work", "more-" + key)
     }, "⋯") : null;
     const badges = set_badges.length || more ? h("div", { class: "entry-badges" }, set_badges, more) : null;
     const tools = editable ? [
@@ -305,7 +311,7 @@ function applyFix(ns, wanted) {
 // (text copies and boxes), for animateLines.
 function oldTooltips(box) {
     const cards = new Map();
-    for (const card of box.querySelectorAll(".entry-card[data-key]:not(.compact)")) {
+    for (const card of box.querySelectorAll(".entry-card[data-key]:not(.compact):not(.slotcell)")) {
         const tip = card.querySelector(".mc-tooltip");
         if (!tip) continue;
         const rect = tip.getBoundingClientRect();
@@ -329,7 +335,7 @@ function oldTooltips(box) {
 // box open or shut is what moves the cards below.
 function animateLines(box, old_cards) {
     if (!motion_ok()) return;
-    for (const card of box.querySelectorAll(".entry-card[data-key]:not(.compact)")) {
+    for (const card of box.querySelectorAll(".entry-card[data-key]:not(.compact):not(.slotcell)")) {
         const old = old_cards.get(card.dataset.key);
         const tip = card.querySelector(".mc-tooltip");
         if (!old || !tip) continue;
@@ -361,23 +367,29 @@ function coverageStrip() {
     const short = sorted.filter(item => !reached.includes(item));
     const okChip = ({ namespace: ns, level }) => {
         const name = logic.displayName(ns, level);
-        return h("span", { class: "cover-chip ok", title: TEXT.books.cover_ok({ name }) }, "✓ ", name);
+        return h("span", { class: "cover-chip ok draggable", title: TEXT.books.cover_ok({ name }) + ". " + TEXT.books.chip_drag_hint, onpointerdown: event => chipDrag(event, ns, level) }, "✓ ", name);
     };
     const folded = reached.length >= 3;
-    const summary_text = short.length ? TEXT.books.cover_some({ count: reached.length }) : TEXT.books.cover_all({ count: reached.length });
+    const summary_text = short.length ? TEXT.books.cover_some({ count: reached.length, total: sorted.length }) : TEXT.books.cover_all({ count: reached.length });
+    // A ring filled by the share of chosen enchantments the entries reach.
+    const CIRCLE = 2 * Math.PI * 6;
+    const ring = svgIcon("0 0 16 16", [
+        ["circle", { cx: "8", cy: "8", r: "6", class: "ring-track" }],
+        ["circle", { cx: "8", cy: "8", r: "6", class: "ring-fill", "stroke-dasharray": `${(reached.length / sorted.length) * CIRCLE} ${CIRCLE}`, transform: "rotate(-90 8 8)" }]
+    ], { fill: "none", "stroke-width": "2.5", class: "cover-ring", "aria-hidden": "true" });
     const summary = folded ? h("button", {
         type: "button", class: "cover-chip ok summary", "data-focus": "cover-summary", "aria-expanded": String(coverage_open),
         title: TEXT.books.cover_toggle, "aria-label": summary_text + ". " + TEXT.books.cover_toggle,
         onclick: () => { coverage_open = !coverage_open; renderBooks(); }
-    }, summary_text, h("span", { class: "cover-caret", "aria-hidden": "true" }, coverage_open ? "▴" : "▾")) : null;
+    }, ring, summary_text, h("span", { class: "cover-caret", "aria-hidden": "true" }, coverage_open ? "▴" : "▾")) : null;
     return h("div", { class: "coverage", role: "group", "aria-label": TEXT.books.coverage_label },
         short.map(({ namespace: ns, level }) => {
             const name = logic.displayName(ns, level);
             const reach = best[ns] || 0;
             const fix = TEXT.books.fix_new_book({ name });
             return h("button", {
-                type: "button", class: "cover-chip short", "data-focus": "cover-" + ns, title: fix, "aria-label": fix,
-                onclick: () => applyFix(ns, level)
+                type: "button", class: "cover-chip short draggable", "data-focus": "cover-" + ns, title: fix + ". " + TEXT.books.chip_drag_hint, "aria-label": fix,
+                onclick: () => applyFix(ns, level), onpointerdown: event => chipDrag(event, ns, level)
             }, "+ ", name, h("span", { class: "cover-best" }, reach ? TEXT.books.fix_best({ level: roman(reach) }) : TEXT.wanted.not_on_books));
         }),
         summary,
@@ -386,12 +398,13 @@ function coverageStrip() {
 }
 
 // Cards (two to a row where there is room) or List (one row per entry); remembered here.
-let books_view = readStorage(BOOKS_VIEW_STORAGE_KEY, "cards") === "list" ? "list" : "cards";
+let books_view = ["list", "slots"].includes(readStorage(BOOKS_VIEW_STORAGE_KEY, "cards")) ? readStorage(BOOKS_VIEW_STORAGE_KEY, "cards") : "cards";
 
 function viewSwitch() {
     const icons = {
         cards: () => svgIcon("0 0 16 16", [["rect", { x: "2", y: "2", width: "5", height: "5", rx: "1" }], ["rect", { x: "9", y: "2", width: "5", height: "5", rx: "1" }],
             ["rect", { x: "2", y: "9", width: "5", height: "5", rx: "1" }], ["rect", { x: "9", y: "9", width: "5", height: "5", rx: "1" }]], { fill: "currentColor" }),
+        slots: () => svgIcon("0 0 16 16", [2, 6, 10].flatMap(y => [2, 6, 10].map(x => ["rect", { x: String(x), y: String(y), width: "4", height: "4", rx: "0.6" }])), { fill: "currentColor" }),
         list: () => svgIcon("0 0 16 16", [["rect", { x: "2", y: "3", width: "12", height: "2", rx: "1" }], ["rect", { x: "2", y: "7", width: "12", height: "2", rx: "1" }],
             ["rect", { x: "2", y: "11", width: "12", height: "2", rx: "1" }]], { fill: "currentColor" })
     };
@@ -406,7 +419,7 @@ function viewSwitch() {
         }
     }, icons[view]());
     return h("div", { class: "segmented view-switch", role: "group", "aria-label": TEXT.books.view_label },
-        option("cards", TEXT.books.view_cards), option("list", TEXT.books.view_list));
+        option("cards", TEXT.books.view_cards), option("slots", TEXT.books.view_slots), option("list", TEXT.books.view_list));
 }
 
 // The grid's last cell in Custom mode: add a book or another copy of the item, or type
@@ -509,6 +522,7 @@ function lineDragStart(event, book, ns) {
     };
     const begin = () => {
         line_dragging = true;
+        getSelection().removeAllRanges();
         ghost = h("div", { class: "mc-tooltip line-ghost", "aria-hidden": "true" },
             h("div", { class: "mc-ench" + (logic.isCurse(ns) ? " curse" : "") }, logic.displayName(ns, book.enchantments[ns])));
         document.body.append(ghost);
@@ -559,7 +573,160 @@ function moveEnchantment(from, to, ns) {
     commit();
 }
 
-// The open popover in section 2: { id: the entry's id, kind: "count" | "enchant",
+// A drag that starts on `event`'s target: with a mouse once it has moved a few pixels, on touch
+// after a 350ms hold (so a swipe still scrolls). `make()` returns the ghost that follows the
+// pointer, `over(element)` is told what is under it, and `end(dropped, ghost)` runs when it
+// stops (the click that ends a drag is swallowed). A plain click never starts one.
+function dragGesture(event, { make, over, end }) {
+    if (!event.isPrimary || event.button > 0) return;
+    const touch = event.pointerType !== "mouse";
+    const start = { x: event.clientX, y: event.clientY };
+    let ghost = null;
+    let hold = null;
+    const place = (x, y) => {
+        ghost.style.left = x + 14 + "px";
+        ghost.style.top = y + 10 + "px";
+        over(document.elementFromPoint(x, y));
+    };
+    const begin = () => {
+        line_dragging = true;
+        getSelection().removeAllRanges();
+        ghost = make();
+        document.body.append(ghost);
+        document.body.classList.add("dragging-line");
+        place(start.x, start.y);
+    };
+    const move = moved => {
+        if (moved.pointerId !== event.pointerId) return;
+        const far = Math.hypot(moved.clientX - start.x, moved.clientY - start.y) > 6;
+        if (!line_dragging) {
+            if (!far) return;
+            if (touch) return finish(); // a swipe: let the page scroll
+            begin();
+        }
+        place(moved.clientX, moved.clientY);
+    };
+    const finish = done => {
+        clearTimeout(hold);
+        removeEventListener("pointermove", move);
+        removeEventListener("pointerup", finish);
+        removeEventListener("pointercancel", finish);
+        if (!line_dragging) return;
+        line_dragging = false;
+        line_drag_ended = Date.now();
+        document.body.classList.remove("dragging-line");
+        const swallow = click => { click.stopPropagation(); click.preventDefault(); };
+        addEventListener("click", swallow, { capture: true, once: true });
+        setTimeout(() => removeEventListener("click", swallow, { capture: true }), 0);
+        end(Boolean(done && done.type === "pointerup"), ghost);
+    };
+    if (touch) hold = setTimeout(begin, 350);
+    addEventListener("pointermove", move);
+    addEventListener("pointerup", finish);
+    addEventListener("pointercancel", finish);
+}
+
+// Drag an entry's slot onto another entry to see what putting it on that one would cost on the
+// anvil (the target is the first slot, the dragged one the second): the levels, or "Too
+// expensive!", or that they can't be merged, and what comes out. Nothing changes.
+function mergeDrag(event, book) {
+    const source = event.currentTarget.closest(".entry-card");
+    const entryOf = other => [other.type === "item" ? state.item : "book", Object.entries(other.enchantments), other.prior_work || 0];
+    let target = null;
+    let chip = null;
+    let token = 0;
+    const clear = () => { for (const card of document.querySelectorAll("#books .entry-card.merge-target")) card.classList.remove("merge-target"); };
+    const show = result => {
+        if (!result.ok) {
+            chip.className = "merge-chip bad";
+            chip.replaceChildren(TEXT.books.merge_impossible);
+            return;
+        }
+        const too_much = result.levels >= MAX_STEP_LEVELS;
+        chip.className = "merge-chip " + (too_much ? "bad" : "ok");
+        chip.replaceChildren(
+            h("div", {}, too_much ? TEXT.books.merge_too_expensive + " " : "", TEXT.books.merge_levels({ levels: result.levels })),
+            result.enchantments.length ? h("div", { class: "merge-result" }, logic.summary(result.enchantments)) : null
+        );
+    };
+    dragGesture(event, {
+        make() {
+            chip = h("div", { class: "merge-chip" });
+            source.classList.add("drag-source");
+            return h("div", { class: "merge-ghost", "aria-hidden": "true" }, source.querySelector(".mc-slot").cloneNode(true), chip);
+        },
+        over(element) {
+            const card = element && element.closest("#books .entry-card[data-key]");
+            const next = card && card !== source ? card : null;
+            if (next === target) return;
+            clear();
+            target = next;
+            token++;
+            chip.className = "merge-chip";
+            chip.replaceChildren();
+            const other = next && logic.currentBooks(state).find(entry => String(entry.id) === next.dataset.key);
+            if (!other) return;
+            next.classList.add("merge-target");
+            chip.className = "merge-chip pending";
+            chip.replaceChildren("…");
+            const mine = token;
+            previewMerge(entryOf(other), entryOf(book)).then(result => { if (mine === token) show(result); });
+        },
+        end(dropped, ghost) {
+            clear();
+            source.classList.remove("drag-source");
+            // Let go over a card: the answer stays a moment, then fades.
+            if (dropped && target && chip.textContent) {
+                ghost.classList.add("done");
+                setTimeout(() => ghost.remove(), 1600);
+            } else {
+                ghost.remove();
+            }
+        }
+    });
+}
+
+// Drag a coverage chip onto an entry to put that enchantment, at the chosen level, on it, or onto
+// the add bar to make a new book of it. An entry that has a conflicting enchantment, or one
+// that conflicts with an enchantment on another entry, is outlined red and won't take it.
+function chipDrag(event, ns, level) {
+    let target = null;
+    const clear = () => { for (const card of document.querySelectorAll("#books .drop-ok, #books .drop-no")) card.classList.remove("drop-ok", "drop-no"); };
+    dragGesture(event, {
+        make: () => h("div", { class: "mc-tooltip line-ghost", "aria-hidden": "true" },
+            h("div", { class: "mc-ench" + (logic.isCurse(ns) ? " curse" : "") }, logic.displayName(ns, level))),
+        over(element) {
+            clear();
+            target = null;
+            const card = element && element.closest("#books .entry-card[data-key], #books .entry-add-card");
+            if (!card) return;
+            const book = card.dataset.key ? state.books.find(entry => String(entry.id) === card.dataset.key) : null;
+            if (card.dataset.key && !book) return;
+            const elsewhere = state.books.filter(entry => entry !== book).flatMap(entry => Object.keys(entry.enchantments));
+            const blocked = elsewhere.some(other => other !== ns && clashes(other, ns));
+            card.classList.add(blocked ? "drop-no" : "drop-ok");
+            if (!blocked) target = { book };
+        },
+        end(dropped, ghost) {
+            ghost.remove();
+            clear();
+            if (!dropped || !target) return;
+            if (target.book) {
+                setEntryLevel(target.book, ns, level);
+                markFresh(target.book);
+                return;
+            }
+            const book = { id: nextBookId(), type: "book", enchantments: { [ns]: level }, prior_work: 0, copies: 1 };
+            const twin = logic.twinOf(state.books, book);
+            if (twin) twin.copies = Math.min(MAX_COPIES, (twin.copies || 1) + 1);
+            else state.books.push(book);
+            markFresh(twin || book);
+            commit();
+        }
+    });
+}
+
+// The open popover in section 2: { id: the entry's id, kind: "copies" | "work" | "enchant",
 // toggle: the data-focus of the button that opened it, ns: an enchantment to show and
 // highlight in the picker (once) }, or null. `picker_all`: the picker also lists the
 // enchantments not chosen in section 1.
@@ -602,21 +769,172 @@ export function focusPicker(ns = null) {
 function placePopover(grid) {
     const book = state.books.find(other => other.id === entry_popover.id);
     const card = grid.querySelector(`.entry-card[data-key="${book.id}"]`);
-    const popover = entry_popover.kind === "count" ? countPopover(book) : enchantPicker(book);
+    const popover = entry_popover.kind === "enchant" ? enchantPicker(book) : countPopover(book);
     grid.append(popover);
     popover.style.top = card.offsetTop + card.offsetHeight + 6 + "px";
-    if (entry_popover.kind === "count") popover.style.left = card.offsetLeft + "px";
+    // The copies and prior work popovers line up with their card (kept inside the grid).
+    if (entry_popover.kind !== "enchant") popover.style.left = Math.max(0, Math.min(card.offsetLeft, grid.clientWidth - popover.offsetWidth)) + "px";
 }
 
+// "copies": a stepper (hold − or + to repeat); "work": the anvil track, one icon per use.
+// The slots view has no badges or buttons, so its popover has both.
 function countPopover(book) {
     const key = book.id;
+    const parts = [];
+    if (entry_popover.kind === "copies" || books_view === "slots") parts.push(copiesRow(book, key));
+    if (entry_popover.kind === "work" || books_view === "slots") parts.push(workRow(book, key));
+    return h("div", { class: "entry-popover count", role: "group", "aria-label": entry_popover.kind === "work" ? TEXT.books.prior_work_help : TEXT.books.copies_help }, parts);
+}
+
+function setCopies(book, value) {
+    book.copies = Math.max(1, Math.min(MAX_COPIES, value));
+}
+
+// Holding − or + steps every 70ms after a short wait. The cards redraw on each step, the
+// results once when the button is let go.
+let hold_timer = null;
+let hold_repeat = null;
+function stopHold() {
+    clearTimeout(hold_timer);
+    clearInterval(hold_repeat);
+    hold_timer = hold_repeat = null;
+}
+function startHold(book, delta) {
+    stopHold();
+    const step = () => { setCopies(book, (book.copies || 1) + delta); renderBooks(); };
+    step();
+    hold_timer = setTimeout(() => { hold_repeat = setInterval(step, 70); }, 400);
+    const end = () => {
+        removeEventListener("pointerup", end);
+        removeEventListener("pointercancel", end);
+        stopHold();
+        commit();
+    };
+    addEventListener("pointerup", end);
+    addEventListener("pointercancel", end);
+}
+
+function copiesRow(book, key) {
+    const copies = book.copies || 1;
+    const button = (delta, label, disabled, focus, text) => h("button", {
+        type: "button", class: "btn tiny", "aria-label": label, "data-focus": focus, disabled,
+        onpointerdown: event => { if (event.button === 0) { event.preventDefault(); startHold(book, delta); } },
+        // A keyboard press (no pointer) steps once.
+        onclick: event => { if (event.detail === 0) { setCopies(book, copies + delta); commit(); } }
+    }, text);
+    return h("span", { class: "stepper", title: TEXT.books.copies_help },
+        h("span", { class: "stepper-label" }, TEXT.books.copies),
+        button(-1, TEXT.books.decrease_label({ label: TEXT.books.copies }), copies <= 1, "pop-copies-" + key + "-minus", "−"),
+        h("span", { class: "stepper-value" }, copies),
+        button(1, TEXT.books.increase_label({ label: TEXT.books.copies }), copies >= MAX_COPIES, "pop-copies-" + key + "-plus", "+")
+    );
+}
+
+// Prior work as anvils, like a level bar: tap the nth for n uses (the last one again takes one
+// off, the 0 clears) or press and drag across them (the choice is made on release), with what
+// it costs under them. The keyboard presses them one by one.
+function workRow(book, key) {
     const prior_work = book.prior_work || 0;
+    const max = Math.max(prior_work, Math.min(8, maxPriorWork(stepLimit())));
     const penalty = 2 ** prior_work - 1;
-    return h("div", { class: "entry-popover count", role: "group", "aria-label": TEXT.books.count_help },
-        stepper(TEXT.books.copies, book.copies || 1, 1, MAX_COPIES, value => { book.copies = value; commit(); }, TEXT.books.copies_help, "pop-copies-" + key),
-        stepper(TEXT.books.prior_work, prior_work, 0, maxPriorWork(stepLimit()), value => { book.prior_work = value; commit(); }, TEXT.books.prior_work_help, "pop-work-" + key),
+    const set = value => { book.prior_work = value; commit(); };
+    const pips = [h("button", {
+        type: "button", class: "anvil-pip zero", "data-focus": "pop-work-" + key + "-0", "aria-label": TEXT.books.work_badge({ count: 0 }),
+        "aria-pressed": String(prior_work === 0), onclick: event => { if (event.detail === 0) set(0); }
+    }, "0")];
+    for (let uses = 1; uses <= max; uses++) {
+        pips.push(h("button", {
+            type: "button", class: "anvil-pip" + (uses <= prior_work ? " on" : ""), "data-focus": "pop-work-" + key + "-" + uses,
+            "aria-label": TEXT.books.work_badge({ count: uses }), "aria-pressed": String(uses <= prior_work),
+            onclick: event => { if (event.detail === 0) set(prior_work === uses ? uses - 1 : uses); }
+        }, h("img", { src: "img/anvil.png", alt: "", draggable: "false" })));
+    }
+    const show = value => pips.forEach((pip, index) => {
+        pip.classList.toggle("on", index > 0 && index <= value);
+        pip.setAttribute("aria-pressed", String(index === 0 ? value === 0 : index <= value));
+    });
+    // The count under the pointer, by position, so a drag also works over the gaps.
+    const at = x => {
+        let value = 0;
+        pips.forEach((pip, index) => { if (x >= pip.getBoundingClientRect().left) value = index; });
+        return value;
+    };
+    const track = h("div", { class: "anvil-pips" }, pips);
+    let drag = null;
+    track.addEventListener("pointerdown", event => {
+        if (event.button !== 0) return;
+        event.preventDefault();
+        const value = at(event.clientX);
+        drag = { id: event.pointerId, start: value, value, moved: false };
+        try { track.setPointerCapture(event.pointerId); } catch { /* moves over the track still work */ }
+        show(value);
+    });
+    track.addEventListener("pointermove", event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const value = at(event.clientX);
+        if (value !== drag.value) { drag.value = value; drag.moved = true; show(value); }
+    });
+    track.addEventListener("pointerup", event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { start, value, moved } = drag;
+        drag = null;
+        set(moved ? value : start > 0 && start === prior_work ? start - 1 : start);
+    });
+    track.addEventListener("pointercancel", () => { drag = null; show(prior_work); });
+    return h("div", { class: "work-row" },
+        h("span", { class: "stepper-label", title: TEXT.books.prior_work_help }, TEXT.books.prior_work),
+        track,
         h("p", { class: "popover-note" }, penalty ? TEXT.books.prior_work_cost({ levels: penalty }) : TEXT.books.prior_work_none)
     );
+}
+
+// The button in the corner of an entry's slot: "+" while there is one copy (shown on hover, or
+// always on touch), invisible over the stack count once there are several. A click opens the
+// copies stepper; scrolling over it adds or takes one off.
+function stackButton(book, key, copies, open) {
+    const label = TEXT.books.copies_edit({ count: copies });
+    return h("button", {
+        type: "button", class: "stack-edit popover-toggle" + (copies > 1 ? " has" : "") + (open === "copies" ? " open" : ""),
+        "data-focus": "copies-" + key, title: label, "aria-label": label, "aria-expanded": String(open === "copies"),
+        onclick: () => togglePopover(book.id, "copies", "copies-" + key),
+        onwheel: event => { event.preventDefault(); setCopies(book, copies + (event.deltaY < 0 ? 1 : -1)); commit(); }
+    }, copies > 1 ? "" : "+");
+}
+
+// The slots view: an entry is only its slot (glint, stack count); its tooltip shows on hover
+// or focus and a click opens the picker. Duplicate, Remove and the copies/prior work are in
+// the popovers.
+function slotCell(book, index, count, editable, unwanted) {
+    const key = String(book.id);
+    const is_item = book.type === "item";
+    const list = Object.entries(book.enchantments).map(([namespace, level]) => ({ namespace, level }));
+    const enchanted = list.length > 0;
+    const copies = book.copies || 1;
+    const prior_work = book.prior_work || 0;
+    const name = is_item ? logic.itemName(state.item) : enchanted ? TEXT.results.enchanted_book : TEXT.books.book;
+    const open = entry_popover && entry_popover.id === book.id ? entry_popover.kind : null;
+    const flagged = list.some(e => unwanted.has(e.namespace));
+    const label = name + (enchanted ? ": " + logic.summary(list) : "");
+    const slot = h("div", { class: "mc-slot" + (enchanted ? " glint" : "") },
+        icon(is_item ? state.item : "book"),
+        copies > 1 ? h("span", { class: "stack-count", "aria-hidden": "true" }, copies) : null,
+        flagged ? h("span", { class: "slot-flag", "aria-hidden": "true" }, "!") : null
+    );
+    const tip = h("div", { class: "slot-tip mc-tooltip", "aria-hidden": "true" },
+        h("div", { class: "mc-name rarity-" + logic.rarity(is_item ? state.item : "book", enchanted) }, name),
+        logic.tooltipSort(list).map(e => h("div", { class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") }, logic.displayName(e.namespace, e.level))),
+        prior_work ? h("div", { class: "mc-ench" }, TEXT.books.work_badge({ count: prior_work })) : null
+    );
+    const main = editable ? h("button", {
+        type: "button", class: "slot-cell-button popover-toggle", "data-focus": "add-" + key, "aria-label": label,
+        "aria-expanded": String(open === "enchant"),
+        onclick: () => togglePopover(book.id, "enchant", "add-" + key),
+        onpointerdown: event => mergeDrag(event, book)
+    }, slot) : h("div", { class: "slot-cell-button", role: "img", "aria-label": label, onpointerdown: event => mergeDrag(event, book) }, slot);
+    return h("div", { class: "entry-card slotcell" + (open ? " popover-open" : ""), "data-index": index, "data-key": key },
+        main, tip, editable ? stackButton(book, key, copies, open) : null,
+        // The grip in the corner reorders (drag it onto another slot, or use the arrow keys); the slot itself drags to preview a merge.
+        editable ? entryHandle(index, count) : null);
 }
 
 // The enchantments this entry can take, each with a level bar (0 takes it off): the ones
@@ -657,6 +975,13 @@ function enchantPicker(book) {
         wanted.length && rest_shown.length ? h("div", { class: "picker-head" }, TEXT.books.picker_other) : null,
         rest_shown.map(row),
         h("div", { class: "popover-foot" }, more,
+            books_view === "slots" ? h("span", { class: "foot-actions" },
+                h("button", { type: "button", class: "btn small", "data-focus": "pick-type-" + key,
+                    onclick: () => { book.type = book.type === "item" ? "book" : "item"; commit(); } },
+                    book.type === "item" ? TEXT.books.switch_to_book : TEXT.books.switch_to_item({ item: logic.itemName(state.item) })),
+                h("button", { type: "button", class: "btn small", "data-focus": "pick-dup-" + key, onclick: () => duplicateEntry(book) }, TEXT.books.duplicate_short),
+                h("button", { type: "button", class: "btn small", "data-focus": "pick-remove-" + key,
+                    onclick: () => removeEntry(book, document.querySelector(`#books .entry-card[data-key="${key}"]`)) }, TEXT.books.remove_short)) : null,
             h("button", { type: "button", class: "btn small", "data-focus": "pick-done-" + key, onclick: () => closePopover(true) }, TEXT.books.done))
     );
 }

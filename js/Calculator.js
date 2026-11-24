@@ -12,6 +12,16 @@ onmessage = function(event) {
         for (const edition of EnchantEngine.EDITIONS) {
             engines[edition] = EnchantEngine.createEngine(data.metadata, { edition });
         }
+    } else if (data.message === "merge_preview") {
+        // One merge of two entries (the page's drag preview), with no level limit, so the
+        // page can say "Too expensive!" itself.
+        try {
+            const engine = engines[data.edition] || engines.java;
+            const node = engine.combine(engine.makeLeaf(data.left), engine.makeLeaf(data.right), Infinity);
+            postMessage({ message: "merge_previewed", request_id: data.request_id, ok: Boolean(node), levels: node ? node.merge_levels : 0, enchantments: node ? node.enchantments : [] });
+        } catch (error) {
+            postMessage({ message: "merge_previewed", request_id: data.request_id, ok: false, levels: 0, enchantments: [] });
+        }
     } else if (data.message === "calculate_optimal") {
         const request_id = data.request_id;
         try {

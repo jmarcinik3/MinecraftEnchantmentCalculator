@@ -26,6 +26,7 @@ export function icon(item_ns, small = false) {
         class: "item-icon" + (small ? " small" : ""),
         src: "img/" + ((meta.icons && meta.icons[item_ns]) || `${item_ns}.png`),
         alt: "",
+        draggable: "false", // so a drag that starts on it is ours, not the browser's picture drag
         "aria-hidden": "true"
     });
 }

@@ -1,4 +1,5 @@
 // Section 4: the steps and the tree, ticking and folding, progress, and the text of the steps.
+import { updateCostMeter } from "./Wanted.js";
 import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, searchSize } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { SLOW_SPLITS, language, logic, meta, state } from "./Store.js";
@@ -35,6 +36,7 @@ function saveTicks(order_key, steps, done, next) {
 }
 
 export function renderResults() {
+    updateCostMeter();
     renderMetrics();
     renderOrderSummary();
     renderStepsSummary();

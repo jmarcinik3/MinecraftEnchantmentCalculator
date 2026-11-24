@@ -3,6 +3,7 @@ import { roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
 import { $, h, icon, motion_ok } from "./Dom.js";
+import { last_result, running } from "./Calc.js";
 import { closeLines, growSmoothly, openLines, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
@@ -18,7 +19,15 @@ function itemGrid() {
         "aria-pressed": String(state.item === item),
         "data-focus": "item-" + item,
         onclick: () => selectItem(item)
-    }, icon(item), logic.itemName(item))));
+    },
+        h("span", { class: "mc-slot item-slot" }, icon(item)),
+        logic.itemName(item),
+        // The game's tooltip on hover or focus: the item and how many enchantments it takes.
+        h("span", { class: "item-tip mc-tooltip", "aria-hidden": "true" },
+            h("span", { class: "mc-name rarity-common" }, logic.itemName(item)),
+            h("span", { class: "mc-ench" }, TEXT.wanted.item_takes({ count: logic.applicable(item).length }))
+        )
+    )));
 }
 
 // Section 1: the item grid until an item is picked; then a preview of the finished item
@@ -174,7 +183,33 @@ function wantedPreview() {
     });
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
-    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell, costMeter());
+}
+
+// Under the preview: an XP orb and the total anvil levels of the best order for the books
+// you have (from the last calculation; dimmed while a new one runs, empty when there is none).
+// Results.js calls updateCostMeter whenever the results change.
+let meter_levels = null;
+
+function costMeter() {
+    const meter = h("div", { class: "cost-meter", title: TEXT.wanted.cost_meter_help },
+        h("img", { class: "cost-meter-orb", src: "img/experience_orb.png", alt: "" }),
+        h("span", { class: "cost-meter-text" }));
+    fillCostMeter(meter);
+    return meter;
+}
+
+function fillCostMeter(meter) {
+    meter.classList.toggle("stale", running);
+    meter.classList.toggle("empty", meter_levels == null);
+    meter.querySelector(".cost-meter-text").textContent = meter_levels == null ? "" : TEXT.wanted.cost_meter({ levels: meter_levels });
+}
+
+export function updateCostMeter() {
+    if (last_result && last_result.status === "ok" && last_result.node) meter_levels = last_result.node.cumulative_levels;
+    else if (!running) meter_levels = null;
+    const meter = document.querySelector("#wanted .cost-meter");
+    if (meter) fillCostMeter(meter);
 }
 
 // Opens or closes the item menu (the slot's button).
@@ -220,6 +255,33 @@ function presetChips() {
         return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
     };
     const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);
+    // Hovering (or focusing) a preset shows what it would change, as a game tooltip: + for
+    // what it adds or raises, - for what it takes away.
+    let compare = null;
+    const hideCompare = () => { if (compare) { compare.remove(); compare = null; } };
+    const showCompare = (chip, wanted) => {
+        hideCompare();
+        if (matchMedia("(hover: none)").matches) return;
+        const lines = [];
+        for (const { namespace: ns, level } of logic.tooltipSort(Object.entries(wanted).map(([namespace, level]) => ({ namespace, level })))) {
+            const changed = state.wanted[ns] !== level;
+            lines.push(h("div", { class: "mc-ench" + (logic.isCurse(ns) ? " curse" : "") + (changed ? " changed" : "") }, logic.displayName(ns, level)));
+        }
+        for (const [ns, level] of Object.entries(state.wanted)) {
+            if (!wanted[ns]) lines.push(h("div", { class: "mc-ench removed" }, logic.displayName(ns, level)));
+        }
+        if (!lines.some(line => line.classList.contains("changed") || line.classList.contains("removed"))) lines.splice(0, lines.length, h("div", { class: "mc-ench" }, TEXT.wanted.compare_same));
+        compare = h("div", { class: "mc-tooltip compare-tip", "aria-hidden": "true" },
+            h("div", { class: "mc-name rarity-common" }, logic.itemName(state.item)), lines);
+        const box = chip.closest(".presets");
+        box.append(compare);
+        compare.style.top = chip.offsetTop + chip.offsetHeight + 4 + "px";
+        compare.style.left = Math.max(0, Math.min(chip.offsetLeft, box.clientWidth - compare.offsetWidth)) + "px";
+    };
+    const hover = wanted => ({
+        onmouseenter: event => showCompare(event.currentTarget, wanted), onmouseleave: hideCompare,
+        onfocus: event => showCompare(event.currentTarget, wanted), onblur: hideCompare
+    });
     return h("div", { class: "presets", role: "group", "aria-label": TEXT.wanted.presets },
         h("div", { class: "presets-label" }, TEXT.wanted.presets),
         h("div", { class: "preset-chips" },
@@ -227,7 +289,7 @@ function presetChips() {
             h("button", {
                 type: "button", class: "preset" + (Object.keys(state.wanted).length === 0 ? " selected" : ""),
                 "aria-pressed": String(Object.keys(state.wanted).length === 0), "data-focus": "preset-plain",
-                title: TEXT.wanted.preset_plain_help,
+                title: TEXT.wanted.preset_plain_help, ...hover({}),
                 onclick: () => { state.wanted = {}; commit(); }
             }, TEXT.wanted.preset_plain),
             presets.map(preset => {
@@ -237,6 +299,7 @@ function presetChips() {
                 type: "button", class: "preset" + (selected ? " selected" : ""), "aria-pressed": String(selected),
                 "data-focus": "preset-" + preset.key,
                 title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
+                ...hover(preset.wanted),
                 onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
             }, best ? best_name(preset.wanted) : logic.enchName(preset.key));
         }))
@@ -283,8 +346,11 @@ function wantedRow(ns, short = null) {
         // Columns (CSS grid, so every row lines up): the name with what it does under it,
         // the cost once chosen, the level bar, and a × that clears it.
         h("div", { class: "ench-name" },
+            // A small enchanted book that glints once the enchantment is chosen.
+            h("span", { class: "ench-book" + (chosen ? " lit" : ""), "aria-hidden": "true" }, h("img", { src: "img/book.png", alt: "" })),
             h("span", { class: "ench-title" },
                 name,
+                blocker ? h("span", { class: "replaces-mark", title: TEXT.wanted.replaces({ name: logic.enchName(blocker) }) }, TEXT.wanted.replaces({ name: logic.enchName(blocker) })) : null,
                 short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
                     short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
             ),
