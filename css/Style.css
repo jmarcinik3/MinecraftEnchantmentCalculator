@@ -234,6 +234,8 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 
 .hint { color: var(--text-secondary); font-size: 14px; margin: 4px 0; }
+.hint.intro { margin-bottom: 8px; }
+.example { margin-top: 12px; }
 
 /* Buttons */
 .btn {
@@ -246,6 +248,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     color: var(--text);
     cursor: pointer;
 }
+/* A slight game-button bevel: light along the top, dark along the bottom, pressed in on click. */
+.btn:not(.ghost):not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.14); }
+.btn:not(.ghost):not(:disabled):active { box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.18); transform: translateY(1px); }
 .btn:hover { background: var(--surface-alt); }
 .btn.small { font-size: 13px; padding: 4px 10px; }
 .btn.tiny { font-size: 13px; padding: 0 8px; line-height: 24px; }
@@ -1779,6 +1784,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 @media (prefers-reduced-motion: reduce) { .entry-card.flash { animation: none; } }
 /* A starting slot in Steps or Tree: click to find its card in Books and items. */
 [data-entry-link] { cursor: pointer; }
+[data-entry-link]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
 /* At least 260px, so on a phone it takes its own row rather than cutting its text. */
@@ -1787,6 +1793,14 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .step-progress-track { display: flex; flex: 0 1 140px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
 .step-progress-cell { flex: 1; background: #2a2a2a; box-shadow: inset 0 1px 0 #3d3d3d; transition: background-color 0.25s ease-out; }
 .step-progress-cell.filled { background: linear-gradient(#b2ff4d, #80ff20 40%, #3d9b0a); box-shadow: none; }
+/* Level up: the bar flashes bright and a glow rises once, as when the XP bar fills in the game. */
+.step-progress-track.level-up { animation: level-up 0.9s ease-out; }
+@keyframes level-up {
+    0% { filter: brightness(1); }
+    25% { filter: brightness(2.2) saturate(1.4); }
+    100% { filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) { .step-progress-track.level-up { animation: none; } }
 .step-progress-text { min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-reset {
     flex: none;
@@ -1800,6 +1814,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     font-size: 15px;
     cursor: pointer;
 }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .step-reset:hover:not(:disabled) { background: var(--surface-alt); color: var(--text); }
 .step-reset:disabled { opacity: 0.35; cursor: default; }
 @media (prefers-reduced-motion: reduce) { .step-progress-cell { transition: none; } }
@@ -1850,6 +1865,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     bottom: 0;
     border-left: 3px solid var(--surface);
 }
+.tree-node.folded > .tree-children { display: none; }
 .tree-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; min-width: 0; }
 /* A merge's line folds what went into it, like a step's head. */
 .tree-line.merge { cursor: pointer; }
@@ -1933,6 +1949,8 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     .step-tick input, .step-fold, .step-summary, .step-reset,
     .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
     .anvil-step.folded .anvil-row { display: grid !important; }
+    /* Folded merges print their inputs too. */
+    .tree-node.folded > .tree-children { display: block !important; }
     .site-header { padding: 0 0 8px; }
     .layout { display: block; padding: 0; max-width: none; }
     /* Sections 4 and 5 print, even if they were closed. */
@@ -1957,3 +1975,21 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 }
 .step-progress-cell:first-child { clip-path: polygon(1px 0, 100% 0, 100% 100%, 1px 100%, 1px calc(100% - 1px), 0 calc(100% - 1px), 0 1px, 1px 1px); }
 .step-progress-cell:last-child { clip-path: polygon(0 0, calc(100% - 1px) 0, calc(100% - 1px) 1px, 100% 1px, 100% calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 100%, 0 100%); }
+
+/* Very small phones (320px): a little tighter, so the header controls stay on one row and
+   the enchantment names keep room beside their level bars. */
+@media (max-width: 359px) {
+    header .header-actions { gap: 4px; }
+    .header-control.segmented button { padding: 0 5px; }
+    .copy-link, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
+    .language-select { padding: 0 2px; }
+    .ench-row { gap: 6px; }
+    .level-bar { --seg: 25px; }
+}
+
+/* Start over, at the foot of the page. */
+.page-footer { max-width: 1200px; margin: 8px auto 0; padding: 12px 16px 28px; text-align: center; font-size: 13px; }
+.reset-button { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); background: var(--surface); }
+.reset-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.reset-button:hover, .reset-button:focus-visible { color: var(--text); border-color: var(--accent); }
+@media print { .page-footer { display: none !important; } }

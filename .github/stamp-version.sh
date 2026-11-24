@@ -24,9 +24,17 @@ stamp() { # file, exact text, text with the version added
 
 stamp index.html 'href="css/Style.css"' "href=\"css/Style.css?v=$version\""
 stamp index.html 'src="js/App.js"' "src=\"js/App.js?v=$version\""
-stamp js/App.js 'from "./Logic.js"' "from \"./Logic.js?v=$version\""
-stamp js/App.js 'from "./Text.js"' "from \"./Text.js?v=$version\""
-stamp js/App.js '"js/Calculator.js"' "\"js/Calculator.js?v=$version\""
+# Every module's imports of its sibling modules (`from "./Name.js"`) get the same address,
+# so a module is one instance however many others import it.
+for file in "$site"/js/*.js; do
+    case "$(basename "$file")" in Engine.js|Calculator.js) continue ;; esac
+    sed -i -E "s#from \"\./([A-Za-z]+)\.js\"#from \"./\1.js?v=$version\"#g" "$file"
+done
+if ! grep -qF "from \"./Store.js?v=$version\"" "$site/js/App.js"; then
+    echo "::error::stamp-version: module imports were not stamped" >&2
+    exit 1
+fi
+stamp js/Calc.js '"js/Calculator.js"' "\"js/Calculator.js?v=$version\""
 stamp js/App.js '"json/metadata.json"' "\"json/metadata.json?v=$version\""
 stamp js/Calculator.js 'importScripts("Engine.js")' "importScripts(\"Engine.js?v=$version\")"
 stamp js/Text.js 'const TEXT_VERSION = ""' "const TEXT_VERSION = \"?v=$version\""

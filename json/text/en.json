@@ -8,6 +8,8 @@
         "steps_heading": "Anvil uses",
         "theme_dark": "Switch to dark mode",
         "theme_light": "Switch to light mode",
+        "reset": "Start over",
+        "reset_help": "Clear your setup and settings, and see the first screen again (saved setups stay)",
         "copy_link": "Copy link",
         "copied": "Copied",
         "copy_failed": "Copy failed",
@@ -40,6 +42,8 @@
     },
 
     "wanted": {
+        "intro": "Find the cheapest anvil order to put enchanted books on an item. Pick an item and its enchantments, then follow the steps.",
+        "example": "Try an example: a fully enchanted helmet",
         "pick_item_first": "Pick the item to enchant.",
         "change_item": "Change item",
         "change_item_label": "{item}: change item",
@@ -231,6 +235,7 @@
         "collapse_step": "Fold this step",
         "progress": {"plural": "levels", "one": "{done} of {total} done · {levels} level to go", "other": "{done} of {total} done · {levels} levels to go"},
         "progress_done": "All {total} steps done",
+        "entry_link_label": "Show {name} in Books and items",
         "from_step": "From step {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Uncheck all",

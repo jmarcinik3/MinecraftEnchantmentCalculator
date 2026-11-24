@@ -8,6 +8,8 @@
         "steps_heading": "Usos del yunque",
         "theme_dark": "Cambiar al modo oscuro",
         "theme_light": "Cambiar al modo claro",
+        "reset": "Empezar de nuevo",
+        "reset_help": "Borra tu configuración y los ajustes, y vuelve a la primera pantalla (las guardadas se conservan)",
         "copy_link": "Copiar enlace",
         "copied": "Copiado",
         "copy_failed": "No se pudo copiar",
@@ -40,6 +42,8 @@
     },
 
     "wanted": {
+        "intro": "Encuentra el orden más barato en el yunque para poner libros encantados en un objeto. Elige un objeto y sus encantamientos, y sigue los pasos.",
+        "example": "Prueba un ejemplo: un casco con todos los encantamientos",
         "pick_item_first": "Elige el objeto que quieres encantar.",
         "change_item": "Cambiar objeto",
         "change_item_label": "{item}: cambiar objeto",
@@ -231,6 +235,7 @@
         "collapse_step": "Plegar este paso",
         "progress": {"plural": "levels", "one": "{done} de {total} hechos · falta {levels} nivel", "other": "{done} de {total} hechos · faltan {levels} niveles"},
         "progress_done": "Hechos los {total} pasos",
+        "entry_link_label": "Mostrar {name} en Libros y objetos",
         "from_step": "Del paso {number}",
         "result_work": "Trabajo anterior {count}",
         "uncheck_all": "Desmarcar todo",

@@ -563,7 +563,9 @@ export function createLogic(meta, names = {}) {
         return rounds;
     }
 
-    function serialize(state) {
+    // `progress`: { key, done } (the ticked steps of the order on screen; `key` names that
+    // order) to carry along, so a link can carry on from where another device stopped.
+    function serialize(state, progress = null) {
         const data = {
             i: state.item,
             w: state.wanted,
@@ -580,7 +582,9 @@ export function createLogic(meta, names = {}) {
             x: state.allow_incompatible ? 1 : 0,
             e: EDITIONS.indexOf(state.edition),
             r: state.rename ? 1 : 0,
-            m: state.rename_to || undefined
+            m: state.rename_to || undefined,
+            t: progress && progress.done.length ? progress.done : undefined,
+            k: progress && progress.done.length ? progress.key : undefined
         };
         return toLinkText(JSON.stringify(data));
     }
@@ -612,7 +616,12 @@ export function createLogic(meta, names = {}) {
                 ? normalizePriority(data.p.map(index => CRITERIA[index]))
                 : normalizePriority(data.o === 1 ? ["xp", "levels"] : []),
             max_step: data.c == null ? MAX_STEP_LEVELS : clampStepLimit(data.c),
-            no_step_limit: data.n === 1
+            no_step_limit: data.n === 1,
+            // Ticked steps carried by the link (see serialize), or null. Only whole numbers
+            // survive; the page uses them only if the link's key names the order it finds.
+            progress: Array.isArray(data.t) && typeof data.k === "string"
+                ? { key: data.k, done: data.t.filter(number => Number.isInteger(number) && number > 0 && number < 1000) }
+                : null
         };
     }
 

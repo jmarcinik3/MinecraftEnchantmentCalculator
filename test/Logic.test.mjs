@@ -562,4 +562,22 @@ test("steps are grouped into rounds of independent steps, cheapest first", () =>
     assert.deepStrictEqual(logic.stepRounds(steps).map(round => round.map(s => s.number)), [[1, 2], [3, 4], [5]]);
 });
 
+test("a share link can carry the ticked steps, and plain links carry none", () => {
+    const state = { item: "sword", edition: "java", wanted: { sharpness: 5 }, auto_books: true, books: [],
+        priority: ["levels"], max_step: 39, no_step_limit: false, allow_incompatible: false, rename: false, rename_to: "" };
+    assert.strictEqual(logic.deserialize(logic.serialize(state), () => 0).progress, null);
+    const link = logic.serialize(state, { key: "abc12", done: [1, 3] });
+    assert.deepStrictEqual(logic.deserialize(link, () => 0).progress, { key: "abc12", done: [1, 3] });
+    assert.strictEqual(logic.deserialize(logic.serialize(state, { key: "abc12", done: [] }), () => 0).progress, null);
+    // Anything but whole step numbers is dropped.
+    const bad = logic.deserialize(btoa(JSON.stringify({ i: "sword", w: {}, a: 1, b: [], t: [2, "x", -1, 1.5, 5000], k: "q" })).replace(/=+$/, ""), () => 0);
+    assert.deepStrictEqual(bad.progress, { key: "q", done: [2] });
+});
+
+test("the recovery compass takes Curse of Vanishing in Bedrock only", () => {
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
+    assert.ok(!logic.enchantableItems().includes("recovery_compass"));
+    assert.ok(bedrock.enchantableItems().includes("recovery_compass"));
+});
+
 console.log(`${passed} passed`);

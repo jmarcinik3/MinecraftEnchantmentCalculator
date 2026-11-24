@@ -1,0 +1,345 @@
+// Section 1: the item and the enchantments it should end up with.
+import { roman } from "./Logic.js";
+import { TEXT } from "./Text.js";
+import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
+import { $, h, icon, motion_ok } from "./Dom.js";
+import { closeLines, growSmoothly, openLines, slideWidth } from "./Motion.js";
+import { anvilCell } from "./Results.js";
+import { infoTip } from "./Tips.js";
+import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
+
+// What section 1's preview showed last, so a redraw can grow it smoothly and fade in
+// the enchantments that are new.
+let preview_shown = { item: null, enchantments: new Set() };
+// Every item that can be enchanted, as a grid of buttons.
+function itemGrid() {
+    return h("div", { class: "item-grid", id: "items" }, logic.enchantableItems().map(item => h("button", {
+        type: "button",
+        class: "item-button" + (state.item === item ? " selected" : ""),
+        "aria-pressed": String(state.item === item),
+        "data-focus": "item-" + item,
+        onclick: () => selectItem(item)
+    }, icon(item), logic.itemName(item))));
+}
+
+// Section 1: the item grid until an item is picked; then a preview of the finished item
+// (its slot opens the item menu), the toolbar and presets, and one row per enchantment
+// (conflict groups together).
+export function renderWanted() {
+    const box = $("#wanted");
+    const focus = focusState(box);
+    const old_preview = box.querySelector(".wanted-preview");
+    const old_height = old_preview && preview_shown.item === state.item ? old_preview.getBoundingClientRect().height : null;
+    // "Allow conflicts" turns each conflict group from a switch into plain rows (and
+    // back): their old heights, so the new ones can slide from them.
+    const old_groups = new Map();
+    if (conflicts_toggled) {
+        for (const group of box.querySelectorAll(".ench-group[data-group]")) old_groups.set(group.dataset.group, group.getBoundingClientRect().height);
+    }
+    setConflictsToggled(false);
+    // The preview's tooltip lines, to fade out the ones about to go (closeLines).
+    const old_width = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect().width : null;
+    const old_lines = old_height != null ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => ({ ns: line.dataset.ns, node: line.cloneNode(true) })) : [];
+    box.replaceChildren();
+    if (!state.item) {
+        box.append(
+            h("p", { class: "hint intro" }, TEXT.wanted.intro),
+            h("p", { class: "hint" }, TEXT.wanted.pick_item_first),
+            itemGrid(),
+            // A first look without choosing anything: a fully enchanted helmet.
+            h("button", { type: "button", class: "btn small example", onclick: tryExample }, TEXT.wanted.example)
+        );
+        restoreFocus(box, focus);
+        return;
+    }
+
+    box.append(wantedHead(
+        h("div", { class: "toolbar" },
+            h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
+            h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear)
+        ),
+        presetChips()
+    ), wantedList());
+    if (old_height != null) {
+        const preview = box.querySelector(".wanted-preview");
+        const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
+        growSmoothly(preview, old_height);
+        slideWidth(preview.querySelector(".mc-tooltip"), old_width);
+        // Swapping one enchantment for another leaves the tooltip the same size: the new
+        // line then only fades in, since opening it from 0 would shrink the box and grow it back.
+        openLines(preview.querySelectorAll(".mc-ench.fresh"), same_size);
+        if (!same_size) closeLines(preview, old_lines);
+
+    }
+    for (const group of box.querySelectorAll(".ench-group[data-group]")) {
+        if (!old_groups.has(group.dataset.group)) continue;
+        growSmoothly(group, old_groups.get(group.dataset.group));
+        if (motion_ok()) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+    }
+    restoreFocus(box, focus);
+}
+
+// The element with focus inside `box` (by its data-focus), so a redraw can put the
+// focus back where it was (the level bars and switches are rebuilt on every change).
+export function focusState(box) {
+    const active = document.activeElement;
+    return active && box.contains(active) && active.dataset.focus ? active.dataset.focus : null;
+}
+
+export function restoreFocus(box, key) {
+    const again = key && box.querySelector(`[data-focus="${key}"]`);
+    if (again) again.focus({ preventScroll: true });
+}
+
+// The rows: single enchantments, "Pick one" switches, and brackets around enchantments
+// that only partly conflict; curses last.
+function wantedList() {
+    // B: chosen enchantments the custom books can't reach (none in automatic mode).
+    const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
+    const rows = [];
+    let curses_shown = false;
+    for (const group of logic.enchantmentGroups(state.item)) {
+        const members = group.members;
+        const switchable = group.exclusive && !state.allow_incompatible;
+        if (logic.isCurse(members[0]) && !curses_shown) {
+            rows.push(h("div", { class: "divider" }, TEXT.wanted.curses));
+            curses_shown = true;
+        }
+        if (switchable) {
+            rows.push(groupSwitch(members, short));
+        } else if (members.length === 1) {
+            rows.push(wantedRow(members[0], short.get(members[0])));
+        } else {
+            rows.push(h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : ""), "data-group": members[0] },
+                h("div", { class: "ench-group-label" }, state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict),
+                members.map(ns => wantedRow(ns, short.get(ns)))
+            ));
+        }
+    }
+    return h("div", { class: "wanted-list" }, rows);
+}
+
+// The top of section 1: the preview, with `controls` (the toolbar and presets) beside it
+// where the card is wide enough, else under it.
+function wantedHead(...controls) {
+    return h("div", { class: "wanted-head" + (item_menu_open ? " menu-open" : "") },
+        wantedPreview(),
+        h("div", { class: "wanted-controls" }, controls),
+        item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null
+    );
+}
+
+// The finished item as the game shows it: its slot, then a tooltip with its name (in
+// italics once renamed) and the chosen enchantments in the game's order. The slot is
+// the button for the item menu: the item grid in a panel under it (in the card's flow
+// on phones), closed by picking, a click outside, or Escape.
+function wantedPreview() {
+    const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
+    const node = { item_namespace: state.item, enchantments: chosen, renamed: true };
+    const cell = anvilCell(node, null, "preview");
+    // Enchantments just added fade in (not on a new item, which redraws it all).
+    if (preview_shown.item === state.item) {
+        const lines = cell.querySelectorAll(".mc-ench");
+        logic.tooltipSort(chosen).forEach((e, index) => {
+            if (!preview_shown.enchantments.has(e.namespace)) lines[index].classList.add("fresh");
+        });
+    }
+    preview_shown = { item: state.item, enchantments: new Set(Object.keys(state.wanted)) };
+    const slot = cell.querySelector(".mc-slot");
+    const button = h("button", {
+        type: "button", class: "item-menu-button", "data-focus": "item-menu",
+        "aria-haspopup": "true", "aria-expanded": String(item_menu_open), "aria-controls": "item-menu",
+        "aria-label": TEXT.wanted.change_item_label({ item: logic.itemName(state.item) }),
+        title: TEXT.wanted.change_item,
+        onclick: () => {
+            setItemMenuOpen(!item_menu_open);
+            renderWanted();
+            if (item_menu_open) {
+                const current = document.querySelector(`#items [data-focus="item-${state.item}"]`);
+                if (current) current.focus({ preventScroll: true });
+            }
+        }
+    });
+    slot.replaceWith(button);
+    button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
+}
+
+// The item menu closes on a click outside it (or its button) and on Escape, which puts
+// the focus back on the slot.
+export function setupItemMenu() {
+    document.addEventListener("click", event => {
+        if (!item_menu_open) return;
+        const path = event.composedPath();
+        if (path.some(el => el.classList && (el.classList.contains("item-menu") || el.classList.contains("item-menu-button")))) return;
+        setItemMenuOpen(false);
+        renderWanted();
+    });
+    document.addEventListener("keydown", event => {
+        if (event.key !== "Escape" || !item_menu_open) return;
+        setItemMenuOpen(false);
+        renderWanted();
+        const button = document.querySelector(".item-menu-button");
+        if (button) button.focus();
+    });
+}
+
+// "Presets: Best · Silk Touch": each sets the chosen enchantments to a whole set (Logic.js
+// presets); the one matching the current choice is highlighted. When the item has only
+// one set of conflicting enchantments, "Best" is named after its pick from that set
+// ("Fortune · Silk Touch", "Channeling + Loyalty · Riptide").
+function presetChips() {
+    const presets = logic.presets(state.item, state.allow_incompatible);
+    if (!presets.length) return null;
+    const conflict_sets = logic.enchantmentGroups(state.item).filter(group => group.members.length > 1);
+    const best_name = wanted => {
+        if (state.allow_incompatible || conflict_sets.length !== 1) return TEXT.wanted.preset_best;
+        const picks = conflict_sets[0].members.filter(ns => wanted[ns]);
+        return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
+    };
+    const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);
+    return h("div", { class: "presets" },
+        h("span", { class: "presets-label" }, TEXT.wanted.presets),
+        presets.map(preset => {
+            const selected = same(preset.wanted, state.wanted);
+            const best = preset.key === "best";
+            return h("button", {
+                type: "button", class: "preset" + (selected ? " selected" : ""), "aria-pressed": String(selected),
+                "data-focus": "preset-" + preset.key,
+                title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
+                onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
+            }, best ? best_name(preset.wanted) : logic.enchName(preset.key));
+        })
+    );
+}
+
+// A "Pick one" group (every pair conflicts): a switch for which one, or none, then the
+// chosen one's row with its level bar. Switching picks the new one at its max level.
+function groupSwitch(members, short) {
+    const chosen = members.find(ns => state.wanted[ns]) || null;
+    const label_id = "pick-" + members[0];
+    const option = (ns, label) => h("button", {
+        type: "button", role: "radio", class: "switch-option" + (chosen === ns ? " selected" : ""),
+        "aria-checked": String(chosen === ns), "data-focus": "switch-" + members[0] + "-" + (ns || "none"),
+        title: ns ? logic.describe(ns) || null : null,
+        onclick: () => {
+            if (chosen === ns) return;
+            if (ns) setWanted(ns, logic.maxLevel(ns)); // drops the one it replaces
+            else setWanted(chosen, 0);
+        }
+    }, label);
+    return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : ""), "data-group": members[0] },
+        h("div", { class: "ench-group-label", id: label_id }, TEXT.wanted.group_pick_one),
+        h("div", { class: "group-switch", role: "radiogroup", "aria-labelledby": label_id },
+            option(null, TEXT.wanted.none),
+            members.map(ns => option(ns, logic.enchName(ns)))
+        ),
+        chosen ? wantedRow(chosen, short.get(chosen)) : null
+    );
+}
+
+// One enchantment: its name (tap or hover for what it does), the rough cost once chosen,
+// and its level bar. One that conflicts with a chosen enchantment is dimmed, and choosing
+// it replaces that one.
+// `short`: { best } when the custom books can't reach this chosen level.
+function wantedRow(ns, short = null) {
+    const chosen = state.wanted[ns] || 0;
+    const blocker = !chosen && Object.keys(state.wanted).find(other => clashes(other, ns));
+    const name = logic.enchName(ns);
+    const help = logic.describe(ns);
+    const cost = chosen ? logic.bookCost(ns, chosen) : 0;
+
+    return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
+        h("div", { class: "ench-name" },
+            // The mark shares the name's line, so rows never get taller.
+            h("span", { class: "ench-title" },
+                help ? infoTip("ench-info-" + ns, name, name, help, "ench-info") : name,
+                short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
+                    short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
+            )
+        ),
+        chosen ? h("span", { class: "anvil-cost ench-cost", title: TEXT.wanted.cost_help({ levels: cost }) }, TEXT.wanted.cost({ levels: cost })) : null,
+        levelBar(ns, chosen, blocker)
+    );
+}
+
+// The levels as one bar of joined segments (I up to the max) that fill up to the chosen
+// level: tap a segment to choose it (the chosen one again clears it), drag across them
+// (off the left end clears), or use the arrow keys, Home/End and digits. Every bar is as
+// wide as five segments with its own from the left, so the I segments share a column.
+// `onChoose(level)` defaults to section 1's choice; `focus` is the data-focus prefix.
+export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, level), focus = "bar-") {
+    const max = logic.maxLevel(ns);
+    const segments = [];
+    for (let level = 1; level <= max; level++) segments.push(h("span", { class: "level-seg", "data-level": level }, roman(level)));
+    const bar = h("div", {
+        class: "level-bar", role: "slider", tabindex: "0", "data-focus": focus + ns,
+        "aria-label": TEXT.wanted.level_label({ name: logic.enchName(ns) }),
+        "aria-valuemin": "0", "aria-valuemax": String(max),
+        title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
+        style: `--levels: ${max}`
+    }, segments);
+
+    const show = level => {
+        bar.setAttribute("aria-valuenow", String(level));
+        bar.setAttribute("aria-valuetext", level ? logic.displayName(ns, level) : TEXT.wanted.level_none);
+        for (const seg of segments) seg.classList.toggle("filled", Number(seg.dataset.level) <= level);
+    };
+    show(chosen);
+    const choose = level => { if (level !== chosen) onChoose(level); };
+
+    bar.addEventListener("keydown", event => {
+        const keys = { ArrowRight: chosen + 1, ArrowUp: chosen + 1, ArrowLeft: chosen - 1, ArrowDown: chosen - 1, Home: 0, End: max, Delete: 0, Backspace: 0 };
+        let level = keys[event.key];
+        if (level == null && /^[0-9]$/.test(event.key)) level = Number(event.key);
+        if (level == null) return;
+        event.preventDefault();
+        choose(Math.max(0, Math.min(max, level)));
+    });
+
+    // The level under the pointer, by position, so a drag also works over the gaps.
+    const levelAt = x => {
+        const rects = segments.map(seg => seg.getBoundingClientRect());
+        if (x < rects[0].left - 8) return 0;
+        let level = 1;
+        rects.forEach((rect, index) => { if (x >= rect.left) level = index + 1; });
+        return level;
+    };
+    // The bar fills as the pointer moves and the choice is made on release (a redraw
+    // mid-drag would end it). Vertical swipes still scroll the page (touch-action: pan-y).
+    let drag = null;
+    bar.addEventListener("pointerdown", event => {
+        if (event.button !== 0) return;
+        const level = levelAt(event.clientX);
+        drag = { id: event.pointerId, start: level, level, moved: false };
+        try {
+            bar.setPointerCapture(event.pointerId);
+        } catch {
+            // Some browsers refuse capture for synthetic pointers; moves over the bar still work.
+        }
+        bar.classList.add("dragging");
+        show(level);
+    });
+    bar.addEventListener("pointermove", event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const level = levelAt(event.clientX);
+        if (level !== drag.level) {
+            drag.level = level;
+            drag.moved = true;
+            show(level);
+        }
+    });
+    bar.addEventListener("pointerup", event => {
+        if (!drag || event.pointerId !== drag.id) return;
+        const { start, level, moved } = drag;
+        drag = null;
+        bar.classList.remove("dragging");
+        choose(!moved && start === chosen ? 0 : level);
+    });
+    bar.addEventListener("pointercancel", () => {
+        drag = null;
+        bar.classList.remove("dragging");
+        show(chosen);
+    });
+    return bar;
+}

@@ -12,7 +12,17 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   script in index.html; Style.css dark tokens apply under `prefers-color-scheme: dark` unless `data-theme="light"`, or with
   `data-theme="dark"`), and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
   `.header-control` (one height); under 600px they form a full-width row below the title, under 440px Copy link is icon-only).
-- `js/App.js` (ES module, ~530 lines): state, rendering via `h(tag, attrs, ...children)`, worker lifecycle, URL save/load.
+- The page is `js/App.js` plus ES modules split by section (no build step; cycles between them are fine, since they only
+  call each other's functions at run time). `Store.js`: shared state (`state`, `logic`, `meta`, `language`, undo, `next_book_id`...;
+  other modules import these live bindings and change them only through `setState`, `setLogic`... and `nextBookId()`, since an import
+  can't be assigned). `Dom.js`: `h(tag, attrs, ...children)`, `$`, `icon`, guarded storage, `copyText`, `motion_ok`.
+  `Motion.js`: the animations (`growSmoothly`, `openLines`/`closeLines`, `slideWidth`, `cardRects`/`animateCards`, `keepInPlace`, `revealBelow`).
+  `Wanted.js` section 1, `Books.js` section 2, `Ranking.js` the result tiles, `Options.js` level limit/rename/Your level,
+  `Results.js` section 4 (steps, tree, progress, checklist), `Calc.js` worker, requests and the other-edition comparison,
+  `Link.js` share links, `Tips.js` the "?" bubbles, `App.js` state changes, `render`, collapsing, language, saved setups, theme, `init`.
+  A new module goes in ServiceWorker.js `FILES`; `stamp-version.sh` stamps every `from "./X.js"` automatically. Function names
+  below live in the module for their section (grep for them).
+- State and rendering:
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
   (`rename` is true exactly when `rename_to` has text; the name is shown in italics on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
   share links are base64 of UTF-8 so any characters survive)
@@ -36,8 +46,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Engine.js` (UMD IIFE, NOT an ES module): pure, DOM-free search. Loaded by the worker via `importScripts`
   (`self.EnchantEngine`) and by Node tests via `require`. API: `createEngine(meta, { edition }) -> { solve, combine, makeLeaf }`,
   `experienceFromLevel`, `priorWorkPenalty`, `normalizePriority`, `CRITERIA`, `EDITIONS`, `MAXIMUM_MERGE_LEVELS`, `MAXIMUM_GROUPS`.
-  `solve(entries, { priority, max_merge_levels, rename, next_best, onProgress })` (`next_best`: also sets `root.next_best`, the best other finished
-  order with the same enchantments that the ranking puts after it, or null; the page doesn't ask for it yet) memoizes on groups of entries, keeping the best
+  `solve(entries, { priority, max_merge_levels, rename, onProgress })` memoizes on groups of entries, keeping the best
   nodes per (prior work, enchantment signature); returns the root merge-tree node (`left`/`right` children) or null.
   Totals (levels, XP) are additive, so one node per bucket is exact; when `max_step` outranks a total, the bucket
   keeps a Pareto front over (max step, totals) instead (see `dominance`). Old `objective` option still accepted.
@@ -119,6 +128,11 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
   keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
+- Also: the header's Copy link carries progress (`currentLink`: when steps are ticked, Logic `serialize(state, { key, done })` adds `t`
+  (ticked step numbers) and `k` (`orderHash` of `orderKey`); `loadFromUrl` holds them in `carried_progress` and `applyCarriedProgress` stores
+  them only if the calculated order has the same key); starting items in Steps/Tree are keyboard-reachable `[data-entry-link]` (`entryHover`: focus lights the card,
+  Enter shows it); the first screen's "Try an example" (`tryExample`); "Start over" in the footer (`setupReset`/`resetEverything`: one click, clears every `enchantment-calculator-*` storage key but saved setups and language, then reloads without the link); the bar flashes once on the last tick (`level-up`, `celebrated`); the `#live`
+  region (`announce`: says the progress when ticking changes it); folded tree merges stay in the DOM, hidden by CSS, so print shows them.
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
   (with `edition`, `rename`). Out: `progress`,
   `optimal_searched`, `calculation_failed` (all carry `request_id`).
@@ -129,7 +143,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
-- `json/metadata.json`: game data only, no names: keys `enchantments` ({incompatible, items, max_level, weight,
+- `json/metadata.json`: game data only, no names (the recovery compass takes Curse of Vanishing in Bedrock only, via that curse's `bedrock.items`; the enchantment key `sweeping` is Java's `sweeping_edge`, kept so old share links load): keys `enchantments` ({incompatible, items, max_level, weight,
   optional `bedrock`}), `items` (list of item namespaces), `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
 - `ServiceWorker.js` (site root, since a worker only covers its folder): offline copy, network first (with `cache: "no-cache"`, so the HTTP cache never serves a stale file). Precaches the
   JS/CSS/JSON files (add new ones to `FILES`); `VERSION` is stamped on deploy so the URLs match and old caches go.
@@ -151,9 +165,12 @@ Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `to
 ## Tests (run after engine/logic changes)
 `node test/Engine.test.js` (includes brute-force cross-check) and `node test/Logic.test.mjs`
 (loads Logic.js and Text.js through data: URLs, `moduleUrl` inlining their `./X.js` imports, and reads json/text directly).
+`python test/Browser.test.py` drives the page in Chromium (Playwright: `pip install playwright`, `playwright install chromium`;
+skips itself when it isn't installed): results, ticking/folding, link with progress, hover/keyboard links, Tree, print, phone and 320px widths.
 
 ## CI and hosting
-`.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run. On `main`,
+`.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run (the browser test is its own job,
+which doesn't gate the deploy). On `main`,
 if the tests pass, it copies `index.html ServiceWorker.js manifest.webmanifest css js json img font` into `_site/` and deploys to GitHub Pages at
 https://jmarcinik3.github.io/MinecraftEnchantmentCalculator/. New top-level site folders must be added to that copy step.
 Deploy then runs `.github/stamp-version.sh`, which adds `?v=<commit>` to the page's references to its CSS, JS modules

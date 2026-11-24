@@ -1,0 +1,221 @@
+"""Browser tests: the page in a real browser (Chromium through Playwright).
+
+Run from the project folder:  python test/Browser.test.py
+Needs:  pip install playwright   and   playwright install chromium
+
+It serves the site on a free local port, picks a helmet, and checks the flows that
+unit tests can't see: results, ticking and folding steps, the link with progress, the
+hover/keyboard links to the Books and items cards, and the Tree view.
+Skips (exit 0) when Playwright isn't installed, so it never blocks the other tests.
+"""
+import functools
+import http.server
+import os
+import sys
+import threading
+
+try:
+    from playwright.sync_api import sync_playwright
+except ImportError:
+    print("skipped: Playwright is not installed (pip install playwright; playwright install chromium)")
+    sys.exit(0)
+
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+passed = 0
+failed = 0
+
+
+def check(name, condition, detail=""):
+    global passed, failed
+    if condition:
+        passed += 1
+        print("  ok  " + name)
+    else:
+        failed += 1
+        print("  FAIL " + name + (" - " + str(detail) if detail else ""))
+
+
+class Quiet(http.server.SimpleHTTPRequestHandler):
+    def log_message(self, *args):
+        pass
+
+
+def serve():
+    handler = functools.partial(Quiet, directory=ROOT)
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    return server
+
+
+def open_page(browser, url, **options):
+    context = browser.new_context(**options)
+    page = context.new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(url)
+    page.wait_for_selector("#wanted .item-grid, #wanted .wanted-preview")
+    return context, page, errors
+
+
+def pick_helmet_max(page):
+    page.click('#wanted .item-grid button[data-focus="item-helmet"]')
+    page.click("#wanted >> text=Max all")
+    page.wait_for_selector("#results .anvil-step", timeout=15000)
+
+
+def main():
+    server = serve()
+    base = f"http://127.0.0.1:{server.server_address[1]}/"
+    with sync_playwright() as p:
+        browser = p.chromium.launch()
+        context, page, errors = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
+        page.evaluate("localStorage.clear()")
+        page.reload()
+        page.wait_for_selector("#wanted .item-grid")
+        check("the first screen explains the page", page.locator("#wanted .intro").count() == 1)
+        page.click("#wanted .example")
+        page.wait_for_selector("#results .anvil-step", timeout=15000)
+        check("the example picks a helmet with enchantments", page.locator("#wanted .wanted-preview .mc-ench").count() >= 3)
+
+        steps = page.locator("#results .anvil-step")
+        total = steps.count()
+        check("a result with several steps", total >= 3, total)
+        bars = page.locator(".step-progress-cell")
+        check("the progress bar has one segment per step", bars.count() == total, bars.count())
+
+        # Ticking folds the ticked step and fills a segment; the page doesn't jump.
+        page.locator('input[data-step="1"]').check()
+        check("ticking fills one progress segment", page.locator(".step-progress-cell.filled").count() == 1)
+        check("a ticked step is folded", page.locator('.anvil-step[data-step-card="1"].folded').count() == 1)
+        # A step folds and unfolds by clicking its head.
+        page.locator('.anvil-step[data-step-card="2"] .step-head').click(position={"x": 200, "y": 8})
+        check("clicking a step's head folds it", page.locator('.anvil-step[data-step-card="2"].folded').count() == 1)
+        page.locator('.anvil-step[data-step-card="2"] .step-fold').click()
+        check("its button unfolds it", page.locator('.anvil-step[data-step-card="2"].folded').count() == 0)
+
+        # Starting items: hover lights the card, Tab + Enter shows it.
+        link = page.locator(".anvil-step:not(.folded) [data-entry-link]").first
+        link.hover()
+        check("hovering a starting item outlines its card", page.locator("#books .entry-card.highlight").count() == 1)
+        page.mouse.move(0, 0)
+        check("moving away clears the outline", page.locator("#books .entry-card.highlight").count() == 0)
+        link.focus()
+        check("focusing a starting item outlines its card", page.locator("#books .entry-card.highlight").count() == 1)
+        page.keyboard.press("Enter")
+        page.wait_for_timeout(300)
+        check("Enter flashes the card", page.locator("#books .entry-card.flash").count() == 1)
+        check("a starting item has an accessible name", "Books and items" in (link.get_attribute("aria-label") or ""))
+
+        # Screen readers: ticking is announced.
+        check("ticking a step is announced", "done" in page.inner_text("#live"), page.inner_text("#live"))
+
+        # Tree: merges fold and unfold; hovering a starting item lights its card.
+        page.click(".segmented >> text=Tree")
+        nodes_open = page.locator(".tree-node:visible").count()
+        page.locator('.tree-line[data-step-card="3"] .step-fold').click()
+        check("folding a merge hides its inputs", page.locator(".tree-node:visible").count() < nodes_open)
+        page.locator('.tree-line[data-step-card="3"] .step-fold').click()
+        check("unfolding brings them back", page.locator(".tree-node:visible").count() == nodes_open)
+        page.locator(".tree-line:not(.merge)[data-entry-link]").first.hover()
+        check("hovering a tree item outlines its card", page.locator("#books .entry-card.highlight").count() == 1)
+        # Printing shows every merge's inputs, even folded ones.
+        page.emulate_media(media="print")
+        check("print shows a folded merge's inputs", page.locator(".tree-node:visible").count() == page.locator(".tree-node").count())
+        page.emulate_media(media="screen")
+        page.click(".segmented >> text=Steps")
+
+        # The link with progress: another device (new context) continues from the same ticks.
+        ticked = page.locator(".step-tick input:checked").count()
+        page.click("#copy-link")
+        copied = page.evaluate("navigator.clipboard.readText()")
+        check("the link carries progress", "#" in copied and len(copied) > len(base), copied[:60])
+        other, page2, errors2 = open_page(browser, base, viewport={"width": 390, "height": 800})
+        page2.goto(copied)
+        page2.reload()
+        page2.wait_for_selector("#results .anvil-step", timeout=15000)
+        check("the second device has the same ticks", page2.locator(".step-tick input:checked").count() == ticked,
+              (ticked, page2.locator(".step-tick input:checked").count()))
+
+        # Ticking the last step flashes the bar once ("level up").
+        for number in range(1, total + 1):
+            box = page.locator(f'input[data-step="{number}"]')
+            if not box.is_checked():
+                box.check()
+        check("all steps ticked flashes the bar", page.locator(".step-progress-track.level-up").count() == 1)
+
+        # Phones: Steps/Tree, Copy steps and Print share a row.
+        tops = page2.evaluate("""[...document.querySelector('.result-tools').children]
+            .filter(el => !el.classList.contains('step-progress')).map(el => Math.round(el.getBoundingClientRect().top))""")
+        check("on a phone the tools share one row", len(set(tops)) == 1, tops)
+        overflow = page2.evaluate("document.documentElement.scrollWidth > innerWidth")
+        check("a phone has no sideways scroll", not overflow)
+
+        # Dark theme and 320px width: nothing overflows.
+        page2.click("#theme")
+        small, page3, errors3 = open_page(browser, base, viewport={"width": 320, "height": 700})
+        page3.goto(copied)
+        page3.reload()
+        page3.wait_for_selector("#results .anvil-step", timeout=15000)
+        check("320px has no sideways scroll", not page3.evaluate("document.documentElement.scrollWidth > innerWidth"))
+
+        # Start over: one click clears the setup and bring the first screen back; saved setups stay.
+        page.evaluate("localStorage.setItem('enchantment-calculator-saved', JSON.stringify([{name: 'Keep', item: 'sword', link: 'x'}]))")
+        with page.expect_navigation():
+            page.click("#reset")
+        page.wait_for_selector("#wanted .intro")
+        check("Start over brings the first screen back", page.locator("#wanted .intro").count() == 1)
+        check("Start over keeps saved setups", "Keep" in (page.evaluate("localStorage.getItem('enchantment-calculator-saved')") or ""))
+        check("Start over clears the ticks", page.evaluate("localStorage.getItem('enchantment-calculator-checklist')") is None)
+
+        # Everything else once, so a broken import or typo anywhere shows up as a page error.
+        wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
+        page4.click('#wanted .item-grid button[data-focus="item-sword"]')
+        page4.click("#wanted >> text=Max all")
+        page4.wait_for_selector("#results .anvil-step", timeout=15000)
+        page4.click('#books >> text=Custom')
+        page4.click('#books >> text=Add book')
+        page4.keyboard.press("Escape")
+        page4.click('#books >> button:has-text("List")')
+        page4.click('#books >> button:has-text("Cards")')
+        page4.fill('#books input[placeholder^="Type a book"]', "unbreaking 3")
+        page4.keyboard.press("Enter")
+        page4.click('#books button[aria-label^="Remove entry 1"]')
+        page4.wait_for_selector('#books >> text=Put back', timeout=3000)
+        page4.click('#books >> text=Put back')
+        page4.click("#options-menu summary")
+        page4.locator("#limit-panel input[type=range]").fill("30")
+        page4.keyboard.press("Escape")
+        page4.fill("#ranking input[type=text]", "Excalibur")
+        page4.wait_for_selector("#results .anvil-step", timeout=15000)
+        page4.click("#saved summary")
+        page4.fill("#saved-panel input[type=text]", "Smoke")
+        page4.click("#saved-panel >> text=Save")
+        check("a saved setup is listed", page4.locator("#saved-panel .saved-list li").count() == 1)
+        page4.click('#saved-panel button[aria-label^="Remove"]')
+        page4.keyboard.press("Escape")
+        page4.click("#rank-help")
+        page4.click("#edition >> text=Bedrock")
+        page4.wait_for_selector("#results .anvil-step", timeout=15000)
+        page4.click("#edition >> text=Java")
+        page4.click("#theme")
+        check("the theme button sets a theme", page4.evaluate("document.documentElement.dataset.theme") in ("dark", "light"))
+        page4.click('[data-section="wanted"] .collapse-toggle')
+        page4.click('[data-section="wanted"] .collapse-toggle')
+        page4.click("#copy-link")
+        page4.click(".copy-steps")
+        page4.locator("#language select").select_option("es")
+        page4.wait_for_function("document.documentElement.lang === 'es'")
+        check("Spanish changes the heading", "encantamientos" in page4.inner_text("h1").lower(), page4.inner_text("h1"))
+        page4.locator("#language select").select_option("en")
+        page4.wait_for_function("document.documentElement.lang === 'en'")
+        page4.wait_for_selector("#results .anvil-step", timeout=15000)
+
+        for name, errs in (("desktop", errors), ("phone", errors2), ("small", errors3), ("smoke", errors4)):
+            check(f"no page errors ({name})", not errs, errs)
+        browser.close()
+    server.shutdown()
+    print(f"{passed} passed" + (f", {failed} failed" if failed else ""))
+    sys.exit(1 if failed else 0)
+
+
+main()

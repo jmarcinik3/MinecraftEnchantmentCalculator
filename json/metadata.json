@@ -250,9 +250,10 @@
         },
         "vanishing_curse": {
             "incompatible": [],
-            "items": ["axe", "boots", "bow", "brush", "carrot_on_a_stick", "carved_pumpkin", "chestplate", "compass", "crossbow", "elytra", "fishing_rod", "flint_and_steel", "helmet", "hoe", "leggings", "mace", "pickaxe", "recovery_compass", "shears", "shield", "shovel", "spear", "sword", "trident", "turtle_helmet", "warped_fungus_on_a_stick"],
+            "items": ["axe", "boots", "bow", "brush", "carrot_on_a_stick", "carved_pumpkin", "chestplate", "compass", "crossbow", "elytra", "fishing_rod", "flint_and_steel", "helmet", "hoe", "leggings", "mace", "pickaxe", "shears", "shield", "shovel", "spear", "sword", "trident", "turtle_helmet", "warped_fungus_on_a_stick"],
             "max_level": 1,
-            "weight": 4
+            "weight": 4,
+            "bedrock": { "items": ["axe", "boots", "bow", "brush", "carrot_on_a_stick", "carved_pumpkin", "chestplate", "compass", "crossbow", "elytra", "fishing_rod", "flint_and_steel", "helmet", "hoe", "leggings", "mace", "pickaxe", "recovery_compass", "shears", "shield", "shovel", "spear", "sword", "trident", "turtle_helmet", "warped_fungus_on_a_stick"] }
         },
         "wind_burst": {
             "incompatible": [],

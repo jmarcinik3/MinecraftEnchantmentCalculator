@@ -30,6 +30,22 @@ jobs:
       - name: Logic tests
         run: node test/Logic.test.mjs
 
+  # The page in a real browser (test/Browser.test.py). Separate from `test`, so a browser
+  # hiccup shows up as its own red check without holding back a deploy.
+  browser:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install Playwright and Chromium
+        run: |
+          pip install playwright
+          playwright install --with-deps chromium
+      - name: Browser tests
+        run: python test/Browser.test.py
+
   deploy:
     needs: test
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'

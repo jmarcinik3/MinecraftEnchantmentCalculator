@@ -434,18 +434,6 @@
                 if (value_diff > 0 || (value_diff === 0 && compare(node, chosen) < 0)) chosen = node;
             }
             if (chosen && rename_levels > 0) chosen.renamed = true;
-            // `next_best`: also the best of the other finished orders that make the same
-            // enchantments and differ from the chosen one on the ranking (e.g. fewer prior
-            // work for a few more levels), as `chosen.next_best` (null if there is none).
-            if (chosen && options.next_best) {
-                let next = null;
-                for (const node of candidates) {
-                    if (node === chosen || enchantmentValue(node) !== enchantmentValue(chosen) || compare(node, chosen) === 0) continue;
-                    if (!next || compare(node, next) < 0) next = node;
-                }
-                if (next && rename_levels > 0) next.renamed = true;
-                chosen.next_best = next;
-            }
             return chosen;
         }
 
