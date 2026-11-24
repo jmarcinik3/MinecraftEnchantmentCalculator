@@ -423,6 +423,18 @@ def main():
         p8.click("#results .current-bar .btn.primary")
         p8.wait_for_timeout(500)
         check("its Done button ticks the step and moves on", p8.locator('#results input[data-step="1"]').is_checked() and "Step 2" in p8.inner_text("#results .current-bar"), p8.inner_text("#results .current-bar"))
+        # Tree on a phone: a tap folds a merge; no tooltip or path highlight is left stuck open.
+        p8.click('#results [data-view="tree"]')
+        p8.click("#results .density")
+        p8.locator("#results .tree-line.merge").first.click()
+        p8.wait_for_timeout(300)
+        stuck = p8.evaluate("[...document.querySelectorAll('#results .merge-tree .tree-tooltip')].filter(t => getComputedStyle(t).display !== 'none').length")
+        check("a tap in the compact tree leaves no tooltip open", stuck == 0 and p8.locator("#results .tree-line.path-self").count() == 0, stuck)
+        p8.click('#results [data-view="slots"]')
+        p8.locator("#results .slots-mode .anvil-cell").first.click()
+        check("a tap on a slot shows its tooltip", p8.locator("#results .slots-mode .anvil-cell.tip-open").count() == 1)
+        p8.locator("#results .slots-mode .anvil-cell").nth(1).click()
+        check("a tap on another slot moves the tooltip", p8.locator("#results .slots-mode .anvil-cell.tip-open").count() == 1)
         errors_extra = errors7 + errors8
         for name, errs in (("desktop", errors), ("phone", errors2), ("small", errors3), ("smoke", errors4), ("section 1", errors6), ("anvil uses", errors_extra)):
             check(f"no page errors ({name})", not errs, errs)

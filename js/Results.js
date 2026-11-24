@@ -168,7 +168,7 @@ export function renderResults() {
         // others too. The Slots view shows each step as one line of slots.
         const slots = result_view === "slots";
         const rounds = logic.stepRounds(steps);
-        scroller.append(h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
+        const timeline = h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
             h("div", { class: "round-label" },
                 TEXT.results.round({ number: index + 1, steps: round.length }),
                 round.length > 1 ? roundTip(index) : null),
@@ -176,7 +176,17 @@ export function renderResults() {
                 anvilStep(step, done, order_key, steps,
                     track && !done.has(step.number) ? track.steps[step.number - 1] : null,
                     step.number === current, !slots && isFolded(order_key, step.number, done, step.number !== current))))
-        ))));
+        )));
+        // Slots view on touch: a tap on a slot shows its tooltip (there is no hover); another tap, or one elsewhere, hides it.
+        if (slots) {
+            timeline.addEventListener("click", event => {
+                if (!matchMedia("(hover: none)").matches) return;
+                const cell = event.target.closest(".anvil-cell");
+                for (const open of timeline.querySelectorAll(".anvil-cell.tip-open")) if (open !== cell) open.classList.remove("tip-open");
+                if (cell) cell.classList.toggle("tip-open");
+            });
+        }
+        scroller.append(timeline);
         // The finished item, after the last step.
         scroller.append(h("section", { class: "final-card" + (current == null ? " done" : "") },
             h("div", { class: "final-title" }, current == null ? TEXT.results.final_done : TEXT.results.final_title),
@@ -300,9 +310,11 @@ function mergeTree(root, steps, done, order_key) {
         for (let up = node.parentElement.closest("li.tree-node"); up; up = up.parentElement.closest("li.tree-node")) up.querySelector(":scope > .tree-line").classList.add("path-up");
         for (const down of node.querySelectorAll("li.tree-node")) down.querySelector(":scope > .tree-line").classList.add("path-down");
     };
-    tree.addEventListener("mouseover", event => light(event.target.closest(".tree-line")));
+    // Only with a mouse or the keyboard: on touch the emulated hover would stay lit after a tap.
+    const hovering = () => matchMedia("(hover: hover)").matches;
+    tree.addEventListener("mouseover", event => { if (hovering()) light(event.target.closest(".tree-line")); });
     tree.addEventListener("mouseleave", () => light(null));
-    tree.addEventListener("focusin", event => light(event.target.closest(".tree-line")));
+    tree.addEventListener("focusin", event => { if (event.target.matches(":focus-visible")) light(event.target.closest(".tree-line")); });
     tree.addEventListener("focusout", () => light(null));
     return tree;
 }

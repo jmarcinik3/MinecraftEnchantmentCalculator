@@ -2319,15 +2319,25 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .slots-mode .anvil-cell.result { justify-self: start; width: auto; min-width: 0; }
 .slots-mode .anvil-cell { position: relative; }
 .slots-mode .cell-label, .slots-mode .cell-meta, .slots-mode .step-instruction, .slots-mode .anvil-cell .mc-tooltip { display: none; }
-.slots-mode .anvil-cell:hover .mc-tooltip, .slots-mode .anvil-cell:focus-within .mc-tooltip { display: block; position: absolute; top: 54px; left: 0; z-index: 30; width: max-content; max-width: 240px; pointer-events: none; }
-.slots-mode .anvil-cell.result:hover .mc-tooltip { left: auto; right: 0; }
+/* Hover only where there is a mouse (on touch a tap leaves :hover stuck on), keyboard focus, or a tap (.tip-open). */
+.slots-mode .anvil-cell.tip-open .mc-tooltip, .slots-mode .anvil-cell:has(:focus-visible) .mc-tooltip { display: block; position: absolute; top: 54px; left: 0; z-index: 30; width: max-content; max-width: 240px; pointer-events: none; }
+@media (hover: hover) {
+    .slots-mode .anvil-cell:hover .mc-tooltip { display: block; position: absolute; top: 54px; left: 0; z-index: 30; width: max-content; max-width: 240px; pointer-events: none; }
+    .slots-mode .anvil-cell.result:hover .mc-tooltip { left: auto; right: 0; }
+}
+.slots-mode .anvil-cell.result.tip-open .mc-tooltip { left: auto; right: 0; }
 .slots-mode .anvil-step.folded .anvil-row { display: none; }
 /* The compact tree: each entry a slot and a one-line caption; the tooltip shows on hover. */
 .tree-caption { display: none; }
 .merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .merge-tree.compact .tree-line { position: relative; }
 .merge-tree.compact .tree-tooltip { display: none; }
-.merge-tree.compact .tree-line:hover > .tree-tooltip, .merge-tree.compact .tree-line:focus-within > .tree-tooltip { display: flex; position: absolute; top: 100%; left: 44px; z-index: 30; width: max-content; max-width: 260px; pointer-events: none; }
+/* The tooltip shows on mouse hover and keyboard focus only: on touch a tap (which folds or unfolds the merge) would leave it stuck open, so the caption wraps there instead. */
+.merge-tree.compact .tree-line:focus-visible > .tree-tooltip { display: flex; position: absolute; top: 100%; left: 44px; z-index: 30; width: max-content; max-width: 260px; pointer-events: none; }
+@media (hover: hover) {
+    .merge-tree.compact .tree-line:hover > .tree-tooltip { display: flex; position: absolute; top: 100%; left: 44px; z-index: 30; width: max-content; max-width: 260px; pointer-events: none; }
+}
+@media (hover: none) { .merge-tree.compact .tree-caption { white-space: normal; } }
 .tree-line.path-self { border-radius: 6px; background: var(--accent-bg); }
 .tree-line.path-up { border-radius: 6px; box-shadow: inset 3px 0 0 var(--accent); }
 .tree-line.path-down { border-radius: 6px; background: color-mix(in srgb, var(--accent-bg) 55%, transparent); }
