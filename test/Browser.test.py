@@ -59,7 +59,7 @@ def open_page(browser, url, **options):
 
 def pick_helmet_max(page):
     page.click('#wanted .item-grid button[data-focus="item-helmet"]')
-    page.click("#wanted >> text=Max all")
+    page.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     page.wait_for_selector("#results .anvil-step", timeout=15000)
 
 
@@ -167,10 +167,54 @@ def main():
         check("Start over keeps saved setups", "Keep" in (page.evaluate("localStorage.getItem('enchantment-calculator-saved')") or ""))
         check("Start over clears the ticks", page.evaluate("localStorage.getItem('enchantment-calculator-checklist')") is None)
 
+        # Section 1: aligned rows, descriptions, the x on a chosen row, the item menu on the slot.
+        sec, page6, errors6 = open_page(browser, base, viewport={"width": 1280, "height": 900})
+        page6.click('#wanted .item-grid button[data-focus="item-sword"]')
+        page6.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+        page6.wait_for_selector("#wanted .ench-row.chosen")
+        rights = page6.evaluate("[...document.querySelectorAll('#wanted .ench-row .level-bar')].map(b => Math.round(b.getBoundingClientRect().right))")
+        check("every level bar ends at the same x", len(set(rights)) == 1, rights)
+        check("rows describe their enchantment", page6.locator("#wanted .ench-desc").count() >= 5)
+        check("chosen rows glint", page6.evaluate("getComputedStyle(document.querySelector('#wanted .ench-row.chosen'), '::after').animationName") == "row-glint")
+        chosen_before = page6.locator("#wanted .ench-row.chosen").count()
+        page6.locator("#wanted .ench-row.chosen .ench-clear").first.click()
+        check("the × clears one enchantment", page6.locator("#wanted .ench-row.chosen").count() == chosen_before - 1)
+        page6.click("#wanted .preset >> text=Plain")
+        check("the Plain preset clears every enchantment", page6.locator("#wanted .ench-row.chosen").count() == 0)
+        check("Plain shows as selected", page6.locator("#wanted .preset.selected >> text=Plain").count() == 1)
+
+        # Swapping Protection for Projectile Protection: the old line is covered from the right
+        # (a copy, without data-ns) while the new one is uncovered; the copy is gone afterwards.
+        page6.click("#wanted .item-menu-button")
+        page6.click('#items button[data-focus="item-helmet"]')
+        page6.click('#wanted button[data-focus$="-protection"]')
+        page6.wait_for_timeout(600)
+        page6.click('#wanted button[data-focus$="-projectile_protection"]')
+        mid_copy = page6.locator("#wanted .mc-tooltip .mc-ench:not([data-ns])").count()
+        page6.wait_for_timeout(700)
+        check("a swapped line leaves a copy while it is covered, then none",
+              mid_copy == 1 and page6.locator("#wanted .mc-tooltip .mc-ench:not([data-ns])").count() == 0, mid_copy)
+
+        # Switching Depth Strider (III) for Frost Walker (II) rolls the bar: a copy of the lost
+        # segment is there mid-roll, and gone afterwards.
+        page6.click('#wanted .item-menu-button')
+        page6.click('#items button[data-focus="item-boots"]')
+        page6.click('#wanted .group-switch button:has-text("Depth Strider")')
+        page6.wait_for_timeout(500)
+        page6.click('#wanted .group-switch button:has-text("Frost Walker")')
+        mid = page6.locator("#wanted .ench-group.exclusive:has(button[data-focus$=\"-frost_walker\"]) .level-bar > *").count()
+        page6.wait_for_timeout(900)
+        after = page6.locator("#wanted .ench-group.exclusive:has(button[data-focus$=\"-frost_walker\"]) .level-bar > *").count()
+        check("a shrinking bar rolls its lost segment away", mid == 3 and after == 2, (mid, after))
+        page6.click("#wanted .item-menu-button")
+        check("the slot opens the item menu", page6.locator("#item-menu").count() == 1)
+        page6.keyboard.press("Escape")
+        check("the item menu closes again", page6.locator("#item-menu").count() == 0)
+
         # Everything else once, so a broken import or typo anywhere shows up as a page error.
         wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
         page4.click('#wanted .item-grid button[data-focus="item-sword"]')
-        page4.click("#wanted >> text=Max all")
+        page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
         page4.wait_for_selector("#results .anvil-step", timeout=15000)
         page4.click('#books >> text=Custom')
         page4.click('#books >> text=Add book')
@@ -210,7 +254,7 @@ def main():
         page4.wait_for_function("document.documentElement.lang === 'en'")
         page4.wait_for_selector("#results .anvil-step", timeout=15000)
 
-        for name, errs in (("desktop", errors), ("phone", errors2), ("small", errors3), ("smoke", errors4)):
+        for name, errs in (("desktop", errors), ("phone", errors2), ("small", errors3), ("smoke", errors4), ("section 1", errors6)):
             check(f"no page errors ({name})", not errs, errs)
         browser.close()
     server.shutdown()

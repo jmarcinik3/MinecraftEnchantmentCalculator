@@ -3,9 +3,8 @@ import { roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
 import { $, h, icon, motion_ok } from "./Dom.js";
-import { closeLines, growSmoothly, openLines, slideWidth } from "./Motion.js";
+import { closeLines, growSmoothly, openLines, rollLevelBar, slideLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
-import { infoTip } from "./Tips.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
@@ -37,9 +36,24 @@ export function renderWanted() {
         for (const group of box.querySelectorAll(".ench-group[data-group]")) old_groups.set(group.dataset.group, group.getBoundingClientRect().height);
     }
     setConflictsToggled(false);
+    // The level bar of each "Pick one" group's chosen row, to roll it if the next pick has a different number of levels.
+    const old_bars = new Map();
+    for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
+        const bar = group.querySelector(".level-bar");
+        if (bar) old_bars.set(group.dataset.group, { levels: bar.querySelectorAll(".level-seg").length, segments: [...bar.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true)) });
+    }
     // The preview's tooltip lines, to fade out the ones about to go (closeLines).
     const old_width = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect().width : null;
-    const old_lines = old_height != null ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => ({ ns: line.dataset.ns, node: line.cloneNode(true) })) : [];
+    const old_tip = old_height != null ? old_preview.querySelector(".mc-tooltip") : null;
+    const old_tip_rect = old_tip ? old_tip.getBoundingClientRect() : null;
+    const old_lines = old_tip ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => {
+        const rect = line.getBoundingClientRect();
+        // Where the line sat inside the tooltip's padding box (for a copy laid over it).
+        return {
+            ns: line.dataset.ns, node: line.cloneNode(true),
+            box: { left: rect.left - old_tip_rect.left - old_tip.clientLeft, top: rect.top - old_tip_rect.top - old_tip.clientTop, width: rect.width, height: rect.height }
+        };
+    }) : [];
     box.replaceChildren();
     if (!state.item) {
         box.append(
@@ -53,13 +67,7 @@ export function renderWanted() {
         return;
     }
 
-    box.append(wantedHead(
-        h("div", { class: "toolbar" },
-            h("button", { type: "button", class: "btn small", onclick: () => { state.wanted = logic.maxAll(state.item, state.wanted, state.allow_incompatible); commit(); } }, TEXT.wanted.max_all),
-            h("button", { type: "button", class: "btn small ghost", onclick: () => { state.wanted = {}; commit(); } }, TEXT.wanted.clear)
-        ),
-        presetChips()
-    ), wantedList());
+    box.append(wantedHead(presetChips()), wantedList());
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
@@ -67,8 +75,11 @@ export function renderWanted() {
         slideWidth(preview.querySelector(".mc-tooltip"), old_width);
         // Swapping one enchantment for another leaves the tooltip the same size: the new
         // line then only fades in, since opening it from 0 would shrink the box and grow it back.
-        openLines(preview.querySelectorAll(".mc-ench.fresh"), same_size);
-        if (!same_size) closeLines(preview, old_lines);
+        // In order: the old line leaves, the lines that stay slide, the new line comes in.
+        const fresh = preview.querySelectorAll(".mc-ench.fresh");
+        const direction = same_size ? slideLines(preview, old_lines) : 0;
+        closeLines(preview, old_lines, same_size, direction);
+        openLines(fresh, same_size, 270, direction);
 
     }
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
@@ -76,10 +87,15 @@ export function renderWanted() {
         growSmoothly(group, old_groups.get(group.dataset.group));
         if (motion_ok()) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
     }
+    for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
+        const old = old_bars.get(group.dataset.group);
+        const bar = group.querySelector(".level-bar");
+        if (old && bar) rollLevelBar(bar, old.levels, old.segments);
+    }
     restoreFocus(box, focus);
 }
 
-// The element with focus inside `box` (by its data-focus), so a redraw can put the
+// The element with focus inside `box' (by its data-focus), so a redraw can put the
 // focus back where it was (the level bars and switches are rebuilt on every change).
 export function focusState(box) {
     const active = document.activeElement;
@@ -151,18 +167,21 @@ function wantedPreview() {
         "aria-haspopup": "true", "aria-expanded": String(item_menu_open), "aria-controls": "item-menu",
         "aria-label": TEXT.wanted.change_item_label({ item: logic.itemName(state.item) }),
         title: TEXT.wanted.change_item,
-        onclick: () => {
-            setItemMenuOpen(!item_menu_open);
-            renderWanted();
-            if (item_menu_open) {
-                const current = document.querySelector(`#items [data-focus="item-${state.item}"]`);
-                if (current) current.focus({ preventScroll: true });
-            }
-        }
+        onclick: toggleItemMenu
     });
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
     return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
+}
+
+// Opens or closes the item menu (the slot's button).
+function toggleItemMenu() {
+    setItemMenuOpen(!item_menu_open);
+    renderWanted();
+    if (item_menu_open) {
+        const current = document.querySelector(`#items [data-focus="item-${state.item}"]`);
+        if (current) current.focus({ preventScroll: true });
+    }
 }
 
 // The item menu closes on a click outside it (or its button) and on Escape, which puts
@@ -198,9 +217,17 @@ function presetChips() {
         return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
     };
     const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);
-    return h("div", { class: "presets" },
-        h("span", { class: "presets-label" }, TEXT.wanted.presets),
-        presets.map(preset => {
+    return h("div", { class: "presets", role: "group", "aria-label": TEXT.wanted.presets },
+        h("div", { class: "presets-label" }, TEXT.wanted.presets),
+        h("div", { class: "preset-chips" },
+            // "Plain": nothing chosen, the unenchanted item (this is how to clear everything).
+            h("button", {
+                type: "button", class: "preset" + (Object.keys(state.wanted).length === 0 ? " selected" : ""),
+                "aria-pressed": String(Object.keys(state.wanted).length === 0), "data-focus": "preset-plain",
+                title: TEXT.wanted.preset_plain_help,
+                onclick: () => { state.wanted = {}; commit(); }
+            }, TEXT.wanted.preset_plain),
+            presets.map(preset => {
             const selected = same(preset.wanted, state.wanted);
             const best = preset.key === "best";
             return h("button", {
@@ -209,7 +236,7 @@ function presetChips() {
                 title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
                 onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
             }, best ? best_name(preset.wanted) : logic.enchName(preset.key));
-        })
+        }))
     );
 }
 
@@ -250,16 +277,24 @@ function wantedRow(ns, short = null) {
     const cost = chosen ? logic.bookCost(ns, chosen) : 0;
 
     return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
+        // Columns (CSS grid, so every row lines up): the name with what it does under it,
+        // the cost once chosen, the level bar, and a × that clears it.
         h("div", { class: "ench-name" },
-            // The mark shares the name's line, so rows never get taller.
             h("span", { class: "ench-title" },
-                help ? infoTip("ench-info-" + ns, name, name, help, "ench-info") : name,
+                name,
                 short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
                     short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
-            )
+            ),
+            help ? h("span", { class: "ench-desc", title: help }, help) : null
         ),
-        chosen ? h("span", { class: "anvil-cost ench-cost", title: TEXT.wanted.cost_help({ levels: cost }) }, TEXT.wanted.cost({ levels: cost })) : null,
-        levelBar(ns, chosen, blocker)
+        h("span", { class: "ench-cost-col" },
+            chosen ? h("span", { class: "anvil-cost ench-cost", title: TEXT.wanted.cost_help({ levels: cost }) }, TEXT.wanted.cost({ levels: cost })) : null),
+        levelBar(ns, chosen, blocker),
+        chosen ? h("button", {
+            type: "button", class: "ench-clear", "data-focus": "clear-" + ns,
+            title: TEXT.wanted.clear_one({ name }), "aria-label": TEXT.wanted.clear_one({ name }),
+            onclick: () => setWanted(ns, 0)
+        }, "×") : h("span", { class: "ench-clear-slot" })
     );
 }
 

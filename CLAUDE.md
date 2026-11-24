@@ -82,14 +82,13 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   static in the card under 600px; `setupItemMenu` closes it on outside click/Escape)). The preview and the controls
   (toolbar, presets) form `wantedHead`: side by side when `#wanted` is 460px+ (container query; the preview has a fixed
   width there). The preview's height slides on change (`growSmoothly`, 0.25s, a timer clears it) and new lines open from
-  0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`; removed lines fold away in place, `closeLines`; the tooltip's width slides too, `slideWidth`; only a fade when the box ends the same size, as when swapping conflicting picks); toggling "Allow conflicts" slides and fades each
+  0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`; removed lines fold away in place, `closeLines`; in a swap, one line replacing another in the same row rolls like a counter (old out through the top, new in from the bottom, clipped to the row), and when other lines move (`slideLines`) the old text leaves against their direction, they slide, then the new text enters from the side they came from; the tooltip's width slides too, `slideWidth`; only a fade when the box ends the same size, as when swapping conflicting picks); toggling "Allow conflicts" slides and fades each
   conflict group (`conflicts_toggled`, `.ench-group[data-group]`); all off with reduced motion. Then
   the toolbar, presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
-  entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: name in the game font, curses red, an `.ench-info` tip with
-  `names.descriptions` (Logic `describe`), a `+N` hint once chosen (Logic `bookCost`: level x book multiplier), and a
-  `levelBar`: role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide so the I segments line up),
-  "Pick one" groups as a switch (`groupSwitch`) plus the chosen one's row, partial conflicts in a left bracket
-  (`.ench-group`), conflicting rows dimmed. Chosen rows get a CSS glint. Focus is restored by `data-focus` after redraws.
+  entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: a CSS grid, so rows line up: name in the game font (curses red) with `names.descriptions` (Logic `describe`) under it, a `+N` hint once chosen (Logic `bookCost`: level x book multiplier), a
+  `levelBar` (role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide, the missing levels drawn as a faint track so right edges line up), and a × that clears it; narrow cards (container query) put the bar under the name),
+  "Pick one" groups as a card (`.ench-group.exclusive`: label, switch (`groupSwitch`), chosen row), partial conflicts in a left bracket
+  (`.ench-group`), conflicting rows dimmed. Switching a "Pick one" member whose bar has a different length rolls the bar (`rollLevelBar`: new segments unroll, lost ones roll up from the right). A chosen row is tinted with an accent bar. There is no toolbar: the presets (label above, chips wrapping) start with "Plain" (nothing chosen, the way to clear) and chosen rows glint again (`row-glint`). Focus is restored by `data-focus` after redraws.
 - Section 2 (`renderBooks`): an Automatic | Custom switch (`modeSwitch`; Custom = `customizeBooks`), then `.entry-grid`
   (2 columns once `#books` is 440px+, container query) of `entryCard`s: slot (stack count when copies > 1) + game
   tooltip; editable in Custom: grip, slot = book/item switch, copies/prior work badges (open `countPopover`), tooltip

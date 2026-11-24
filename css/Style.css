@@ -311,7 +311,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .resizing { overflow: hidden; transition: height 0.25s ease-out; }
 /* New lines (.fresh) open and fade in from App.js openLines. */
 .wanted-controls { flex: 1 1 100%; min-width: 0; }
-.wanted-controls .toolbar { margin-bottom: 8px; }
 @container wanted (min-width: 460px) {
     .wanted-preview { flex: 0 0 250px; }
     .wanted-controls { flex: 1 1 0; }
@@ -367,9 +366,10 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .anvil-cell.preview { flex-direction: row; align-items: flex-start; gap: 10px; }
 .anvil-cell.preview .mc-tooltip { width: auto; flex: 0 1 auto; min-width: 0; }
 
-/* Presets: "Presets  Best  Silk Touch". */
-.presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
-.presets-label { font-size: 12px; color: var(--text-muted); margin-right: 2px; }
+/* Presets: a small label, then the choices (wrapping). */
+.presets { margin-bottom: 10px; }
+.presets-label { margin-bottom: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.preset-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .preset {
     height: 26px;
     padding: 0 11px;
@@ -384,19 +384,73 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .preset:hover { border-color: var(--accent); color: var(--accent-text); }
 .preset.selected { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
 
-/* One row: the name (game font; curses red), the rough cost once chosen, the level bar. */
+/* One row, as a grid so every row lines up: the name (game font; curses red) with what it
+   does under it, the rough cost once chosen, the level bar, and a × that clears it. A chosen
+   row is tinted with an accent bar on its left. */
 .ench-row {
     position: relative;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 46px auto 22px;
+    grid-template-areas: "name cost bar clear";
     align-items: center;
-    gap: 10px;
-    padding: 6px 0;
+    column-gap: 8px;
+    padding: 7px 4px 7px 8px;
     border-top: 1px solid var(--border);
 }
+.ench-row > .ench-name { grid-area: name; }
+.ench-row > .ench-cost-col { grid-area: cost; text-align: right; }
+.ench-row > .level-bar { grid-area: bar; }
+.ench-row > .ench-clear, .ench-row > .ench-clear-slot { grid-area: clear; }
+/* The row's name and bar stack on narrow cards (phones), the cost and × beside the bar. */
+@container wanted (max-width: 430px) {
+    .ench-row {
+        grid-template-columns: auto minmax(0, 1fr) 22px;
+        grid-template-areas: "name name name" "bar cost clear";
+        row-gap: 5px;
+    }
+    .ench-row > .ench-cost-col { text-align: left; padding-left: 4px; }
+}
+.ench-row.chosen {
+    border-radius: 7px;
+    border-top-color: transparent;
+    background: color-mix(in srgb, var(--accent-bg) 65%, transparent);
+    box-shadow: inset 3px 0 0 var(--accent);
+}
+.ench-row.chosen + .ench-row { border-top-color: transparent; }
+/* A chosen row gets a faint purple sheen now and then, like the enchantment glint. */
+.ench-row.chosen::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: 7px;
+    background: linear-gradient(115deg, transparent 38%, var(--row-glint) 50%, transparent 62%) no-repeat;
+    background-size: 300% 100%;
+    animation: row-glint 7s linear infinite;
+    pointer-events: none;
+}
+/* With the gradient 3 rows wide, 100% -> 0% sweeps the band from left to right, visible
+   for the middle half of the loop: a pass, then a pause. */
+@keyframes row-glint {
+    from { background-position: 100% 0; }
+    to { background-position: 0 0; }
+}
+@media (prefers-reduced-motion: reduce) { .ench-row.chosen::after { animation: none; display: none; } }
+.ench-clear {
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: none;
+    color: var(--text-muted);
+    font-size: 17px;
+    line-height: 1;
+    cursor: pointer;
+}
+.ench-clear:hover, .ench-clear:focus-visible { background: var(--border); color: var(--text); }
 .wanted-list > .ench-row:first-child, .ench-group + .ench-row, .divider + .ench-row,
 .ench-group-label + .ench-row, .group-switch + .ench-row { border-top: none; }
 .ench-name {
-    flex: 1;
     min-width: 0;
     display: flex;
     flex-direction: column;
@@ -413,62 +467,23 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .ench-row.conflict .level-bar { opacity: 0.45; }
 .ench-row.conflict .level-bar:hover, .ench-row.conflict .level-bar:focus-visible { opacity: 0.8; }
 .note { font-size: 12px; color: var(--text-muted); font-weight: normal; }
-.ench-cost { flex: none; font-size: 11px; }
-
-/* A chosen row gets a faint purple sheen now and then, like the enchantment glint. */
-.ench-row.chosen::after {
-    content: "";
-    position: absolute;
-    inset: 1px -4px;
-    border-radius: 6px;
-    background: linear-gradient(115deg, transparent 38%, var(--row-glint) 50%, transparent 62%) no-repeat;
-    background-size: 300% 100%;
-    animation: row-glint 7s linear infinite;
-    pointer-events: none;
+.ench-cost { font-size: 11px; }
+/* What the enchantment does, under its name (two lines at most). */
+.ench-desc {
+    margin-top: 1px;
+    font: 12px/1.3 system-ui, sans-serif;
+    color: var(--text-muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
 }
-/* With the gradient 3 rows wide, 100% -> 0% sweeps the band from left to right, visible
-   for the middle half of the loop: a pass, then a pause. */
-@keyframes row-glint {
-    from { background-position: 100% 0; }
-    to { background-position: 0 0; }
-}
-@media (prefers-reduced-motion: reduce) {
-    .ench-row.chosen::after { animation: none; background: var(--row-glint); opacity: 0.45; }
-}
-
-/* What an enchantment does: its name opens a bubble (tap, focus, or a short hover, so
-   moving the mouse down the list does not flash one on every row). */
-.ench-info .info-tip-button {
-    width: auto;
-    height: auto;
-    padding: 0;
-    border: none;
-    border-radius: 0;
-    background: none;
-    color: inherit;
-    font: inherit;
-    text-align: left;
-    cursor: help;
-}
-.ench-info .info-tip-button:hover, .ench-info.open .info-tip-button {
-    background: none;
-    color: inherit;
-    text-decoration: underline dotted;
-    text-underline-offset: 3px;
-}
-.ench-info:hover, .ench-info.open { z-index: 11; }
-.ench-info .info-tip-bubble { display: block; visibility: hidden; opacity: 0; transition: opacity 0.12s, visibility 0s linear 0.12s; }
-.ench-info:hover .info-tip-bubble, .ench-info .info-tip-button:focus-visible + .info-tip-bubble {
-    visibility: visible;
-    opacity: 1;
-    transition: opacity 0.12s linear 0.45s, visibility 0s linear 0.45s;
-}
-.ench-info.open .info-tip-bubble { visibility: visible; opacity: 1; transition: none; }
 
 /* The level bar: joined segments that fill up to the chosen level. Always five segments
    wide with its own from the left, so the I segments of every row share a column. */
 .level-bar {
     --seg: 30px;
+    position: relative; /* rolling segments are placed in it */
     flex: none;
     display: grid;
     grid-template-columns: repeat(var(--levels), var(--seg));
@@ -479,6 +494,16 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
+}
+/* The levels this enchantment doesn't have show as a faint empty track, so every bar is the
+   same width and the rows' right edges line up. */
+.level-bar {
+    background-image:
+        repeating-linear-gradient(90deg, transparent 0 calc(var(--seg) - 1px), var(--border) calc(var(--seg) - 1px) var(--seg)),
+        linear-gradient(var(--surface-alt), var(--surface-alt));
+    background-repeat: no-repeat;
+    background-position: calc(var(--levels) * var(--seg)) 0;
+    background-size: calc((5 - var(--levels)) * var(--seg)) 100%;
 }
 .level-bar:focus { outline: none; }
 .level-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -511,6 +536,18 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     border-left: 2px solid var(--border-strong);
 }
 .ench-group.has-chosen { border-left-color: var(--accent); }
+/* "Pick one": a card holding the label, the switch and the chosen row, so they read as one
+   thing. Its outline turns to the accent once something is chosen. */
+.ench-group.exclusive {
+    margin: 8px -7px;
+    padding: 8px 6px 4px;
+    border: 1px solid var(--border-strong);
+    border-radius: 10px;
+}
+.ench-group.exclusive.has-chosen { border-color: var(--accent); }
+.ench-group.exclusive .ench-group-label { padding-left: 4px; }
+.ench-group.exclusive .group-switch { margin: 4px 0 8px; }
+.ench-group.exclusive .ench-row.chosen { margin-bottom: 4px; }
 .ench-group-label {
     padding: 2px 0 2px;
     font-size: 11px;
@@ -1655,6 +1692,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 
 /* Tooltip: near-black purple box with a purple inner border */
 .mc-tooltip {
+    position: relative; /* a line closing in place is laid over it (Motion.js closeLines) */
     width: 100%;
     padding: 4px 5px;
     background: rgba(16, 0, 16, 0.94);
@@ -1983,7 +2021,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     .header-control.segmented button { padding: 0 5px; }
     .copy-link, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
     .language-select { padding: 0 2px; }
-    .ench-row { gap: 6px; }
+    .ench-row { column-gap: 6px; }
     .level-bar { --seg: 25px; }
 }
 
