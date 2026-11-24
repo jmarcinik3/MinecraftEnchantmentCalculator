@@ -1,10 +1,10 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
 import { EDITIONS, cleanName, createLogic, editionMetadata } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
-import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, setUndoBooks, setUndoLabel, state } from "./Store.js";
+import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
 import { $, copyText, h, icon, readStorage, writeStorage } from "./Dom.js";
 import { renderWanted, setupItemMenu } from "./Wanted.js";
-import { focusPicker, openPicker, renderBooks, setupEntryPopover } from "./Books.js";
+import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
 import { renderRanking, resultNode, setupOptionsMenu, syncRename } from "./Options.js";
 import { anvilRisk, renderResults } from "./Results.js";
@@ -19,14 +19,8 @@ const COLLAPSED_STORAGE_KEY = "enchantment-calculator-collapsed";
 const THEME_STORAGE_KEY = "enchantment-calculator-theme"; // also read by index.html before the page draws
 const MAX_SETUP_NAME = 100;
 let saved_name = ""; // what is typed in the Saved menu's name box
-let removed_setup = null; // { setup, index } of the last setup removed, until Undo or the menu closes
 
-// `keep_undo` is only for applying a suggestion: any other change ends the chance to undo it.
-export function commit(keep_undo = false) {
-    if (!keep_undo) {
-        setUndoBooks(null);
-        setUndoLabel(null);
-    }
+export function commit() {
     saveToUrl();
     render();
     scheduleCalculation();
@@ -114,6 +108,7 @@ export function addBook(type) {
     const book = { id: nextBookId(), type: type, enchantments: {}, prior_work: 0, copies: 1 };
     state.books.push(book);
     if (type === "book") openPicker(book);
+    markFresh(book);
     commit();
     if (type === "book") focusPicker();
 }
@@ -276,7 +271,7 @@ function defaultSetupName() {
 
 function renderSaved() {
     const list = readSaved();
-    // Through h(), which skips the missing Undo row (replaceChildren would print "null").
+    // Through h(), which skips the parts that are missing (replaceChildren would print "null").
     $("#saved-panel").replaceChildren(...h("div", {},
         h("form", {
             class: "saved-form",
@@ -300,11 +295,7 @@ function renderSaved() {
                     onclick: () => deleteSetup(index)
                 }, "×")
             )))
-            : h("p", { class: "hint" }, TEXT.page.saved_empty),
-        removed_setup ? h("div", { class: "saved-removed" },
-            h("span", { class: "saved-name" }, TEXT.page.removed_saved({ name: removed_setup.setup.name })),
-            h("button", { type: "button", class: "link", onclick: undoRemoveSetup }, TEXT.page.undo_remove)
-        ) : null
+            : h("p", { class: "hint" }, TEXT.page.saved_empty)
     ).childNodes);
 }
 
@@ -315,26 +306,14 @@ function saveSetup(name) {
     list.unshift({ name, item: state.item, link: logic.serialize(state) });
     writeStorage(SAVED_STORAGE_KEY, list);
     saved_name = "";
-    removed_setup = null;
     renderSaved();
 }
 
-// Removing asks nothing first; Undo below the list puts it back where it was.
+// Removing asks nothing first.
 function deleteSetup(index) {
     const list = readSaved();
     const [setup] = list.splice(index, 1);
     if (!setup) return;
-    removed_setup = { setup, index };
-    writeStorage(SAVED_STORAGE_KEY, list);
-    renderSaved();
-}
-
-function undoRemoveSetup() {
-    if (!removed_setup) return;
-    const { setup, index } = removed_setup;
-    const list = readSaved().filter(other => other.name !== setup.name);
-    list.splice(Math.min(index, list.length), 0, setup);
-    removed_setup = null;
     writeStorage(SAVED_STORAGE_KEY, list);
     renderSaved();
 }
@@ -363,10 +342,6 @@ function setupSavedMenu() {
     const menu = $("#saved");
     $("#saved > summary").title = TEXT.page.saved_help;
     setupMenuClosing(menu);
-    // Undo is offered until the menu closes.
-    menu.addEventListener("toggle", () => {
-        if (!menu.open && removed_setup) { removed_setup = null; renderSaved(); }
-    });
 }
 
 // ---------- Rendering ----------

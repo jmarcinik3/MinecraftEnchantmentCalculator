@@ -13,7 +13,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `data-theme="dark"`), and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
   `.header-control` (one height); under 600px they form a full-width row below the title, under 440px Copy link is icon-only).
 - The page is `js/App.js` plus ES modules split by section (no build step; cycles between them are fine, since they only
-  call each other's functions at run time). `Store.js`: shared state (`state`, `logic`, `meta`, `language`, undo, `next_book_id`...;
+  call each other's functions at run time). `Store.js`: shared state (`state`, `logic`, `meta`, `language`, `next_book_id`...;
   other modules import these live bindings and change them only through `setState`, `setLogic`... and `nextBookId()`, since an import
   can't be assigned). `Dom.js`: `h(tag, attrs, ...children)`, `$`, `icon`, guarded storage, `copyText`, `motion_ok`.
   `Motion.js`: the animations (`growSmoothly`, `openLines`/`closeLines`, `slideWidth`, `cardRects`/`animateCards`, `keepInPlace`, `revealBelow`).
@@ -89,20 +89,28 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `levelBar` (role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide, the missing levels drawn as a faint track so right edges line up), and a × that clears it; narrow cards (container query) put the bar under the name),
   "Pick one" groups as a card (`.ench-group.exclusive`: label, switch (`groupSwitch`), chosen row), partial conflicts in a left bracket
   (`.ench-group`), conflicting rows dimmed. Section 1 never scrolls the page when its tooltip resizes (the rows below just move); `holdInPlace` in Motion.js is parked for a later scroll pass. Switching a "Pick one" member whose bar has a different length rolls the bar (`rollLevelBar`: new segments unroll, lost ones roll up from the right). A chosen row is tinted with an accent bar. There is no toolbar: the presets (label above, chips wrapping) start with "Plain" (nothing chosen, the way to clear) and chosen rows glint again (`row-glint`). Focus is restored by `data-focus` after redraws.
-- Section 2 (`renderBooks`): an Automatic | Custom switch (`modeSwitch`; Custom = `customizeBooks`), then `.entry-grid`
-  (2 columns once `#books` is 440px+, container query) of `entryCard`s: slot (stack count when copies > 1) + game
-  tooltip; editable in Custom: grip, slot = book/item switch, copies/prior work badges (open `countPopover`), tooltip
-  lines and "+ Add enchantment" (open `enchantPicker`: level bars via `levelBar(ns, level, blocker, onChoose, focus)`,
-  section-1 picks first, conflicts on this entry replace, on other entries blocked; `setEntryLevel`, twin merge), ×; the
-  last cell is `addCard`. One popover at a time (`entry_popover`, `placePopover` puts it in the grid under its card;
+- Section 2 (`renderBooks`): a toolbar (Automatic | Custom `modeSwitch`, Custom = `customizeBooks`; the Cards | List icon pair
+  `viewSwitch`, at the right end since it is a preference) then `.entry-grid`
+  (2 columns once `#books` is 440px+, container query) of `entryCard`s: the slot on the left (stack count when copies > 1) and the
+  game tooltip beside it; editable in Custom: a strip (`.entry-head`) above the tooltip with the grip, the badges and ⧉ ×; the slot
+  is the book/item switch (a swap badge `.swap-glyph` on hover/focus, always on touch); copies show as the stack count on the slot and prior work as an anvil badge only when it isn't 0; without that badge a quiet ⋯ (`.entry-more`)
+  opens `countPopover` (both steppers), and the grip and ⋯ show only
+  while the card is hovered or focused with a mouse (`@media (hover: hover)`); the icon buttons have 28x24px hit areas (40x32 on touch);
+  an entry with enchantments adds from a small "+" in its name row (`.entry-add-plus`), an empty one has the full "+ Add enchantment" line
+  (both open `enchantPicker`; in every level bar up/down move to the neighbouring enchantment's bar and left/right change the level: level bars via `levelBar(ns, level, blocker, onChoose, focus)`,
+  section-1 picks first, conflicts on this entry replace, on other entries blocked; `setEntryLevel`, twin merge); the add area `addCard`
+  (`.entry-add-card`) is a full-width bar under the cards (`grid-column: 1 / -1`: Add book, Add {item}, the type box). One popover at a time (`entry_popover`, `placePopover` puts it in the grid under its card;
   outside click/Escape close). Cards slide on change (`cardRects`/`animateCards`, grid-relative, FLIP), and `render`
-  and `renderBooks` keep the scroll position across the redraw.
-  Also in Custom: `coverageStrip` (each section 1 pick reached ✓ or not; an amber chip runs `applyFix`, same as the ⚠ fixes),
-  × fades out (`removeEntry`) with "Put back …" (`undo_books` + `undo_label`), ⧉ `duplicateEntry`, "Add book"/⧉ open the
+  and `renderBooks` keep the scroll position across the redraw. When only the enchantments of the same entries in the same order changed, the cards don't slide: each changed tooltip animates like section 1's, never its width (`oldTooltips`/`animateLines`: a same-height swap rolls the rows with `rollLines`, otherwise `openLines`/`closeLines` and the card grows or shrinks with its lines; lines carry `data-ns`/`data-level`). A new entry (`markFresh`: Add book/item, ⧉, a typed book) is revealed once the grid has
+  finished sliding open (`revealEntry`, `REVEAL_DELAY_MS`; the grid clips the picker while it slides, so scrolling earlier does nothing): the page scrolls
+  just far enough to show its card (and picker), never the card off the top, and the card flashes.
+  Also in Custom: `coverageStrip` (each section 1 pick the entries don't reach is an amber chip that runs `applyFix`, same as the ⚠ fixes; the reached
+  ones fold into one "✓ All 7 reached ▾" chip from 3 on, `coverage_open` shows them),
+  × fades out (`removeEntry`), ⧉ `duplicateEntry`, "Add book"/⧉ open the
   picker at once (`openPicker`/`focusPicker`; their buttons are `.popover-toggle` so the outside-click handler leaves it
   open), the picker lists section 1 picks first with "Show all" (`picker_all`) and highlights a tapped line's row
-  (`entry_popover.ns`, `.spot`), a Cards | List switch (`viewSwitch`, `BOOKS_VIEW_STORAGE_KEY`; List = `.entry-card.compact`
-  grid rows; switching morphs each card from its old box, `animateCards(..., morph)`), a type box making one book of every typed enchantment (`addTyped`, Logic.js `parseBooks` per piece: "prot 4, mending"), and dragging a tooltip line
+  (`entry_popover.ns`, `.spot`), List = `.entry-card.compact` grid rows (`BOOKS_VIEW_STORAGE_KEY`; narrow: with a mouse a row with no badge stays on one line,
+  touch keeps the badges' second row; switching morphs each card from its old box, `animateCards(..., morph)`), a type box making one book of every typed enchantment (`addTyped`, Logic.js `parseBooks` per piece: "prot 4, mending"), and dragging a tooltip line
   onto another card moves it (`lineDragStart`: mouse after 6px, touch after a 350ms hold; `moveEnchantment`).
 - Section 4 Steps view (`renderResults`): toolbar = Steps/Tree, `stepProgress` ("3 of 7 done · N levels to go" bar + ↺ untick
   all), Copy steps, Print; a
@@ -120,7 +128,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
   (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps/Tree view
   (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,
-  loaded via `readLink`; × removes one, with Undo until the menu closes: `removed_setup`), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
+  loaded via `readLink`; × removes one), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
   step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks); hovering a starting item lights its section 2 card and a click scrolls to it (`entryHover`, as in the Steps view); each merge folds its inputs away like its step does (same `isFolded`/`toggleFold` state, ▾/▴ `.step-fold`). Ticking a step also ticks
   the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Section 4's heading always shows the uses (`renderStepsSummary`) and the break risk (`anvilRisk`: an
   `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
@@ -138,7 +146,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 - `js/Logic.js` (ES module): `createLogic(meta, names)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 2
   heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
-  items whose only enchantment is a lower level of it (any prior work; never the last item), with Undo in the toolbar, and marks on section 1 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
+  items whose only enchantment is a lower level of it (any prior work; never the last item), and marks on section 1 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.

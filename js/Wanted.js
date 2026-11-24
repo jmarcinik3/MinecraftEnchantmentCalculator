@@ -327,7 +327,18 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
     const choose = level => { if (level !== chosen) onChoose(level); };
 
     bar.addEventListener("keydown", event => {
-        const keys = { ArrowRight: chosen + 1, ArrowUp: chosen + 1, ArrowLeft: chosen - 1, ArrowDown: chosen - 1, Home: 0, End: max, Delete: 0, Backspace: 0 };
+        // Up and down pick another enchantment (the neighbouring bar); left and right change the level.
+        if (event.key === "ArrowUp" || event.key === "ArrowDown") {
+            const bars = [...(bar.closest(".entry-popover, #wanted") || document).querySelectorAll(".level-bar")];
+            const next = bars[bars.indexOf(bar) + (event.key === "ArrowUp" ? -1 : 1)];
+            event.preventDefault();
+            if (next) {
+                next.focus({ preventScroll: true });
+                next.scrollIntoView({ block: "nearest", behavior: motion_ok() ? "smooth" : "auto" });
+            }
+            return;
+        }
+        const keys = { ArrowRight: chosen + 1, ArrowLeft: chosen - 1, Home: 0, End: max, Delete: 0, Backspace: 0 };
         let level = keys[event.key];
         if (level == null && /^[0-9]$/.test(event.key)) level = Number(event.key);
         if (level == null) return;

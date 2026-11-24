@@ -9,8 +9,6 @@ export let meta = null;
 export let logic = null;
 export let state = defaultState();
 let next_book_id = 1;
-export let undo_books = null; // the custom list before the last fix or removal in section 2
-export let undo_label = null; // the removed entry's name ("Put back …"), or null after a fix
 export let item_menu_open = false; // section 1's item menu (on the item's slot)
 export let conflicts_toggled = false; // the next redraw follows "Allow conflicts" changing, so it animates the groups
 
@@ -37,8 +35,6 @@ export function setMeta(value) { meta = value; }
 export function setLogic(value) { logic = value; }
 export function setState(value) { state = value; }
 export function nextBookId() { return next_book_id++; }
-export function setUndoBooks(value) { undo_books = value; }
-export function setUndoLabel(value) { undo_label = value; }
 export function setItemMenuOpen(value) { item_menu_open = value; }
 export function setConflictsToggled(value) { conflicts_toggled = value; }
 export function setLanguage(value) { language = value; }

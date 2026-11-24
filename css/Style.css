@@ -175,7 +175,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .results-column { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
 
 @media (min-width: 900px) {
-    .layout { grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); align-items: start; }
+    .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.3fr); align-items: start; }
     /* The right column fills the window's height: section 3 at its natural height, and
        section 4 (the steps) takes the rest, where only the steps (or tree) scroll, so the
        Steps/Tree row stays in view. Closing section 3 gives the steps more room. If the
@@ -595,46 +595,71 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
    is 440px wide; a container query, so it follows the card, not the window). */
 #books { container: books / inline-size; }
 .mode-switch button { padding: 4px 12px; }
+#books > .toolbar { margin-bottom: 10px; }
+/* The view is a preference, so it sits at the right end. */
+.toolbar .view-switch { margin-left: auto; }
+.view-switch button { display: inline-flex; align-items: center; padding: 4px 9px; }
+.view-switch svg { display: block; width: 16px; height: 16px; }
 .entry-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; }
 @container books (min-width: 440px) {
     .entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
+/* A card: the slot on the left, the tooltip beside it, and, when it can be edited, a strip
+   above the tooltip with the grip, the badges and the buttons. */
 .entry-card {
     position: relative;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas: "slot head" "slot tip";
+    gap: 2px 8px;
+    align-items: start;
     min-width: 0;
     padding: 8px;
     border: 1px solid var(--border);
     border-radius: var(--radius);
     background: var(--surface);
 }
+.entry-card.bare { grid-template-areas: "slot tip"; }
+.entry-card > .entry-slot, .entry-card > .mc-slot { grid-area: slot; }
+.entry-card > .entry-head { grid-area: head; }
+.entry-card > .entry-tooltip { grid-area: tip; align-self: stretch; }
 .entry-card.popover-open { border-color: var(--accent); }
 .entry-card.dragging { opacity: 0.55; }
 .entry-card.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
-.entry-top { display: flex; align-items: center; gap: 8px; min-width: 0; }
-.entry-top > .drag-handle { margin-left: -2px; }
-.entry-remove { margin-left: auto; align-self: flex-start; color: var(--text-muted); }
-.entry-remove:hover { color: var(--text); }
-/* ⧉ duplicate, beside ×. */
-.entry-tool {
-    margin-left: auto;
-    align-self: flex-start;
-    padding: 0 4px;
+.entry-head { display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 24px; }
+.entry-tools { display: flex; align-items: center; margin-left: auto; }
+/* The grip, ⋯, ⧉ and ×: small to look at, but with room to hit (bigger on touch screens). */
+.entry-card :is(.drag-handle, .entry-tool, .entry-remove, .entry-more) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 28px;
+    height: 24px;
+    margin: 0;
+    padding: 0;
     border: none;
+    border-radius: 6px;
     background: none;
     color: var(--text-muted);
     font: inherit;
-    font-size: 15px;
+    font-size: 16px;
     line-height: 1;
     cursor: pointer;
 }
-.entry-tool:hover { color: var(--text); }
-.entry-tool + .entry-remove { margin-left: 0; }
-.entry-tools { display: flex; flex-direction: column; align-items: center; gap: 4px; margin-left: auto; align-self: flex-start; }
-.entry-tools > .entry-tool, .entry-tools > .entry-remove { margin: 0; align-self: auto; }
-.entry-badges { flex-wrap: nowrap; }
+.entry-card .drag-handle { cursor: grab; }
+.entry-card .entry-tool { font-size: 15px; }
+.entry-card :is(.drag-handle, .entry-tool, .entry-remove, .entry-more):hover,
+.entry-card :is(.entry-more).open { color: var(--text); background: var(--surface-alt); }
+@media (pointer: coarse) {
+    .entry-card :is(.drag-handle, .entry-tool, .entry-remove, .entry-more) { min-width: 40px; height: 32px; }
+    .entry-head { min-height: 32px; }
+}
+/* With a mouse, the grip and ⋯ show while the entry is hovered or focused; on touch they are always there. */
+@media (hover: hover) {
+    .entry-card:not(.compact) :is(.drag-handle, .entry-tool, .entry-remove, .entry-more) { min-width: 24px; }
+    .entry-card :is(.drag-handle, .entry-more) { transition: opacity 0.12s; }
+    .entry-card:not(:hover, :focus-within, .popover-open) :is(.drag-handle, .entry-more) { opacity: 0; }
+}
 
 /* Coverage: each chosen enchantment, reached (green ✓) or not (amber; tap to fix). */
 .coverage { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
@@ -655,6 +680,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .cover-chip.short:hover, .cover-chip.short:focus-visible { border-style: solid; }
 .cover-best { font-size: 11px; opacity: 0.8; }
 .cover-best::before { content: "· "; }
+.cover-chip.summary { cursor: pointer; }
+.cover-chip.summary:hover, .cover-chip.summary:focus-visible { border-color: var(--success-text); }
+.cover-caret { font-size: 10px; }
 
 /* List view: one row per entry. */
 .entry-grid.list { grid-template-columns: minmax(0, 1fr); gap: 6px; }
@@ -681,12 +709,24 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     }
     .entry-card.compact > .entry-badges { justify-self: start; padding-left: 6px; }
 }
+/* With a mouse on a narrow section, a row with no badges set (only the quiet ⋯) stays on
+   one line, with tighter buttons. Touch keeps the second row: its buttons need the room. */
+@media (pointer: fine) {
+    @container books (max-width: 439px) {
+        .entry-card.compact:not(:has(.entry-badge)) {
+            grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
+            grid-template-areas: "grip slot summary badges dup remove";
+            column-gap: 4px;
+        }
+        .entry-card.compact:not(:has(.entry-badge)) > .entry-badges { justify-self: auto; padding-left: 0; }
+        .entry-card.compact :is(.drag-handle, .entry-tool, .entry-remove, .entry-more) { min-width: 24px; }
+    }
+}
 .entry-card.compact .mc-slot { width: 36px; height: 36px; }
 .entry-card.compact .mc-slot .item-icon { width: 26px; height: 26px; }
 .entry-card.compact .stack-count { font-size: 12px; text-shadow: 1px 1px 0 #3f3f3f; }
 .entry-card.compact > .entry-badges { flex: none; }
-.entry-card.compact > .entry-tool { margin-left: 0; align-self: center; }
-.entry-card.compact > .entry-remove { margin-left: 0; align-self: center; }
+.entry-card.compact > .entry-tool, .entry-card.compact > .entry-remove { align-self: center; }
 .entry-summary {
     flex: 1;
     min-width: 0;
@@ -726,10 +766,33 @@ body.dragging-line, body.dragging-line * { cursor: grabbing !important; }
 
 /* The slot is the book/item switch: a purple ring on hover. The stack count sits in its
    corner in the game's white with a drop shadow, above the glint. */
-.entry-slot { flex: none; padding: 0; border: none; border-radius: 2px; background: none; cursor: pointer; }
+.entry-slot { position: relative; flex: none; padding: 0; border: none; border-radius: 2px; background: none; cursor: pointer; }
 .entry-slot:hover .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
 .entry-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.entry-card > .entry-top > .mc-slot { flex: none; }
+/* A small swap badge in the slot's corner says it flips between book and item (hover or
+   focus; always on touch). */
+.swap-glyph {
+    position: absolute;
+    top: -6px;
+    right: -6px;
+    z-index: 2;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 17px;
+    height: 17px;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--accent-text);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    opacity: 0;
+    transition: opacity 0.12s;
+    pointer-events: none;
+}
+.swap-glyph svg { display: block; width: 11px; height: 11px; }
+.entry-slot:hover .swap-glyph, .entry-slot:focus-visible .swap-glyph { opacity: 1; }
+@media (hover: none) { .swap-glyph { opacity: 1; } }
 .stack-count {
     position: absolute;
     right: 2px;
@@ -743,29 +806,50 @@ body.dragging-line, body.dragging-line * { cursor: grabbing !important; }
     pointer-events: none;
 }
 
-/* Copies and prior work: badges that open the steppers (dashed while at the default). */
-.entry-badges { display: flex; flex-wrap: wrap; gap: 4px; min-width: 0; }
+/* Copies and prior work: badges that open the steppers, shown only when they aren't the
+   default; otherwise a quiet ⋯ stands in for them. */
+.entry-badges { display: flex; flex-wrap: nowrap; gap: 4px; min-width: 0; }
 .entry-badge {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
-    height: 24px;
-    padding: 0 8px;
-    border: 1px solid var(--border-strong);
+    gap: 3px;
+    height: 22px;
+    padding: 0 6px;
+    border: 1px solid var(--accent);
     border-radius: 12px;
-    background: transparent;
-    color: var(--text);
+    background: var(--accent-bg);
+    color: var(--accent-text);
     font: inherit;
     font-size: 12px;
     white-space: nowrap;
 }
 button.entry-badge { cursor: pointer; }
-button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color: var(--accent-text); background: var(--accent-bg); }
-.entry-badge.muted { border-style: dashed; color: var(--text-muted); }
+button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .badge-anvil { width: 16px; height: 16px; image-rendering: pixelated; }
 
 /* The tooltip: its lines (and "+ Add enchantment") open the enchantment picker. */
 .entry-tooltip { width: 100%; }
+.entry-title { display: flex; align-items: flex-start; gap: 4px; }
+.entry-title .mc-name { flex: 1; min-width: 0; }
+/* The "+" that adds an enchantment, at the end of the name row (no taller than the row). */
+.entry-add-plus {
+    flex: none;
+    min-width: 22px;
+    height: 24px;
+    margin: -4px -3px -4px 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: #7d7d7d;
+    font: inherit;
+    text-shadow: inherit;
+    line-height: 24px;
+    text-align: center;
+    cursor: pointer;
+}
+.entry-add-plus:hover, .entry-add-plus.open, .entry-add-plus:focus-visible { color: #55ffff; }
+.entry-add-plus:focus-visible { outline: 1px solid #55ffff; outline-offset: -2px; }
+@media (pointer: coarse) { .entry-add-plus { min-width: 32px; height: 32px; margin: -8px -4px -8px 0; line-height: 32px; } }
 .entry-line, .entry-add {
     display: flex;
     align-items: center;
@@ -786,7 +870,7 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .entry-line:focus-visible, .entry-add:focus-visible { outline: 1px solid #55ffff; outline-offset: 1px; }
 .mc-ench .tag-flag { flex: none; text-shadow: none; }
 
-/* The add cell: a dashed card with the two add buttons. */
+/* The add area, a dashed bar under the entries: the two add buttons and the type box. */
 .entry-add-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 .type-add { display: flex; gap: 6px; }
 .type-add-input {
@@ -804,14 +888,17 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .type-add-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; border-color: transparent; }
 .type-note { margin: 0; font-size: 12px; color: var(--warning-text); }
 .entry-add-card {
+    grid-column: 1 / -1;
     display: flex;
-    flex-direction: column;
-    align-items: stretch;
-    gap: 6px;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px 12px;
     padding: 8px;
     border: 1px dashed var(--border-strong);
     border-radius: var(--radius);
 }
+.entry-add-card .type-add { flex: 1 1 220px; }
+.entry-add-card .type-note { flex-basis: 100%; }
 
 /* A popover under its card: the copies/prior work steppers, or the enchantment picker
    (the grid's full width). App.js placePopover sets its top (and left for the steppers). */
@@ -1455,7 +1542,6 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
 .fix-option:hover { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
 .fix-action::before { content: "+ "; color: var(--accent); font-weight: 700; }
 .fix-replaces { font-size: 12px; color: var(--warning-text); }
-.toolbar .undo { margin-left: auto; }
 
 /* Information that is not a problem, e.g. enchantments that came along unasked. */
 .note-box {
@@ -1782,16 +1868,6 @@ button.entry-badge:hover, .entry-badge.open { border-color: var(--accent); color
     cursor: pointer;
 }
 .saved-delete:hover, .saved-delete:focus-visible { border-color: var(--danger-text); background: var(--danger-bg); color: var(--danger-text); }
-.saved-removed {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-top: 8px;
-    padding-top: 8px;
-    border-top: 1px solid var(--border);
-    color: var(--text-secondary);
-}
-.saved-removed .link { flex: none; }
 .saved-panel .hint { margin: 8px 0 0; font-size: 13px; }
 
 /* "Your level" and what it shows on each step */
