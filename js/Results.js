@@ -525,7 +525,7 @@ export function anvilCell(node, changed, role, meta = null, attrs = {}) {
     const name_class = "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "");
     const lines = logic.tooltipSort(node.enchantments).map(e => h("div", {
         class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") + (changed && changed.has(e.namespace) ? " changed" : ""),
-        "data-ns": e.namespace
+        "data-ns": e.namespace, "data-level": e.level
     }, logic.displayName(e.namespace, e.level)));
 
     return h("div", { class: "anvil-cell " + role, ...attrs },

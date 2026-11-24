@@ -3,7 +3,7 @@ import { roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
 import { $, h, icon, motion_ok } from "./Dom.js";
-import { closeLines, growSmoothly, openLines, rollLevelBar, slideLines, slideWidth } from "./Motion.js";
+import { closeLines, growSmoothly, openLines, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
 
@@ -43,7 +43,8 @@ export function renderWanted() {
         if (bar) old_bars.set(group.dataset.group, { levels: bar.querySelectorAll(".level-seg").length, segments: [...bar.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true)) });
     }
     // The preview's tooltip lines, to fade out the ones about to go (closeLines).
-    const old_width = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect().width : null;
+    const old_tip_box = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect() : null;
+    const old_width = old_tip_box ? old_tip_box.width : null;
     const old_tip = old_height != null ? old_preview.querySelector(".mc-tooltip") : null;
     const old_tip_rect = old_tip ? old_tip.getBoundingClientRect() : null;
     const old_lines = old_tip ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => {
@@ -72,14 +73,16 @@ export function renderWanted() {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
         growSmoothly(preview, old_height);
-        slideWidth(preview.querySelector(".mc-tooltip"), old_width);
-        // Swapping one enchantment for another leaves the tooltip the same size: the new
-        // line then only fades in, since opening it from 0 would shrink the box and grow it back.
-        // In order: the old line leaves, the lines that stay slide, the new line comes in.
-        const fresh = preview.querySelectorAll(".mc-ench.fresh");
-        const direction = same_size ? slideLines(preview, old_lines) : 0;
-        closeLines(preview, old_lines, same_size, direction);
-        openLines(fresh, same_size, 270, direction);
+        // Heights: the preview box can be held taller than the tooltip by the controls beside it,
+        // so the tooltip's own height is what is compared and slid in a swap.
+        slideWidth(preview.querySelector(".mc-tooltip"), old_width, same_size && old_tip_box ? old_tip_box.height : null);
+        // A swap (same size) rolls every changed row upward together; else lines open and close.
+        if (same_size) {
+            rollLines(preview, old_lines);
+        } else {
+            openLines(preview.querySelectorAll(".mc-ench.fresh"));
+            closeLines(preview, old_lines);
+        }
 
     }
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {

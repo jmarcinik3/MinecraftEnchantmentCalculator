@@ -1,5 +1,6 @@
 // Animations: slide a box to its new height or width, open and close tooltip lines, slide cards (FLIP), keep an element in place while the page redraws.
 import { motion_ok } from "./Dom.js";
+import { meta } from "./Store.js";
 import { steps_scroll } from "./Results.js";
 
 export function growSmoothly(element, from) {
@@ -28,70 +29,100 @@ export function growSmoothly(element, from) {
 // New tooltip lines open from no height in their own place (and fade in), so the lines
 // below them slide down with the box, wherever in the list they were added. Same
 // duration and easing as growSmoothly, so the lines and the box move together.
-// `same_size`: the box ends as tall as it was, so the lines only fade in.
-export function openLines(lines, same_size = false, delay = 110, direction = 0) {
+export function openLines(lines) {
     if (!motion_ok()) return;
     for (const line of lines) {
         const height = line.getBoundingClientRect().height;
-        if (!same_size) {
-            line.style.overflow = "hidden";
-            line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" })
-                .finished.then(() => { line.style.overflow = ""; }, () => {});
-        }
-        if (same_size && direction === 0) {
-            // One line replaces another in the same place: they roll like a counter. This one
-            // comes up from the bottom edge of the row while the old one leaves through the
-            // top (closeLines); at every moment they fill the row between them, so they never
-            // overlap. The clip cuts the part that would hang below the row.
-            line.animate([{ transform: "translateY(100%)", clipPath: "inset(0 0 100% 0)" }, { transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }],
-                { duration: 240, easing: "ease-in-out", fill: "backwards" });
-        } else if (same_size) {
-            // The lines that stay move (slideLines): the old text leaves first, they slide, then
-            // this one comes in from the side they came from (after `delay`).
-            line.animate([{ opacity: 0, transform: `translateY(${6 * direction}px)` }, { opacity: 1, transform: "translateY(0)" }],
-                { duration: 200, delay, easing: "ease-out", fill: "backwards" });
-        } else {
-            line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
-        }
+        line.style.overflow = "hidden";
+        line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" })
+            .finished.then(() => { line.style.overflow = ""; }, () => {});
+        line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
     }
 }
 
-// In a swap (the box ends the same size) the lines that stay can still change place: Soul
-// Speed moves down a row when Frost Walker takes the top one. They slide from where they
-// were (`old_lines` holds each one's old box) instead of jumping, once the old text has
-// gone. Returns which way they move: 1 down, -1 up, 0 none.
-export function slideLines(preview, old_lines) {
-    if (!motion_ok()) return 0;
+// A swap that leaves the tooltip the same size (Best for Frost Walker, Protection for
+// Projectile Protection): every row whose text changes rolls at once, like a counter, all in
+// one direction. The old text leaves through one edge of its row (a copy laid over where it
+// was; `old_lines` holds each line's text and box) while the new text comes in from the
+// other, so within a row they fill it between them and never overlap. Rows are matched by
+// position; unchanged rows stay still.
+// The direction follows the way the text moves. First, the enchantments that stay: if they
+// end up lower in the list (a line was added above them, Best for Frost Walker) the rows roll
+// down; if higher (a line above them went, Sharpness for None) they roll up. Else, when one
+// enchantment replaces another, up if the new one sits lower in the tooltip's fixed order
+// (Frost Walker for Depth Strider: the new text rises from below, towards where it will
+// live), down if higher. A change of level alone rolls up for a higher level and down for a
+// lower one; anything else rolls up.
+export function rollLines(preview, old_lines) {
+    if (!motion_ok()) return;
     const tooltip = preview.querySelector(".mc-tooltip");
-    if (!tooltip) return 0;
-    let total = 0;
-    const rect = tooltip.getBoundingClientRect();
-    const was = new Map(old_lines.map(line => [line.ns, line.box]));
-    for (const line of tooltip.querySelectorAll(".mc-ench[data-ns]")) {
-        const old = was.get(line.dataset.ns);
-        if (!old) continue;
-        const top = line.getBoundingClientRect().top - rect.top - tooltip.clientTop;
-        const shift = old.top - top;
-        if (Math.abs(shift) < 1) continue;
-        total -= shift; // positive: it moves down
-        line.animate([{ transform: `translateY(${shift}px)` }, { transform: "translateY(0)" }], { duration: 220, delay: 100, easing: "ease-out", fill: "backwards" });
+    if (!tooltip) return;
+    const now = [...tooltip.querySelectorAll(".mc-ench[data-ns]")];
+    const old_ns = new Set(old_lines.map(line => line.ns));
+    const now_ns = new Set(now.map(line => line.dataset.ns));
+    const mean = list => list.reduce((sum, value) => sum + value, 0) / list.length;
+    // Where an enchantment sits in the tooltip (the game's fixed order).
+    const rank = ns => meta.tooltip_order.indexOf(ns);
+    const coming = now.filter(line => !old_ns.has(line.dataset.ns)).map(line => rank(line.dataset.ns));
+    const going = old_lines.filter(line => !now_ns.has(line.ns)).map(line => rank(line.ns));
+    // How far each enchantment that stays moves in the list: old row minus new row, so a
+    // positive number means it moves up.
+    const moves = now.map((line, index) => old_lines.findIndex(old => old.ns === line.dataset.ns) - index)
+        .filter((move, index) => old_ns.has(now[index].dataset.ns));
+    const stay = moves.length ? mean(moves) : 0;
+    let up = true;
+    if (stay !== 0) {
+        up = stay > 0;
+    } else if (coming.length && going.length && mean(coming) !== mean(going)) {
+        up = mean(coming) > mean(going);
+    } else if (!coming.length && !going.length) {
+        // The same enchantments, only levels differ.
+        const changes = now.map((line, index) => Number(line.dataset.level) - Number(old_lines[index] && old_lines[index].node.dataset.level)).filter(Number.isFinite);
+        up = changes.length ? mean(changes) >= 0 : true;
     }
-    return Math.sign(total);
+    const sign = up ? 1 : -1;
+    const options = { duration: 240, easing: "ease-in-out" };
+    for (let index = 0; index < Math.max(now.length, old_lines.length); index++) {
+        const line = now[index];
+        const old = old_lines[index];
+        if (line && old && line.textContent === old.node.textContent) continue;
+        if (line) {
+            line.animate([{ transform: `translateY(${100 * sign}%)`, clipPath: up ? "inset(0 0 100% 0)" : "inset(100% 0 0 0)" }, { transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }],
+                { ...options, fill: "backwards" });
+        }
+        if (old && old.box) {
+            const ghost = old.node;
+            ghost.classList.remove("fresh");
+            ghost.setAttribute("aria-hidden", "true");
+            ghost.removeAttribute("data-ns");
+            Object.assign(ghost.style, { position: "absolute", left: old.box.left + "px", top: old.box.top + "px", width: old.box.width + "px", height: old.box.height + "px", margin: "0", pointerEvents: "none" });
+            tooltip.append(ghost);
+            const done = () => ghost.remove();
+            ghost.animate([{ transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }, { transform: `translateY(${-100 * sign}%)`, clipPath: up ? "inset(100% 0 0 0)" : "inset(0 0 100% 0)" }],
+                { ...options, fill: "forwards" }).finished.then(done, done);
+            setTimeout(done, 450); // a hidden tab never finishes animations
+        }
+    }
 }
 
 // The tooltip is as wide as its longest line; when that changes, its width slides from the
 // old one (lines stay on one line meanwhile, so the height doesn't jump).
-export function slideWidth(tooltip, from) {
+export function slideWidth(tooltip, from, from_height = null) {
     if (!tooltip || from == null || !motion_ok()) return;
-    const to = tooltip.getBoundingClientRect().width;
-    if (Math.abs(to - from) < 1) return;
+    const rect = tooltip.getBoundingClientRect();
+    const frames = [{}, {}];
+    if (Math.abs(rect.width - from) >= 1) { frames[0].width = from + "px"; frames[1].width = rect.width + "px"; }
+    // `from_height`: in a swap that rolls rows (rollLines) the lines don't push the box open
+    // or shut as they go, so the box's own height slides too.
+    if (from_height != null && Math.abs(rect.height - from_height) >= 1) { frames[0].height = from_height + "px"; frames[1].height = rect.height + "px"; }
+    if (!Object.keys(frames[0]).length) return;
     const style = tooltip.style;
     style.boxSizing = "border-box";
     style.overflow = "hidden";
     style.whiteSpace = "nowrap";
-    // Held at the end width until the lines closing in it (closeLines) are gone, which
-    // happens just after, so the box never flashes wider.
-    const slide = tooltip.animate([{ width: from + "px" }, { width: to + "px" }], { duration: 250, easing: "ease-out", fill: "forwards" });
+    // Held at the end size until the lines closing in it (closeLines, rollLines) are gone,
+    // which happens just after, so the box never flashes larger.
+    const slide = tooltip.animate(frames, { duration: 250, easing: "ease-out", fill: "forwards" });
     const finish = () => { slide.cancel(); style.boxSizing = style.overflow = style.whiteSpace = ""; };
     slide.finished.then(() => setTimeout(finish, 0), finish);
     setTimeout(finish, 450); // a hidden tab never finishes animations
@@ -99,32 +130,18 @@ export function slideWidth(tooltip, from) {
 
 // Removed tooltip lines close the way new ones open: a copy stays in its place and folds
 // away (shrinking and fading), so the lines below slide up with the box instead of jumping.
-// `same_size` (a swap, such as Protection for Projectile Protection): the copy sits over
-// where the line was and leaves: through the top of its row while the new line rolls in
-// from the bottom (`direction` 0), else it moves against the way the other lines will slide.
-export function closeLines(preview, old_lines, same_size = false, direction = 0) {
+export function closeLines(preview, old_lines) {
     if (!motion_ok()) return;
     const tooltip = preview.querySelector(".mc-tooltip");
     if (!tooltip) return;
     const kept = new Set([...tooltip.querySelectorAll(".mc-ench[data-ns]")].map(line => line.dataset.ns));
-    old_lines.forEach(({ ns, node, box }, index) => {
+    old_lines.forEach(({ ns, node }, index) => {
         if (kept.has(ns)) return;
         const ghost = node;
         ghost.classList.remove("fresh");
         ghost.setAttribute("aria-hidden", "true");
         ghost.removeAttribute("data-ns");
         ghost.style.pointerEvents = "none";
-        if (same_size && box) {
-            Object.assign(ghost.style, { position: "absolute", left: box.left + "px", top: box.top + "px", width: box.width + "px", height: box.height + "px", margin: "0" });
-            tooltip.append(ghost);
-            const done = () => ghost.remove();
-            const frames = direction === 0
-                ? [{ transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }, { transform: "translateY(-100%)", clipPath: "inset(100% 0 0 0)" }]
-                : [{ opacity: 1, transform: "translateY(0)" }, { opacity: 0, transform: `translateY(${-6 * direction}px)` }];
-            ghost.animate(frames, direction === 0 ? { duration: 240, easing: "ease-in-out", fill: "forwards" } : { duration: 140, easing: "ease-in", fill: "forwards" }).finished.then(done, done);
-            setTimeout(done, 450); // a hidden tab never finishes animations
-            return;
-        }
         const lines = tooltip.querySelectorAll(".mc-ench");
         const before = lines[Math.min(index, lines.length)];
         before ? before.before(ghost) : tooltip.append(ghost);
@@ -245,4 +262,37 @@ export function rollLevelBar(bar, old_levels, old_segments) {
         ghost.animate([...roll].reverse(), { duration: 260, easing: "ease-in", fill: "forwards", delay: (old_levels - 1 - index) * 70 }).finished.then(remove, remove);
         setTimeout(remove, 900); // a hidden tab never finishes animations
     }
+}
+
+// PARKED: not used right now (section 1 does not scroll the page; the rows just move). It was
+// in renderWanted as `holdInPlace(find_anchor, anchor_top)`, with the anchor taken from the last
+// pointerdown's or the focused element's `data-focus`.
+// While section 1 animates (the tooltip grows or shrinks and the rows below slide), keeps
+// the thing that was clicked where it was on screen by scrolling the page a little each
+// frame, so the pointer stays over it. `find()` returns the element again after the redraw
+// and `top` is where it was. Stops after `ms`, or as soon as the user scrolls or presses
+// a key. Near the top of the page there is nothing to scroll into, so it can only do so much.
+let hold = null;
+export function holdInPlace(find, top, ms = 360) {
+    if (hold) hold.abort();
+    if (top == null) return;
+    const step = () => {
+        const el = find();
+        if (!el) return;
+        const delta = el.getBoundingClientRect().top - top;
+        if (Math.abs(delta) >= 0.5) scrollBy(0, delta);
+    };
+    step();
+    if (!motion_ok()) return;
+    const control = new AbortController();
+    hold = control;
+    for (const type of ["wheel", "touchmove", "keydown"]) addEventListener(type, () => control.abort(), { once: true, passive: true, signal: control.signal });
+    const end = performance.now() + ms;
+    const frame = () => {
+        if (control.signal.aborted) return;
+        step();
+        if (performance.now() < end) requestAnimationFrame(frame);
+        else control.abort();
+    };
+    requestAnimationFrame(frame);
 }
