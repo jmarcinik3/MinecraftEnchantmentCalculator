@@ -62,8 +62,28 @@ export async function copyText(target, text, label, button = target) {
     setTimeout(() => { target.textContent = label; button.classList.remove("copied"); }, COPIED_MS);
 }
 
-// Whether animations may run: false when the user asks for reduced motion.
-export const motionOk = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Whether animations may run: not when the device asks for reduced motion, nor when "Ignore all animations" (Settings) is on.
+// That setting is kept in this browser; <html data-motion="off"> (also set early by index.html) turns the CSS ones off too.
+const MOTION_STORAGE_KEY = "enchantment-calculator-no-motion";
+let motion_ignored = readStorage(MOTION_STORAGE_KEY, false) === true;
+export const motionOk = () => !motion_ignored && !matchMedia("(prefers-reduced-motion: reduce)").matches;
+export const motionIgnored = () => motion_ignored;
+// Glints (the enchantment sheen on slots and chosen rows) are their own setting, on by default and independent of the one above.
+const GLINT_STORAGE_KEY = "enchantment-calculator-glints";
+let glints_on = readStorage(GLINT_STORAGE_KEY, true) !== false;
+export const glintsOn = () => glints_on;
+export function setGlintsOn(on) {
+    glints_on = on;
+    writeStorage(GLINT_STORAGE_KEY, on);
+    if (on) delete document.documentElement.dataset.glint;
+    else document.documentElement.dataset.glint = "off";
+}
+export function setMotionIgnored(ignored) {
+    motion_ignored = ignored;
+    writeStorage(MOTION_STORAGE_KEY, ignored);
+    if (ignored) document.documentElement.dataset.motion = "off";
+    else delete document.documentElement.dataset.motion;
+}
 
 // The enchantment glints (the slots' and the rows' sheen) all run on the page's clock: every one
 // starts at the animation timeline's zero, so a redraw that rebuilds a slot or a row doesn't start

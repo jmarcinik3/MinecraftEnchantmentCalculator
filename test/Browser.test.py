@@ -692,6 +692,24 @@ def part_ranking(browser, base):
     settle(p10)
     vanilla = p10.evaluate("() => ({ limit: document.querySelector('#limit-panel .limit-slider').value, on: document.querySelector('#limit-panel .rule-switch').getAttribute('aria-checked'), dot: document.querySelector('#options-menu summary').classList.contains('changed'), disabled: document.querySelector('#limit-panel [data-focus=\"rules-reset\"]').disabled })")
     check("Reset to vanilla brings back limit 39 with conflicts off", vanilla == {"limit": "39", "on": "false", "dot": False, "disabled": True}, vanilla)
+    # Settings: the game rules are a subsection beside a Display one, and "Ignore all animations" stops every animation.
+    titles = p10.eval_on_selector_all("#limit-panel .settings-section-title", "e => e.map(x => x.textContent.trim())")
+    check("the menu is Settings, with Game rules and Display as subsections", titles == ["Game rules", "Display"] and p10.inner_text("#options-menu summary").strip() == "Settings", titles)
+    check("animations are on to begin with", p10.get_attribute("html", "data-motion") is None and p10.get_attribute('#limit-panel [data-focus="motion-off"]', "aria-checked") == "false")
+    p10.click('#limit-panel [data-focus="motion-off"]')
+    kept = p10.evaluate("() => document.getAnimations().map(a => a.animationName || a.constructor.name)")
+    check("Ignore all animations leaves the glints running (they have their own switch)", kept and all("glint" in n for n in kept), kept)
+    p10.click('#limit-panel [data-focus="glints"]')
+    check("Glints off stops them and is kept", p10.get_attribute("html", "data-glint") == "off" and p10.evaluate("document.getAnimations().length") == 0 and p10.evaluate("localStorage.getItem('enchantment-calculator-glints')") == "false")
+    p10.keyboard.press("Escape")
+    p10.click('#results [data-view="tree"]')
+    leftover = p10.evaluate("() => [document.documentElement.dataset.motion, document.getAnimations().length, document.querySelectorAll('#results .results-content > .steps-scroll').length]")
+    check("with Ignore all animations on, a view switch animates nothing (no cross-fade copy, no animation running, not even the glints)", leftover == ["off", 0, 1], leftover)
+    p10.click('#results [data-view="steps"]')
+    p10.click("#options-menu summary")
+    p10.click('#limit-panel [data-focus="motion-off"]')
+    p10.click('#limit-panel [data-focus="glints"]')
+    check("and turning it off brings them back", p10.get_attribute("html", "data-motion") is None and p10.evaluate("localStorage.getItem('enchantment-calculator-no-motion')") == "false")
     p10.keyboard.press("Escape")
     return errors10
 
@@ -968,6 +986,12 @@ def part_pick_each(browser, base):
     card(1, "None").click()
     settle(p20)
     check("None in either group clears Selfish", p20.locator("#wanted .ench-row.chosen").count() == 0)
+    # A search that hits an option of the section shows the whole section.
+    p20.fill(".wanted-search", "photosynth")
+    settle(p20)
+    check("searching for one option shows the whole Pick one in each section, and nothing else", p20.locator("#wanted .pick-each").count() == 1 and p20.locator("#wanted .pick-each .each-card").count() == 2 and p20.locator("#wanted .pick-each .switch-option").count() == 2 + 7 + 4 and p20.locator("#wanted .ench-group").count() == 1, p20.locator("#wanted .ench-group").count())
+    p20.fill(".wanted-search", "")
+    settle(p20)
     # Switching in place (same count, nothing moves) rolls the bar and eases the height: no row opens or folds, the bar moves both ways.
     card(0, "Mending").click()
     settle(p20)
@@ -1007,6 +1031,11 @@ def part_pick_side(browser, base):
     settle(p21)
     check("a pick from the other side replaces them all", p21.locator("#wanted .pick-side").nth(index).locator(".each-rows > .ench-row.chosen").count() == 1 and p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active .switch-option.selected").count() == 1)
     p21.locator("#wanted .pick-side").nth(index).locator(".switch-option.selected").click()
+    settle(p21)
+    p21.fill(".wanted-search", "air attack")
+    settle(p21)
+    check("searching for one option shows the whole Pick a side section", p21.locator("#wanted .pick-side").count() == 1 and sorted(p21.locator("#wanted .pick-side .each-card").evaluate_all("e => e.map(x => x.querySelectorAll('.switch-option').length)")) == [5, 7] and p21.locator("#wanted .ench-row").count() == 0)
+    p21.fill(".wanted-search", "")
     settle(p21)
     # An enchantment set apart (Fire Aspect, which only conflicts with Advanced Fire Aspect) fades when its conflict is chosen, and the reverse.
     fire = [i for i, s in enumerate(sizes) if sorted(s) == [1, 7, 7]][0]

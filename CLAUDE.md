@@ -61,8 +61,8 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   chips (`rankPresets`, `RANK_PRESETS`: one tap puts a criterion first), the four tiles (a grip, the number, the label; the value with its unit,
   `criteria.<c>.unit`, and a note under it, `criteria.<c>.note`; the Max level tile says "(limit N)" and is amber within 5 levels of the
   limit, red at it: `.near`/`.at`) and a caption in words (`rankCaption`), then `#ranking` (`renderRanking`: one `.options` grid with Rename and
-  Your level; under 480px each label sits above its control). The Game rules menu is in the page header with the other global buttons
-  (`#options-menu` `<details>`, `.header-control.options-button`: the label "Game rules" + gear, its hover title and label say the limit and
+  Your level; under 480px each label sits above its control). The Settings menu is in the page header with the other global buttons
+  (`#options-menu` `<details>`, `.header-control.options-button`: the label "Settings" + gear; it holds the Game rules subsection and a Display one with "Ignore all animations", `motionSwitch`, Dom.js `setMotionIgnored`: kept in this browser, `<html data-motion="off">` set early by index.html turns the CSS animations and transitions off and `motionOk` the JS ones; the glints are not affected: they have their own "Glints" switch, `setGlintsOn`, `<html data-glint="off">`, key `enchantment-calculator-glints`, on by default; `.settings-section`; its hover title and label say the limit and
   conflicts; a dot (`.changed`) when a rule isn't the default, and under 600px the gear alone). It opens `#limit-panel`: the level limit slider, the Allow
   conflicts switch (`conflictsSwitch`) and "Reset to vanilla" (`resetRules`, disabled while the rules are the game's own); it closes on outside click/Escape via `setupMenuClosing`. Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.

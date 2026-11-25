@@ -2,7 +2,7 @@
 import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, MOD_IDS, clampStepLimit, cleanName } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, mod_data, state } from "./Store.js";
-import { $, h, readStorage, writeStorage } from "./Dom.js";
+import { $, glintsOn, h, motionIgnored, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
 import { loadChecklist, orderKey, renderResults } from "./Results.js";
 import { last_result, scheduleCalculation } from "./Calc.js";
 import { saveToUrl } from "./Link.js";
@@ -38,27 +38,32 @@ export function renderRanking() {
     const active = document.activeElement;
     const focused = active && (box.contains(active) || panel.contains(active)) ? active.dataset.focus : null;
 
-    // The game rules menu: the level limit and whether conflicting enchantments may go together
-    // (both apply everywhere, and the second is for mods). The menu stays open while they change.
+    // The settings menu: the game rules (the level limit, whether conflicting enchantments may go together, the edition and the
+    // mods: they apply everywhere) as a subsection, then the display settings. The menu stays open while they change.
     panel.replaceChildren(
-        h("div", { class: "options-panel-head" },
-            h("div", { class: "options-panel-title" }, TEXT.ranking.options),
-            h("button", {
-                type: "button", class: "btn small", "data-focus": "rules-reset", title: TEXT.ranking.rules_reset_help,
-                disabled: rulesAreVanilla(), onclick: resetRules
-            }, TEXT.ranking.rules_reset)
-        ),
-        h("div", { class: "options" },
-            optionRow(TEXT.ranking.edition, null, editionControl()),
-            // No hover titles on these labels: the "?" beside each says what it is for.
-            optionRow([TEXT.ranking.level_limit, helpTip("limit-help", TEXT.ranking.level_limit_help_label, TEXT.ranking.level_limit_help)], null, limitControl()),
-            optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch()),
-            optionRow([TEXT.ranking.mods, helpTip("mods-help", TEXT.ranking.mods_help_label, TEXT.ranking.mods_help)], null, modsControl())
-        )
+        h("div", { class: "options-panel-head" }, h("div", { class: "options-panel-title" }, TEXT.ranking.settings)),
+        h("section", { class: "settings-section" },
+            h("div", { class: "settings-section-head" },
+                h("div", { class: "settings-section-title" }, TEXT.ranking.options),
+                h("button", {
+                    type: "button", class: "btn small", "data-focus": "rules-reset", title: TEXT.ranking.rules_reset_help,
+                    disabled: rulesAreVanilla(), onclick: resetRules
+                }, TEXT.ranking.rules_reset)),
+            h("div", { class: "options" },
+                optionRow(TEXT.ranking.edition, null, editionControl()),
+                // No hover titles on these labels: the "?" beside each says what it is for.
+                optionRow([TEXT.ranking.level_limit, helpTip("limit-help", TEXT.ranking.level_limit_help_label, TEXT.ranking.level_limit_help)], null, limitControl()),
+                optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch()),
+                optionRow([TEXT.ranking.mods, helpTip("mods-help", TEXT.ranking.mods_help_label, TEXT.ranking.mods_help)], null, modsControl()))),
+        h("section", { class: "settings-section" },
+            h("div", { class: "settings-section-head" }, h("div", { class: "settings-section-title" }, TEXT.ranking.display)),
+            h("div", { class: "options" },
+                optionRow([TEXT.ranking.no_motion, helpTip("motion-help", TEXT.ranking.no_motion_help_label, TEXT.ranking.no_motion_help)], null, motionSwitch()),
+                optionRow([TEXT.ranking.glints, helpTip("glint-help", TEXT.ranking.glints_help_label, TEXT.ranking.glints_help)], null, glintSwitch())))
     );
-    const summary = optionsSummary();
-    $("#options-summary").textContent = TEXT.ranking.options;
-    // A dot on the button says a rule isn't the game's own (on phones the button is the gear alone);
+    const summary = TEXT.ranking.settings + ": " + optionsSummary();
+    $("#options-summary").textContent = TEXT.ranking.settings;
+    // A dot on the button says a game rule isn't the game's own (on phones the button is the gear alone);
     // its label says how they are set.
     const button = $("#options-menu > summary");
     button.classList.toggle("changed", !rulesAreVanilla());
@@ -121,6 +126,32 @@ function editionControl() {
             type: "button", class: state.edition === edition ? "selected" : "", "aria-pressed": String(state.edition === edition),
             "data-focus": "edition-" + edition, title: TEXT.page.editions[edition].help, onclick: () => setEdition(edition)
         }, TEXT.page.editions[edition].label)));
+}
+
+// Ignore all animations: an on/off switch, kept in this browser (Dom.js). On, nothing on the page moves, fades or slides (the glints have their own switch).
+function motionSwitch() {
+    const on = motionIgnored();
+    return h("div", { class: "rule-control" },
+        h("button", {
+            type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
+            "data-focus": "motion-off", "aria-label": TEXT.ranking.no_motion,
+            onclick: () => { setMotionIgnored(!on); renderRanking(); }
+        }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
+            h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
+    );
+}
+
+// Glints: an on/off switch, kept in this browser (Dom.js). Off, the slots' and chosen rows' sheen stops (slots keep a still band).
+function glintSwitch() {
+    const on = glintsOn();
+    return h("div", { class: "rule-control" },
+        h("button", {
+            type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
+            "data-focus": "glints", "aria-label": TEXT.ranking.glints,
+            onclick: () => { setGlintsOn(!on); renderRanking(); }
+        }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
+            h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
+    );
 }
 
 // Allow conflicts: an on/off switch.

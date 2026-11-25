@@ -191,21 +191,21 @@ export function restoreFocus(box, key) {
 function wantedList() {
     // Chosen enchantments the custom books can't reach (none in automatic mode).
     const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
-    // The search box: only enchantments whose name or description has the typed text. A "Pick one" card stays
-    // whole when any of its options match, a bracket keeps just the matching rows, and a mod's section opens.
+    // The search box: only enchantments whose name or description has the typed text. A "Pick one", "Pick one in each" or "Pick a
+    // side" card stays whole when any of its options match, a bracket keeps just the matching rows, and a mod's section opens.
     const query = plain(wanted_query);
     const matches = searchMatcher() || (() => true);
     const shown = group => {
         if (!query) return group;
         const hits = group.members.filter(matches);
         if (!hits.length) return null;
-        if (group.exclusive && !state.allow_incompatible) return group;
-        return { ...group, members: hits, exclusive: false };
+        if (!state.allow_incompatible && (group.exclusive || logic.pickEach(group.members) || logic.pickSide(group.members))) return group;
+        return { ...group, members: hits, exclusive: false, reduced: true };
     };
-    // A bracket of two groups joined by an enchantment is "Pick one in each" (not while searching: a cut-down bracket may not be that shape).
-    const eachOf = group => (state.allow_incompatible || query ? null : logic.pickEach(group.members));
+    // A bracket of two groups joined by an enchantment is "Pick one in each" (not a bracket the search cut down: it may not be that shape).
+    const eachOf = group => (state.allow_incompatible || group.reduced ? null : logic.pickEach(group.members));
     // ...and one that is two sides (each side compatible inside, conflicting with the other) is "Pick a side".
-    const sideOf = group => (state.allow_incompatible || query || group.exclusive || eachOf(group) ? null : logic.pickSide(group.members));
+    const sideOf = group => (state.allow_incompatible || group.reduced || group.exclusive || eachOf(group) ? null : logic.pickSide(group.members));
     const groupRow = group => {
         const members = group.members;
         if (group.exclusive && !state.allow_incompatible) return groupSwitch(members, short);

@@ -2469,3 +2469,21 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .each-card.active { box-shadow: inset 0 0 0 1px var(--accent); }
 /* In "Pick a side", an option whose conflict the sides do not show (one with an enchantment set apart) fades. */
 .switch-option.blocked { opacity: 0.55; }
+/* The settings menu's subsections (Game rules, Display). */
+.settings-section + .settings-section { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
+.settings-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.settings-section-title { font-size: 13px; font-weight: 600; color: var(--text); }
+/* "Ignore all animations": no animation or transition anywhere (JS animations are skipped by motionOk). */
+html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="off"] *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+}
+/* ...except the glints, which have their own setting. */
+html[data-motion="off"] .mc-slot.glint::after { animation: glint 3s linear infinite !important; }
+html[data-motion="off"] .tree-slot.glint::after { animation: glint 3s linear infinite !important; }
+html[data-motion="off"] .ench-row.chosen::after { animation: row-glint 7s linear infinite !important; }
+/* Glints off: the slots keep a still band (as with reduced motion), the rows' sheen goes. */
+html[data-glint="off"] .mc-slot.glint::after, html[data-glint="off"] .tree-slot.glint::after { animation: none !important; background-position: 50% 0; }
+html[data-glint="off"] .ench-row.chosen::after { display: none; }
+
