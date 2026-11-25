@@ -794,6 +794,17 @@ def part_two_mods(browser, base):
     check("turning mods on does not rename the presets", names_off and preset_names() == names_off, (names_off, preset_names()))
     p14.click("#options-menu summary")
     p14.keyboard.press("Escape")
+    # The list's order: enchantments alone, then the Pick one cards, then the Some conflict brackets (before the Curses and the mods).
+    p14.click("#wanted .item-menu-button")
+    p14.click('#items button[data-focus="item-boots"]') # (boots have all three kinds with both mods on)
+    p14.wait_for_selector("#wanted .ench-group.exclusive")
+    kinds = p14.evaluate("""() => [...document.querySelector('#wanted .wanted-list').children].map(el => el.matches('.ench-row') ? 0 : el.matches('.ench-group.exclusive') ? 1 : el.matches('.ench-group') ? 2 : 3)""")
+    first_other = kinds.index(3) if 3 in kinds else len(kinds)
+    lead = kinds[:first_other]
+    check("the list starts with single enchantments, then Pick one cards, then conflict brackets", set(lead) == {0, 1, 2} and lead == sorted(lead), lead)
+    p14.click("#wanted .item-menu-button")
+    p14.click('#items button[data-focus="item-sword"]')
+    p14.wait_for_selector("#wanted .ench-group:not(.exclusive)")
     chip = p14.locator("#wanted .ench-group:not(.exclusive) .conflict-chip").first
     check("rows in a conflict bracket have a chip with how many they conflict with", "Conflicts with" in chip.inner_text(), chip.inner_text())
     p14.locator("#wanted .ench-group:not(.exclusive) .ench-row").first.hover()

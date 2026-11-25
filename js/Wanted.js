@@ -219,9 +219,13 @@ function wantedList() {
             members.map(ns => wantedRow(ns, short.get(ns), true))
         );
     };
+    // Alone first, then the "Pick one" cards, then the brackets of partial conflicts (each kind keeps its alphabetical order).
+    const kind = group => (group.members.length === 1 ? 0 : group.exclusive && !state.allow_incompatible ? 1 : 2);
+    const byKind = groups => [...groups].sort((a, b) => kind(a) - kind(b));
     const rows = [];
+    const own = [];
+    const curses = [];
     const mods = new Map(); // mod name -> its groups (those with none of the game's own enchantments)
-    let curses_shown = false;
     for (const whole of logic.enchantmentGroups(state.item)) {
         const group = shown(whole);
         if (!group) continue;
@@ -229,14 +233,12 @@ function wantedList() {
         if (mod) {
             if (!mods.has(mod)) mods.set(mod, []);
             mods.get(mod).push(group);
-            continue;
+        } else {
+            (logic.isCurse(group.members[0]) ? curses : own).push(group);
         }
-        if (logic.isCurse(group.members[0]) && !curses_shown) {
-            rows.push(h("div", { class: "divider" }, TEXT.wanted.curses));
-            curses_shown = true;
-        }
-        rows.push(groupRow(group));
     }
+    rows.push(...byKind(own).map(groupRow));
+    if (curses.length) rows.push(h("div", { class: "divider" }, TEXT.wanted.curses), ...byKind(curses).map(groupRow));
     // A mod's own enchantments sit under its name, folded away until opened (or one is chosen).
     for (const [mod, groups] of mods) {
         const count = groups.reduce((sum, group) => sum + group.members.length, 0);
@@ -249,7 +251,7 @@ function wantedList() {
             }
         },
             h("summary", {}, TEXT.wanted.mod_group({ name: mod, count })),
-            groups.map(groupRow)));
+            byKind(groups).map(groupRow)));
     }
     if (query && !rows.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
     return h("div", { class: "wanted-list" }, rows);
