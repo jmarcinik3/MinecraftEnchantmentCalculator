@@ -1,7 +1,7 @@
 # Enchantment Calculator
 
 Finds the cheapest order to combine enchanted books and items on a Minecraft
-(Java Edition) anvil. Pick an item, choose the enchantments you want, and it
+(Java or Bedrock Edition) anvil. Pick an item, choose the enchantments you want, and it
 lists the anvil steps one by one.
 
 ## Running it
@@ -23,16 +23,18 @@ Then open http://localhost:8080.
   book vs. item multipliers, prior-work penalty `2^n - 1`, level caps,
   incompatible enchantments dropped for 1 level, and the 39-level limit.
 - `js/Calculator.js`: Web Worker wrapper so the page stays responsive.
-- `js/Logic.js`: UI helpers (automatic books, "Max all", shareable links).
-- `js/App.js`: rendering and state.
+- `js/Logic.js`: UI helpers (automatic books, presets, shareable links).
+- `js/App.js` and the modules beside it (`Wanted.js`, `Books.js`, `Ranking.js`,
+  `Options.js`, `Results.js`, ...): the page, one module per section.
 - `json/metadata.json`: items, enchantments, max levels, anvil weights
-  (book multipliers) and conflicts.
+  (book multipliers) and conflicts. `json/text/`: every string the page shows.
 
 ## Tests
 
 ```
 node test/Engine.test.js
 node test/Logic.test.mjs
+python test/Browser.test.py   # drives the page in Chromium (needs Playwright)
 ```
 
 The engine tests include a brute-force cross-check on random inputs.

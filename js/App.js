@@ -2,7 +2,7 @@
 import { EDITIONS, cleanName, createLogic, editionMetadata } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
-import { $, copyText, h, icon, keepGlintsInStep, motion_ok, readStorage, writeStorage } from "./Dom.js";
+import { $, copyText, h, icon, keepGlintsInStep, motionOk, readStorage, writeStorage } from "./Dom.js";
 import { renderWanted, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
@@ -35,7 +35,7 @@ export function tryExample() {
     state.wanted = logic.maxAll(state.item, {}, state.allow_incompatible);
     commit();
     const section = document.querySelector('[data-section="wanted"]');
-    if (section.getBoundingClientRect().top < 0) section.scrollIntoView({ block: "start", behavior: motion_ok() ? "smooth" : "auto" });
+    if (section.getBoundingClientRect().top < 0) section.scrollIntoView({ block: "start", behavior: motionOk() ? "smooth" : "auto" });
 }
 
 // Switching item drops the enchantments the new one can't take.
@@ -66,8 +66,8 @@ export function setAllowIncompatible(allowed) {
     commit();
 }
 
-// Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the
-// helpers are rebuilt for it and anything it does not have is dropped.
+// Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the helpers
+// are rebuilt for it; callers then drop anything it does not have.
 export function useEdition(edition) {
     setLogic(createLogic(editionMetadata(meta, edition), TEXT.names));
 }
@@ -140,7 +140,7 @@ function render() {
 }
 
 // ---------- Collapsing sections ----------
-// Sections 1-3 close from their heading (the arrow, or anywhere on the heading but its
+// All four sections close from their heading (the arrow, or anywhere on the heading but its
 // badge), so the results are easier to reach once things are set. Closed sections are
 // remembered in this browser, and their heading says what is chosen inside.
 
@@ -191,8 +191,8 @@ function renderSummaries() {
     renderOrderSummary();
 }
 
-// Section 4's summary while closed: how many steps the order takes.
-// Shown in the heading open or closed, with the anvil's break risk beside it (anvilRisk).
+// Section 4's heading: how many steps the order takes (shown open or closed), with the anvil's
+// break risk beside it (anvilRisk).
 export function renderStepsSummary() {
     const node = resultNode();
     const uses = node ? logic.collectSteps(node).length : 0;
@@ -339,7 +339,7 @@ function loadSetup(link) {
     commit();
 }
 
-// The header's Saved menu closes on a click outside it or on Escape.
+// A <details> menu (Saved, Game rules) closes on a click outside it or on Escape.
 export function setupMenuClosing(menu) {
     document.addEventListener("click", event => {
         // The path, not contains(): a click on a button the menu then redraws is still inside.
@@ -354,7 +354,7 @@ function setupSavedMenu() {
     setupMenuClosing(menu);
 }
 
-// ---------- Rendering ----------
+// ---------- Header controls (edition, theme, reset, copy link) ----------
 
 function renderEdition() {
     $("#edition").replaceChildren(...EDITIONS.map(edition => h("button", {
@@ -451,7 +451,7 @@ async function init() {
     try {
         const response = await fetch(META_URL);
         setMeta(await response.json());
-    } catch (error) {
+    } catch {
         $("#results").replaceChildren(h("div", { class: "error" }, TEXT.results.metadata_failed));
         return;
     }

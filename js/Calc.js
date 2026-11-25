@@ -136,9 +136,9 @@ export function previewMerge(left, right) {
         preview_worker.postMessage({ message: "instantiate_metadata", metadata: meta });
     }
     return new Promise(resolve => {
-        const request_id = ++preview_id;
-        preview_waiting.set(request_id, resolve);
-        preview_worker.postMessage({ message: "merge_preview", request_id, edition: state.edition, left, right });
+        const id = ++preview_id;
+        preview_waiting.set(id, resolve);
+        preview_worker.postMessage({ message: "merge_preview", request_id: id, edition: state.edition, left, right });
     });
 }
 
@@ -168,5 +168,3 @@ function handleWorkerMessage(event) {
         renderResults();
     }
 }
-
-// ---------- Shareable URL ----------

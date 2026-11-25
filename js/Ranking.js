@@ -3,7 +3,8 @@ import { movePriority } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { language, state } from "./Store.js";
 import { $, h } from "./Dom.js";
-import { last_result, running } from "./Calc.js";
+import { running } from "./Calc.js";
+import { resultNode } from "./Options.js";
 import { commit } from "./App.js";
 
 function setPriority(priority) {
@@ -73,8 +74,7 @@ export function renderMetrics(rebuild = false) {
         box.replaceChildren(h("ol", { class: "metrics" }, state.priority.map(rankTile)));
     }
 
-    const result = last_result && last_result.status === "ok" ? last_result.node : null;
-    const node = result && result.left ? result : null; // nothing to show without a step
+    const node = resultNode(); // nothing to show without a step
     const values = node && {
         levels: node.cumulative_levels,
         xp: Math.round(node.cumulative_xp).toLocaleString(language),
@@ -117,9 +117,3 @@ function rankTile(criterion, index) {
         )
     );
 }
-
-// ---------- Options above the results ----------
-// One aligned panel: level limit, your level, rename. Each label sits in the first
-// column and its control in the second, every control 32px tall. The panel is redrawn
-// on every change; the control that had focus gets it back, so keyboard users keep
-// their place while stepping a slider or a stepper.

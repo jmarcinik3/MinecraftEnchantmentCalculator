@@ -1,16 +1,16 @@
 // Animations: slide a box to its new height or width, open and close tooltip lines, slide cards (FLIP), keep an element in place while the page redraws.
-import { h, motion_ok } from "./Dom.js";
+import { h, motionOk } from "./Dom.js";
 import { meta } from "./Store.js";
 import { steps_scroll } from "./Results.js";
 
-// Section 2's Cards/Slots/List switch: how long it takes and how it eases.
+// How long Section 2's view and mode switches, coverage bars, chips and highlights take, and how they ease.
 const MORPH_MS = 360;
 const MORPH_EASING = "cubic-bezier(0.25, 0.8, 0.25, 1)";
 
 // `timing` (optional): { duration, easing } to slide with instead of the default 0.25s ease-out.
 export function growSmoothly(element, from, timing = null) {
     const to = element.getBoundingClientRect().height;
-    if (Math.abs(to - from) < 1 || !motion_ok()) return;
+    if (Math.abs(to - from) < 1 || !motionOk()) return;
     element.classList.add("resizing");
     if (timing) {
         element.style.transitionDuration = timing.duration + "ms";
@@ -41,7 +41,7 @@ export function growSmoothly(element, from, timing = null) {
 // below them slide down with the box, wherever in the list they were added. Same
 // duration and easing as growSmoothly, so the lines and the box move together.
 export function openLines(lines) {
-    if (!motion_ok()) return;
+    if (!motionOk()) return;
     for (const line of lines) {
         const height = line.getBoundingClientRect().height;
         line.style.overflow = "hidden";
@@ -49,6 +49,14 @@ export function openLines(lines) {
             .finished.then(() => { line.style.overflow = ""; }, () => {});
         line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
     }
+}
+
+// A copy of a tooltip line that is going (rolling or folding away): for show only.
+function retireLine(node) {
+    node.classList.remove("fresh");
+    node.setAttribute("aria-hidden", "true");
+    node.removeAttribute("data-ns");
+    return node;
 }
 
 // A swap that leaves the tooltip the same size (Best for Frost Walker, Protection for
@@ -65,7 +73,7 @@ export function openLines(lines) {
 // live), down if higher. A change of level alone rolls up for a higher level and down for a
 // lower one; anything else rolls up.
 export function rollLines(preview, old_lines) {
-    if (!motion_ok()) return;
+    if (!motionOk()) return;
     const tooltip = preview.querySelector(".mc-tooltip");
     if (!tooltip) return;
     const now = [...tooltip.querySelectorAll(".mc-ench[data-ns]")];
@@ -102,10 +110,7 @@ export function rollLines(preview, old_lines) {
                 { ...options, fill: "backwards" });
         }
         if (old && old.box) {
-            const ghost = old.node;
-            ghost.classList.remove("fresh");
-            ghost.setAttribute("aria-hidden", "true");
-            ghost.removeAttribute("data-ns");
+            const ghost = retireLine(old.node);
             Object.assign(ghost.style, { position: "absolute", left: old.box.left + "px", top: old.box.top + "px", width: old.box.width + "px", height: old.box.height + "px", margin: "0", pointerEvents: "none" });
             tooltip.append(ghost);
             const done = () => ghost.remove();
@@ -119,7 +124,7 @@ export function rollLines(preview, old_lines) {
 // The tooltip is as wide as its longest line; when that changes, its width slides from the
 // old one (lines stay on one line meanwhile, so the height doesn't jump).
 export function slideWidth(tooltip, from, from_height = null) {
-    if (!tooltip || from == null || !motion_ok()) return;
+    if (!tooltip || from == null || !motionOk()) return;
     const rect = tooltip.getBoundingClientRect();
     const frames = [{}, {}];
     if (Math.abs(rect.width - from) >= 1) { frames[0].width = from + "px"; frames[1].width = rect.width + "px"; }
@@ -142,16 +147,13 @@ export function slideWidth(tooltip, from, from_height = null) {
 // Removed tooltip lines close the way new ones open: a copy stays in its place and folds
 // away (shrinking and fading), so the lines below slide up with the box instead of jumping.
 export function closeLines(preview, old_lines) {
-    if (!motion_ok()) return;
+    if (!motionOk()) return;
     const tooltip = preview.querySelector(".mc-tooltip");
     if (!tooltip) return;
     const kept = new Set([...tooltip.querySelectorAll(".mc-ench[data-ns]")].map(line => line.dataset.ns));
     old_lines.forEach(({ ns, node }, index) => {
         if (kept.has(ns)) return;
-        const ghost = node;
-        ghost.classList.remove("fresh");
-        ghost.setAttribute("aria-hidden", "true");
-        ghost.removeAttribute("data-ns");
+        const ghost = retireLine(node);
         ghost.style.pointerEvents = "none";
         const lines = tooltip.querySelectorAll(".mc-ench");
         const before = lines[Math.min(index, lines.length)];
@@ -257,7 +259,7 @@ function leaveInGrid(grid, spec, timing) {
 // `morph`: "view" (a switch between Cards, Slots and List) or "mode" (Automatic and
 // Custom: the same entries gain or lose their tools; `leaving` are old cards with no new one): see morphCard.
 export function animateCards(box, old_rects, old_height, morph = false, leaving = []) {
-    if (!motion_ok() || !old_rects.size && !leaving.length) return;
+    if (!motionOk() || !old_rects.size && !leaving.length) return;
     const grid = box.querySelector(".entry-grid");
     if (!grid) return;
     const timing = morph ? { duration: MORPH_MS, easing: MORPH_EASING } : { duration: 250, easing: "ease-out" };
@@ -350,7 +352,7 @@ function morphCard(card, old, now, timing, how) {
         animations.push(unit.animate([{ transform: move, transformOrigin: origin }, { transform: "none", transformOrigin: origin }], timing));
     }
     for (const child of fading) {
-        animations.push(child.animate([{ opacity: 0 }, { opacity: 1 }], { duration: timing.duration * 0.55, delay: timing.duration * (keep ? 0.15 : 0.15), easing: "ease-out", fill: "backwards" }));
+        animations.push(child.animate([{ opacity: 0 }, { opacity: 1 }], { duration: timing.duration * 0.55, delay: timing.duration * 0.15, easing: "ease-out", fill: "backwards" }));
     }
     // Back to the plain card once everything has played; the timer covers a hidden tab.
     let done = false;
@@ -377,16 +379,30 @@ function boxOf(element) {
     return { height: element.getBoundingClientRect().height + "px", ...Object.fromEntries(BOX_SIDES.map(side => [side, style[side]])) };
 }
 
-// A bar that has just appeared (Custom's coverage chips) opens from no height and fades in;
-// one that has gone (`old`: { height, margin, clone }, from barSnapshot) closes the same way
-// in its place, under `anchor`, so what follows slides with it.
+// A box that has just appeared opens from no height and fades in; one that has gone (a copy of it,
+// laid where it was) closes the same way, so what follows slides with it.
+function openBox(element, duration, easing) {
+    if (!motionOk()) return;
+    const box = boxOf(element);
+    element.style.overflow = "hidden";
+    const clear = () => { element.style.overflow = ""; };
+    element.animate([{ ...FOLDED, opacity: 0 }, { ...box, opacity: 1 }], { duration, easing }).finished.then(clear, clear);
+    setTimeout(clear, duration + 150);
+}
+
+function closeBox(copy, duration, easing) {
+    copy.style.overflow = "hidden";
+    copy.style.pointerEvents = "none";
+    const box = boxOf(copy);
+    const remove = () => copy.remove();
+    copy.animate([{ ...box, opacity: 1 }, { ...FOLDED, opacity: 0 }], { duration, easing, fill: "forwards" }).finished.then(remove, remove);
+    setTimeout(remove, duration + 150);
+}
+
+// Custom's coverage chips (revealBar) appear and (leaveBar: `old` is { box, clone }, from barSnapshot, and
+// the copy goes under `anchor`) go this way.
 export function revealBar(bar) {
-    if (!motion_ok()) return;
-    const box = boxOf(bar);
-    bar.style.overflow = "hidden";
-    const clear = () => { bar.style.overflow = ""; };
-    bar.animate([{ ...FOLDED, opacity: 0 }, { ...box, opacity: 1 }], { duration: MORPH_MS, easing: MORPH_EASING }).finished.then(clear, clear);
-    setTimeout(clear, MORPH_MS + 150);
+    openBox(bar, MORPH_MS, MORPH_EASING);
 }
 
 export function barSnapshot(bar) {
@@ -397,14 +413,12 @@ export function barSnapshot(bar) {
 }
 
 export function leaveBar(anchor, old) {
-    if (!motion_ok() || !old || !anchor) return;
+    if (!motionOk() || !old || !anchor) return;
     const wrap = h("div", { class: "bar-leaving", "aria-hidden": "true" }, old.clone);
-    wrap.style.overflow = "hidden";
-    wrap.style.pointerEvents = "none";
     anchor.after(wrap);
-    const remove = () => wrap.remove();
-    wrap.animate([{ ...old.box, opacity: 1 }, { ...FOLDED, opacity: 0 }], { duration: MORPH_MS, easing: MORPH_EASING, fill: "forwards" }).finished.then(remove, remove);
-    setTimeout(remove, MORPH_MS + 150);
+    // The wrapper takes the old box's size (its clone has none of its own margins), and closes.
+    Object.assign(wrap.style, old.box);
+    closeBox(wrap, MORPH_MS, MORPH_EASING);
 }
 
 // The coverage chips of a folded "All n reached" menu roll out of its chip one row at a
@@ -414,9 +428,17 @@ const ROLL_STEP_MS = 80;
 
 function chipRows(strip) {
     const summary = strip.querySelector(".cover-chip.summary");
-    const chips = [...strip.querySelectorAll(".cover-chip.ok:not(.summary)")];
-    const tops = [...new Set(chips.map(chip => Math.round(chip.getBoundingClientRect().top)))].sort((a, b) => a - b);
-    return { summary, chips, rows: tops.length, row: chip => tops.indexOf(Math.round(chip.getBoundingClientRect().top)) };
+    const elements = [...strip.querySelectorAll(".cover-chip.ok:not(.summary)")];
+    const tops = [...new Set(elements.map(chip => Math.round(chip.getBoundingClientRect().top)))].sort((a, b) => a - b);
+    const filled = new Map(); // chips counted so far in each row
+    // Each chip with its row (0 = the first) and its place in that row.
+    const chips = elements.map(chip => {
+        const row = tops.indexOf(Math.round(chip.getBoundingClientRect().top));
+        const column = filled.get(row) || 0;
+        filled.set(row, column + 1);
+        return { chip, row, column };
+    });
+    return { summary, chips, rows: tops.length };
 }
 
 // How far a chip sits from the summary chip: the ones on its row slide out from under it,
@@ -429,40 +451,32 @@ function fromSummary(summary, chip) {
 }
 
 export function rollChipsIn(strip, old_height) {
-    if (!motion_ok()) return;
-    const { summary, chips, rows, row } = chipRows(strip);
+    if (!motionOk()) return;
+    const { summary, chips, rows } = chipRows(strip);
     if (!summary || !chips.length) return;
     growSmoothly(strip, old_height, { duration: 240 + (rows - 1) * ROLL_STEP_MS, easing: MORPH_EASING });
-    const seen = new Map();
-    for (const chip of chips) {
-        const r = row(chip);
-        const column = seen.get(r) || 0;
-        seen.set(r, column + 1);
+    for (const { chip, row, column } of chips) {
         const { dx, dy } = fromSummary(summary, chip);
         chip.animate([{ opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.8)` }, { opacity: 1, transform: "none" }],
-            { duration: 280, delay: r * ROLL_STEP_MS + column * 18, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "backwards" });
+            { duration: 280, delay: row * ROLL_STEP_MS + column * 18, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "backwards" });
     }
 }
 
 export function rollChipsOut(strip, done) {
-    const { summary, chips, rows, row } = chipRows(strip);
-    if (!motion_ok() || !summary || !chips.length) return done();
+    const { summary, chips, rows } = chipRows(strip);
+    if (!motionOk() || !summary || !chips.length) return done();
     const open = strip.getBoundingClientRect().height;
-    for (const chip of chips) chip.style.display = "none";
+    for (const { chip } of chips) chip.style.display = "none";
     const closed = strip.getBoundingClientRect().height;
-    for (const chip of chips) chip.style.display = "";
+    for (const { chip } of chips) chip.style.display = "";
     const total = 200 + (rows - 1) * ROLL_STEP_MS;
     strip.style.overflow = "hidden";
     strip.style.pointerEvents = "none";
     strip.animate([{ height: open + "px" }, { height: closed + "px" }], { duration: total, easing: MORPH_EASING, fill: "forwards" });
-    const seen = new Map();
-    for (const chip of chips) {
-        const r = row(chip);
-        const column = seen.get(r) || 0;
-        seen.set(r, column + 1);
+    for (const { chip, row, column } of chips) {
         const { dx, dy } = fromSummary(summary, chip);
         chip.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.8)` }],
-            { duration: 200, delay: (rows - 1 - r) * ROLL_STEP_MS + column * 12, easing: "ease-in", fill: "forwards" });
+            { duration: 200, delay: (rows - 1 - row) * ROLL_STEP_MS + column * 12, easing: "ease-in", fill: "forwards" });
     }
     setTimeout(done, total + 20);
 }
@@ -471,27 +485,17 @@ export function rollChipsOut(strip, done) {
 // and fades in; when it goes (an enchantment to None) a copy of it (`copy`, from inertCopy)
 // closes the same way where it was, so the group and what follows slide with it.
 export function openRow(row) {
-    if (!motion_ok()) return;
-    const box = boxOf(row);
-    row.style.overflow = "hidden";
-    const clear = () => { row.style.overflow = ""; };
-    row.animate([{ ...FOLDED, opacity: 0 }, { ...box, opacity: 1 }], { duration: 300, easing: "ease-out" }).finished.then(clear, clear);
-    setTimeout(clear, 450);
+    openBox(row, 300, "ease-out");
 }
 
-export function closeRow(group, copy) {
-    if (!motion_ok()) return;
-    group.append(copy);
-    copy.style.overflow = "hidden";
-    copy.style.pointerEvents = "none";
-    const box = boxOf(copy);
-    const remove = () => copy.remove();
-    copy.animate([{ ...box, opacity: 1 }, { ...FOLDED, opacity: 0 }], { duration: 300, easing: "ease-out", fill: "forwards" }).finished.then(remove, remove);
-    setTimeout(remove, 450);
+export function closeRow(parent, copy) {
+    if (!motionOk()) return;
+    parent.append(copy);
+    closeBox(copy, 300, "ease-out");
 }
 
 // The coverage chips (Custom mode) when what they say changes: a chip that goes from amber to green
-// (or back) fades between the looks and changes width, the others slide to their new places, new
+// (or back) crosses over from a copy of its old self, the others slide to their new places, new
 // ones fade in, gone ones (folded away, or removed) fade out where they were, the ring fills or
 // empties, and the strip grows or shrinks. chipSnapshot before the redraw, animateChips after it.
 export function chipSnapshot(strip) {
@@ -501,10 +505,8 @@ export function chipSnapshot(strip) {
     snap.height = base.height;
     for (const chip of strip.querySelectorAll(".cover-chip[data-ns]")) {
         const box = chip.getBoundingClientRect();
-        const style = getComputedStyle(chip);
         snap.chips.set(chip.dataset.ns, {
-            short: chip.classList.contains("short"), left: box.left - base.left, top: box.top - base.top, width: box.width, height: box.height,
-            background: style.backgroundColor, color: style.color, border: style.borderTopColor, copy: inertCopy(chip)
+            short: chip.classList.contains("short"), left: box.left - base.left, top: box.top - base.top, width: box.width, height: box.height, copy: inertCopy(chip)
         });
     }
     const fill = strip.querySelector(".ring-fill");
@@ -512,8 +514,17 @@ export function chipSnapshot(strip) {
     return snap;
 }
 
+// A copy of a chip as it was, laid over where it was (in the strip, which is positioned) for the animation to move or fade.
+function leavingChip(strip, was) {
+    const ghost = h("span", { class: "chip-leaving", "aria-hidden": "true" }, was.copy);
+    Object.assign(ghost.style, { left: was.left + "px", top: was.top + "px", width: was.width + "px", height: was.height + "px" });
+    was.copy.style.margin = "0";
+    strip.append(ghost);
+    return ghost;
+}
+
 export function animateChips(strip, old) {
-    if (!motion_ok() || !old.chips.size && old.ring == null) return;
+    if (!motionOk() || !old.chips.size && old.ring == null) return;
     const timing = { duration: 320, easing: MORPH_EASING };
     if (old.height) growSmoothly(strip, old.height, timing);
     const base = strip.getBoundingClientRect();
@@ -537,10 +548,7 @@ export function animateChips(strip, old) {
         // out while the new one travels and fades in. Its width is never animated: that would move every
         // chip after it, and the slides above would end up somewhere else.
         chip.animate([{ transform: `translate(${dx}px, ${dy}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], timing);
-        const ghost = h("span", { class: "chip-leaving", "aria-hidden": "true" }, was.copy);
-        Object.assign(ghost.style, { left: was.left + "px", top: was.top + "px", width: was.width + "px", height: was.height + "px" });
-        was.copy.style.margin = "0";
-        strip.append(ghost);
+        const ghost = leavingChip(strip, was);
         const remove = () => ghost.remove();
         ghost.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${-dx}px, ${-dy}px)`, opacity: 0 }], timing).finished.then(remove, remove);
         setTimeout(remove, timing.duration + 150);
@@ -548,10 +556,7 @@ export function animateChips(strip, old) {
     // Chips that are no longer there fade out where they were.
     for (const [ns, was] of old.chips) {
         if (seen.has(ns)) continue;
-        const ghost = h("span", { class: "chip-leaving", "aria-hidden": "true" }, was.copy);
-        Object.assign(ghost.style, { left: was.left + "px", top: was.top + "px", width: was.width + "px", height: was.height + "px" });
-        was.copy.style.margin = "0";
-        strip.append(ghost);
+        const ghost = leavingChip(strip, was);
         const remove = () => ghost.remove();
         ghost.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.85)" }], { duration: 220, easing: "ease-in", fill: "forwards" }).finished.then(remove, remove);
         setTimeout(remove, 400);
@@ -577,7 +582,7 @@ export function pillRects(box) {
 }
 
 export function slidePills(box, old) {
-    if (!motion_ok()) return;
+    if (!motionOk()) return;
     for (const switcher of box.querySelectorAll(".segmented")) {
         const was = old.get(switcher.classList[1]);
         const chosen = switcher.querySelector("button.selected");
@@ -606,7 +611,7 @@ export function revealBelow(card) {
     const rect = card.getBoundingClientRect();
     const over = Math.min(rect.bottom - bottom, rect.top - (scrolls ? box.getBoundingClientRect().top : 0));
     if (over <= 0) return;
-    const behavior = motion_ok() ? "smooth" : "auto";
+    const behavior = motionOk() ? "smooth" : "auto";
     if (scrolls) box.scrollBy({ top: over, behavior });
     else scrollBy({ top: over, behavior });
 }
@@ -638,7 +643,7 @@ export function keepInPlace(selector, redraw) {
 // segments it loses (`old_segments`, copies of the old bar's) roll up from the right end
 // and are removed. `old_levels` is how many the old bar had.
 export function rollLevelBar(bar, old_levels, old_segments) {
-    if (!motion_ok()) return;
+    if (!motionOk()) return;
     const segments = [...bar.querySelectorAll(".level-seg")];
     const levels = segments.length;
     if (!levels || levels === old_levels) return;
@@ -660,37 +665,4 @@ export function rollLevelBar(bar, old_levels, old_segments) {
         ghost.animate([...roll].reverse(), { duration: 260, easing: "ease-in", fill: "forwards", delay: (old_levels - 1 - index) * 70 }).finished.then(remove, remove);
         setTimeout(remove, 900); // a hidden tab never finishes animations
     }
-}
-
-// PARKED: not used right now (section 1 does not scroll the page; the rows just move). It was
-// in renderWanted as `holdInPlace(find_anchor, anchor_top)`, with the anchor taken from the last
-// pointerdown's or the focused element's `data-focus`.
-// While section 1 animates (the tooltip grows or shrinks and the rows below slide), keeps
-// the thing that was clicked where it was on screen by scrolling the page a little each
-// frame, so the pointer stays over it. `find()` returns the element again after the redraw
-// and `top` is where it was. Stops after `ms`, or as soon as the user scrolls or presses
-// a key. Near the top of the page there is nothing to scroll into, so it can only do so much.
-let hold = null;
-export function holdInPlace(find, top, ms = 360) {
-    if (hold) hold.abort();
-    if (top == null) return;
-    const step = () => {
-        const el = find();
-        if (!el) return;
-        const delta = el.getBoundingClientRect().top - top;
-        if (Math.abs(delta) >= 0.5) scrollBy(0, delta);
-    };
-    step();
-    if (!motion_ok()) return;
-    const control = new AbortController();
-    hold = control;
-    for (const type of ["wheel", "touchmove", "keydown"]) addEventListener(type, () => control.abort(), { once: true, passive: true, signal: control.signal });
-    const end = performance.now() + ms;
-    const frame = () => {
-        if (control.signal.aborted) return;
-        step();
-        if (performance.now() < end) requestAnimationFrame(frame);
-        else control.abort();
-    };
-    requestAnimationFrame(frame);
 }

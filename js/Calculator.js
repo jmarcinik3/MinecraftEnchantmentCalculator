@@ -19,7 +19,7 @@ onmessage = function(event) {
             const engine = engines[data.edition] || engines.java;
             const node = engine.combine(engine.makeLeaf(data.left), engine.makeLeaf(data.right), Infinity);
             postMessage({ message: "merge_previewed", request_id: data.request_id, ok: Boolean(node), levels: node ? node.merge_levels : 0, enchantments: node ? node.enchantments : [] });
-        } catch (error) {
+        } catch {
             postMessage({ message: "merge_previewed", request_id: data.request_id, ok: false, levels: 0, enchantments: [] });
         }
     } else if (data.message === "calculate_optimal") {

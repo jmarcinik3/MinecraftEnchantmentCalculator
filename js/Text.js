@@ -12,7 +12,7 @@
 //     { "plural": "count", "one": "{count} level", "other": "{count} levels" }
 // - `help` entries are tooltips (shown on hover). `label` entries ending in `_label`
 //   are read aloud by screen readers but not shown.
-// - `names`: { items: {ns: name}, enchantments: {ns: name} }.
+// - `names`: { items: {ns: name}, enchantments: {ns: name}, descriptions: {ns: text} }.
 //
 // Every language has the same entries as English (a test checks they match).
 

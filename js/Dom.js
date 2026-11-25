@@ -63,13 +63,8 @@ export async function copyText(target, text, label, button = target) {
     setTimeout(() => { target.textContent = label; button.classList.remove("copied"); }, COPIED_MS);
 }
 
-// ---------- State changes ----------
-
-// Section 1's preview changes height as enchantments come and go, and its conflict
-// groups as "Allow conflicts" changes: each slides from its old height to the new one,
-// so what is below moves smoothly instead of jumping. A redraw mid-slide starts from
-// wherever it had got to.
-export const motion_ok = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
+// Whether animations may run: false when the user asks for reduced motion.
+export const motionOk = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
 
 // The enchantment glints (the slots' and the rows' sheen) all run on the page's clock: every one
 // starts at the animation timeline's zero, so a redraw that rebuilds a slot or a row doesn't start

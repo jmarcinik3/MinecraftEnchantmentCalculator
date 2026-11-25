@@ -16,16 +16,6 @@ const MAX_PLAYER_LEVEL = 24791; // the highest level in either edition
 let player_level = readStorage(LEVEL_STORAGE_KEY, null); // "Your level", or null when blank
 // Whether the steps follow "Your level". Off keeps the number for when it is turned on again.
 let level_on = readStorage(LEVEL_ON_STORAGE_KEY, player_level != null) === true;
-// `focus`: a data-focus prefix, so its buttons keep the focus across redraws.
-export function stepper(label, value, min, max, onSet, help, focus = null) {
-    return h("span", { class: "stepper", title: help },
-        h("span", { class: "stepper-label" }, label),
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.decrease_label({ label }), "data-focus": focus && focus + "-minus", disabled: value <= min, onclick: () => onSet(value - 1) }, "−"),
-        h("span", { class: "stepper-value" }, value),
-        h("button", { type: "button", class: "btn tiny", "aria-label": TEXT.books.increase_label({ label }), "data-focus": focus && focus + "-plus", disabled: value >= max, onclick: () => onSet(value + 1) }, "+")
-    );
-}
-
 // The step limit in effect, or Infinity when it is turned off.
 export function stepLimit() {
     return state.no_step_limit ? Infinity : state.max_step;
@@ -66,8 +56,7 @@ export function renderRanking() {
     // Under the tiles: one grid, so the labels share a column.
     box.replaceChildren(h("div", { class: "options" },
         optionRow(TEXT.ranking.rename, TEXT.ranking.rename_help, nameField()),
-        optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help,
-            levelControl())
+        optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help, levelControl())
     ));
 
     if (focused) {
@@ -101,7 +90,7 @@ function conflictsSwitch() {
             "data-focus": "allow-conflicts", "aria-label": TEXT.ranking.allow_conflicts,
             onclick: () => setAllowIncompatible(!on)
         }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
-            h("span", { class: "rule-switch-text" }, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
+            h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
     );
 }
 
@@ -332,11 +321,11 @@ function setPlayerLevel(value, update_input) {
 
 // What is still to spend, for "Your level": ticked steps are done, so their levels are
 // already gone from the player's level and count as 0 here. (The Levels tile keeps the
-// whole order's total.) Returns { costs: per step in step order, needed: their sum, done }.
+// whole order's total.) Returns { costs: per step in step order, needed: their sum }.
 export function remainingLevels(steps) {
     const done = loadChecklist(orderKey(steps));
     const costs = steps.map(step => (done.has(step.number) ? 0 : step.node.merge_levels));
-    return { costs, needed: costs.reduce((total, cost) => total + cost, 0), done };
+    return { costs, needed: costs.reduce((total, cost) => total + cost, 0) };
 }
 
 // The finished order, or null while there is none.

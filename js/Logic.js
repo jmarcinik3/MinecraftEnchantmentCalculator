@@ -1,4 +1,4 @@
-// Pure helpers for the prototype UI: no DOM access, so they can be tested on their own.
+// Pure helpers for the page: no DOM access, so they can be tested on their own.
 
 export const MAX_STEP_LEVELS = 39; // a step costing 40+ levels is "Too Expensive!"
 export const MAX_COPIES = 64;      // copies of one entry (a stack of books)
@@ -288,16 +288,12 @@ export function createLogic(meta, names = {}) {
         const options = applicable(item).filter(ns => !isCurse(ns));
         const ordered = [...PREFERRED.filter(ns => options.includes(ns)), ...options.filter(ns => !PREFERRED.includes(ns))];
         for (const ns of ordered) {
-            if (ns in result) {
-                result[ns] = maxLevel(ns);
-            } else if (allow_incompatible || !Object.keys(result).some(other => conflicts(other, ns))) {
-                result[ns] = maxLevel(ns);
-            }
+            if (ns in result || allow_incompatible || !Object.keys(result).some(other => conflicts(other, ns))) result[ns] = maxLevel(ns);
         }
         return result;
     }
 
-    // Section 2's presets: "best" (Max all from nothing), then one per swap in
+    // Section 1's presets: "best" (Max all from nothing), then one per swap in
     // PRESET_SWAPS that the item can take and the best set leaves out. Each is
     // { key: "best" | swap namespace, wanted }. None for the plain book (it takes every
     // enchantment, so a "best" set means little), and only "best" with conflicts allowed.
@@ -603,11 +599,12 @@ export function createLogic(meta, names = {}) {
         if (!item) return null;
         const books = Array.isArray(data.b) ? data.b : [];
         const allow_incompatible = data.x === 1;
+        const edition = EDITIONS[data.e] || EDITIONS[0];
         return {
             item,
-            edition: EDITIONS[data.e] || EDITIONS[0],
+            edition,
             rename: data.r === 1,
-            rename_to: cleanName(data.m, EDITIONS[data.e] || EDITIONS[0]),
+            rename_to: cleanName(data.m, edition),
             allow_incompatible,
             wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
             auto_books: data.a !== 0,
@@ -617,7 +614,7 @@ export function createLogic(meta, names = {}) {
                 type: type_flag === 1 ? "item" : "book",
                 enchantments: enchants,
                 prior_work: clampPriorWork(prior_work),
-                copies: copies == null ? 1 : clampCopies(copies)
+                copies: clampCopies(copies)
             })), item, allow_incompatible),
             // Older links stored one objective: `o` = 1 meant least XP.
             priority: Array.isArray(data.p)

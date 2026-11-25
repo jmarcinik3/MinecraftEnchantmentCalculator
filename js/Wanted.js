@@ -2,7 +2,7 @@
 import { roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
-import { $, h, icon, motion_ok } from "./Dom.js";
+import { $, h, icon, motionOk } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
 import { closeLines, closeRow, growSmoothly, inertCopy, openLines, openRow, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
@@ -68,10 +68,9 @@ export function renderWanted() {
         });
     }
     // The preview's tooltip lines, to fade out the ones about to go (closeLines).
-    const old_tip_box = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect() : null;
-    const old_width = old_tip_box ? old_tip_box.width : null;
     const old_tip = old_height != null ? old_preview.querySelector(".mc-tooltip") : null;
     const old_tip_rect = old_tip ? old_tip.getBoundingClientRect() : null;
+    const old_width = old_tip_rect ? old_tip_rect.width : null;
     const old_lines = old_tip ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => {
         const rect = line.getBoundingClientRect();
         // Where the line sat inside the tooltip's padding box (for a copy laid over it).
@@ -100,7 +99,7 @@ export function renderWanted() {
         growSmoothly(preview, old_height);
         // Heights: the preview box can be held taller than the tooltip by the controls beside it,
         // so the tooltip's own height is what is compared and slid in a swap.
-        slideWidth(preview.querySelector(".mc-tooltip"), old_width, same_size && old_tip_box ? old_tip_box.height : null);
+        slideWidth(preview.querySelector(".mc-tooltip"), old_width, same_size && old_tip_rect ? old_tip_rect.height : null);
         // A swap (same size) rolls every changed row upward together; else lines open and close.
         if (same_size) {
             rollLines(preview, old_lines);
@@ -108,14 +107,13 @@ export function renderWanted() {
             openLines(preview.querySelectorAll(".mc-ench.fresh"));
             closeLines(preview, old_lines);
         }
-
     }
     const new_cost_line = box.querySelector(".wanted-preview .cost-line");
     if (old_cost_copy && new_cost_line && new_cost_line.classList.contains("idle")) closeRow(new_cost_line.parentElement, old_cost_copy);
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
         growSmoothly(group, old_groups.get(group.dataset.group));
-        if (motion_ok()) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+        if (motionOk()) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
     }
     for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
         const old = old_bars.get(group.dataset.group);
@@ -123,7 +121,7 @@ export function renderWanted() {
         if (old && bar) rollLevelBar(bar, old.levels, old.segments);
         animatePick(group, old_picks.get(group.dataset.group));
     }
-    if (motion_ok() && !old_groups.size) {
+    if (motionOk() && !old_groups.size) {
         for (const row of box.querySelectorAll(".ench-row[data-ns]")) {
             const was = old_rows.get(row.dataset.ns);
             const now = row.getBoundingClientRect().height;
@@ -141,7 +139,7 @@ export function renderWanted() {
 // None (a switch from one enchantment to another is rollLevelBar's), the option that was chosen
 // fades out of its highlight and the new one fades in, and the border changes color smoothly.
 function animatePick(group, old) {
-    if (!old || !motion_ok()) return;
+    if (!old || !motionOk()) return;
     const row = group.querySelector(":scope > .ench-row");
     if (row && !old.row) openRow(row);
     else if (!row && old.row) closeRow(group, old.row);
@@ -171,7 +169,7 @@ export function restoreFocus(box, key) {
 // The rows: single enchantments, "Pick one" switches, and brackets around enchantments
 // that only partly conflict; curses last.
 function wantedList() {
-    // B: chosen enchantments the custom books can't reach (none in automatic mode).
+    // Chosen enchantments the custom books can't reach (none in automatic mode).
     const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
     const rows = [];
     let curses_shown = false;
@@ -262,7 +260,7 @@ function fillCostMeter(line) {
     const words = nothing ? "" : meter_levels != null ? TEXT.wanted.cost_meter({ levels: meter_levels }) : meter_none ? TEXT.wanted.cost_meter_none : "";
     const changed = text.textContent !== words;
     text.textContent = words;
-    if (!line.isConnected || !motion_ok()) return;
+    if (!line.isConnected || !motionOk()) return;
     // New words fade in instead of popping.
     if (changed && words) text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
     // The line opens when a result arrives and folds away when there is none, so the tooltip eases to its new height.
@@ -319,7 +317,7 @@ function presetChips() {
     const presets = logic.presets(state.item, state.allow_incompatible);
     if (!presets.length) return null;
     const conflict_sets = logic.enchantmentGroups(state.item).filter(group => group.members.length > 1);
-    const best_name = wanted => {
+    const bestName = wanted => {
         if (state.allow_incompatible || conflict_sets.length !== 1) return TEXT.wanted.preset_best;
         const picks = conflict_sets[0].members.filter(ns => wanted[ns]);
         return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
@@ -363,16 +361,16 @@ function presetChips() {
                 onclick: () => { state.wanted = {}; commit(); }
             }, TEXT.wanted.preset_plain),
             presets.map(preset => {
-            const selected = same(preset.wanted, state.wanted);
-            const best = preset.key === "best";
-            return h("button", {
-                type: "button", class: "preset" + (selected ? " selected" : ""), "aria-pressed": String(selected),
-                "data-focus": "preset-" + preset.key,
-                title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
-                ...hover(preset.wanted),
-                onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
-            }, best ? best_name(preset.wanted) : logic.enchName(preset.key));
-        }))
+                const selected = same(preset.wanted, state.wanted);
+                const best = preset.key === "best";
+                return h("button", {
+                    type: "button", class: "preset" + (selected ? " selected" : ""), "aria-pressed": String(selected),
+                    "data-focus": "preset-" + preset.key,
+                    title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
+                    ...hover(preset.wanted),
+                    onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
+                }, best ? bestName(preset.wanted) : logic.enchName(preset.key));
+            }))
     );
 }
 
@@ -411,6 +409,7 @@ function wantedRow(ns, short = null) {
     const name = logic.enchName(ns);
     const help = logic.describe(ns);
     const cost = chosen ? logic.bookCost(ns, chosen) : 0;
+    const replaces = blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null;
 
     return h("div", { "data-ns": ns, class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
         // Columns (CSS grid, so every row lines up): the name with what it does under it,
@@ -420,7 +419,7 @@ function wantedRow(ns, short = null) {
             h("span", { class: "ench-book" + (chosen ? " lit" : ""), "aria-hidden": "true" }, h("img", { src: "img/book.png", alt: "" })),
             h("span", { class: "ench-title" },
                 name,
-                blocker ? h("span", { class: "replaces-mark", title: TEXT.wanted.replaces({ name: logic.enchName(blocker) }) }, TEXT.wanted.replaces({ name: logic.enchName(blocker) })) : null,
+                blocker ? h("span", { class: "replaces-mark", title: replaces }, replaces) : null,
                 short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
                     short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
             ),
@@ -470,7 +469,7 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
             event.preventDefault();
             if (next) {
                 next.focus({ preventScroll: true });
-                next.scrollIntoView({ block: "nearest", behavior: motion_ok() ? "smooth" : "auto" });
+                next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" });
             }
             return;
         }

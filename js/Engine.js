@@ -125,8 +125,8 @@
         // returned, or -1 if the game would not allow it or it would cost more than
         // `max_merge_levels` (Infinity: no limit, as with mods that remove "Too Expensive!").
         // Both enchantment lists are sorted by name, so one pass merges them.
-        // Conflicts between enchantments are not checked here: the page only sends
-        // entries whose enchantments may all go together.
+        // Conflicts between enchantments are not checked here: the page sends conflicting
+        // enchantments together only when "Allow conflicts" is on.
         // `extra_levels` is added to the step before the limit check (1 for a rename).
         function preview(left, right, max_merge_levels, extra_levels = 0) {
             const right_is_book = right.item_namespace === "book";

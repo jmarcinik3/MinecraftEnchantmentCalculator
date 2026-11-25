@@ -2,8 +2,8 @@
 import { updateCostMeter } from "./Wanted.js";
 import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searchSize } from "./Logic.js";
 import { TEXT } from "./Text.js";
-import { SLOW_SPLITS, language, logic, meta, state } from "./Store.js";
-import { $, copyText, h, icon, motion_ok, readStorage, writeStorage } from "./Dom.js";
+import { SLOW_SPLITS, language, logic, state } from "./Store.js";
+import { $, copyText, h, icon, motionOk, readStorage, writeStorage } from "./Dom.js";
 import { keepInPlace, revealBelow } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
@@ -26,9 +26,15 @@ export let steps_scroll = { key: null, top: 0 };
 // screen; ticking or unticking a step drops its entry, so it follows its new state.
 let step_folds = { key: null, folded: new Map() };
 
-function isFolded(order_key, number, done, by_default = false) {
+// The hand-folded steps of this order (a different order starts with none).
+function foldsFor(order_key) {
     if (step_folds.key !== order_key) step_folds = { key: order_key, folded: new Map() };
-    return step_folds.folded.has(number) ? step_folds.folded.get(number) : done.has(number) || by_default;
+    return step_folds.folded;
+}
+
+function isFolded(order_key, number, done, by_default = false) {
+    const folds = foldsFor(order_key);
+    return folds.has(number) ? folds.get(number) : done.has(number) || by_default;
 }
 
 // Saves new ticks, forgetting the hand folding of the steps whose tick changed.
@@ -138,8 +144,7 @@ export function renderResults() {
         onclick: () => { tree_compact = !tree_compact; writeStorage(COMPACT_STORAGE_KEY, tree_compact); renderResults(); }
     }, TEXT.results.compact) : null;
     const foldAll = fold => {
-        if (step_folds.key !== order_key) step_folds = { key: order_key, folded: new Map() };
-        for (const step of steps) step_folds.folded.set(step.number, fold);
+        for (const step of steps) foldsFor(order_key).set(step.number, fold);
         renderResults();
     };
     const fold_buttons = result_view === "slots" ? null : h("span", { class: "fold-buttons" },
@@ -172,8 +177,8 @@ export function renderResults() {
     } else {
         // A timeline: one group per round (its steps don't depend on each other, so any
         // order works), a node per step on the rail. The first step not done is the one
-        // "you are here" (highlighted); done steps fold to one line, and in Focus the
-        // others too. The Slots view shows each step as one line of slots.
+        // "you are here" (highlighted, and open); the others fold to one line unless unfolded by
+        // hand (Expand all / Collapse all). The Slots view shows each step as one line of slots.
         const slots = result_view === "slots";
         const rounds = logic.stepRounds(steps);
         const timeline = h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
@@ -217,8 +222,7 @@ function roundTip(index) {
     return tip;
 }
 
-// [anvil] 7 anvil uses · (4% chance a new anvil breaks). The chance is a badge colored
-// by how likely the break is; under 3 uses a new anvil can't break.
+// The chances at which the break-risk badge turns amber (medium) and red (high); see anvilRisk.
 const ANVIL_RISK_MEDIUM = 0.1;
 const ANVIL_RISK_HIGH = 0.5;
 
@@ -296,7 +300,7 @@ function mergeTree(root, steps, done, order_key) {
                 h("span", { class: "tree-caption" }, enchanted ? logic.summary(node.enchantments) : nodeName(node)),
                 h("span", { class: "mc-tooltip tree-tooltip" },
                     h("span", { class: "mc-name rarity-" + logic.rarity(node.item_namespace, enchanted) + (renamed ? " renamed" : "") }, nodeName(node)),
-                    enchanted ? h("span", { class: "mc-ench tree-ench" }, enchantments) : null),
+                    enchanted ? h("span", { class: "mc-ench" }, enchantments) : null),
                 number ? h("label", { class: "tree-step", title: TEXT.results.step_done_help },
                     stepTick(number, done, order_key, steps),
                     TEXT.results.tree_step({ number, levels: node.merge_levels })) : null,
@@ -385,9 +389,6 @@ export function saveChecklist(order_key, done) {
     }
 }
 
-// One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a
-// box to tick it off.
-// `level`: { before, after, short } with "Your level" filled in, else null.
 // The box for ticking off step `number`, in the Steps view and the Tree view alike (both
 // keep the same ticks). Ticking a step also ticks the steps it needs, and unticking one
 // unticks the steps that need it (Logic.js tickStep), so the redraw shows all of them;
@@ -417,6 +418,8 @@ function stepTick(number, done, order_key, steps) {
     });
 }
 
+// One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a box to tick it off.
+// `level`: { before, after, short } with "Your level" filled in, else null.
 // `folded`: shown as its head only (isFolded).
 function anvilStep(step, done, order_key, steps, level = null, current = false, folded = false) {
     const number = step.number;
@@ -441,7 +444,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         class: "step-head", title: fold_label,
         onclick: event => { if (!event.target.closest(".step-tick, .step-fold")) toggleFold(order_key, number, !folded); }
     },
-        h("label", { class: "step-tick", title: TEXT.results.step_done_help }, tick, h("span", { class: "step-title" }, TEXT.results.step_title({ number }))),
+        h("label", { class: "step-tick", title: TEXT.results.step_done_help }, tick, h("span", {}, TEXT.results.step_title({ number }))),
         h("span", { class: "step-summary" }, folded ? stepLine(step) : null),
         h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
@@ -530,8 +533,6 @@ function showCost(chip, bubble) {
     bubble.style.top = box.bottom + 6 + "px";
 }
 
-// Phones: the current step's line and a Done button, kept at the bottom of the screen while
-// the steps scroll (CSS shows it under 900px).
 // The bar stands in for the current step while that step is off screen; while any of it
 // is on screen (above the bar's own spot), the bar tucks away so it never covers the step.
 let current_watch = null;
@@ -546,6 +547,8 @@ function watchCurrentStep() {
     current_watch.observe(step);
 }
 
+// Phones: the current step's line and a Done button, kept at the bottom of the screen while
+// the steps scroll (CSS shows it under 900px).
 function currentBar(steps, done, order_key, current) {
     const step = steps.find(entry => entry.number === current);
     const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
@@ -555,7 +558,7 @@ function currentBar(steps, done, order_key, current) {
             h("span", {}, stepLine(step))),
         h("button", {
             type: "button", class: "btn small", title: TEXT.results.bar_show,
-            onclick: () => { const el = card(); if (el) el.scrollIntoView({ block: "center", behavior: motion_ok() ? "smooth" : "auto" }); }
+            onclick: () => { const el = card(); if (el) el.scrollIntoView({ block: "center", behavior: motionOk() ? "smooth" : "auto" }); }
         }, "↑"),
         h("button", {
             type: "button", class: "btn small primary",
@@ -563,7 +566,7 @@ function currentBar(steps, done, order_key, current) {
                 saveTicks(order_key, steps, done, logic.tickStep(steps, done, current, true));
                 renderResults();
                 const next = document.querySelector("#results .anvil-step.current");
-                if (next) next.scrollIntoView({ block: "nearest", behavior: motion_ok() ? "smooth" : "auto" });
+                if (next) next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" });
             }
         }, TEXT.results.bar_done));
 }
@@ -590,8 +593,7 @@ function stepPart(side) {
 }
 
 function toggleFold(order_key, number, fold) {
-    if (step_folds.key !== order_key) step_folds = { key: order_key, folded: new Map() };
-    step_folds.folded.set(number, fold);
+    foldsFor(order_key).set(number, fold);
     keepInPlace(`[data-step-card="${number}"]`, renderResults);
     const again = document.querySelector(`[data-step-card="${number}"] .step-fold`);
     if (again) again.focus({ preventScroll: true });
@@ -613,7 +615,7 @@ function entryHover(leaf) {
     const show = () => {
         const el = card();
         if (!el) return;
-        el.scrollIntoView({ block: "center", behavior: motion_ok() ? "smooth" : "auto" });
+        el.scrollIntoView({ block: "center", behavior: motionOk() ? "smooth" : "auto" });
         el.classList.remove("flash");
         void el.offsetWidth; // restart the flash
         el.classList.add("flash");
@@ -643,8 +645,6 @@ function entryIndexOf(leaf) {
         (book.prior_work || 0) === (leaf.prior_work || 0) && same(book.enchantments, leaf.enchantments));
 }
 
-// In the toolbar: "3 of 7 done · 18 levels to go" over a bar that fills as steps are
-// ticked, and ↺ to untick them all.
 // The bar flashes once when the last step is ticked (like gaining a level); `celebrated`
 // remembers which order it flashed for, so redraws don't repeat it. Unticking resets it.
 let celebrated = null;
@@ -659,7 +659,9 @@ function announce(text, order_key, count) {
     if (same_order && changed) $("#live").textContent = text;
 }
 
-function stepProgress(steps, done, levels, order_key, extra = null) {
+// In the toolbar: "3 of 7 done · 18 levels to go" over a bar that fills as steps are
+// ticked, and ↺ to untick them all; `extra` are more buttons for the same row (some may be null).
+function stepProgress(steps, done, levels, order_key, extra) {
     const total = steps.length;
     const count = steps.filter(step => done.has(step.number)).length;
     const level_up = total > 0 && count === total && celebrated !== order_key;
@@ -668,7 +670,7 @@ function stepProgress(steps, done, levels, order_key, extra = null) {
     announce(summary, order_key, count);
     // The bar, its text and ↺ stay together; the extra buttons (Compact, Expand all /
     // Collapse all) wrap to their own row as one group when there is no room beside them.
-    const tools = (extra || []).filter(Boolean);
+    const tools = extra.filter(Boolean);
     return h("div", { class: "step-progress" },
         h("div", { class: "step-progress-main" },
             h("div", { class: "step-progress-track" + (level_up ? " level-up" : ""), role: "progressbar", "aria-valuetext": summary, "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) },
@@ -709,5 +711,3 @@ export function anvilCell(node, changed, role, meta = null, attrs = {}, label = 
         meta
     );
 }
-
-// ---------- Calculation (Web Worker) ----------

@@ -107,7 +107,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* The header's controls: one height, font, border and radius, so they read as one toolbar. */
 .header-control {
-    box-sizing: border-box;
     height: 32px;
     display: inline-flex;
     align-items: center;
@@ -269,7 +268,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 }
 
 .toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
-.toolbar .hint { flex: 1; margin: 0; }
 
 /* Item grid */
 .item-grid {
@@ -293,8 +291,8 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     border-radius: var(--radius);
     cursor: pointer;
     text-align: center;
+    position: relative;
 }
-.item-button { position: relative; }
 .item-button:hover { background: var(--surface-alt); }
 .item-button:hover .mc-slot, .item-button:focus-visible .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
 .item-button.selected .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
@@ -323,16 +321,14 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .item-icon.small { width: 24px; height: 24px; }
 
 /* Wanted enchantments */
-/* The finished item as the game shows it: the slot, then a tooltip as wide as its text. */
 /* The top of section 1: the preview, then the controls, side by side once the section
    is 460px wide (a container query, so it follows the card, not the window). On the wide
    layout the preview has a fixed width, so longer names never push the controls aside. */
 #wanted { container: wanted / inline-size; }
 .wanted-head { position: relative; display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 4px; }
 .wanted-preview { flex: 1 1 100%; margin-bottom: 12px; }
-/* While its height slides (App.js growSmoothly), new lines show as the box opens. */
+/* While its height slides (Motion.js growSmoothly), new lines show as the box opens. */
 .resizing { overflow: hidden; transition: height 0.25s ease-out; }
-/* New lines (.fresh) open and fade in from App.js openLines. */
 .wanted-controls { flex: 1 1 100%; min-width: 0; }
 @container wanted (min-width: 460px) {
     .wanted-preview { flex: 0 0 250px; }
@@ -738,15 +734,12 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 /* One row: grip, slot, enchantments, badges, ⧉, ×; on a narrow section the badges go
    under the enchantments, so the names keep their room. */
 .entry-card.compact {
-    display: grid;
     grid-template-columns: auto auto minmax(0, 1fr) auto auto auto;
     grid-template-areas: "grip slot summary badges dup remove";
     align-items: center;
-    gap: 2px 8px;
     padding: 6px 8px;
 }
 .entry-card.compact > .drag-handle { grid-area: grip; }
-.entry-card.compact > .entry-slot, .entry-card.compact > .mc-slot, .entry-card.compact > .entry-slot-wrap { grid-area: slot; }
 .entry-card.compact > .entry-summary { grid-area: summary; }
 .entry-card.compact > .entry-badges { grid-area: badges; }
 .entry-card.compact > .entry-tool { grid-area: dup; }
@@ -774,8 +767,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .entry-card.compact .mc-slot { width: 36px; height: 36px; }
 .entry-card.compact .mc-slot .item-icon { width: 26px; height: 26px; }
 .entry-card.compact .stack-count { font-size: 12px; text-shadow: 1px 1px 0 #3f3f3f; }
-.entry-card.compact > .entry-badges { flex: none; }
-.entry-card.compact > .entry-tool, .entry-card.compact > .entry-remove { align-self: center; }
 .entry-summary {
     flex: 1;
     min-width: 0;
@@ -950,7 +941,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .entry-add-card .type-note { flex-basis: 100%; }
 
 /* A popover under its card: the copies/prior work steppers, or the enchantment picker
-   (the grid's full width). App.js placePopover sets its top (and left for the steppers). */
+   (the grid's full width). Books.js placePopover sets its top (and left for the steppers). */
 .entry-popover {
     position: absolute;
     left: 0;
@@ -1053,8 +1044,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .stepper { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-secondary); }
 .stepper-value { min-width: 16px; text-align: center; color: var(--text); }
 
-/* Results */
-
+/* Segmented switches (edition, Automatic | Custom, Cards | Slots | List, Steps | Slots | Tree). */
 .segmented { display: inline-flex; border: 1px solid var(--border-strong); border-radius: var(--radius); overflow: hidden; }
 .segmented button {
     font: inherit;
@@ -1071,7 +1061,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* Section 3's settings, under the tiles. */
 .settings { margin-bottom: 4px; }
 
-/* The settings menu in section 3's heading: a button ("Level limit 39 ⚙") that opens a
+/* The settings menu in section 3's heading: a button ("Game rules" summary + gear) that opens a
    panel with the level limit slider. */
 .options-menu { position: relative; min-width: 0; flex: none; }
 /* 26px, the collapse arrow's height, so section 3's heading is as tall as the others. */
@@ -1162,7 +1152,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .option-label .info-tip.option-help { margin-left: 6px; vertical-align: middle; }
 .option-label .info-tip-bubble { line-height: 1.4; font-weight: normal; }
 @media (prefers-reduced-motion: reduce) { .rule-switch-track, .rule-switch-thumb { transition: none; } }
-/* Fixed, placed by App.js setupOptionsMenu (so it never counts as the right column's
+/* Fixed, placed by Options.js setupOptionsMenu (so it never counts as the right column's
    content). */
 .options-panel {
     position: fixed;
@@ -1179,7 +1169,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 @media (prefers-reduced-motion: reduce) { .gear-icon { transition: none; } }
 
 
-/* Your level, with what it means for this order beside it. */
+/* The ranking arrows and the saved-setup name box. */
 .rank-move {
     font: inherit;
     font-size: 15px;
@@ -1288,7 +1278,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* The value, in the anvil's green cost text; tap to type a number. */
 .limit-value, .limit-edit {
     flex: none;
-    box-sizing: border-box;
     width: 44px;
     height: 32px;
     border-radius: var(--radius);
@@ -1479,7 +1468,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .info-tip:hover .info-tip-bubble,
 .info-tip-button:focus-visible + .info-tip-bubble,
 .info-tip.open .info-tip-bubble { display: block; }
-/* Placed against the window by App.js floatBubble, so it never adds to a scrolling
+/* Placed against the window by Tips.js floatBubble, so it never adds to a scrolling
    column's height. */
 .info-tip.floating .info-tip-bubble { position: fixed; z-index: 30; }
 /* Four in a row while each tile can be 120px wide (enough for "Trabajo anterior" on one
@@ -1516,7 +1505,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     margin-bottom: 12px;
 }
 .warning { background: var(--warning-bg); color: var(--warning-text); }
-/* A: the badge on the Books and items heading (an .info-tip in warning colors). */
+/* The badge on the Books and items heading (an .info-tip in warning colors). */
 .info-tip.alert .info-tip-button {
     width: auto;
     padding: 0 6px;
@@ -1526,7 +1515,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     color: var(--warning-text);
 }
 .info-tip.alert .info-tip-button:hover, .info-tip.alert.open .info-tip-button { background: var(--warning-text); color: var(--warning-bg); }
-/* B: the mark next to a chosen enchantment's name. */
+/* The mark next to a chosen enchantment's name. */
 .ench-title { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .short-mark {
     font-size: 11px;
@@ -1536,7 +1525,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     background: var(--warning-bg);
     color: var(--warning-text);
 }
-/* C: ways to fix each short enchantment, inside the badge's bubble. */
 /* Anchored to the heading, not the badge, so on a phone it starts at the card's edge
    instead of being squeezed against the right side of the screen. */
 .card h2 { position: relative; }
@@ -1591,10 +1579,11 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .collapse-toggle:hover, .collapse-toggle:focus-visible { background: var(--surface-alt); color: var(--text); }
 @media (prefers-reduced-motion: reduce) { .collapse-toggle::before { transition: none; } }
 .info-tip.alert { position: static; }
-.info-tip.alert .info-tip-bubble { max-width: min(320px, 100%); display: none; }
+.info-tip.alert .info-tip-bubble { max-width: min(320px, 100%); }
 .info-tip.alert:hover .info-tip-bubble, .info-tip.alert.open .info-tip-bubble { display: grid; gap: 10px; }
 /* Covers the gap between badge and bubble, so the pointer can reach the buttons. */
 .info-tip-bubble::before { content: ""; position: absolute; left: 0; right: 0; top: -8px; height: 8px; }
+/* Ways to fix each short enchantment, inside the badge's bubble. */
 .fix { display: grid; gap: 4px; }
 .fix + .fix { padding-top: 8px; border-top: 1px solid var(--border); }
 .fix-title { font-weight: 600; display: flex; gap: 6px; align-items: baseline; flex-wrap: wrap; }
@@ -1950,9 +1939,12 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     white-space: nowrap;
     color: var(--text-secondary);
     font-family: system-ui, sans-serif;
+    /* What is left of your level after the step is a small XP-style bar under it. */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
 }
-/* What is left of your level after the step, as a small XP-style bar. */
-.level-track { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .level-meter { display: block; width: 56px; height: 4px; overflow: hidden; border-radius: 2px; background: rgba(0, 0, 0, 0.25); }
 .level-meter-fill { display: block; height: 100%; background: #80ff20; }
 /* The cost near the level limit (amber) and at it (red, like "Too Expensive!"). */
@@ -1973,7 +1965,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 [data-entry-link]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
-/* At least 260px, so on a phone it takes its own row rather than cutting its text. */
+/* Takes the row's width and wraps its extra buttons under it (see .result-tools .step-progress). */
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* An experience bar: black frame, dark empty segments, bright green filled ones. */
 .step-progress-track { display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
@@ -2033,7 +2025,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 
 .result-actions { display: flex; gap: 8px; margin-left: auto; }
 .result-tools .btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
-/* Phones: Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
+/* Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
 .result-tools .step-progress { order: 1; flex-basis: 100%; }
 
 /* The order as a tree: each merge with its two inputs indented below it */
@@ -2232,7 +2224,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .stack-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .work-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .work-row .popover-note { flex-basis: 100%; }
-.anvil-pips { display: flex; flex-wrap: wrap; gap: 3px; }
+.anvil-pips { display: flex; flex-wrap: wrap; gap: 3px; touch-action: pan-y; -webkit-user-select: none; user-select: none; cursor: pointer; }
 .anvil-pip { display: flex; align-items: center; justify-content: center; min-width: 26px; height: 26px; padding: 2px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface-alt); color: var(--text-secondary); font: 12px system-ui, sans-serif; cursor: pointer; opacity: 0.5; }
 .anvil-pip:hover, .anvil-pip:focus-visible { opacity: 0.85; }
 .anvil-pip.on { opacity: 1; border-color: var(--accent); background: var(--accent-bg); }
@@ -2283,7 +2275,6 @@ div.slot-cell-button { cursor: default; }
 
 body.dragging-line { -webkit-user-select: none; user-select: none; }
 
-.anvil-pips { touch-action: pan-y; -webkit-user-select: none; user-select: none; cursor: pointer; }
 .entry-card.slotcell > .drag-handle { position: absolute; top: -9px; left: -6px; z-index: 3; min-width: 18px; height: 17px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 12px; }
 /* Reordering slots: the slot being dragged and the one it would go to (dashed outline) show their tooltips. */
 .slotcell.dragging .slot-tip, .slotcell.drop-target .slot-tip { opacity: 1; }
@@ -2291,7 +2282,7 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .entry-card.slotcell.dragging .mc-slot { opacity: 0.6; }
 .entry-card.slotcell.drop-target { z-index: 31; }
 
-/* Anvil uses: the density switch, slot labels, instruction, cost breakdown,
+/* Anvil uses: the Compact toggle, slot labels, instruction, cost breakdown,
    final card, phone bar, the Slots view and the compact tree. */
 .btn.density[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
 .round-label { display: inline-flex; align-items: center; }
@@ -2351,7 +2342,6 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 /* The Slots view: a step is one line of slots; tooltips show on hover or focus. */
 .slots-mode .anvil-step { padding-bottom: 6px; }
 .slots-mode .step-head { margin-bottom: 6px; }
-.slots-mode .anvil-row, .slots-mode .anvil-row .anvil-arrow { }
 .slots-mode .anvil-row { grid-template-columns: auto auto auto auto auto; grid-template-areas: "left plus right arrow result"; justify-content: start; align-items: center; column-gap: 10px; padding: 6px 8px; }
 .slots-mode .anvil-row .anvil-arrow { height: 48px; flex-direction: column; padding: 0; gap: 2px; }
 .slots-mode .anvil-row .arrow-glyph { transform: none; font-size: 18px; }

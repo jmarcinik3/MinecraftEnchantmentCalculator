@@ -18,7 +18,7 @@ function defaultState() {
         item: null,
         wanted: {},        // enchantments the user wants on the final item
         auto_books: true,  // derive entries from `wanted`
-        books: [],         // custom entries: { id, type: "book" | "item", enchantments: {ns: level}, prior_work }
+        books: [],         // custom entries: { id, type: "book" | "item", enchantments: {ns: level}, prior_work, copies }
         priority: [...CRITERIA],     // ranking for the best order, most important first
         max_step: MAX_STEP_LEVELS,   // no single step may cost more levels than this
         no_step_limit: false,        // ignore max_step and "Too Expensive!" (for mods that remove it)
@@ -29,7 +29,7 @@ function defaultState() {
     };
 }
 
-// ---------- DOM helper ----------
+// ---------- Setters (the only way other modules change these) ----------
 
 export function setMeta(value) { meta = value; }
 export function setLogic(value) { logic = value; }
