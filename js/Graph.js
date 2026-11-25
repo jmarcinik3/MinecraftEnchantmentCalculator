@@ -74,8 +74,23 @@ function computeLayout(nodes, edges) {
     return points;
 }
 
+// With a search typed, the nodes that match it are ringed and the rest fade. `matches` is a function of the
+// enchantment, or null with no search. Drawn at once, and again whenever the search changes.
+let drawn = null;
+let matcher = null;
+export function markSearch(matches) {
+    matcher = matches;
+    if (!drawn) return;
+    for (const node of drawn.querySelectorAll(".graph-node")) {
+        const hit = Boolean(matches) && matches(node.dataset.ns);
+        node.classList.toggle("match", hit);
+        node.classList.toggle("unmatched", Boolean(matches) && !hit);
+    }
+}
+
 // The graph for the chosen item, in a fold-away box under the preview; null when nothing conflicts.
-export function conflictGraph() {
+export function conflictGraph(matches = null) {
+    matcher = matches;
     if (!state.item) return null;
     const options = logic.applicable(state.item);
     const edges = [];
@@ -116,7 +131,7 @@ export function conflictGraph() {
             const text = TEXT.wanted.graph_node({ name: logic.enchName(ns), names: rivals.map(logic.enchName) });
             const toggle = () => setWanted(ns, chosen ? 0 : logic.maxLevel(ns));
             return svg("g", {
-                class: "graph-node" + (chosen ? " chosen" : "") + (blocked ? " blocked" : "") + (logic.modOf(ns) ? " mod" : ""),
+                class: "graph-node" + (chosen ? " chosen" : "") + (blocked ? " blocked" : ""),
                 "data-ns": ns, tabindex: "0", role: "button", "aria-pressed": String(chosen), "aria-label": text,
                 onmouseenter: () => light(ns, rivals, text), onmouseleave: () => light(null),
                 onfocus: () => light(ns, rivals, text), onblur: () => light(null),
@@ -126,6 +141,8 @@ export function conflictGraph() {
         });
         canvas = svg("svg", { class: "graph-canvas", viewBox: `0 0 ${WIDTH} ${HEIGHT}`, role: "group", "aria-label": TEXT.wanted.graph_title }, lines, dots);
         box.insertBefore(canvas, caption);
+        drawn = canvas;
+        markSearch(matcher);
     }
 
     // Hovering or focusing a node lights its conflicts and dims the rest.

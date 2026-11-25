@@ -74,7 +74,7 @@ export function editionMetadata(meta, edition) {
 // Mods whose enchantments can be added (Game rules > Mods). Each has a data file, json/mods/<id>.json:
 // { id, label, note, source, enchantments: {ns: {incompatible, items, max_level, weight}} (as in metadata.json,
 // keyed by the mod's own ids), names: {en: {ns: name}, <language>: ...}, descriptions: likewise }. Java only.
-export const MOD_IDS = ["fancy_enchantments"];
+export const MOD_IDS = ["fancy_enchantments", "spellbound"];
 
 // The metadata with the given mods' enchantments added. They list after the game's own in a tooltip, and a
 // conflict naming an enchantment that is not there (one the app can't show) is dropped.
@@ -261,14 +261,15 @@ export function createLogic(meta, names = {}) {
     function applicable(item) {
         return Object.keys(enchantments)
             .filter(ns => enchantments[ns].items.includes(item))
-            .sort((a, b) => (Boolean(modOf(a)) - Boolean(modOf(b))) || (isCurse(a) - isCurse(b)) || enchName(a).localeCompare(enchName(b)));
+            .sort((a, b) => (Boolean(modOf(a)) - Boolean(modOf(b))) || String(modOf(a)).localeCompare(String(modOf(b))) || (isCurse(a) - isCurse(b)) || enchName(a).localeCompare(enchName(b)));
     }
 
     // Applicable enchantments split into conflict groups (linked by incompatibility), in
     // `applicable` order: each group sits where its first member would, so curses stay last.
     // In an `exclusive` group every pair conflicts, so at most one can be chosen.
-    function enchantmentGroups(item) {
-        const list = applicable(item);
+    // `own_only`: leave out the mods' enchantments (their conflicts then do not link or add groups).
+    function enchantmentGroups(item, own_only = false) {
+        const list = applicable(item).filter(ns => !own_only || !modOf(ns));
         const placed = new Set();
         const groups = [];
         for (const ns of list) {

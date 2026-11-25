@@ -6,7 +6,7 @@ import { $, h, icon, motionOk } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
 import { closeLines, closeRow, growSmoothly, inertCopy, openLines, openRow, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
-import { conflictGraph } from "./Graph.js";
+import { conflictGraph, markSearch } from "./Graph.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
@@ -65,7 +65,9 @@ export function renderWanted() {
         old_picks.set(group.dataset.group, {
             selected: group.querySelector(".switch-option.selected")?.dataset.focus || null,
             border: getComputedStyle(group).borderColor,
-            row: row ? inertCopy(row) : null
+            row: row ? inertCopy(row) : null,
+            ns: row ? row.dataset.ns : null,
+            height: row ? row.getBoundingClientRect().height : null
         });
     }
     // The preview's tooltip lines, to fade out the ones about to go (closeLines).
@@ -93,7 +95,7 @@ export function renderWanted() {
         return;
     }
 
-    box.append(...[wantedHead(presetChips()), conflictGraph(), wantedList()].filter(Boolean)); // append(null) would print "null"
+    box.append(...[wantedHead(presetChips()), wantedSearch(), conflictGraph(searchMatcher()), wantedList()].filter(Boolean)); // append(null) would print "null"
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
@@ -136,14 +138,26 @@ export function renderWanted() {
     restoreFocus(box, focus);
 }
 
+// Eases a row's height from `from` to its new one (the box clips while it does).
+function easeRowHeight(row, from) {
+    const now = row.getBoundingClientRect().height;
+    if (Math.abs(from - now) < 1) return;
+    row.style.overflow = "hidden";
+    const clear = () => { row.style.overflow = ""; };
+    row.animate([{ height: from + "px" }, { height: now + "px" }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
+    setTimeout(clear, 400);
+}
+
 // A "Pick one" group after a redraw: its chosen row opens or closes when the pick goes from or to
-// None (a switch from one enchantment to another is rollLevelBar's), the option that was chosen
-// fades out of its highlight and the new one fades in, and the border changes color smoothly.
+// None, the level bar rolls (rollLevelBar) and the row eases to its new height when a switch from one
+// enchantment to another changes it (a longer description, a second row of levels), the option that was
+// chosen fades out of its highlight and the new one fades in, and the border changes color smoothly.
 function animatePick(group, old) {
     if (!old || !motionOk()) return;
     const row = group.querySelector(":scope > .ench-row");
     if (row && !old.row) openRow(row);
     else if (!row && old.row) closeRow(group, old.row);
+    else if (row && old.row && row.dataset.ns !== old.ns) easeRowHeight(row, old.height);
     const now = group.querySelector(".switch-option.selected"); // None is an option too, so there always is one
     if (now && now.dataset.focus !== old.selected) {
         const look = getComputedStyle(now);
@@ -172,15 +186,27 @@ export function restoreFocus(box, key) {
 function wantedList() {
     // Chosen enchantments the custom books can't reach (none in automatic mode).
     const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
+    // The search box: only enchantments whose name or description has the typed text. A "Pick one" card stays
+    // whole when any of its options match, a bracket keeps just the matching rows, and a mod's section opens.
+    const query = plain(wanted_query);
+    const matches = searchMatcher() || (() => true);
+    const shown = group => {
+        if (!query) return group;
+        const hits = group.members.filter(matches);
+        if (!hits.length) return null;
+        if (group.exclusive && !state.allow_incompatible) return group;
+        return { ...group, members: hits, exclusive: false };
+    };
     const groupRow = group => {
         const members = group.members;
         if (group.exclusive && !state.allow_incompatible) return groupSwitch(members, short);
         if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
         // The label folds the bracket: the chosen rows stay, the rest hide (kept in `folded_groups` across redraws).
         const key = members[0];
-        return h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : "") + (folded_groups.has(key) ? " folded" : ""), "data-group": key },
+        const folded = folded_groups.has(key) && !query;
+        return h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : "") + (folded ? " folded" : ""), "data-group": key },
             h("button", {
-                type: "button", class: "ench-group-label group-toggle", "data-focus": "group-" + key, "aria-expanded": String(!folded_groups.has(key)),
+                type: "button", class: "ench-group-label group-toggle", "data-focus": "group-" + key, "aria-expanded": String(!folded),
                 onclick: event => {
                     const folded = !folded_groups.has(key);
                     if (folded) folded_groups.add(key); else folded_groups.delete(key);
@@ -194,8 +220,10 @@ function wantedList() {
     const rows = [];
     const mods = new Map(); // mod name -> its groups (those with none of the game's own enchantments)
     let curses_shown = false;
-    for (const group of logic.enchantmentGroups(state.item)) {
-        const mod = logic.modOf(group.members[0]);
+    for (const whole of logic.enchantmentGroups(state.item)) {
+        const group = shown(whole);
+        if (!group) continue;
+        const mod = logic.modOf(whole.members[0]);
         if (mod) {
             if (!mods.has(mod)) mods.set(mod, []);
             mods.get(mod).push(group);
@@ -212,13 +240,39 @@ function wantedList() {
         const count = groups.reduce((sum, group) => sum + group.members.length, 0);
         const chosen = groups.some(group => group.members.some(ns => state.wanted[ns]));
         rows.push(h("details", {
-            class: "mod-section", "data-mod": mod, open: chosen || mod_open.has(mod),
-            ontoggle: event => { if (event.target.open) mod_open.add(mod); else mod_open.delete(mod); }
+            class: "mod-section", "data-mod": mod, open: chosen || mod_open.has(mod) || Boolean(query),
+            ontoggle: event => {
+                if (wanted_query.trim()) return; // opened by the search, not by the user
+                if (event.target.open) mod_open.add(mod); else mod_open.delete(mod);
+            }
         },
             h("summary", {}, TEXT.wanted.mod_group({ name: mod, count })),
             groups.map(groupRow)));
     }
+    if (query && !rows.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
     return h("div", { class: "wanted-list" }, rows);
+}
+
+// What is typed in section 1's search box (kept across redraws and items), and the text without case or accents.
+let wanted_query = "";
+const plain = text => text.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+
+// The test the search applies to an enchantment (its name or description has the typed text), or null with no search.
+function searchMatcher() {
+    const query = plain(wanted_query);
+    return query ? ns => plain(logic.enchName(ns) + " " + logic.describe(ns)).includes(query) : null;
+}
+
+// The search box above the list. Typing redraws only the list (and marks the graph), so the box keeps its focus.
+function wantedSearch() {
+    return h("input", {
+        type: "search", class: "wanted-search", value: wanted_query, placeholder: TEXT.wanted.search, "aria-label": TEXT.wanted.search, "data-focus": "wanted-search",
+        oninput: event => {
+            wanted_query = event.target.value;
+            document.querySelector("#wanted .wanted-list").replaceWith(wantedList());
+            markSearch(searchMatcher());
+        }
+    });
 }
 
 // The conflict brackets the user folded (by their first enchantment), in this visit.
@@ -349,7 +403,8 @@ export function setupItemMenu() {
 function presetChips() {
     const presets = logic.presets(state.item, state.allow_incompatible);
     if (!presets.length) return null;
-    const conflict_sets = logic.enchantmentGroups(state.item).filter(group => group.members.length > 1);
+    // Only the game's own enchantments count, so a mod being on never renames "God" (its conflicts add sets and link them).
+    const conflict_sets = logic.enchantmentGroups(state.item, true).filter(group => group.members.length > 1);
     const bestName = wanted => {
         if (state.allow_incompatible || conflict_sets.length !== 1) return TEXT.wanted.preset_best;
         const picks = conflict_sets[0].members.filter(ns => wanted[ns]);
@@ -485,8 +540,11 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
         "aria-label": TEXT.wanted.level_label({ name: logic.enchName(ns) }),
         "aria-valuemin": "0", "aria-valuemax": String(max),
         title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
-        style: `--levels: ${max}`
-    }, segments);
+        // Five levels to a row: a longer bar (Dullness goes to X) wraps onto more rows.
+        style: `--rows: ${Math.ceil(max / 5)}`
+    }, segments,
+    // The levels this enchantment doesn't have in its last row: a faint empty track, so every bar is the same width.
+    Array.from({ length: Math.ceil(max / 5) * 5 - max }, () => h("span", { class: "level-gap", "aria-hidden": "true" })));
 
     const show = level => {
         bar.setAttribute("aria-valuenow", String(level));
@@ -516,12 +574,16 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
         choose(Math.max(0, Math.min(max, level)));
     });
 
-    // The level under the pointer, by position, so a drag also works over the gaps.
-    const levelAt = x => {
+    // The level under the pointer, by position, so a drag also works over the gaps. The row is picked by height,
+    // then the last level in it that starts at or before the pointer.
+    const levelAt = (x, y) => {
         const rects = segments.map(seg => seg.getBoundingClientRect());
         if (x < rects[0].left - 8) return 0;
-        let level = 1;
-        rects.forEach((rect, index) => { if (x >= rect.left) level = index + 1; });
+        const rows = Math.ceil(max / 5);
+        const top = bar.getBoundingClientRect().top;
+        const row = Math.max(0, Math.min(rows - 1, Math.floor((y - top) / rects[0].height)));
+        let level = row * 5 + 1;
+        for (let index = row * 5; index < Math.min(max, row * 5 + 5); index++) if (x >= rects[index].left) level = index + 1;
         return level;
     };
     // The bar fills as the pointer moves and the choice is made on release (a redraw
@@ -529,7 +591,7 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
     let drag = null;
     bar.addEventListener("pointerdown", event => {
         if (event.button !== 0) return;
-        const level = levelAt(event.clientX);
+        const level = levelAt(event.clientX, event.clientY);
         drag = { id: event.pointerId, start: level, level, moved: false };
         try {
             bar.setPointerCapture(event.pointerId);
@@ -541,7 +603,7 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
     });
     bar.addEventListener("pointermove", event => {
         if (!drag || event.pointerId !== drag.id) return;
-        const level = levelAt(event.clientX);
+        const level = levelAt(event.clientX, event.clientY);
         if (level !== drag.level) {
             drag.level = level;
             drag.moved = true;

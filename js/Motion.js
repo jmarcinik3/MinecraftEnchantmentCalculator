@@ -693,20 +693,57 @@ export function rollLevelBar(bar, old_levels, old_segments) {
     if (!levels || levels === old_levels) return;
     const options = { duration: 260, easing: "ease-out", fill: "backwards" };
     const roll = [{ transform: "scaleX(0)", opacity: 0 }, { transform: "scaleX(1)", opacity: 1 }];
+    const animations = [];
+    // Five levels to a row. A bar that gains or loses a row (Sharpness V to Dullness X) grows or shrinks
+    // smoothly, so the row, the card and everything below follow it instead of jumping. Every level that
+    // comes or goes does so at the same moment (not one after another), and the bar clips while any moves.
+    const old_rows = Math.ceil(old_levels / 5);
+    const rows = Math.ceil(levels / 5);
+    const { width, height } = segments[0].getBoundingClientRect();
+    if (rows !== old_rows) {
+        bar.style.overflow = "hidden";
+        animations.push(bar.animate([{ height: old_rows * height + "px" }, { height: rows * height + "px" }], { duration: 260, easing: "ease-out" }));
+    }
     for (let index = old_levels; index < levels; index++) {
         segments[index].style.transformOrigin = "left center";
-        segments[index].animate(roll, { ...options, delay: (index - old_levels) * 70 });
+        animations.push(segments[index].animate(roll, options));
     }
-    const width = segments[0].getBoundingClientRect().width;
     for (let index = levels; index < old_levels; index++) {
         const ghost = old_segments[index];
         if (!ghost) continue;
         ghost.removeAttribute("data-level");
         ghost.setAttribute("aria-hidden", "true");
-        Object.assign(ghost.style, { position: "absolute", top: "0", left: index * width + "px", width: width + "px", height: "100%", transformOrigin: "left center", pointerEvents: "none" });
+        Object.assign(ghost.style, { position: "absolute", top: Math.floor(index / 5) * height + "px", left: (index % 5) * width + "px", width: width + "px", height: height + "px", transformOrigin: "left center", pointerEvents: "none" });
         bar.append(ghost);
         const remove = () => ghost.remove();
-        ghost.animate([...roll].reverse(), { duration: 260, easing: "ease-in", fill: "forwards", delay: (old_levels - 1 - index) * 70 }).finished.then(remove, remove);
+        const out = ghost.animate([...roll].reverse(), { duration: 260, easing: "ease-in", fill: "forwards" });
+        out.finished.then(remove, remove);
+        animations.push(out);
         setTimeout(remove, 900); // a hidden tab never finishes animations
     }
+    // The empty track after the last level fades with it: cells that were track fade out (a copy), and cells
+    // that are track now fade in (cells that stay track do not move).
+    const old_track = old_rows * 5;
+    const track = [...bar.querySelectorAll(".level-gap")];
+    for (let index = levels; index < rows * 5; index++) {
+        if (index >= old_levels && index < old_track) continue;
+        const cell = track[index - levels];
+        if (cell) animations.push(cell.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 260, easing: "ease-out", fill: "backwards" }));
+    }
+    for (let index = old_levels; index < old_track; index++) {
+        if (index >= levels) continue;
+        const ghost = document.createElement("span");
+        ghost.className = "level-gap";
+        ghost.setAttribute("aria-hidden", "true");
+        Object.assign(ghost.style, { position: "absolute", top: Math.floor(index / 5) * height + "px", left: (index % 5) * width + "px", width: width + "px", height: height + "px", pointerEvents: "none" });
+        bar.append(ghost);
+        const remove = () => ghost.remove();
+        const out = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: "ease-in", fill: "forwards" });
+        out.finished.then(remove, remove);
+        animations.push(out);
+        setTimeout(remove, 900);
+    }
+    const settle = () => { bar.style.overflow = ""; };
+    Promise.allSettled(animations.map(animation => animation.finished)).then(settle);
+    setTimeout(settle, 1000);
 }

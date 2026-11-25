@@ -45,6 +45,8 @@
         "change_item_label": "{item}: cambiar objeto",
         "curses": "Maldiciones",
         "mod_group": "{name} ({count})",
+        "search": "Buscar encantamientos",
+        "search_none": "Ningún encantamiento coincide",
         "graph_title": "Gráfico de incompatibilidades",
         "graph_hint": "{nodes} encantamientos, {edges} incompatibilidades. Pasa el cursor o enfoca uno para ver las suyas; haz clic para elegirlo.",
         "graph_node": "{name}: incompatible con {names}",

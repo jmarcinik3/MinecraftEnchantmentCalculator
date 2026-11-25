@@ -70,15 +70,17 @@ export function setAllowIncompatible(allowed) {
 }
 
 // Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the helpers
-// are rebuilt for it; callers then drop anything it does not have. Mods are Java only: in Bedrock
-// their enchantments are still known (a result on screen may name them) but never offered. Their
-// names come from their own data files.
+// are rebuilt for it; callers then drop anything it does not have. Mods are Java only, and only the
+// ones in `mods` are offered. Every mod loaded so far stays known, though (its enchantments take no
+// item, so they are never offered): a result still on screen may name an enchantment of a mod just
+// turned off or of Bedrock, and its names must still be there until the next search replaces it.
+// Their names come from their own data files.
 export function useEdition(edition, mods = state.mods) {
-    const loaded = mods.map(id => mod_data[id]).filter(Boolean);
-    const active = edition === "java" ? loaded : loaded.map(mod => ({
+    const offered = new Set(edition === "java" ? mods : []);
+    const active = Object.values(mod_data).map(mod => offered.has(mod.id) ? mod : {
         ...mod,
         enchantments: Object.fromEntries(Object.entries(mod.enchantments).map(([ns, data]) => [ns, { ...data, items: [] }]))
-    }));
+    });
     const mod_text = modNames(active, language);
     const names = {
         ...TEXT.names,

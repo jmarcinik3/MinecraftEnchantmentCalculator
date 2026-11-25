@@ -23,7 +23,7 @@ export function stepLimit() {
 }
 
 // A mod's name before its data file has loaded (the switch shows it, and loads the file when pressed).
-const MOD_LABELS = { fancy_enchantments: "Fancy Enchantments" };
+const MOD_LABELS = { fancy_enchantments: "Fancy Enchantments", spellbound: "Spellbound" };
 
 const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
 const HOLD_DELAY_MS = 400;          // holding − / +: wait this long, then repeat

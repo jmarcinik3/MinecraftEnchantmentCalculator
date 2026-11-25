@@ -803,7 +803,7 @@ function chipDrag(event, ns, level) {
 // enchantments not chosen in section 1.
 let entry_popover = null;
 let picker_all = false;
-let picker_query = "";              // what is typed in the picker's search box (shown with a mod on)
+let picker_query = "";              // what is typed in the picker's search box
 const picker_mods_open = new Set(); // the mods whose group is open in the picker
 
 function togglePopover(id, kind, toggle, ns = null) {
@@ -1035,12 +1035,14 @@ function enchantPicker(book) {
     const others = state.books.filter(other => other !== book).flatMap(other => Object.keys(other.enchantments));
     const options = logic.applicable(state.item);
     const wanted = options.filter(ns => ns in state.wanted);
-    // A mod's enchantments (the ones not chosen in section 1) are folded under its name, and searchable.
+    // A mod's enchantments (the ones not chosen in section 1) are with the others behind "Show all", folded under its name.
     const modded = options.filter(ns => logic.modOf(ns) && !(ns in state.wanted));
     const rest = options.filter(ns => !(ns in state.wanted) && !logic.modOf(ns));
-    const query = picker_query.trim().toLowerCase();
+    const plain = text => text.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+    const query = plain(picker_query);
     const rest_shown = picker_all || !wanted.length ? rest : rest.filter(ns => book.enchantments[ns]);
-    const hidden = rest.length - rest_shown.length;
+    const modded_shown = picker_all || !wanted.length ? modded : modded.filter(ns => book.enchantments[ns]);
+    const hidden = rest.length - rest_shown.length + modded.length - modded_shown.length;
     const spot = entry_popover && entry_popover.ns;
     const row = ns => {
         const level = book.enchantments[ns] || 0;
@@ -1056,11 +1058,11 @@ function enchantPicker(book) {
             elsewhere ? null : levelBar(ns, level, here, value => setEntryLevel(book, ns, value), "pick-" + key + "-")
         );
     };
-    const more = wanted.length && rest.length && (picker_all || hidden) ? h("button", {
+    const more = wanted.length && (rest.length || modded.length) && (picker_all || hidden) ? h("button", {
         type: "button", class: "picker-more", "data-focus": "pick-more-" + key,
         onclick: () => { picker_all = !picker_all; renderBooks(); }
     }, picker_all ? TEXT.books.show_fewer : TEXT.books.show_all({ count: hidden })) : h("span");
-    const search = modded.length ? h("input", {
+    const search = h("input", {
         type: "search", class: "picker-search", value: picker_query, "data-focus": "pick-search", placeholder: TEXT.books.picker_search,
         "aria-label": TEXT.books.picker_search,
         oninput: event => {
@@ -1069,23 +1071,23 @@ function enchantPicker(book) {
             const again = document.querySelector('#books [data-focus="pick-search"]');
             if (again) again.setSelectionRange(picker_query.length, picker_query.length);
         }
-    }) : null;
+    });
     if (query) {
-        const found = options.filter(ns => logic.enchName(ns).toLowerCase().includes(query));
+        const found = options.filter(ns => plain(logic.enchName(ns)).includes(query));
         return h("div", { class: "entry-popover enchant", role: "group", "aria-label": TEXT.books.picker_label },
             search, found.length ? found.map(row) : h("p", { class: "hint" }, TEXT.books.picker_no_match),
             h("div", { class: "popover-foot" }, h("span"), pickerButtons(book, key)));
     }
     const mod_rows = new Map();
-    for (const ns of modded) {
+    for (const ns of modded_shown) {
         if (!mod_rows.has(logic.modOf(ns))) mod_rows.set(logic.modOf(ns), []);
         mod_rows.get(logic.modOf(ns)).push(ns);
     }
     return h("div", { class: "entry-popover enchant", role: "group", "aria-label": TEXT.books.picker_label },
         search,
-        wanted.length && rest_shown.length ? h("div", { class: "picker-head" }, TEXT.books.picker_chosen) : null,
+        wanted.length && (rest_shown.length || modded_shown.length) ? h("div", { class: "picker-head" }, TEXT.books.picker_chosen) : null,
         wanted.map(row),
-        wanted.length && rest_shown.length ? h("div", { class: "picker-head" }, TEXT.books.picker_other) : null,
+        wanted.length && (rest_shown.length || modded_shown.length) ? h("div", { class: "picker-head" }, TEXT.books.picker_other) : null,
         rest_shown.map(row),
         [...mod_rows].map(([mod, list]) => h("details", {
             class: "mod-section", open: list.some(ns => book.enchantments[ns]) || picker_mods_open.has(mod),

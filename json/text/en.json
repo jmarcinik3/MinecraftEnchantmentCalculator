@@ -45,6 +45,8 @@
         "change_item_label": "{item}: change item",
         "curses": "Curses",
         "mod_group": "{name} ({count})",
+        "search": "Search enchantments",
+        "search_none": "No enchantment matches",
         "graph_title": "Conflict graph",
         "graph_hint": "{nodes} enchantments, {edges} conflicts. Hover or focus one to see its conflicts; click to choose it.",
         "graph_node": "{name}: conflicts with {names}",

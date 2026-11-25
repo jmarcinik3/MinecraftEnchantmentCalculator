@@ -1,0 +1,1340 @@
+{
+ "id": "spellbound",
+ "label": "Spellbound",
+ "note": "Fabric, Minecraft 1.20.1 (default config)",
+ "source": "https://modrinth.com/mod/spellbound",
+ "enchantments": {
+  "spellbound:acceleration": {
+   "incompatible": [
+    "efficiency",
+    "spellbound:demolition",
+    "spellbound:rock_collecting",
+    "spellbound:widened"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 5,
+   "weight": 1
+  },
+  "spellbound:airline": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 5,
+   "weight": 2
+  },
+  "spellbound:attractive": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:buffered": {
+   "incompatible": [
+    "spellbound:saturated",
+    "spellbound:selfish",
+    "unbreaking"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "spellbound:cave_in": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 5,
+   "weight": 4
+  },
+  "spellbound:chilled": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "spellbound:death_wish": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:flesh_wound",
+    "spellbound:goldskin",
+    "spellbound:grace",
+    "spellbound:hearty",
+    "spellbound:last_gasp",
+    "spellbound:red_alert"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 2
+  },
+  "spellbound:demolition": {
+   "incompatible": [
+    "efficiency",
+    "spellbound:acceleration",
+    "spellbound:rock_collecting",
+    "spellbound:widened"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 8,
+   "weight": 1
+  },
+  "spellbound:despoiling": {
+   "incompatible": [
+    "looting",
+    "spellbound:pinata",
+    "spellbound:scalping"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:dullness": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "impaling",
+    "power",
+    "sharpness",
+    "smite",
+    "spellbound:jousting",
+    "spellbound:priming",
+    "spellbound:rampage",
+    "spellbound:trophy_collecting"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe"
+   ],
+   "max_level": 10,
+   "weight": 2
+  },
+  "spellbound:fisher_of_men": {
+   "incompatible": [
+    "lure"
+   ],
+   "items": [
+    "fishing_rod"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "spellbound:flesh_wound": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:death_wish",
+    "spellbound:goldskin",
+    "spellbound:grace",
+    "spellbound:hearty",
+    "spellbound:last_gasp",
+    "spellbound:red_alert"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 1
+  },
+  "spellbound:goldskin": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:death_wish",
+    "spellbound:flesh_wound",
+    "spellbound:grace",
+    "spellbound:hearty",
+    "spellbound:last_gasp",
+    "spellbound:red_alert"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 1
+  },
+  "spellbound:grace": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:death_wish",
+    "spellbound:flesh_wound",
+    "spellbound:goldskin",
+    "spellbound:hearty",
+    "spellbound:last_gasp",
+    "spellbound:red_alert"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 1
+  },
+  "spellbound:hearty": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:death_wish",
+    "spellbound:flesh_wound",
+    "spellbound:goldskin",
+    "spellbound:grace",
+    "spellbound:last_gasp",
+    "spellbound:red_alert"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 1
+  },
+  "spellbound:hover": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "leggings"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:impersonal": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:jousting": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "impaling",
+    "power",
+    "sharpness",
+    "smite",
+    "spellbound:dullness",
+    "spellbound:priming",
+    "spellbound:rampage",
+    "spellbound:trophy_collecting"
+   ],
+   "items": [
+    "shovel",
+    "axe",
+    "sword",
+    "trident"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "spellbound:last_gasp": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:death_wish",
+    "spellbound:flesh_wound",
+    "spellbound:goldskin",
+    "spellbound:grace",
+    "spellbound:hearty",
+    "spellbound:red_alert"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 1
+  },
+  "spellbound:launching": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 2,
+   "weight": 2
+  },
+  "spellbound:legacy": {
+   "incompatible": [
+    "infinity",
+    "mending",
+    "spellbound:metabolising",
+    "spellbound:photosynthetic",
+    "spellbound:resurfacing",
+    "spellbound:selfish",
+    "spellbound:skotosynthetic"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:metabolising": {
+   "incompatible": [
+    "infinity",
+    "mending",
+    "spellbound:legacy",
+    "spellbound:photosynthetic",
+    "spellbound:resurfacing",
+    "spellbound:selfish",
+    "spellbound:skotosynthetic"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:outburst": {
+   "incompatible": [
+    "spellbound:pestilence",
+    "spellbound:spikes",
+    "spellbound:vengeful",
+    "thorns"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:pestilence": {
+   "incompatible": [
+    "spellbound:outburst",
+    "spellbound:spikes",
+    "spellbound:vengeful",
+    "thorns"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:phase_leap": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "leggings"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:phase_strafe": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "leggings"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:photosynthetic": {
+   "incompatible": [
+    "infinity",
+    "mending",
+    "spellbound:legacy",
+    "spellbound:metabolising",
+    "spellbound:resurfacing",
+    "spellbound:selfish",
+    "spellbound:skotosynthetic"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:pinata": {
+   "incompatible": [
+    "looting",
+    "spellbound:despoiling",
+    "spellbound:scalping"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:priming": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "impaling",
+    "power",
+    "sharpness",
+    "smite",
+    "spellbound:dullness",
+    "spellbound:jousting",
+    "spellbound:rampage",
+    "spellbound:trophy_collecting"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 5,
+   "weight": 1
+  },
+  "spellbound:prospector": {
+   "incompatible": [
+    "fortune",
+    "luck_of_the_sea",
+    "silk_touch",
+    "spellbound:sunken_treasure"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:rampage": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "impaling",
+    "power",
+    "sharpness",
+    "smite",
+    "spellbound:dullness",
+    "spellbound:jousting",
+    "spellbound:priming",
+    "spellbound:trophy_collecting"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "spellbound:red_alert": {
+   "incompatible": [
+    "blast_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection",
+    "spellbound:death_wish",
+    "spellbound:flesh_wound",
+    "spellbound:goldskin",
+    "spellbound:grace",
+    "spellbound:hearty",
+    "spellbound:last_gasp"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 1
+  },
+  "spellbound:repulsive": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:resurfacing": {
+   "incompatible": [
+    "infinity",
+    "mending",
+    "spellbound:legacy",
+    "spellbound:metabolising",
+    "spellbound:photosynthetic",
+    "spellbound:selfish",
+    "spellbound:skotosynthetic"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:rock_collecting": {
+   "incompatible": [
+    "efficiency",
+    "spellbound:acceleration",
+    "spellbound:demolition",
+    "spellbound:widened"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "spellbound:saturated": {
+   "incompatible": [
+    "spellbound:buffered",
+    "spellbound:selfish",
+    "unbreaking"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "spellbound:scalping": {
+   "incompatible": [
+    "looting",
+    "spellbound:despoiling",
+    "spellbound:pinata"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:selfish": {
+   "incompatible": [
+    "infinity",
+    "mending",
+    "spellbound:buffered",
+    "spellbound:legacy",
+    "spellbound:metabolising",
+    "spellbound:photosynthetic",
+    "spellbound:resurfacing",
+    "spellbound:saturated",
+    "spellbound:skotosynthetic",
+    "unbreaking"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:skotosynthetic": {
+   "incompatible": [
+    "infinity",
+    "mending",
+    "spellbound:legacy",
+    "spellbound:metabolising",
+    "spellbound:photosynthetic",
+    "spellbound:resurfacing",
+    "spellbound:selfish"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "spellbound:spikes": {
+   "incompatible": [
+    "spellbound:outburst",
+    "spellbound:pestilence",
+    "spellbound:vengeful",
+    "thorns"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:storied": {
+   "incompatible": [],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "fishing_rod",
+    "bow",
+    "shears",
+    "flint_and_steel",
+    "carrot_on_a_stick",
+    "warped_fungus_on_a_stick",
+    "shield",
+    "elytra",
+    "trident",
+    "turtle_helmet",
+    "crossbow",
+    "brush"
+   ],
+   "max_level": 1,
+   "weight": 1
+  },
+  "spellbound:sunken_treasure": {
+   "incompatible": [
+    "fortune",
+    "luck_of_the_sea",
+    "silk_touch",
+    "spellbound:prospector"
+   ],
+   "items": [
+    "fishing_rod"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:tethering": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:universal",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "sword",
+    "hoe",
+    "trident"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "spellbound:trophy_collecting": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "impaling",
+    "power",
+    "sharpness",
+    "smite",
+    "spellbound:dullness",
+    "spellbound:jousting",
+    "spellbound:priming",
+    "spellbound:rampage"
+   ],
+   "items": [
+    "axe",
+    "sword",
+    "bow",
+    "trident",
+    "crossbow"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "spellbound:universal": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:warlike",
+    "swift_sneak"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "spellbound:vengeful": {
+   "incompatible": [
+    "spellbound:outburst",
+    "spellbound:pestilence",
+    "spellbound:spikes",
+    "thorns"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:warlike": {
+   "incompatible": [
+    "aqua_affinity",
+    "channeling",
+    "depth_strider",
+    "frost_walker",
+    "knockback",
+    "loyalty",
+    "punch",
+    "riptide",
+    "soul_speed",
+    "spellbound:airline",
+    "spellbound:attractive",
+    "spellbound:cave_in",
+    "spellbound:chilled",
+    "spellbound:hover",
+    "spellbound:impersonal",
+    "spellbound:launching",
+    "spellbound:phase_leap",
+    "spellbound:phase_strafe",
+    "spellbound:repulsive",
+    "spellbound:tethering",
+    "spellbound:universal",
+    "swift_sneak"
+   ],
+   "items": [
+    "helmet",
+    "chestplate",
+    "leggings",
+    "boots",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "spellbound:widened": {
+   "incompatible": [
+    "efficiency",
+    "spellbound:acceleration",
+    "spellbound:demolition",
+    "spellbound:rock_collecting"
+   ],
+   "items": [
+    "pickaxe",
+    "shovel",
+    "axe",
+    "hoe"
+   ],
+   "max_level": 8,
+   "weight": 1
+  }
+ },
+ "names": {
+  "en": {
+   "spellbound:acceleration": "Acceleration",
+   "spellbound:airline": "Airline",
+   "spellbound:attractive": "Attractive",
+   "spellbound:buffered": "Buffered",
+   "spellbound:cave_in": "Cave-In",
+   "spellbound:chilled": "Chilled",
+   "spellbound:death_wish": "Death Wish",
+   "spellbound:demolition": "Demolition",
+   "spellbound:despoiling": "Despoiling",
+   "spellbound:dullness": "Dullness",
+   "spellbound:fisher_of_men": "Fisher Of Men",
+   "spellbound:flesh_wound": "Flesh Wound",
+   "spellbound:goldskin": "Goldskin",
+   "spellbound:grace": "Grace",
+   "spellbound:hearty": "Hearty",
+   "spellbound:hover": "Hover",
+   "spellbound:impersonal": "Impersonal",
+   "spellbound:jousting": "Jousting",
+   "spellbound:last_gasp": "Last Gasp",
+   "spellbound:launching": "Launching",
+   "spellbound:legacy": "Legacy",
+   "spellbound:metabolising": "Metabolising",
+   "spellbound:outburst": "Outburst",
+   "spellbound:pestilence": "Pestilence",
+   "spellbound:phase_leap": "Phase Leap",
+   "spellbound:phase_strafe": "Phase Strafe",
+   "spellbound:photosynthetic": "Photosynthetic",
+   "spellbound:pinata": "Pinata",
+   "spellbound:priming": "Priming",
+   "spellbound:prospector": "Prospector",
+   "spellbound:rampage": "Rampage",
+   "spellbound:red_alert": "Red Alert",
+   "spellbound:repulsive": "Repulsive",
+   "spellbound:resurfacing": "Resurfacing",
+   "spellbound:rock_collecting": "Rock Collecting",
+   "spellbound:saturated": "Saturated",
+   "spellbound:scalping": "Scalping",
+   "spellbound:selfish": "Selfish",
+   "spellbound:skotosynthetic": "Skotosynthetic",
+   "spellbound:spikes": "Spikes",
+   "spellbound:storied": "Storied",
+   "spellbound:sunken_treasure": "Sunken Treasure",
+   "spellbound:tethering": "Tethering",
+   "spellbound:trophy_collecting": "Trophy Collecting",
+   "spellbound:universal": "Universal",
+   "spellbound:vengeful": "Vengeful",
+   "spellbound:warlike": "Warlike",
+   "spellbound:widened": "Widened"
+  }
+ },
+ "descriptions": {
+  "en": {
+   "spellbound:acceleration": "Mining speed increases during use.",
+   "spellbound:airline": "Drags the user behind fired projectile.",
+   "spellbound:attractive": "Attracts nearby entities.",
+   "spellbound:buffered": "Protects durability with regenerating buffer.",
+   "spellbound:cave_in": "Shot blocks fall to the ground",
+   "spellbound:chilled": "Freeze adjacent blocks on break",
+   "spellbound:death_wish": "Provides no protection. Greatly increases damage.",
+   "spellbound:demolition": "Creates explosions when mining. Hard on your tool.",
+   "spellbound:despoiling": "Triggers kill streaks, and has better looting during kill streaks",
+   "spellbound:dullness": "Reduces damage done by tool.",
+   "spellbound:fisher_of_men": "Deals damage to pulled entities and grants fish if lethal.",
+   "spellbound:flesh_wound": "Grants absorption hearts when injured.",
+   "spellbound:goldskin": "Grants absorption hearts that regenerate out of combat.",
+   "spellbound:grace": "Greatly extends and improves I-Frames.",
+   "spellbound:hearty": "Greatly increases max health.",
+   "spellbound:hover": "Hold elevation briefly upon midair jump.",
+   "spellbound:impersonal": "Teleports user behind targets.",
+   "spellbound:jousting": "Increase damage with relative velocity.",
+   "spellbound:last_gasp": "Enter dying state on lethal damage, recover on kill.",
+   "spellbound:launching": "Knock targets skyward.",
+   "spellbound:legacy": "Creates enchanted book when item breaks.",
+   "spellbound:metabolising": "Consumes hunger to restore durability.",
+   "spellbound:outburst": "Burst free when hit multiple times.",
+   "spellbound:pestilence": "Spread status effects to nearby foes and damage them.",
+   "spellbound:phase_leap": "Phase forward upon midair jump.",
+   "spellbound:phase_strafe": "Phase with your motion upon midair jump.",
+   "spellbound:photosynthetic": "Restores itself in the light.",
+   "spellbound:pinata": "Large but infrequent loot explosions.",
+   "spellbound:priming": "Sets target to explode. Multiple hits increase yield.",
+   "spellbound:prospector": "Find trace minerals in earth, more if near ore.",
+   "spellbound:rampage": "Massive damage after kills.",
+   "spellbound:red_alert": "Barriers negate next damage source.",
+   "spellbound:repulsive": "Repulses nearby entities",
+   "spellbound:resurfacing": "Returns as treasure when lost or broken.",
+   "spellbound:rock_collecting": "Mining speed grows with unique rocks mined.",
+   "spellbound:saturated": "Consumes saturation instead of durability.",
+   "spellbound:scalping": "Attacks tear free bonus drops, scaling with damage.",
+   "spellbound:selfish": "Type:Durability/Repair. Takes durability from other equipment.",
+   "spellbound:skotosynthetic": "Restores itself in the night.",
+   "spellbound:spikes": "Damages very close entities.",
+   "spellbound:storied": "Upgrades and adds enchantments as the item's story develops.",
+   "spellbound:sunken_treasure": "Finds crates while fishing.",
+   "spellbound:tethering": "Pulls target to weapon.",
+   "spellbound:trophy_collecting": "Damage grows with unique foes slain.",
+   "spellbound:universal": "Tool is suitable for all blocks, with speed penalty for off-type blocks.",
+   "spellbound:vengeful": "Built up damage becomes followup strikes when user strikes back.",
+   "spellbound:warlike": "Declares war upon the world, increasing difficulty.",
+   "spellbound:widened": "Tool breaks matching blocks in small plane around target."
+  }
+ }
+}

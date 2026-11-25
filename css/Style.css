@@ -523,31 +523,26 @@ html { scrollbar-gutter: stable; }
 }
 
 /* The level bar: joined segments that fill up to the chosen level. Always five segments
-   wide with its own from the left, so the I segments of every row share a column. */
+   wide with its own from the left, so the I segments of every row share a column; levels past V
+   wrap onto a second row (VI to X). */
 .level-bar {
     --seg: 30px;
     position: relative; /* rolling segments are placed in it */
     flex: none;
     display: grid;
-    grid-template-columns: repeat(var(--levels), var(--seg));
+    grid-template-columns: repeat(5, var(--seg));
+    grid-auto-rows: 28px;
     width: calc(5 * var(--seg));
-    height: 28px;
+    height: calc(var(--rows, 1) * 28px);
     border-radius: 2px;
     cursor: pointer;
     touch-action: pan-y;
     user-select: none;
     -webkit-user-select: none;
 }
-/* The levels this enchantment doesn't have show as a faint empty track, so every bar is the
-   same width and the rows' right edges line up. */
-.level-bar {
-    background-image:
-        repeating-linear-gradient(90deg, transparent 0 calc(var(--seg) - 1px), var(--border) calc(var(--seg) - 1px) var(--seg)),
-        linear-gradient(var(--surface-alt), var(--surface-alt));
-    background-repeat: no-repeat;
-    background-position: calc(var(--levels) * var(--seg)) 0;
-    background-size: calc((5 - var(--levels)) * var(--seg)) 100%;
-}
+/* The levels this enchantment doesn't have show as a faint empty track (one cell each, so they can fade
+   in and out when the pick changes), so every bar is the same width and the rows' right edges line up. */
+.level-gap { background: var(--surface-alt); border-right: 1px solid var(--border); }
 .level-bar:focus { outline: none; }
 .level-bar:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* Each level is an inventory slot: the game's gray with a dark top-left and a light
@@ -2414,7 +2409,7 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .mod-section > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
 .mod-section[open] > summary::before { transform: rotate(90deg); }
 .mod-section > summary:hover { color: var(--text); }
-.picker-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
+.picker-search, .wanted-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
 /* The conflict graph (prototype): a node per enchantment with a conflict, a line per conflict. */
 .graph-box { margin: 8px 0; border-top: 1px solid var(--border); }
 .graph-box > summary { cursor: pointer; padding: 8px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
@@ -2424,7 +2419,6 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .graph-canvas { display: block; width: 100%; height: auto; max-height: 420px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-alt); }
 .graph-edge { stroke: var(--border-strong); stroke-width: 1; opacity: 0.45; }
 .graph-node circle { fill: #7b8794; stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
-.graph-node.mod circle { fill: #c58a2a; }
 .graph-node.chosen circle { fill: var(--accent); stroke: var(--text); stroke-width: 2; }
 .graph-node.blocked { opacity: 0.4; }
 .graph-node:focus { outline: none; }
@@ -2441,3 +2435,8 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .ench-group.folded > .group-toggle::before { transform: rotate(-90deg); }
 .group-toggle:hover { color: var(--text); }
 .ench-group.folded > .ench-row:not(.chosen) { display: none; }
+.wanted-search { margin: 8px 0 4px; }
+/* The graph under a search: matching nodes ringed, the rest faded. */
+.graph-node.unmatched { opacity: 0.18; }
+.graph-node.match circle { stroke: var(--text); stroke-width: 3.5; }
+
