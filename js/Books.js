@@ -272,12 +272,20 @@ function entryCard(book, index, count, editable, unwanted) {
     );
 }
 
-// × fades the card out, then removes the entry.
+// × fades the card out, then removes the entry. The focus goes to the × of the entry that
+// takes its place (or the one before it), else to Add book, so the keyboard keeps its spot.
 function removeEntry(book, card) {
+    // Only for the keyboard: after a mouse click the focus would light the next card's tools.
+    const keyboard = document.activeElement && document.activeElement.matches(":focus-visible");
     const remove = () => {
+        const index = state.books.indexOf(book);
         state.books = state.books.filter(other => other !== book);
         if (entry_popover && entry_popover.id === book.id) entry_popover = null;
         commit();
+        if (!keyboard) return;
+        const next = state.books[Math.min(index, state.books.length - 1)];
+        const target = (next && document.querySelector(`#books [data-focus="remove-${next.id}"]`)) || document.querySelector('#books [data-focus="add-book"]');
+        if (target) target.focus({ preventScroll: true });
     };
     if (!card || !motion_ok()) return remove();
     card.style.pointerEvents = "none";
@@ -545,6 +553,7 @@ function lineDragStart(event, book, ns) {
         removeEventListener("pointermove", move);
         removeEventListener("pointerup", finish);
         removeEventListener("pointercancel", finish);
+        removeEventListener("keydown", escape, true);
         if (!line_dragging) return;
         line_dragging = false;
         line_drag_ended = Date.now();
@@ -554,23 +563,40 @@ function lineDragStart(event, book, ns) {
         const drop = done && done.type === "pointerup" ? target : null;
         mark(null);
         // The click that ends a drag isn't a tap on the line.
-        const swallow = click => { click.stopPropagation(); click.preventDefault(); };
-        addEventListener("click", swallow, { capture: true, once: true });
-        setTimeout(() => removeEventListener("click", swallow, { capture: true }), 0);
+        swallowClick(done);
         if (drop) moveEnchantment(book, drop, ns);
     };
     if (touch) hold = setTimeout(begin, 350);
+    // Escape drops the drag where it is: nothing moves.
+    const escape = key => {
+        if (key.key !== "Escape" || !line_dragging) return;
+        key.stopPropagation();
+        finish({ type: "cancel" });
+    };
     addEventListener("pointermove", move);
     addEventListener("pointerup", finish);
     addEventListener("pointercancel", finish);
+    addEventListener("keydown", escape, true);
 }
 
+// A book whose last enchantment moved away is a plain book, and goes (an item stays).
 function moveEnchantment(from, to, ns) {
     const level = from.enchantments[ns];
     delete from.enchantments[ns];
     to.enchantments[ns] = Math.max(to.enchantments[ns] || 0, level);
+    if (isPlainBook(from)) state.books = state.books.filter(other => other !== from);
     entry_popover = null;
     commit();
+}
+
+// The click that ends a drag isn't a tap on what is under the pointer. A drag that Escape
+// ended still has the button down: the click comes when it is let go.
+function swallowClick(done) {
+    const swallow = click => { click.stopPropagation(); click.preventDefault(); };
+    addEventListener("click", swallow, { capture: true, once: true });
+    const forget = () => setTimeout(() => removeEventListener("click", swallow, { capture: true }), 0);
+    if (done && done.type === "cancel") addEventListener("pointerup", forget, { capture: true, once: true });
+    else forget();
 }
 
 // A drag that starts on `event`'s target: with a mouse once it has moved a few pixels, on touch
@@ -611,19 +637,25 @@ function dragGesture(event, { make, over, end }) {
         removeEventListener("pointermove", move);
         removeEventListener("pointerup", finish);
         removeEventListener("pointercancel", finish);
+        removeEventListener("keydown", escape, true);
         if (!line_dragging) return;
         line_dragging = false;
         line_drag_ended = Date.now();
         document.body.classList.remove("dragging-line");
-        const swallow = click => { click.stopPropagation(); click.preventDefault(); };
-        addEventListener("click", swallow, { capture: true, once: true });
-        setTimeout(() => removeEventListener("click", swallow, { capture: true }), 0);
+        swallowClick(done);
         end(Boolean(done && done.type === "pointerup"), ghost);
     };
     if (touch) hold = setTimeout(begin, 350);
+    // Escape drops the drag where it is: nothing moves.
+    const escape = key => {
+        if (key.key !== "Escape" || !line_dragging) return;
+        key.stopPropagation();
+        finish({ type: "cancel" });
+    };
     addEventListener("pointermove", move);
     addEventListener("pointerup", finish);
     addEventListener("pointercancel", finish);
+    addEventListener("keydown", escape, true);
 }
 
 // Drag an entry's slot onto another entry to see what putting it on that one would cost on the
@@ -669,6 +701,8 @@ function mergeDrag(event, book) {
             next.classList.add("merge-target");
             chip.className = "merge-chip pending";
             chip.replaceChildren("…");
+            // A book with no enchantments is a plain book: the anvil does nothing with it.
+            if (isPlainBook(other) || isPlainBook(book)) { show({ ok: false }); return; }
             const mine = token;
             previewMerge(entryOf(other), entryOf(book)).then(result => { if (mine === token) show(result); });
         },
@@ -735,20 +769,34 @@ let picker_all = false;
 
 function togglePopover(id, kind, toggle, ns = null) {
     const here = entry_popover && entry_popover.id === id && entry_popover.kind === kind;
+    const previous = entry_popover && entry_popover.id;
     if (here && !ns) {
         entry_popover = null;
     } else {
         if (!here) picker_all = false;
         entry_popover = { id, kind, toggle, ns };
     }
-    renderBooks();
-    if (entry_popover && entry_popover.ns) {
-        focusPicker(entry_popover.ns);
-        entry_popover.ns = null; // highlighted once, not on every redraw
+    // Leaving a book that got no enchantments drops it, as closing its picker does.
+    const left = previous != null && (!entry_popover || entry_popover.id !== previous)
+        ? state.books.find(other => other.id === previous) : null;
+    if (left && isPlainBook(left)) {
+        state.books = state.books.filter(other => other !== left);
+        commit();
+    } else renderBooks();
+    // The picker goes after the whole grid, so the focus moves into it (the keys then work
+    // there at once); Escape brings it back to the button that opened it.
+    if (entry_popover && entry_popover.kind === "enchant") focusPicker(entry_popover.ns);
+    else if (entry_popover) {
+        const first = document.querySelector("#books .entry-popover.count button:not(:disabled)");
+        if (first) first.focus({ preventScroll: true });
     }
+    if (entry_popover && entry_popover.ns) entry_popover.ns = null; // highlighted once, not on every redraw
 }
 
+// The caller commits. A plain book whose picker was open (Add book twice) goes.
 export function openPicker(book) {
+    const open = entry_popover && entry_popover.id !== book.id && state.books.find(other => other.id === entry_popover.id);
+    if (open && isPlainBook(open)) state.books = state.books.filter(other => other !== open);
     picker_all = false;
     entry_popover = { id: book.id, kind: "enchant", toggle: "add-" + book.id, ns: null };
 }
@@ -1007,13 +1055,27 @@ function setEntryLevel(book, ns, level) {
     commit();
 }
 
-// Closes the popover; `refocus` puts the focus back on the button that opened it.
+// Closes the popover; `refocus` puts the focus back on the button that opened it. A book
+// left with no enchantments (Add book, then nothing picked) is a plain book that does
+// nothing on the anvil, so it goes.
 function closePopover(refocus) {
     const toggle = entry_popover && entry_popover.toggle;
+    const book = entry_popover && state.books.find(other => other.id === entry_popover.id);
     entry_popover = null;
+    if (book && isPlainBook(book)) {
+        state.books = state.books.filter(other => other !== book);
+        commit();
+        const add = refocus && document.querySelector('#books [data-focus="add-book"]');
+        if (add) add.focus();
+        return;
+    }
     renderBooks();
     const again = refocus && toggle && document.querySelector(`#books [data-focus="${toggle}"]`);
     if (again) again.focus();
+}
+
+function isPlainBook(book) {
+    return book.type === "book" && Object.keys(book.enchantments).length === 0;
 }
 
 // The popover closes on a click outside it (and the buttons that open one) or on Escape.

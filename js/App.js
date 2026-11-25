@@ -2,7 +2,7 @@
 import { EDITIONS, cleanName, createLogic, editionMetadata } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
-import { $, copyText, h, icon, readStorage, writeStorage } from "./Dom.js";
+import { $, copyText, h, icon, motion_ok, readStorage, writeStorage } from "./Dom.js";
 import { renderWanted, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
@@ -26,12 +26,16 @@ export function commit() {
     scheduleCalculation();
 }
 
-// The "Try an example" button: a helmet with every enchantment it takes.
+// The "Try an example" button: a helmet with every enchantment it takes. The button is
+// under the long item grid, so on a phone the page would be left halfway down the
+// enchantment list: bring section 1's top back into view.
 export function tryExample() {
     state.item = "helmet";
     sanitizeAll();
     state.wanted = logic.maxAll(state.item, {}, state.allow_incompatible);
     commit();
+    const section = document.querySelector('[data-section="wanted"]');
+    if (section.getBoundingClientRect().top < 0) section.scrollIntoView({ block: "start", behavior: motion_ok() ? "smooth" : "auto" });
 }
 
 // Switching item drops the enchantments the new one can't take.
@@ -68,10 +72,16 @@ export function useEdition(edition) {
     setLogic(createLogic(editionMetadata(meta, edition), TEXT.names));
 }
 
+// The name as typed, when a switch to Bedrock (30 characters) cut it: switching back to
+// Java gives the whole name again, unless it was changed in between.
+let uncut_name = null;
+
 function setEdition(edition) {
     if (state.edition === edition) return;
+    const typed = uncut_name != null && cleanName(uncut_name, state.edition) === state.rename_to ? uncut_name : state.rename_to;
     state.edition = edition;
-    state.rename_to = cleanName(state.rename_to, edition); // Bedrock names are shorter
+    state.rename_to = cleanName(typed, edition); // Bedrock names are shorter
+    uncut_name = state.rename_to === typed ? null : typed;
     syncRename();
     useEdition(edition);
     if (state.item) sanitizeAll();

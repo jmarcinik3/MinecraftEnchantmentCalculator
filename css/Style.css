@@ -9,7 +9,8 @@
     --surface-alt: #f0eee8;
     --text: #1f1e1c;
     --text-secondary: #5f5d58;
-    --text-muted: #8b8984;
+    --text-muted: #6c6a65;
+    --on-accent: #ffffff;     /* text on an accent fill */
     --border: rgba(0, 0, 0, 0.12);
     --border-strong: rgba(0, 0, 0, 0.24);
     --accent: #6a3fd1;
@@ -39,7 +40,8 @@
         --surface-alt: #2a292d;
         --text: #eceae6;
         --text-secondary: #b3b0aa;
-        --text-muted: #85827d;
+        --text-muted: #9a9791;
+        --on-accent: #160f2e;
         --border: rgba(255, 255, 255, 0.12);
         --border-strong: rgba(255, 255, 255, 0.26);
         --accent: #a68af0;
@@ -66,7 +68,8 @@
     --surface-alt: #2a292d;
     --text: #eceae6;
     --text-secondary: #b3b0aa;
-    --text-muted: #85827d;
+    --text-muted: #9a9791;
+    --on-accent: #160f2e;
     --border: rgba(255, 255, 255, 0.12);
     --border-strong: rgba(255, 255, 255, 0.26);
     --accent: #a68af0;
@@ -148,8 +151,6 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     .copy-link, .theme-toggle { padding: 0 8px; }
     .header-actions .saved-menu > .header-control { padding: 0 8px; }
 }
-.check-row { color: var(--text-secondary); cursor: pointer; }
-.check-row input { margin: 0; }
 
 .site-header {
     display: flex;
@@ -170,7 +171,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     padding: 8px 16px 40px;
 }
 
-/* Sections 4 and 5 stack with the same gap as 1-3 (on desktop the column becomes a flex
+/* Sections 3 and 4 stack with the same gap as 1-2 (on desktop the column becomes a flex
    column with the same gap, below). */
 .results-column { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
 
@@ -178,7 +179,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.3fr); align-items: start; }
     /* The right column fills the window's height: section 3 at its natural height, and
        section 4 (the steps) takes the rest, where only the steps (or tree) scroll, so the
-       Steps/Tree row stays in view. Closing section 3 gives the steps more room. If the
+       Steps | Slots | Tree row stays in view. Closing section 3 gives the steps more room. If the
        column is too short for both, it scrolls as a whole. */
     .results-column {
         position: sticky;
@@ -249,13 +250,13 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     cursor: pointer;
 }
 /* A slight game-button bevel: light along the top, dark along the bottom, pressed in on click. */
-.btn:not(.ghost):not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.14); }
-.btn:not(.ghost):not(:disabled):active { box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.18); transform: translateY(1px); }
+.btn:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.14); }
+.btn:not(:disabled):active { box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.18); transform: translateY(1px); }
 .btn:hover { background: var(--surface-alt); }
+.btn:disabled { opacity: 0.45; cursor: default; background: transparent; }
 .btn.small { font-size: 13px; padding: 4px 10px; }
 .btn.tiny { font-size: 13px; padding: 0 8px; line-height: 24px; }
-.btn.ghost { border-color: transparent; color: var(--text-secondary); }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
 
 .link {
     font: inherit;
@@ -362,7 +363,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     justify-content: center;
     border-radius: 50%;
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
     font-size: 11px;
     line-height: 1;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
@@ -562,7 +563,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
     border: 2px solid;
     border-color: #373737 #ffffff #ffffff #373737;
     background: #8b8b8b;
-    color: #3f3f3f;
+    color: #1e1e1e; /* 4.9:1 on the slot gray */
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 12px;
     transition: background-color 0.08s, color 0.08s;
@@ -668,6 +669,9 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 .entry-slot-wrap { position: relative; align-self: start; }
 .entry-card > .entry-head { grid-area: head; }
 .entry-card > .entry-tooltip { grid-area: tip; align-self: stretch; }
+/* Not editable (Automatic): the tooltip hugs its lines, as in the game, instead of a
+   dark block as tall as the slot under a one-line name. */
+.entry-card.bare > .entry-tooltip { align-self: center; }
 .entry-card.popover-open { border-color: var(--accent); }
 .entry-card.dragging { opacity: 0.55; }
 .entry-card.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
@@ -1180,6 +1184,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     font: inherit;
     font-size: 15px;
     line-height: 1;
+    min-width: 18px;
     padding: 0 3px;
     border: none;
     background: none;
@@ -1211,7 +1216,13 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
    wraps (e.g. "Your level" with its "levels needed" line below). */
 .option-label { align-self: start; line-height: 32px; color: var(--text-secondary); }
 .option-control { min-width: 0; }
-.option-wide { grid-column: 2; min-width: 0; }
+/* A narrow Game rules panel (small phones): each label above its control, so the level
+   limit row (slider, ∞ and value) gets the panel's whole width. */
+@media (max-width: 420px) {
+    .options-panel .options { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    .options-panel .option-label { line-height: 1.4; }
+    .options-panel .option-control + .option-label { margin-top: 8px; }
+}
 
 /* Level limit: 1 ──●── 39 [∞] [value] */
 .limit { display: flex; align-items: center; gap: 8px; height: 32px; min-width: 0; }
@@ -1374,6 +1385,18 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     cursor: pointer;
 }
 .level-toggle:hover { border-color: var(--accent); }
+.level-set { flex: none; white-space: nowrap; }
+
+/* Small controls keep their look but get a hit area of at least 24px (40px on touch
+   screens), from an invisible ::after around them. */
+:is(.rank-move, .info-tip-button, .stack-edit, .rule-switch) { position: relative; }
+:is(.rank-move, .info-tip-button, .stack-edit, .rule-switch)::after { content: ""; position: absolute; inset: -4px; }
+.rank-move::after { inset: -5px -3px; } /* ‹ and › sit side by side: no overlap */
+@media (pointer: coarse) {
+    :is(.info-tip-button, .stack-edit)::after { inset: -11px; }
+    .rule-switch::after { inset: -10px -4px; }
+    .rank-move::after { inset: -12px -3px; }
+}
 .level-toggle.on { border-style: solid; border-color: var(--accent); background: var(--accent-bg); }
 /* The game's orb, kept sharp. The image has empty space around the orb, so it is drawn
    larger than the button's other icons. Gray while off, glowing while on. */
@@ -1524,7 +1547,9 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; min-width: 0; }
 .section-head > h2 { flex: 1; min-width: 0; margin: 0; cursor: pointer; user-select: none; }
 .card.collapsed > .section-head { margin-bottom: 0; }
-.card.collapsible .section-title, .card.collapsible .step-badge { flex: none; }
+/* The title may wrap when a long one (Spanish, on a 320px phone) would push the arrow out. */
+.card.collapsible .step-badge { flex: none; }
+.card.collapsible .section-title { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
 .card.collapsed > h2 { margin-bottom: 0; }
 .section-summary {
     display: none;
@@ -1537,6 +1562,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     color: var(--text-secondary);
 }
 .card.collapsed .section-summary, .section-summary.always { display: block; }
+/* "6 steps" is short: it keeps its width, and the title gives way first. */
+.section-summary.always { flex: 0 0 auto; }
 .collapse-toggle {
     margin-left: auto;
     flex: none;
@@ -1598,9 +1625,12 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     color: var(--accent-text);
 }
 .error { background: var(--danger-bg); color: var(--danger-text); }
+.warning.no-order p { margin: 0 0 6px; }
+.warning.no-order .no-order-hint { font-size: 13px; }
+.warning.no-order .btn { margin-top: 2px; }
 
 .progress { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.progress-track { flex: 1; height: 8px; border-radius: 4px; background: var(--surface-alt); overflow: hidden; }
+.progress-track { flex: 1; min-width: 60px; height: 8px; border-radius: 4px; background: var(--surface-alt); overflow: hidden; }
 .progress-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.15s; }
 .progress-text { font-size: 12px; color: var(--text-secondary); min-width: 36px; text-align: right; }
 
@@ -1611,8 +1641,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .empty img { width: 48px; height: 48px; image-rendering: pixelated; opacity: 0.8; }
 
 .btn.small { display: inline-flex; align-items: center; gap: 6px; }
-.icon-toggle button { display: inline-flex; align-items: center; padding: 3px 6px; }
-.icon-toggle .item-icon.small { width: 20px; height: 20px; }
 
 /* Anvil steps: drawn like the in-game anvil and tooltips */
 .anvil-steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; container: steps / inline-size; }
@@ -1686,6 +1714,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     align-items: center;
     gap: 6px;
     flex: none;
+    min-height: 26px; /* the whole label ticks: a big enough target */
     padding: 3px 8px 3px 5px;
     border-radius: 6px;
     font-size: 13px;
@@ -1922,12 +1951,10 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     color: var(--text-secondary);
     font-family: system-ui, sans-serif;
 }
-.level-track.short { color: var(--danger-text); font-weight: 600; }
 /* What is left of your level after the step, as a small XP-style bar. */
 .level-track { display: flex; flex-direction: column; align-items: center; gap: 2px; }
 .level-meter { display: block; width: 56px; height: 4px; overflow: hidden; border-radius: 2px; background: rgba(0, 0, 0, 0.25); }
 .level-meter-fill { display: block; height: 100%; background: #80ff20; }
-.level-track.short .level-meter { background: var(--danger-text); opacity: 0.5; }
 /* The cost near the level limit (amber) and at it (red, like "Too Expensive!"). */
 .anvil-cost.near-limit { color: #ffcf40; text-shadow: 1px 1px 0 #3f3008; }
 .anvil-cost.at-limit { color: #ff6060; text-shadow: 1px 1px 0 #3f1010; }
@@ -1961,6 +1988,12 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 @media (prefers-reduced-motion: reduce) { .step-progress-track.level-up { animation: none; } }
 .step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
+.step-progress-main { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
+/* With room (not phones), the text stays on one line: the bar gives way first, then the
+   tools wrap to a row of their own. */
+@media (min-width: 600px) { .step-progress-text { white-space: nowrap; } }
+.step-progress-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+.step-progress-tools .fold-buttons { margin-left: 0; }
 .step-reset {
     flex: none;
     width: 24px;
@@ -1998,7 +2031,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .info-tip.anvil-risk .info-tip-button:hover, .info-tip.anvil-risk.open .info-tip-button { box-shadow: inset 0 0 0 1px currentColor; }
 .info-tip.anvil-risk .info-tip-bubble { font-weight: normal; }
 
-.result-tools .copy-steps { margin-left: auto; }
+.result-actions { display: flex; gap: 8px; margin-left: auto; }
 .result-tools .btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
 /* Phones: Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
 .result-tools .step-progress { order: 1; flex-basis: 100%; }
@@ -2108,11 +2141,15 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .step-tick input, .step-fold, .step-summary, .step-reset,
     .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
     .anvil-step.folded .anvil-row { display: grid !important; }
+    .anvil-step.folded .step-instruction { display: block !important; }
+    /* "You are here" is for the screen: on paper every step looks the same. */
+    .anvil-step.current { border-color: var(--border-strong) !important; box-shadow: none !important; }
+    .anvil-step.current .step-node { box-shadow: none !important; border-color: var(--border-strong) !important; color: var(--text) !important; }
     /* Folded merges print their inputs too. */
     .tree-node.folded > .tree-children { display: block !important; }
     .site-header { padding: 0 0 8px; }
     .layout { display: block; padding: 0; max-width: none; }
-    /* Sections 4 and 5 print, even if they were closed. */
+    /* Sections 3 and 4 print, even if they were closed. */
     .results-column > .card { border: none; padding: 0; margin-bottom: 8px; }
     .results-column .section-body { display: block !important; }
     .results-column { position: static; max-height: none; overflow: visible; display: block; }
@@ -2156,11 +2193,15 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* Section 1: the XP orb and total levels under the preview; the tooltip a preset shows. */
 .cost-meter { display: flex; align-items: center; gap: 6px; height: 24px; margin-top: 8px; font-size: 13px; color: var(--text-secondary); transition: opacity 0.2s; }
 .cost-meter.empty { visibility: hidden; }
+/* No order at all: the space says so instead of standing empty. */
+.cost-meter.none .cost-meter-orb { filter: grayscale(1); opacity: 0.5; }
+.cost-meter.none .cost-meter-text { color: var(--text-secondary); }
 .cost-meter.stale { opacity: 0.5; }
 .cost-meter-orb { width: 18px; height: 18px; image-rendering: pixelated; }
-.cost-meter-text { font-family: "Minecraft", system-ui, sans-serif; color: #3d9a10; }
+.cost-meter-text { font-family: "Minecraft", system-ui, sans-serif; color: #2f7d0c; }
 :root[data-theme="dark"] .cost-meter-text { color: #80ff20; }
 @media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) .cost-meter-text { color: #80ff20; } }
+:root .cost-meter.none .cost-meter-text, :root:not([data-theme="light"]) .cost-meter.none .cost-meter-text { color: var(--text-secondary); }
 .presets { position: relative; }
 .compare-tip { position: absolute; z-index: 30; width: auto; min-width: 120px; padding: 4px 8px; white-space: nowrap; pointer-events: none; }
 .mc-ench.removed { color: #ff5555; text-decoration: line-through; text-shadow: 1px 1px 0 #3f1515; }
@@ -2247,7 +2288,6 @@ div.slot-cell-button { cursor: default; }
 body.dragging-line { -webkit-user-select: none; user-select: none; }
 
 .anvil-pips { touch-action: pan-y; -webkit-user-select: none; user-select: none; cursor: pointer; }
-.merge-source { cursor: grab; }
 .entry-card.slotcell > .drag-handle { position: absolute; top: -9px; left: -6px; z-index: 3; min-width: 18px; height: 17px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 12px; }
 /* Reordering slots: the slot being dragged and the one it would go to (dashed outline) show their tooltips. */
 .slotcell.dragging .slot-tip, .slotcell.drop-target .slot-tip { opacity: 1; }
@@ -2305,9 +2345,12 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .current-bar { display: none; }
 @media (max-width: 899px) {
     .current-bar { position: sticky; bottom: 8px; z-index: 40; display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
+    .current-bar { transition: opacity 0.15s, transform 0.15s, visibility 0.15s; }
+    .current-bar.tucked { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
     .current-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: 12px; }
     .current-bar-text span { overflow: hidden; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 }
+@media (prefers-reduced-motion: reduce) { .current-bar { transition: none; } }
 @media print { .current-bar, .density { display: none !important; } }
 /* The Slots view: a step is one line of slots; tooltips show on hover or focus. */
 .slots-mode .anvil-step { padding-bottom: 6px; }

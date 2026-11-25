@@ -178,13 +178,13 @@ test("text templates fill in values, plurals and lists in the language's way", (
     const english = compileText(TEXTS.en, "en"), spanish = compileText(TEXTS.es, "es");
     assert.strictEqual(english.books.add_book, "Add book");
     assert.strictEqual(english.wanted.replaces({ name: "Smite" }), "Replaces Smite");
-    assert.strictEqual(english.results.level_short({ count: 1 }), "Need 1 more level");
-    assert.strictEqual(english.results.level_short({ count: 3 }), "Need 3 more levels");
+    assert.strictEqual(english.results.text_totals({ levels: 1, xp: 1, max_step: 1 }), "1 level in total (1 XP), at most 1 in one step");
+    assert.strictEqual(english.results.text_totals({ levels: 3, xp: 27, max_step: 2 }), "3 levels in total (27 XP), at most 2 in one step");
     assert.strictEqual(english.results.round({ number: 2, steps: 1 }), "Round 2");
     assert.strictEqual(english.results.round({ number: 2, steps: 3 }), "Round 2 · any order");
     assert.strictEqual(english.books.fix_replaces({ names: ["A", "B", "C"] }), "Replaces A, B, and C, no longer needed");
     assert.strictEqual(spanish.books.fix_replaces({ names: ["A", "B"] }), "Sustituye a A y B, que ya no hacen falta");
-    assert.strictEqual(spanish.results.level_short({ count: 1 }), "Falta 1 nivel");
+    assert.strictEqual(spanish.ranking.level_short_of({ short: 1, needed: 9 }), "Falta 1 nivel: este orden necesita 9");
     assert.strictEqual(english.names.items.boots, "Boots"); // names are kept as they are
     // TEXT is filled in place, so modules holding it see the language change.
     const held = TEXT;
@@ -287,6 +287,9 @@ test("the new name is saved in links and cut to the edition's length", () => {
     assert.strictEqual(cleanName(long, "bedrock").length, MAX_NAME_LENGTH.bedrock);
     assert.strictEqual(cleanName("a\nb", "java"), "ab");
     assert.strictEqual(cleanName(42, "java"), "");
+    // Counted as the game does (UTF-16 units): 25 emoji fill a Java name, and none is cut in half.
+    assert.strictEqual(cleanName("😀".repeat(60), "java"), "😀".repeat(25));
+    assert.strictEqual(cleanName("a" + "😀".repeat(20), "bedrock"), "a" + "😀".repeat(14));
     const bedrock_link = logic.serialize({ ...state, edition: "bedrock", rename_to: long });
     assert.strictEqual(logic.deserialize(bedrock_link, () => 0).rename_to.length, MAX_NAME_LENGTH.bedrock);
 });

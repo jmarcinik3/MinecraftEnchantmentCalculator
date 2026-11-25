@@ -1,7 +1,7 @@
 // The search: the worker, requests and results.
 import { MAX_GROUPS, searchSize } from "./Logic.js";
 import { TEXT } from "./Text.js";
-import { logic, meta, state } from "./Store.js";
+import { language, logic, meta, state } from "./Store.js";
 import { stepLimit } from "./Options.js";
 import { renderResults } from "./Results.js";
 import { applyCarriedProgress } from "./Link.js";
@@ -15,6 +15,12 @@ export let running = false;
 export let show_progress = false;
 let calc_timer = null;
 let progress_timer = null;
+// A long search: how far it is, and since when, so the bar can say how long is left.
+let started_at = 0;
+let progress_share = 0;
+let progress_clock = null;
+const ESTIMATE_AFTER_S = 5;      // say the time once a search has run this long
+const ESTIMATE_FROM_SHARE = 0.005; // and guess what is left once this much is done
 export let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
 
 export function startWorker() {
@@ -38,6 +44,34 @@ function stopRunning() {
     running = false;
     show_progress = false;
     clearTimeout(progress_timer);
+    clearInterval(progress_clock);
+}
+
+// "37%", then "2% · 40 seconds so far", then "4% · about 12 minutes left". The time ticks
+// on its own, so a slow start doesn't look stuck.
+export function progressLabel() {
+    // Under 10%, one decimal, so a slow search still moves ("0.4%").
+    const share = Math.min(100, progress_share * 100);
+    const shown = share < 10 ? Math.floor(share * 10) / 10 : Math.floor(share);
+    const percent = shown.toLocaleString(language, { maximumFractionDigits: 1 });
+    const elapsed = (performance.now() - started_at) / 1000;
+    if (elapsed < ESTIMATE_AFTER_S) return TEXT.results.search_percent({ percent });
+    if (progress_share < ESTIMATE_FROM_SHARE) return TEXT.results.search_elapsed({ percent, time: duration(elapsed) });
+    return TEXT.results.search_left({ percent, time: duration(elapsed * (1 - progress_share) / progress_share) });
+}
+
+function duration(seconds) {
+    const [value, unit] = seconds >= 5400 ? [Math.round(seconds / 3600), "hour"]
+        : seconds >= 90 ? [Math.round(seconds / 60), "minute"]
+            : [Math.max(1, Math.round(seconds)), "second"];
+    return new Intl.NumberFormat(language, { style: "unit", unit, unitDisplay: "long" }).format(value);
+}
+
+function showProgress() {
+    const fill = document.getElementById("progress-fill");
+    const text = document.getElementById("progress-text");
+    if (fill) fill.style.width = Math.min(100, progress_share * 100).toFixed(1) + "%";
+    if (text) text.textContent = progressLabel();
 }
 
 export function scheduleCalculation() {
@@ -65,7 +99,13 @@ export function runCalculation() {
 
     request_id++;
     running = true;
-    progress_timer = setTimeout(() => { show_progress = true; renderResults(); }, PROGRESS_DELAY_MS);
+    started_at = performance.now();
+    progress_share = 0;
+    progress_timer = setTimeout(() => {
+        show_progress = true;
+        renderResults();
+        progress_clock = setInterval(showProgress, 1000);
+    }, PROGRESS_DELAY_MS);
     worker.postMessage({
         message: "calculate_optimal",
         request_id: request_id,
@@ -115,11 +155,8 @@ function handleWorkerMessage(event) {
     if (data.request_id !== request_id) return;
 
     if (data.message === "progress") {
-        const percent = Math.min(100, Math.floor((data.done / data.total) * 100));
-        const fill = document.getElementById("progress-fill");
-        const text = document.getElementById("progress-text");
-        if (fill) fill.style.width = percent + "%";
-        if (text) text.textContent = percent + "%";
+        progress_share = data.total ? data.done / data.total : 0;
+        showProgress();
     } else if (data.message === "optimal_searched") {
         stopRunning();
         last_result = { status: "ok", node: data.result };

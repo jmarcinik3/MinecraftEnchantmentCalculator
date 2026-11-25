@@ -163,6 +163,9 @@
                 merge_levels += charged_levels * data.weight * multiplier;
             }
 
+            // Java gives nothing for a merge that adds nothing (an unenchanted item in the
+            // second slot), unless it also renames: the anvil's own cost must be above 0.
+            if (merge_levels === 0 && extra_levels === 0 && !charge_increase_only) return -1;
             merge_levels += priorWorkPenalty(left.prior_work) + priorWorkPenalty(right.prior_work) + extra_levels;
             // A huge prior work makes the penalty Infinity, which would pass an Infinity limit.
             if (!(merge_levels <= max_merge_levels) || !Number.isFinite(merge_levels)) return -1;
@@ -329,7 +332,7 @@
             // With no repeats (every c = 1) that is 3^n - 2^(n+1) + 1.
             const on_progress = typeof options.onProgress === "function" ? options.onProgress : null;
             const total_splits = copies.reduce((product, c) => product * (c + 1) * (c + 2) / 2, 1) - 2 * code_count + 1;
-            const report_every = Math.max(1, Math.floor(total_splits / 200));
+            const report_every = Math.max(1, Math.floor(total_splits / 2000)); // the bar moves in 0.05% steps
             let splits_done = 0;
 
             // The group with every entry (every digit full) is only ever the final step.

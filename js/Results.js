@@ -7,9 +7,9 @@ import { $, copyText, h, icon, motion_ok, readStorage, writeStorage } from "./Do
 import { keepInPlace, revealBelow } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
-import { cancelCalculation, last_result, runCalculation, running, show_progress } from "./Calc.js";
+import { cancelCalculation, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
 import { floatBubble, infoTip } from "./Tips.js";
-import { renderOrderSummary, renderStepsSummary } from "./App.js";
+import { commit, renderOrderSummary, renderStepsSummary } from "./App.js";
 
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
 const VIEW_STORAGE_KEY = "enchantment-calculator-view";
@@ -60,7 +60,7 @@ export function renderResults() {
     if (running && show_progress) {
         box.append(h("div", { class: "progress" },
             h("div", { class: "progress-track" }, h("div", { class: "progress-fill", id: "progress-fill" })),
-            h("span", { class: "progress-text", id: "progress-text" }, "0%"),
+            h("span", { class: "progress-text", id: "progress-text" }, progressLabel()),
             h("button", { type: "button", class: "btn small", onclick: cancelCalculation }, TEXT.results.cancel)
         ));
     }
@@ -88,10 +88,16 @@ export function renderResults() {
     const node = result.node;
 
     if (!node) {
-        content.append(h("div", { class: "warning" },
-            state.no_step_limit
-                ? TEXT.results.no_valid_order
-                : TEXT.results.no_valid_order_within({ limit: state.max_step })));
+        // What to try: a lowered limit can go back to the game's own; at the game's limit,
+        // every order has a "Too expensive!" step, and fewer or cheaper books may help.
+        const lowered = !state.no_step_limit && state.max_step < MAX_STEP_LEVELS;
+        content.append(h("div", { class: "warning no-order" },
+            h("p", {}, state.no_step_limit ? TEXT.results.no_valid_order : TEXT.results.no_valid_order_within({ limit: state.max_step })),
+            state.no_step_limit ? null : h("p", { class: "no-order-hint" }, lowered ? TEXT.results.limit_lowered_hint : TEXT.results.too_expensive_hint),
+            lowered ? h("button", {
+                type: "button", class: "btn small",
+                onclick: () => { state.max_step = MAX_STEP_LEVELS; commit(); }
+            }, TEXT.results.use_game_limit({ limit: MAX_STEP_LEVELS })) : null));
         return;
     }
     if (!node.left) {
@@ -147,11 +153,13 @@ export function renderResults() {
                 "data-view": view, onclick: () => setView(view)
             }, label))),
         stepProgress(steps, done, remaining.needed, order_key, [compact, fold_buttons]),
-        h("button", {
-            type: "button", class: "btn small copy-steps", title: TEXT.results.copy_steps_help,
-            onclick: event => copyText(event.currentTarget, stepsText(node, steps), TEXT.results.copy_steps)
-        }, TEXT.results.copy_steps),
-        h("button", { type: "button", class: "btn small", title: TEXT.results.print_help, onclick: () => window.print() }, TEXT.results.print)
+        // Copy steps and Print go to the next row together, never one without the other.
+        h("div", { class: "result-actions" },
+            h("button", {
+                type: "button", class: "btn small copy-steps", title: TEXT.results.copy_steps_help,
+                onclick: event => copyText(event.currentTarget, stepsText(node, steps), TEXT.results.copy_steps)
+            }, TEXT.results.copy_steps),
+            h("button", { type: "button", class: "btn small", title: TEXT.results.print_help, onclick: () => window.print() }, TEXT.results.print))
     ));
 
     // Only the steps (or the tree) scroll, under the Steps/Tree row; on desktop they fill
@@ -193,6 +201,7 @@ export function renderResults() {
             anvilCell(node, null, "final")));
         // Phones: the current step and a Done button stay at the bottom while scrolling.
         if (current != null) scroller.append(currentBar(steps, done, order_key, current));
+        watchCurrentStep();
     }
 
     const scroll_key = result_view + "|" + order_key;
@@ -349,10 +358,12 @@ function stepsText(root, steps) {
 // unavailable (private windows, blocked site data), so every access is guarded.
 
 // Identifies an order by its steps, so ticks survive changes that leave it the same.
+// What goes in each slot (item, enchantments, prior work), not what it costs: a rename
+// only adds a level to the last step, and must not clear the ticks of the same order.
 export function orderKey(steps) {
     return JSON.stringify(steps.map(step => [
-        step.left.node.item_namespace, step.left.node.enchantments,
-        step.right.node.item_namespace, step.right.node.enchantments, step.node.merge_levels
+        step.left.node.item_namespace, step.left.node.enchantments, step.left.node.prior_work || 0,
+        step.right.node.item_namespace, step.right.node.enchantments, step.right.node.prior_work || 0
     ]));
 }
 
@@ -521,6 +532,20 @@ function showCost(chip, bubble) {
 
 // Phones: the current step's line and a Done button, kept at the bottom of the screen while
 // the steps scroll (CSS shows it under 900px).
+// The bar stands in for the current step while that step is off screen; while any of it
+// is on screen (above the bar's own spot), the bar tucks away so it never covers the step.
+let current_watch = null;
+function watchCurrentStep() {
+    if (current_watch) current_watch.disconnect();
+    current_watch = null;
+    const bar = document.querySelector("#results .current-bar");
+    const step = document.querySelector("#results .anvil-step.current");
+    if (!bar || !step || typeof IntersectionObserver !== "function") return;
+    current_watch = new IntersectionObserver(([entry]) => bar.classList.toggle("tucked", entry.isIntersecting),
+        { rootMargin: "0px 0px -90px 0px" });
+    current_watch.observe(step);
+}
+
 function currentBar(steps, done, order_key, current) {
     const step = steps.find(entry => entry.number === current);
     const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
@@ -543,13 +568,13 @@ function currentBar(steps, done, order_key, current) {
         }, TEXT.results.bar_done));
 }
 
-// "Lv 30 → 28" with a small XP-style bar of what is left after the step, or the levels
-// missing, in red.
+// "Lv 30 → 28" with a small XP-style bar of what is left after the step. (A step you
+// can't afford gets the checkpoint above it instead.)
 function levelMeter(level) {
-    const share = level.short ? 0 : level.before ? level.after / level.before : 0;
-    return h("span", { class: "level-track" + (level.short ? " short" : "") },
+    const share = level.before ? level.after / level.before : 0;
+    return h("span", { class: "level-track" },
         h("span", { class: "level-meter", "aria-hidden": "true" }, h("span", { class: "level-meter-fill", style: `width: ${(share * 100).toFixed(1)}%` })),
-        level.short ? TEXT.results.level_short({ count: level.short }) : TEXT.results.level_track({ before: level.before, after: level.after }));
+        TEXT.results.level_track({ before: level.before, after: level.after }));
 }
 
 // A folded step's line: "Thorns III + Mending · 2 levels".
@@ -641,16 +666,20 @@ function stepProgress(steps, done, levels, order_key, extra = null) {
     celebrated = count === total ? order_key : null;
     const summary = count === total ? TEXT.results.progress_done({ total }) : TEXT.results.progress({ done: count, total, levels });
     announce(summary, order_key, count);
+    // The bar, its text and ↺ stay together; the extra buttons (Compact, Expand all /
+    // Collapse all) wrap to their own row as one group when there is no room beside them.
+    const tools = (extra || []).filter(Boolean);
     return h("div", { class: "step-progress" },
-        h("div", { class: "step-progress-track" + (level_up ? " level-up" : ""), role: "progressbar", "aria-valuetext": summary, "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) },
-            // Drawn like the game's experience bar: one segment per step, filling from the left.
-            steps.map((step, index) => h("span", { class: "step-progress-cell" + (index < count ? " filled" : "") }))),
-        h("span", { class: "step-progress-text" }, summary),
-        h("button", {
-            type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
-            disabled: count === 0, onclick: () => { saveTicks(order_key, steps, done, new Set()); renderResults(); }
-        }, "↺"),
-        extra
+        h("div", { class: "step-progress-main" },
+            h("div", { class: "step-progress-track" + (level_up ? " level-up" : ""), role: "progressbar", "aria-valuetext": summary, "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) },
+                // Drawn like the game's experience bar: one segment per step, filling from the left.
+                steps.map((step, index) => h("span", { class: "step-progress-cell" + (index < count ? " filled" : "") }))),
+            h("span", { class: "step-progress-text" }, summary),
+            h("button", {
+                type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
+                disabled: count === 0, onclick: () => { saveTicks(order_key, steps, done, new Set()); renderResults(); }
+            }, "↺")),
+        tools.length ? h("div", { class: "step-progress-tools" }, tools) : null
     );
 }
 

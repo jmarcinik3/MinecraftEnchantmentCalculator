@@ -45,10 +45,18 @@ export const EDITIONS = ["java", "bedrock"];
 // Longest name the anvil accepts, per edition (Minecraft Wiki, "Anvil mechanics").
 export const MAX_NAME_LENGTH = { java: 50, bedrock: 30 };
 
-// A rename as the anvil would take it: text only, cut to the edition's length.
+// A rename as the anvil would take it: text only, cut to the edition's length. The game
+// counts UTF-16 units (Java's String.length, like the box's maxlength), so an emoji is 2;
+// the cut never splits one in half.
 export function cleanName(name, edition) {
     const text = typeof name === "string" ? name.replace(/[\u0000-\u001f\u007f]/g, "") : "";
-    return [...text].slice(0, MAX_NAME_LENGTH[edition] || MAX_NAME_LENGTH.java).join("");
+    const limit = MAX_NAME_LENGTH[edition] || MAX_NAME_LENGTH.java;
+    let kept = "";
+    for (const character of text) {
+        if (kept.length + character.length > limit) break;
+        kept += character;
+    }
+    return kept;
 }
 
 // The metadata as one edition sees it: an enchantment's `bedrock` object replaces its

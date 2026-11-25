@@ -190,6 +190,7 @@ function wantedPreview() {
 // you have (from the last calculation; dimmed while a new one runs, empty when there is none).
 // Results.js calls updateCostMeter whenever the results change.
 let meter_levels = null;
+let meter_none = false; // the last search found no order at all (too expensive)
 
 function costMeter() {
     const meter = h("div", { class: "cost-meter", title: TEXT.wanted.cost_meter_help },
@@ -201,13 +202,16 @@ function costMeter() {
 
 function fillCostMeter(meter) {
     meter.classList.toggle("stale", running);
-    meter.classList.toggle("empty", meter_levels == null);
-    meter.querySelector(".cost-meter-text").textContent = meter_levels == null ? "" : TEXT.wanted.cost_meter({ levels: meter_levels });
+    meter.classList.toggle("empty", meter_levels == null && !meter_none);
+    meter.classList.toggle("none", meter_levels == null && meter_none);
+    meter.querySelector(".cost-meter-text").textContent = meter_levels != null ? TEXT.wanted.cost_meter({ levels: meter_levels })
+        : meter_none ? TEXT.wanted.cost_meter_none : "";
 }
 
 export function updateCostMeter() {
-    if (last_result && last_result.status === "ok" && last_result.node) meter_levels = last_result.node.cumulative_levels;
-    else if (!running) meter_levels = null;
+    const ok = last_result && last_result.status === "ok";
+    if (ok && last_result.node) { meter_levels = last_result.node.cumulative_levels; meter_none = false; }
+    else if (!running) { meter_levels = null; meter_none = Boolean(ok); }
     const meter = document.querySelector("#wanted .cost-meter");
     if (meter) fillCostMeter(meter);
 }

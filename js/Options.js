@@ -181,6 +181,19 @@ function setLimit(value) {
     commit();
 }
 
+// Whether a mouse button or finger is down. Leaving the typed limit by pressing another
+// control in the panel (∞, Allow conflicts) must not redraw the panel before that press
+// becomes a click, or the click lands on a removed button and is lost.
+let pointer_down = false;
+addEventListener("pointerdown", () => { pointer_down = true; }, true);
+for (const type of ["pointerup", "pointercancel"]) addEventListener(type, () => { pointer_down = false; }, true);
+
+// Runs `redraw` now, or once the press that is under way has become its click.
+function afterPress(redraw) {
+    if (!pointer_down) { redraw(); return; }
+    addEventListener("pointerup", () => setTimeout(redraw), { once: true });
+}
+
 // Swaps the number for a box to type in: Enter or leaving it uses the value, Escape
 // puts the number back.
 function editLimit(button) {
@@ -188,8 +201,12 @@ function editLimit(button) {
     const finish = use => {
         if (done) return;
         done = true;
-        if (use && input.value.trim() !== "") setLimit(input.value);
-        else renderRanking();
+        if (use && input.value.trim() !== "") {
+            // The limit applies at once, so a click on ∞ that follows builds on it.
+            state.max_step = clampStepLimit(input.value);
+            state.no_step_limit = false;
+            afterPress(commit);
+        } else afterPress(renderRanking);
     };
     const input = h("input", {
         type: "number", class: "limit-edit", min: 1, max: MAX_STEP_LEVELS, inputmode: "numeric",
@@ -214,6 +231,7 @@ function levelControl() {
     const input = h("input", {
         type: "number", class: "xp-value", id: "player-level", "data-focus": "player-level",
         min: 0, max: MAX_PLAYER_LEVEL, inputmode: "numeric", value: player_level, placeholder: "–",
+        tabindex: level_on ? null : "-1", // off, the ∞ covers it and takes its place in the tab order
         "aria-label": TEXT.ranking.your_level_label,
         oninput: event => setPlayerLevel(event.target.value.trim() === "" ? null : Number(event.target.value), false)
     });
@@ -243,7 +261,7 @@ function levelControl() {
         // "Set to 61": exactly the levels the unticked steps still need (filled in by
         // updateLevelMeter, which knows the order).
         h("button", {
-            type: "button", class: "level-set", id: "level-set", "data-focus": "level-set",
+            type: "button", class: "btn small level-set", id: "level-set", "data-focus": "level-set",
             title: TEXT.ranking.set_needed_help,
             onclick: () => {
                 const node = resultNode();
@@ -304,6 +322,7 @@ function setPlayerLevel(value, update_input) {
         writeStorage(LEVEL_ON_STORAGE_KEY, true);
         $(".xp-box").classList.remove("off");
         $(".xp-infinity").tabIndex = -1;
+        $("#player-level").removeAttribute("tabindex");
         const toggle = $(".level-toggle");
         toggle.classList.add("on");
         toggle.setAttribute("aria-pressed", "true");
@@ -379,7 +398,7 @@ function nameField() {
     );
     let was_renaming = state.rename;
     const showState = () => {
-        const used = [...input.value].length;
+        const used = input.value.length; // UTF-16 units, as the game and maxlength count
         count.textContent = TEXT.ranking.name_count({ count: used, max: limit });
         count.title = TEXT.ranking.name_count_label({ count: used, max: limit });
         box.classList.toggle("renaming", state.rename);

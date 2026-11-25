@@ -11,8 +11,6 @@
         "reset": "Start over",
         "reset_help": "Clear your setup and settings, and see the first screen again (saved setups stay)",
         "copy_link": "Copy link",
-        "copied": "Copied",
-        "copy_failed": "Copy failed",
         "edition_label": "Edition",
         "language_label": "Language",
         "saved": "Saved",
@@ -53,6 +51,7 @@
         "item_takes": {"plural": "count", "one": "Takes {count} enchantment", "other": "Takes {count} enchantments"},
         "cost_meter": {"plural": "levels", "one": "{levels} level in total", "other": "{levels} levels in total"},
         "cost_meter_help": "Anvil levels for the best order with the books below",
+        "cost_meter_none": "No valid order",
         "compare_same": "Already chosen",
         "books_reach": "Books reach {level}",
         "not_on_books": "Not on any book",
@@ -196,6 +195,9 @@
 
     "results": {
         "slow_search": "{count} entries: this may take a while.",
+        "search_percent": "{percent}%",
+        "search_elapsed": "{percent}% · {time} so far",
+        "search_left": "{percent}% · about {time} left",
         "too_many_different": "Too many different entries. Repeated books are fine, but at most 20 different ones.",
         "cancel": "Cancel",
         "cancelled": "Cancelled. ",
@@ -204,6 +206,9 @@
         "choose_enchantments": "Choose enchantments",
         "no_valid_order": "No valid order: these can't be combined.",
         "no_valid_order_within": "No valid order within the {limit}-level limit.",
+        "limit_lowered_hint": "Every order has a step above your limit.",
+        "too_expensive_hint": "Every order has a step of 40 levels or more, which the game refuses (“Too expensive!”). Books with less prior work, or fewer enchantments per book, may help.",
+        "use_game_limit": "Use the game's limit ({limit})",
         "nothing_to_combine": "Nothing to combine",
         "missing": "Missing: {names}",
         "extra": "Also on the item (not chosen): {names}",
@@ -220,11 +225,6 @@
         "step_done_help": "Tick off steps as you do them. Kept in this browser.",
         "enchanted_book": "Enchanted Book",
         "level_track": "Lv {before} → {after}",
-        "level_short": {
-            "plural": "count",
-            "one": "Need {count} more level",
-            "other": "Need {count} more levels"
-        },
         "anvil_uses": {"plural": "uses", "one": "{uses} anvil use", "other": "{uses} anvil uses"},
         "anvil_break": "{chance} chance a new anvil breaks",
         "anvil_safe": "A new anvil won't break",
@@ -280,7 +280,7 @@
         "print": "Print",
         "print_help": "Print the steps, or save them as a PDF",
         "text_wanted": "{item}: {enchantments}",
-        "text_totals": "{levels} levels in total ({xp} XP), at most {max_step} in one step",
+        "text_totals": {"plural": "levels", "one": "{levels} level in total ({xp} XP), at most {max_step} in one step", "other": "{levels} levels in total ({xp} XP), at most {max_step} in one step"},
         "text_entry": "{name} ({enchantments})",
         "text_result_of": "result of step {number}",
         "text_step": {

@@ -43,6 +43,20 @@ test("non-book sacrifice doubles the cost", () => {
     assert.strictEqual(engine.combine(left, right).merge_levels, 10);
 });
 
+test("Java: an unenchanted item in the second slot gives nothing, unless renaming", () => {
+    const plain = engine.makeLeaf(["helmet", [], 0]);
+    const enchanted = engine.makeLeaf(["helmet", [["protection", 4]], 0]);
+    assert.strictEqual(engine.combine(enchanted, plain), null);
+    assert.strictEqual(engine.combine(plain, enchanted).merge_levels, 8);
+    // Two helmets, one plain: the plain one has to be the first slot.
+    const result = engine.solve([["helmet", [["protection", 4]], 0], ["helmet", [], 0]]);
+    assert.strictEqual(result.left.enchantments.length, 0);
+    assert.strictEqual(result.cumulative_levels, 8);
+    // Renaming is a change of its own, so the anvil allows it.
+    assert.ok(engine.solve([["helmet", [], 0], ["helmet", [], 0]], { rename: true }));
+    assert.strictEqual(engine.solve([["helmet", [], 0], ["helmet", [], 0]]), null);
+});
+
 test("book cannot go in the left slot onto an item", () => {
     const book = engine.makeLeaf(["book", [["sharpness", 5]], 0]);
     const sword = engine.makeLeaf(["sword", [], 0]);

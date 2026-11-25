@@ -7,7 +7,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Files
 - `index.html`: shell with 2 left sections (1 Item and enchantments `#wanted`, 2 Books and items `#books`) and
   2 right ones (3 Best order: `#metrics` tiles and `#ranking` settings; 4 Anvil uses, `.results-card`: `#results` with status
-  messages, anvil wear, the Steps/Tree row and the steps), all collapsible (+ `#edition`, `#copy-link`,
+  messages, anvil wear, the Steps | Slots | Tree row and the steps), all collapsible (+ `#edition`, `#copy-link`,
   `#language`, `#theme` (sun/moon: `setupTheme`/`renderTheme`, `THEME_STORAGE_KEY`, `data-theme` on <html>, set early by an inline
   script in index.html; Style.css dark tokens apply under `prefers-color-scheme: dark` unless `data-theme="light"`, or with
   `data-theme="dark"`), and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
@@ -24,14 +24,15 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   below live in the module for their section (grep for them).
 - State and rendering:
   State: `{ item, wanted: {ns: level}, auto_books, books: [{ id, type: "book"|"item", enchantments, prior_work, copies }], priority: [criteria, most important first], max_step: 1-39, no_step_limit, allow_incompatible, edition: "java"|"bedrock", rename, rename_to }`
-  (`rename` is true exactly when `rename_to` has text; the name is shown in italics on the final result, cut by Logic `cleanName` to 50/30 chars per edition;
+  (`rename` is true exactly when `rename_to` has text; the name is shown in italics on the final result, cut by Logic `cleanName` to 50/30 chars per edition, counted in UTF-16 units as the game and `maxlength` do (an emoji is 2; a switch to Bedrock and back keeps the uncut name, App.js `uncut_name`);
   share links are base64 of UTF-8 so any characters survive)
   (`no_step_limit` is for mods that remove "Too Expensive!"; the worker gets `max_merge_levels: Infinity`;
   `allow_incompatible` is for mods that let conflicting enchantments go together). The engine never checks conflicts:
   Logic.js `sanitizeEnchantments`/`sanitizeBooks` and the editors keep every entry, and entries against each other,
   conflict-free unless `allow_incompatible` is on.
   Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
-  Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one.
+  Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one. A slow search's bar says the time so far, then
+  an estimate of what is left (Calc.js `progressLabel`, refreshed every second; the engine reports every 1/2000 of the splits).
 - `json/text/<language>.json` (`en`, `es`): every string the page shows (labels, tooltips, messages), grouped by
   section, plus `names: { items, enchantments, descriptions }` (the only place item and enchantment names live, English
   included; `descriptions`: what each enchantment does, in a few words).
@@ -54,7 +55,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (`groupKinds`), so repeats are not re-solved. Each merge is `preview`ed into scratch space and only built if it
   survives its bucket; bucket keys are numbers (`keyLayout`), with text keys past 2^53.
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
-  `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in App.js) and limit.
+  `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in Store.js) and limit.
 - Section 3 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
   heading and, beside it in a `.section-head`, the settings menu (`#options-menu` `<details>`: a button showing
   `optionsSummary` + gear, opening `#limit-panel`, "Game rules": the level limit slider and the Allow conflicts switch (`conflictsSwitch`; the
@@ -63,7 +64,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
   Rename and Your level; `updateLevelMeter` fills its XP bar and "Set to N"). Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.
-  On desktop (900px+) the right column is a window-high flex column (section 3 natural height, section 4 the rest) and only `.steps-scroll` (the steps or tree, under the Steps/Tree row)
+  On desktop (900px+) the right column is a window-high flex column (section 3 natural height, section 4 the rest) and only `.steps-scroll` (the steps or tree, under the Steps | Slots | Tree row)
   scrolls; `steps_scroll` keeps its position across redraws of the same order and view. Phones scroll the page.
 - Options (`renderRanking`, 2-column `.options` grids, refocusing by `data-focus` after redraws):
   level limit slider 1-39 plus an ∞ button (= `no_step_limit`), commits on release, value tappable to type
@@ -84,7 +85,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   width there). The preview's height slides on change (`growSmoothly`, 0.25s, a timer clears it) and new lines open from
   0 height in place and fade in (`openLines`, `.fresh` from `preview_shown`; removed lines fold away in place, `closeLines`; a swap that leaves the box the same size rolls every changed row together like a counter, in one direction (`rollLines`: old text out one edge, new in from the other, clipped to the row, rows matched by position; the direction follows the enchantments that stay: they end up lower (a line added above) = down, higher (a line above went) = up; else the replacing enchantment lower in the tooltip order = up, higher = down; level-only changes by level; else up); the tooltip's width slides too, `slideWidth`; only a fade when the box ends the same size, as when swapping conflicting picks); toggling "Allow conflicts" slides and fades each
   conflict group (`conflicts_toggled`, `.ench-group[data-group]`); all off with reduced motion. Then
-  the toolbar, presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
+  the presets (`presetChips`; Logic.js `presets`: "best" = `maxAll` from nothing, plus one per `PRESET_SWAPS`
   entry the item takes; "best" is named after its pick when the item has one conflict set), then `wantedList`: rows (`wantedRow`: a CSS grid, so rows line up: name in the game font (curses red) with `names.descriptions` (Logic `describe`) under it, a `+N` hint once chosen (Logic `bookCost`: level x book multiplier), a
   `levelBar` (role=slider, joined segments, tap/drag/arrow keys, always 5 segments wide, the missing levels drawn as a faint track so right edges line up), and a × that clears it; narrow cards (container query) put the bar under the name),
   "Pick one" groups as a card (`.ench-group.exclusive`: label, switch (`groupSwitch`), chosen row), partial conflicts in a left bracket
@@ -100,7 +101,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (both open `enchantPicker`; in every level bar up/down move to the neighbouring enchantment's bar and left/right change the level: level bars via `levelBar(ns, level, blocker, onChoose, focus)`,
   section-1 picks first, conflicts on this entry replace, on other entries blocked; `setEntryLevel`, twin merge); the add area `addCard`
   (`.entry-add-card`) is a full-width bar under the cards (`grid-column: 1 / -1`: Add book, Add {item}, the type box). One popover at a time (`entry_popover`, `placePopover` puts it in the grid under its card;
-  outside click/Escape close). Cards slide on change (`cardRects`/`animateCards`, grid-relative, FLIP), and `render`
+  outside click/Escape close; opening one moves the focus into it, `togglePopover`, since it comes after the whole grid in the tab order).
+  × with the keyboard moves the focus to the next card's × (`removeEntry`). Escape cancels a line, slot or chip drag (`swallowClick` eats the
+  click when the button is let go). Cards slide on change (`cardRects`/`animateCards`, grid-relative, FLIP), and `render`
   and `renderBooks` keep the scroll position across the redraw. When only the enchantments of the same entries in the same order changed, the cards don't slide: each changed tooltip animates like section 1's, never its width (`oldTooltips`/`animateLines`: a same-height swap rolls the rows with `rollLines`, otherwise `openLines`/`closeLines` and the card grows or shrinks with its lines; lines carry `data-ns`/`data-level`). A new entry (`markFresh`: Add book/item, ⧉, a typed book) is revealed once the grid has
   finished sliding open (`revealEntry`, `REVEAL_DELAY_MS`; the grid clips the picker while it slides, so scrolling earlier does nothing): the page scrolls
   just far enough to show its card (and picker), never the card off the top, and the card flashes.
@@ -116,8 +119,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   second worker, Calculator.js `merge_preview`, for the cost and result; the chip says levels, "Too expensive!" from 40, or that they can't merge; nothing changes),
   and dragging a coverage chip onto an entry puts that enchantment on it, onto the add bar makes a new book (`chipDrag`; conflicts outline red and refuse). The coverage
   summary chip has a ring of reached/chosen. Icons inside slots are `draggable="false"` so the browser's picture drag doesn't take over.
-- Section 4 Steps view (`renderResults`): toolbar = Steps/Tree, `stepProgress` ("3 of 7 done · N levels to go" bar + ↺ untick
-  all), Copy steps, Print; a
+- Section 4 Steps view (`renderResults`): toolbar = Steps | Slots | Tree, `stepProgress` ("3 of 7 done · N levels to go" bar + ↺ untick
+  all, kept together in `.step-progress-main`; Compact and Expand/Collapse all wrap as one `.step-progress-tools` group), Copy steps and Print
+  (one `.result-actions` group); a
   `.rounds.timeline` rail (round labels as breaks, a `.step-node` per step). `anvilStep`: a `.step-head` (the whole
   "☐ Step N" ticks; the first unticked step is `.current`; ticking, folding and Space keep that step where it was on screen
   (`keepInPlace`), and ticking scrolls down to the next unticked step only when it is below view (`revealBelow`, never up); Space on a
@@ -126,39 +130,42 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   panel (`--gui-*` tokens), hovering a starting input highlights its section 2 card and clicking scrolls to it (`entryHover`/`entryIndexOf`), an input
   made by a step says "From step N" (`entryRef`), the result its prior work, the cost is amber within 5 of the level limit and red at
   it, and `levelMeter` draws "Lv 30 → 28" with a bar.
+- Section 4 with no valid order: the warning says why and, when the level limit was lowered, offers "Use the game's limit (39)";
+  section 1's cost meter says "No valid order" (`meter_none`) instead of leaving its space blank.
 - Section 4 extras (`renderResults`): the toolbar is the Steps | Slots | Tree switch (`result_view`), Copy steps, Print, and the progress on its own row with Expand all / Collapse all (`.fold-buttons`, Steps and Tree; by default only the current step is in full
   and the rest fold to a line, hand folds win) and, in Tree, Compact (`tree_compact`). Heading summary is "N steps". Each step says Left slot / Right slot / Result (`cell-label`), has a sentence
   (`stepInstruction`: what to put where, the rename note), a cost chip with a floating breakdown (`costChip`/`showCost`: enchantments, each side's
   prior work 2^n - 1, rename), the result dims lines it didn't change and shows a raised enchantment's old level (`.mc-from`, `anvilCell` takes a Set or a
   Map to the old level), a `.level-checkpoint` when Your level is too low, and the rounds have a floating "?" (`roundTip`). The Slots view is the same markup with
   `.slots-mode` CSS (one line of slots, tooltips on hover). After the steps a `.final-card` shows the finished item (green once every step is ticked). Under 900px a sticky
-  `.current-bar` (`currentBar`) keeps the current step and a Done button on screen. The compact tree shows a slot and a one-line caption, the tooltip on hover;
+  `.current-bar` (`currentBar`) keeps the current step and a Done button on screen while that step is off screen (`watchCurrentStep`: an
+  IntersectionObserver tucks it away, `.tucked`, while the step shows, so it never covers it). The compact tree shows a slot and a one-line caption, the tooltip on hover;
   hovering or focusing an entry lights its path (`.path-self`/`.path-up`/`.path-down`, `mergeTree`). Density, anvil count and view stay in this browser, not in links.
 - All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
   `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
   the heading is excluded from the toggle click.
 - App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
-  (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps/Tree view
+  (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps | Slots | Tree view
   (`result_view`; `mergeTree`), saved setups (`SAVED_STORAGE_KEY`: `{name, item, link}`, link = `serialize` text,
   loaded via `readLink`; × removes one), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
   step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks); hovering a starting item lights its section 2 card and a click scrolls to it (`entryHover`, as in the Steps view); each merge folds its inputs away like its step does (same `isFolded`/`toggleFold` state, ▾/▴ `.step-fold`). Ticking a step also ticks
   the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Section 4's heading always shows the uses (`renderStepsSummary`) and the break risk (`anvilRisk`: an
   `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
-  keyed by its steps (`orderKey`); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
+  keyed by its steps (`orderKey`: each slot's item, enchantments and prior work, not the costs, so a rename keeps the ticks); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
 - Also: the header's Copy link carries progress (`currentLink`: when steps are ticked, Logic `serialize(state, { key, done })` adds `t`
   (ticked step numbers) and `k` (`orderHash` of `orderKey`); `loadFromUrl` holds them in `carried_progress` and `applyCarriedProgress` stores
-  them only if the calculated order has the same key); starting items in Steps/Tree are keyboard-reachable `[data-entry-link]` (`entryHover`: focus lights the card,
+  them only if the calculated order has the same key); starting items in Steps and Tree are keyboard-reachable `[data-entry-link]` (`entryHover`: focus lights the card,
   Enter shows it); the first screen's "Try an example" (`tryExample`); "Start over" in the footer (`setupReset`/`resetEverything`: one click, clears every `enchantment-calculator-*` storage key but saved setups and language, then reloads without the link); the bar flashes once on the last tick (`level-up`, `celebrated`); the `#live`
   region (`announce`: says the progress when ticking changes it); folded tree merges stay in the DOM, hidden by CSS, so print shows them.
 - `js/Calculator.js`: worker, one engine per edition. Messages in: `instantiate_metadata`, `calculate_optimal`
-  (with `edition`, `rename`). Out: `progress`,
-  `optimal_searched`, `calculation_failed` (all carry `request_id`).
+  (with `edition`, `rename`), `merge_preview` (one merge, for section 2's drag). Out: `progress`,
+  `optimal_searched`, `calculation_failed`, `merge_previewed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta, names)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 2
   heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
-  items whose only enchantment is a lower level of it (any prior work; never the last item), and marks on section 1 rows; App.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
+  items whose only enchantment is a lower level of it (any prior work; never the last item), and marks on section 1 rows; Tips.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
@@ -173,6 +180,9 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps,
 merges of 40+ levels are "Too Expensive" (the user can lower this cap or remove it). Ties break on the next-ranked criterion.
 Renaming (`rename`) adds 1 level to the final step, counted during the search since it can push that step past the limit.
+Java gives no result for a merge that adds nothing (an unenchanted item as the sacrifice), unless it also renames: `preview`
+refuses an enchantment cost of 0 there. Bedrock is left as it was. Empty books never reach the engine (`buildEntries`), and section 2
+drops a book left with no enchantments when its picker closes or its last line is dragged away (`isPlainBook`).
 Editions (Minecraft Wiki, "Anvil mechanics"): Java charges each enchantment's final level x multiplier; Bedrock only the
 levels it gains over the target's. A metadata enchantment's `bedrock` object overrides its fields in Bedrock
 (Impaling `weight` 1; Sweeping Edge `items: []`, since Bedrock lacks it). Logic.js `editionMetadata` applies the same overrides.
