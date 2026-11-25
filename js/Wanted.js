@@ -52,6 +52,8 @@ export function renderWanted() {
         const bar = group.querySelector(".level-bar");
         if (bar) old_bars.set(group.dataset.group, { levels: bar.querySelectorAll(".level-seg").length, segments: [...bar.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true)) });
     }
+    // Each "Pick one in each" section: its chosen rows (a copy, height and level bar each), selected options and border.
+    const old_each = captureEach(box);
     // The cost line of the preview's tooltip, so it can fold away in place if the redraw drops it.
     const old_cost_line = box.querySelector(".wanted-preview .cost-line:not(.idle)");
     const old_cost_copy = old_cost_line ? inertCopy(old_cost_line) : null;
@@ -96,7 +98,8 @@ export function renderWanted() {
         return;
     }
 
-    box.append(...[wantedHead(presetChips()), wantedSearch(), conflictGraph(searchMatcher()), wantedList()].filter(Boolean)); // append(null) would print "null"
+    const { list, mod_boxes } = wantedList();
+    box.append(...[wantedHead(presetChips()), wantedSearch(), listBox(list), ...mod_boxes, conflictGraph(searchMatcher())].filter(Boolean)); // append(null) would print "null"
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
@@ -125,27 +128,27 @@ export function renderWanted() {
         if (old && bar) rollLevelBar(bar, old.levels, old.segments);
         animatePick(group, old_picks.get(group.dataset.group));
     }
+    for (const section of box.querySelectorAll(".pick-each[data-each]")) animateEach(section, old_each.get(section.dataset.each));
     if (motionOk() && !old_groups.size) {
         for (const row of box.querySelectorAll(".ench-row[data-ns]")) {
             const was = old_rows.get(row.dataset.ns);
-            const now = row.getBoundingClientRect().height;
-            if (was == null || Math.abs(was - now) < 1 || row.getAnimations().length) continue;
-            row.style.overflow = "hidden";
-            const clear = () => { row.style.overflow = ""; };
-            row.animate([{ height: was + "px" }, { height: now + "px" }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
-            setTimeout(clear, 400);
+            if (was == null || row.getAnimations().length) continue;
+            easeRowHeight(row, was);
         }
     }
     restoreFocus(box, focus);
     restoreConflicts();
 }
 
-// Eases a row's height from `from` to its new one (the box clips while it does).
+// Eases a row's height from `from` to its new one (the box clips while it does). A row laid out as one grid row has that row
+// follow the box meanwhile, so what is in it (the level bar) moves with the box both ways: left to itself, a growing box would
+// lay its content out at the final size and the bar would jump there at once.
 function easeRowHeight(row, from) {
     const now = row.getBoundingClientRect().height;
     if (Math.abs(from - now) < 1) return;
     row.style.overflow = "hidden";
-    const clear = () => { row.style.overflow = ""; };
+    if (getComputedStyle(row).gridTemplateRows.trim().split(/\s+/).length === 1) row.style.gridTemplateRows = "minmax(0, 1fr)";
+    const clear = () => { row.style.overflow = ""; row.style.gridTemplateRows = ""; };
     row.animate([{ height: from + "px" }, { height: now + "px" }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
     setTimeout(clear, 400);
 }
@@ -199,9 +202,13 @@ function wantedList() {
         if (group.exclusive && !state.allow_incompatible) return group;
         return { ...group, members: hits, exclusive: false };
     };
+    // A bracket of two groups joined by an enchantment is "Pick one in each" (not while searching: a cut-down bracket may not be that shape).
+    const eachOf = group => (state.allow_incompatible || query ? null : logic.pickEach(group.members));
     const groupRow = group => {
         const members = group.members;
         if (group.exclusive && !state.allow_incompatible) return groupSwitch(members, short);
+        const each = eachOf(group);
+        if (each) return pickEachSection(members, each, short);
         if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
         // The label folds the bracket: the chosen rows stay, the rest hide (kept in `folded_groups` across redraws).
         const key = members[0];
@@ -220,7 +227,7 @@ function wantedList() {
         );
     };
     // Alone first, then the "Pick one" cards, then the brackets of partial conflicts (each kind keeps its alphabetical order).
-    const kind = group => (group.members.length === 1 ? 0 : group.exclusive && !state.allow_incompatible ? 1 : 2);
+    const kind = group => (group.members.length === 1 ? 0 : (group.exclusive && !state.allow_incompatible) || eachOf(group) ? 1 : 2);
     const byKind = groups => [...groups].sort((a, b) => kind(a) - kind(b));
     const rows = [];
     const own = [];
@@ -239,12 +246,13 @@ function wantedList() {
     }
     rows.push(...byKind(own).map(groupRow));
     if (curses.length) rows.push(h("div", { class: "divider" }, TEXT.wanted.curses), ...byKind(curses).map(groupRow));
-    // A mod's own enchantments sit under its name, folded away until opened (or one is chosen).
+    // A mod's own enchantments get a fold-away box of their own, beside the list's and the graph's, folded until opened (or one is chosen).
+    const mod_boxes = [];
     for (const [mod, groups] of mods) {
         const count = groups.reduce((sum, group) => sum + group.members.length, 0);
         const chosen = groups.some(group => group.members.some(ns => state.wanted[ns]));
-        rows.push(h("details", {
-            class: "mod-section", "data-mod": mod, open: chosen || mod_open.has(mod) || Boolean(query),
+        mod_boxes.push(h("details", {
+            class: "fold-box mod-section", "data-mod": mod, open: chosen || mod_open.has(mod) || Boolean(query),
             ontoggle: event => {
                 if (wanted_query.trim()) return; // opened by the search, not by the user
                 if (event.target.open) mod_open.add(mod); else mod_open.delete(mod);
@@ -253,8 +261,16 @@ function wantedList() {
             h("summary", {}, TEXT.wanted.mod_group({ name: mod, count })),
             byKind(groups).map(groupRow)));
     }
-    if (query && !rows.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
-    return h("div", { class: "wanted-list" }, rows);
+    if (query && !rows.length && !mod_boxes.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
+    return { list: h("div", { class: "wanted-list" }, rows), mod_boxes };
+}
+
+// The list of enchantments, in a fold-away box like the conflict graph's (the two ways to pick enchantments, one under the other).
+let list_open = true;
+function listBox(list) {
+    return h("details", { class: "fold-box list-box", open: list_open, ontoggle: event => { list_open = event.target.open; } },
+        h("summary", {}, TEXT.wanted.list_title),
+        list);
 }
 
 // What is typed in section 1's search box (kept across redraws and items), and the text without case or accents.
@@ -273,7 +289,10 @@ function wantedSearch() {
         type: "search", class: "wanted-search", value: wanted_query, placeholder: TEXT.wanted.search, "aria-label": TEXT.wanted.search, "data-focus": "wanted-search",
         oninput: event => {
             wanted_query = event.target.value;
-            document.querySelector("#wanted .wanted-list").replaceWith(wantedList());
+            const { list, mod_boxes } = wantedList();
+            document.querySelector("#wanted .wanted-list").replaceWith(list);
+            for (const old of document.querySelectorAll("#wanted > .mod-section")) old.remove();
+            document.querySelector("#wanted > .list-box").after(...mod_boxes);
             markSearch(searchMatcher());
             restoreConflicts();
         }
@@ -431,6 +450,8 @@ function costLine() {
 
 function fillCostMeter(line) {
     const before = line.getBoundingClientRect().height;
+    const tooltip = line.closest(".mc-tooltip");
+    const width_before = tooltip ? tooltip.getBoundingClientRect().width : null;
     line.classList.toggle("stale", running);
     // Nothing chosen means nothing to cost: the line goes at once, not when the new search finishes.
     const nothing = Object.keys(state.wanted).length === 0;
@@ -441,6 +462,7 @@ function fillCostMeter(line) {
     const changed = text.textContent !== words;
     text.textContent = words;
     if (!line.isConnected || !motionOk()) return;
+    slideWidth(tooltip, width_before); // the words can make the tooltip wider or narrower
     // New words fade in instead of popping.
     if (changed && words) text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
     // The line opens when a result arrives and folds away when there is none, so the tooltip eases to its new height.
@@ -553,6 +575,109 @@ function presetChips() {
                 }, best ? bestName(preset.wanted) : logic.enchName(preset.key));
             }))
     );
+}
+
+// "Pick one in each": a conflict bracket of two groups joined by an enchantment (Logic pickEach) as one card holding a "Pick one"
+// switch for each group, then the chosen rows once. The joining enchantment is an option of every group it joins (marked with an
+// arrow pair) and replaces the picks of all of them; any other pick leaves the other groups alone.
+function pickEachSection(members, each, short) {
+    const chosen = ns => Boolean(state.wanted[ns]);
+    const label_id = "pick-each-" + members[0];
+    const names = list => list.map(ns => logic.enchName(ns));
+    const cards = each.cards.map((set, index) => {
+        const own = set.filter(ns => !each.bridges.has(ns));
+        const title = TEXT.wanted.group_one_of({ names: names(own).slice(0, 3).join(", ") + (own.length > 3 ? "\u2026" : "") });
+        const option = (ns, label) => {
+            const selected = ns ? chosen(ns) : !set.some(chosen);
+            return h("button", {
+                type: "button", role: "radio", class: "switch-option" + (ns && each.bridges.has(ns) ? " bridge" : "") + (selected ? " selected" : ""),
+                "aria-checked": String(selected), "data-opt": index + "|" + (ns || "none"),
+                "data-focus": "each-" + members[0] + "-" + index + "-" + (ns || "none"),
+                // The joining enchantment's hover text: its name with the arrow pair, what it does, and that it is in every group it joins.
+                title: ns ? (each.bridges.has(ns) ? [logic.enchName(ns) + " ⇄", logic.describe(ns), TEXT.wanted.group_bridge_help].filter(Boolean).join(" ") : logic.describe(ns)) || null : null,
+                onclick: () => {
+                    if (ns) { if (!chosen(ns)) setWanted(ns, logic.maxLevel(ns)); return; } // (drops the ones it replaces)
+                    const pick = set.find(chosen);
+                    if (pick) setWanted(pick, 0);
+                }
+            }, label);
+        };
+        return h("div", { class: "each-card" },
+            own.length > 1 ? h("div", { class: "each-card-title" }, title) : null, // (a group of one is named by its option)
+            h("div", { class: "group-switch", role: "radiogroup", "aria-label": title },
+                option(null, TEXT.wanted.none), set.map(ns => option(ns, logic.enchName(ns)))));
+    });
+    return h("div", { class: "ench-group exclusive pick-each" + (members.some(chosen) ? " has-chosen" : ""), "data-each": members[0] },
+        h("div", { class: "ench-group-label", id: label_id }, TEXT.wanted.group_pick_each),
+        h("div", { class: "each-cards" }, cards),
+        h("div", { class: "each-rows" }, members.filter(chosen).map(ns => wantedRow(ns, short.get(ns)))));
+}
+
+// What a "Pick one in each" section looks like before a redraw, by its first member: its chosen rows in order (a copy to fold
+// away, the height, the level bar), the options selected, and the border colour.
+function captureEach(box) {
+    const old = new Map();
+    for (const section of box.querySelectorAll(".pick-each[data-each]")) {
+        old.set(section.dataset.each, {
+            rows: [...section.querySelectorAll(".each-rows > .ench-row")].map(row => ({
+                ns: row.dataset.ns, copy: inertCopy(row), height: row.getBoundingClientRect().height,
+                levels: row.querySelectorAll(".level-seg").length, segments: [...row.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true))
+            })),
+            options: new Set([...section.querySelectorAll(".switch-option.selected")].map(button => button.dataset.opt)),
+            border: getComputedStyle(section).borderColor
+        });
+    }
+    return old;
+}
+
+// The same animations as a "Pick one" group, for each case. When the number of chosen enchantments stays the same and nothing
+// moves (each new row sits where the one it replaces was): the level bar rolls and the row eases to its height. Otherwise a new
+// row opens in its place and a row that goes folds away as a copy where it was. The option that was selected fades out of its
+// highlight while the new one fades in, and the border changes colour smoothly.
+function animateEach(section, old) {
+    if (!old || !motionOk()) return;
+    const rows_box = section.querySelector(".each-rows");
+    const rows = [...rows_box.children];
+    const names = rows.map(row => row.dataset.ns);
+    const before = old.rows.map(row => row.ns);
+    const added = names.filter(ns => !before.includes(ns));
+    const gone = old.rows.filter(row => !names.includes(row.ns));
+    const source_of = new Map();
+    for (const ns of added) {
+        const source = gone.find(row => ![...source_of.values()].includes(row) && logic.conflicts(ns, row.ns));
+        if (source) source_of.set(ns, source);
+    }
+    const replaced = new Map([...source_of].map(([ns, source]) => [source.ns, ns]));
+    const in_place = added.length === gone.length && source_of.size === added.length && before.map(ns => replaced.get(ns) || ns).join() === names.join();
+    for (const ns of added) {
+        const row = rows_box.querySelector(`[data-ns="${ns}"]`);
+        const source = source_of.get(ns);
+        if (source && in_place) {
+            rollLevelBar(row.querySelector(".level-bar"), source.levels, source.segments);
+            easeRowHeight(row, source.height);
+        } else {
+            openRow(row);
+        }
+    }
+    for (const row of gone) {
+        if (in_place && replaced.has(row.ns)) continue;
+        closeRow(rows_box, row.copy); // (it appends the copy)
+        // ...but it folds where it was: before the first row that stays and came after it, or the rows below would jump up.
+        const after = rows.find(other => before.includes(other.dataset.ns) && before.indexOf(other.dataset.ns) > before.indexOf(row.ns));
+        if (after) rows_box.insertBefore(row.copy, after);
+    }
+    const selected = [...section.querySelectorAll(".switch-option.selected")];
+    const keys = new Set(selected.map(button => button.dataset.opt));
+    const look = selected[0] && getComputedStyle(selected[0]);
+    const quiet = { backgroundColor: "rgba(0, 0, 0, 0)", boxShadow: "inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 3px rgba(0, 0, 0, 0)" };
+    for (const button of selected) if (!old.options.has(button.dataset.opt)) button.animate([quiet, {}], { duration: 260, easing: "ease-out" });
+    if (look) {
+        for (const key of old.options) {
+            const was = keys.has(key) ? null : section.querySelector(`[data-opt="${key}"]`);
+            if (was) was.animate([{ backgroundColor: look.backgroundColor, boxShadow: look.boxShadow, color: look.color }, {}], { duration: 260, easing: "ease-out" });
+        }
+    }
+    if (getComputedStyle(section).borderColor !== old.border) section.animate([{ borderColor: old.border }, {}], { duration: 300, easing: "ease-out" });
 }
 
 // A "Pick one" group (every pair conflicts): a switch for which one, or none, then the

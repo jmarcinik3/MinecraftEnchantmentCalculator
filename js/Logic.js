@@ -296,6 +296,35 @@ export function createLogic(meta, names = {}) {
         return groups;
     }
 
+    // A conflict bracket that is two or three groups of enchantments, every pair in a group conflicting (a group can be a single
+    // enchantment), joined by enchantments that conflict with all of both (Flint & Steel with Spellbound: repair and unbreaking,
+    // joined by Selfish; a sword with Fancy Enchantments: Sweeping Edge and Duellist's Prerogative, each alone, joined by Feint
+    // Attack) is picked from as "one in each". Returns { cards, bridges }: each card is a group's own enchantments in order, then the
+    // joining ones (which are in every card they join), `bridges` the set of those; null for any other shape.
+    function pickEach(members) {
+        if (members.length < 3 || members.length > 24) return null;
+        const cliques = [];
+        const grow = (clique, candidates, excluded) => {
+            if (!candidates.length && !excluded.length) { if (clique.length > 1) cliques.push(clique); return; }
+            for (const ns of [...candidates]) {
+                grow([...clique, ns], candidates.filter(other => conflicts(ns, other)), excluded.filter(other => conflicts(ns, other)));
+                candidates = candidates.filter(other => other !== ns);
+                excluded = [...excluded, ns];
+            }
+        };
+        grow([], members, []);
+        const inCount = ns => cliques.filter(clique => clique.includes(ns)).length;
+        const bridges = new Set(members.filter(ns => inCount(ns) > 1));
+        if (cliques.length < 2 || cliques.length > 3 || !bridges.size || members.some(ns => inCount(ns) === 0)) return null;
+        if (cliques.some(clique => clique.every(ns => bridges.has(ns)))) return null; // every group needs an enchantment of its own
+        const inOrder = clique => members.filter(ns => clique.includes(ns));
+        const cards = cliques.map(clique => {
+            const ordered = inOrder(clique);
+            return [...ordered.filter(ns => !bridges.has(ns)), ...ordered.filter(ns => bridges.has(ns))];
+        }).sort((a, b) => members.indexOf(a[0]) - members.indexOf(b[0]));
+        return { cards, bridges };
+    }
+
     function enchantableItems() {
         return meta.items.filter(item => item !== "book" && applicable(item).length > 0);
     }
@@ -689,7 +718,7 @@ export function createLogic(meta, names = {}) {
 
     return {
         isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        modOf, conflictsWith, applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
+        modOf, conflictsWith, applicable, enchantmentGroups, pickEach, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf, parseBooks,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };

@@ -1324,7 +1324,7 @@
    "spellbound:rock_collecting": "Mining speed grows with unique rocks mined.",
    "spellbound:saturated": "Consumes saturation instead of durability.",
    "spellbound:scalping": "Attacks tear free bonus drops, scaling with damage.",
-   "spellbound:selfish": "Type:Durability/Repair. Takes durability from other equipment.",
+   "spellbound:selfish": "Takes durability from other equipment.",
    "spellbound:skotosynthetic": "Restores itself in the night.",
    "spellbound:spikes": "Damages very close entities.",
    "spellbound:storied": "Upgrades and adds enchantments as the item's story develops.",

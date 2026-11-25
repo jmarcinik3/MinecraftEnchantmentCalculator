@@ -104,7 +104,7 @@ export function conflictGraph(matches = null) {
     const neighbours = ns => edges.filter(edge => edge.includes(ns)).map(edge => (edge[0] === ns ? edge[1] : edge[0]));
 
     const box = h("details", {
-        class: "graph-box", open: graph_open,
+        class: "fold-box graph-box", open: graph_open,
         ontoggle: event => {
             graph_open = event.target.open;
             if (!graph_open) return;

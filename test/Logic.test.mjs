@@ -621,6 +621,29 @@ test("withMods adds the mods' enchantments after the game's own, tagged with the
     assert.ok(list.indexOf("fancyenchantments:air_attack") > list.indexOf("vanishing_curse"));
 });
 
+test("a bracket of two groups joined by one enchantment is picked from as one in each", () => {
+    const spellbound = MODS.spellbound;
+    const modded = createLogic(withMods(meta, [spellbound]), { ...TEXTS.en.names, ...modNames([spellbound], "en") });
+    const bracket = modded.enchantmentGroups("flint_and_steel").find(group => !group.exclusive && group.members.length > 1);
+    const each = modded.pickEach(bracket.members);
+    assert.strictEqual(each.cards.length, 2);
+    assert.deepStrictEqual([...each.bridges], ["spellbound:selfish"]);
+    assert.ok(each.cards.every(card => card[card.length - 1] === "spellbound:selfish")); // the joining one is in both, last
+    assert.deepStrictEqual(each.cards.map(card => card.length), [7, 4]);
+    // Groups can be a single enchantment: Sweeping Edge and Duellist's Prerogative, joined by Feint Attack.
+    const fancy = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
+    const sweeping = fancy.enchantmentGroups("sword").find(group => group.members.includes("sweeping") && !group.exclusive);
+    const single = fancy.pickEach(sweeping.members);
+    assert.deepStrictEqual(single.cards, [["sweeping", "fancyenchantments:feint_attack"], ["fancyenchantments:duellists_prerogative", "fancyenchantments:feint_attack"]]);
+    assert.deepStrictEqual([...single.bridges], ["fancyenchantments:feint_attack"]);
+    // Any other shape is left as it is: the game's own groups, a path of conflicts, and Fancy Enchantments' big elemental brackets.
+    assert.strictEqual(logic.pickEach(["protection", "fire_protection", "blast_protection", "projectile_protection"]), null);
+    const path = createLogic({ ...meta, enchantments: { ...meta.enchantments, a: { incompatible: ["b"], items: ["sword"], max_level: 1, weight: 1 }, b: { incompatible: ["a", "c"], items: ["sword"], max_level: 1, weight: 1 },
+        c: { incompatible: ["b", "d"], items: ["sword"], max_level: 1, weight: 1 }, d: { incompatible: ["c"], items: ["sword"], max_level: 1, weight: 1 } } });
+    assert.strictEqual(path.pickEach(["a", "b", "c", "d"]), null);
+    for (const group of fancy.enchantmentGroups("sword")) if (!group.exclusive && group.members.length > 5) assert.strictEqual(fancy.pickEach(group.members), null);
+});
+
 test("Max all and the presets never add a mod's enchantments, but typed books can name them", () => {
     const modded = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
     assert.deepStrictEqual(modded.maxAll("sword", {}), logic.maxAll("sword", {}));

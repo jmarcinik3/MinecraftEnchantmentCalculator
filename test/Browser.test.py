@@ -730,6 +730,15 @@ def part_fancy(browser, base):
     p11.keyboard.press("Escape")
     p11.click("#wanted .graph-box > summary")
     p11.wait_for_selector(".graph-canvas")
+    order = p11.evaluate("[...document.querySelector('#wanted').children].map(el => el.classList.contains('wanted-head') ? 'head' : el.classList.contains('wanted-search') ? 'search' : el.classList.contains('list-box') ? 'list' : el.classList.contains('mod-section') ? 'mod' : el.classList.contains('graph-box') ? 'graph' : '?')")
+    check("section 1 has the search, then the enchantment list, each mod's list and the conflict graph as boxes of their own", order == ["head", "search", "list", "mod", "graph"], order)
+    p11.click("#wanted .list-box > summary")
+    check("a mod's box stays when the list is folded", p11.locator("#wanted > .mod-section").is_visible())
+    p11.click("#wanted .list-box > summary")
+    p11.click("#wanted .list-box > summary")
+    check("the list folds away", not p11.locator("#wanted .list-box .wanted-list").is_visible())
+    p11.click("#wanted .list-box > summary")
+    check("and opens again", p11.locator("#wanted .list-box .wanted-list").is_visible())
     check("the conflict graph draws a node per conflicting enchantment and a line per conflict", p11.locator(".graph-node").count() > 40 and p11.locator(".graph-edge").count() > 100)
     p11.hover('.graph-node[data-ns="fancyenchantments:purifying"]')
     check("hovering a node lights its conflicts and names them", p11.locator(".graph-node.near").count() >= 5 and "Smite" in p11.inner_text(".graph-caption"))
@@ -916,6 +925,62 @@ def part_mod_off(browser, base):
     return errors17
 
 
+def part_cost_width(browser, base):
+    """the tooltip is wide enough for its cost line when the enchantment's name is shorter"""
+    _, p19, errors19 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p19.click("#wanted .item-grid >> text=Sword")
+    p19.click("#options-menu summary")
+    p19.click('#limit-panel [data-focus="mod-spellbound"]')
+    p19.wait_for_selector("#wanted .mod-section")
+    p19.keyboard.press("Escape")
+    p19.locator("#wanted .each-card .switch-option", has_text="Legacy").first.click() # (on a sword Legacy is in a Pick one in each)
+    p19.wait_for_selector("#results .anvil-step")
+    p19.wait_for_function("document.querySelector('#wanted .cost-line:not(.idle) .cost-line-text') && document.querySelector('#wanted .cost-line-text').textContent.includes('Levels')")
+    settle(p19)
+    fits = p19.evaluate("""() => { const tip = document.querySelector('#wanted .wanted-preview .mc-tooltip').getBoundingClientRect(); const text = document.querySelector('#wanted .cost-line-text').getBoundingClientRect(); return [Math.round(text.right), Math.round(tip.right)]; }""")
+    check("a tooltip with one short enchantment still fits its cost line", fits[0] <= fits[1], fits)
+    return errors19
+
+
+def part_pick_each(browser, base):
+    """Pick one in each: Flint & Steel with Spellbound (repair and unbreaking, joined by Selfish)"""
+    _, p20, errors20 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p20.click("#wanted .item-grid >> text=Flint")
+    p20.click("#options-menu summary")
+    p20.click('#limit-panel [data-focus="mod-spellbound"]')
+    p20.wait_for_selector("#wanted .pick-each")
+    p20.keyboard.press("Escape")
+    check("two groups joined by Selfish are two Pick one cards in one section, Selfish in both", p20.locator("#wanted .pick-each .each-card").count() == 2 and p20.locator("#wanted .pick-each .switch-option.bridge").count() == 2 and p20.locator("#wanted .ench-group:not(.exclusive)").count() == 0)
+    tips = p20.locator("#wanted .switch-option.bridge").evaluate_all("e => e.map(x => x.title)")
+    check("the joining enchantment's hover text names it, says what it does and that it is in more than one group, and appears nowhere else in the section", len(tips) == 2 and all(tip.startswith("Selfish ⇄ ") and "In more than one group" in tip and len(tip) > 60 for tip in tips) and "In more than one group" not in p20.locator("#wanted .pick-each").inner_text(), tips)
+    card = lambda index, text: p20.locator("#wanted .each-card").nth(index).locator(".switch-option", has_text=text).first
+    card(0, "Legacy").click()
+    card(1, "Buffered").click()
+    settle(p20)
+    chosen = p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)")
+    check("one pick in each group stays together, the chosen rows shown once under the cards", sorted(chosen) == ["spellbound:buffered", "spellbound:legacy"] and p20.locator("#wanted .each-rows > .ench-row").count() == 2, chosen)
+    card(0, "Selfish").click()
+    settle(p20)
+    check("Selfish replaces both picks and shows selected in both groups", p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)") == ["spellbound:selfish"] and p20.locator("#wanted .each-card .switch-option.selected").all_inner_texts() == ["Selfish", "Selfish"])
+    card(1, "None").click()
+    settle(p20)
+    check("None in either group clears Selfish", p20.locator("#wanted .ench-row.chosen").count() == 0)
+    # Switching in place (same count, nothing moves) rolls the bar and eases the height: no row opens or folds, the bar moves both ways.
+    card(0, "Mending").click()
+    settle(p20)
+    p20.set_viewport_size({"width": 560, "height": 1000})
+    settle(p20)
+    card(0, "Photosynthetic").click()
+    settle(p20)
+    p20.evaluate("""() => { window.__t = []; const t0 = performance.now(); const tick = () => { const row = document.querySelector('.each-rows > .ench-row'); window.__t.push([document.querySelectorAll('.each-rows > *').length, Math.round(row.getBoundingClientRect().height), Math.round(row.querySelector('.level-bar').getBoundingClientRect().top - row.getBoundingClientRect().top)]); if (performance.now() - t0 < 450) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }""")
+    card(0, "Mending").click()
+    p20.wait_for_timeout(600)
+    frames = p20.evaluate("window.__t")
+    tops = [f[2] for f in frames]
+    check("switching in place keeps one row (none folds or opens) and the level bar moves smoothly as the row grows", all(f[0] == 1 for f in frames) and max(tops) > min(tops) + 4 and len(set(tops)) >= 4 and tops == sorted(tops), frames[:14])
+    return errors20
+
+
 def part_narrow_results(browser, base):
     """section 4 on a narrow window: tree lines, view cross-fade, Expand all"""
     # Section 4 on a narrow window: the full tree lists each enchantment on its own line; views cross-fade; Expand/Collapse all ease.
@@ -949,7 +1014,7 @@ def part_narrow_results(browser, base):
     return errors18
 
 
-PARTS = [part_steps, part_section1, part_books, part_anvil_uses, part_chips, part_ranking, part_elytra, part_fancy, part_two_mods, part_level_rows, part_mod_off, part_narrow_results]
+PARTS = [part_steps, part_section1, part_books, part_anvil_uses, part_chips, part_ranking, part_elytra, part_fancy, part_two_mods, part_level_rows, part_mod_off, part_cost_width, part_pick_each, part_narrow_results]
 
 
 def run_part(part, base):
