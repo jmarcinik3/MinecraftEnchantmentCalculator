@@ -49,7 +49,7 @@
         "group_allowed": "Incompatibles (permitido)",
         "replaces": "Sustituye a {name}",
         "item_takes": {"plural": "count", "one": "Admite {count} encantamiento", "other": "Admite {count} encantamientos"},
-        "cost_meter": {"plural": "levels", "one": "{levels} nivel en total", "other": "{levels} niveles en total"},
+        "cost_meter": {"plural": "levels", "one": "{levels} Nivel", "other": "{levels} Niveles"},
         "cost_meter_help": "Niveles de yunque del mejor orden con los libros de abajo",
         "cost_meter_none": "No hay orden válido",
         "compare_same": "Ya elegido",

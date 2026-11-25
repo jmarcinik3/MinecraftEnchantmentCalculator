@@ -70,3 +70,25 @@ export async function copyText(target, text, label, button = target) {
 // so what is below moves smoothly instead of jumping. A redraw mid-slide starts from
 // wherever it had got to.
 export const motion_ok = () => !matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+// The enchantment glints (the slots' and the rows' sheen) all run on the page's clock: every one
+// starts at the animation timeline's zero, so a redraw that rebuilds a slot or a row doesn't start
+// its sheen over, and slots that appear later are already in step with the others.
+const GLINTS = new Set(["glint", "row-glint"]);
+
+function syncGlints() {
+    for (const animation of document.getAnimations()) {
+        if (GLINTS.has(animation.animationName) && animation.startTime !== 0) animation.startTime = 0;
+    }
+}
+
+export function keepGlintsInStep() {
+    let queued = false;
+    // Before the next paint, so a rebuilt slot never shows a frame of its sheen from the start.
+    new MutationObserver(() => {
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(() => { queued = false; syncGlints(); });
+    }).observe(document.body, { childList: true, subtree: true });
+    syncGlints();
+}

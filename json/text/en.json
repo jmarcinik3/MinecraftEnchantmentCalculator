@@ -49,7 +49,7 @@
         "group_allowed": "Conflict (allowed)",
         "replaces": "Replaces {name}",
         "item_takes": {"plural": "count", "one": "Takes {count} enchantment", "other": "Takes {count} enchantments"},
-        "cost_meter": {"plural": "levels", "one": "{levels} level in total", "other": "{levels} levels in total"},
+        "cost_meter": {"plural": "levels", "one": "{levels} Level", "other": "{levels} Levels"},
         "cost_meter_help": "Anvil levels for the best order with the books below",
         "cost_meter_none": "No valid order",
         "compare_same": "Already chosen",

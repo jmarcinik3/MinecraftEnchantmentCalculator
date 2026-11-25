@@ -178,9 +178,12 @@ def main():
         check("chosen rows glint", page6.evaluate("getComputedStyle(document.querySelector('#wanted .ench-row.chosen'), '::after').animationName") == "row-glint")
         chosen_before = page6.locator("#wanted .ench-row.chosen").count()
         page6.locator("#wanted .ench-row.chosen .ench-clear").first.click()
+        page6.wait_for_timeout(450) # a cleared row closes, as a copy, before it is gone
         check("the × clears one enchantment", page6.locator("#wanted .ench-row.chosen").count() == chosen_before - 1)
         page6.click("#wanted .preset >> text=Plain")
+        page6.wait_for_timeout(450)
         check("the Plain preset clears every enchantment", page6.locator("#wanted .ench-row.chosen").count() == 0)
+        check("with nothing chosen the Levels line has folded away", page6.locator("#wanted .wanted-preview .cost-line:not(.idle)").count() == 0 and page6.locator("#wanted .wanted-preview .cost-line").evaluate("l => l.textContent.trim()") == "")
         check("Plain shows as selected", page6.locator("#wanted .preset.selected >> text=Plain").count() == 1)
 
         # Swapping Protection for Projectile Protection: the old line is covered from the right
@@ -287,6 +290,27 @@ def main():
         page4.mouse.up()
         page4.wait_for_timeout(300)
         check("the merge preview changes nothing", page4.locator("#books .entry-card").count() == cards)
+        # Switching views: tooltips that rest hidden never flash, every slot travels on its own, and nothing is left behind.
+        page4.mouse.move(0, 0)
+        flash = page4.evaluate("""() => new Promise(resolve => {
+            let worst = 0, moving = 0;
+            document.querySelector('#books [data-focus="view-slots"]').click();
+            moving = [...document.querySelectorAll('#books .slotcell .slot-cell-button')].filter(unit => unit.getAnimations().some(a => a.effect.getKeyframes().some(k => k.transform && k.transform !== 'none'))).length;
+            const start = performance.now();
+            const sample = () => {
+                for (const tip of document.querySelectorAll('#books .slot-tip')) worst = Math.max(worst, +getComputedStyle(tip).opacity);
+                performance.now() - start < 600 ? requestAnimationFrame(sample) : resolve({ worst, moving });
+            };
+            sample();
+        })""")
+        check("switching to Slots never flashes the tooltips", flash["worst"] == 0, flash)
+        check("each slot travels to its new place", flash["moving"] >= cards - 1, flash)
+        check("a view switch leaves no frames or copies behind", page4.locator("#books .card-frame, #books .card-ghost, #books .morphing").count() == 0)
+        for view in ("list", "cards", "list", "slots", "cards"):
+            page4.click('#books [data-focus="view-%s"]' % view)
+            page4.wait_for_timeout(120)
+        page4.wait_for_timeout(600)
+        check("switching views quickly lands on the last one cleanly", page4.locator("#books .entry-card:not(.compact):not(.slotcell)").count() >= cards and page4.locator("#books .card-frame, #books .card-ghost").count() == 0)
         # The slots view.
         page4.click('#books [data-focus="view-slots"]')
         page4.wait_for_timeout(500)
@@ -440,6 +464,95 @@ def main():
         p8.locator("#results .slots-mode .anvil-cell").nth(1).click()
         check("a tap on another slot moves the tooltip", p8.locator("#results .slots-mode .anvil-cell.tip-open").count() == 1)
         errors_extra = errors7 + errors8
+        # Automatic <-> Custom, the "All n reached" chips and a "Pick one" group going to None and back: each animates and leaves nothing behind.
+        _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+        p9.evaluate("localStorage.clear()")
+        p9.reload()
+        p9.wait_for_selector("#wanted .item-grid")
+        p9.click('#wanted .item-grid button[data-focus="item-boots"]')
+        p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+        p9.wait_for_selector("#books .entry-card")
+        p9.wait_for_timeout(600)
+        left_over = "#books .card-frame, #books .card-ghost, #books .card-leaving, #books .bar-leaving, #books .seg-pill, #books .morphing"
+        p9.click('[data-focus="mode-custom"]')
+        p9.wait_for_timeout(900)
+        check("switching to Custom leaves nothing behind", p9.locator(left_over).count() == 0 and p9.locator("#books .entry-add-card").count() == 1)
+        check("the entries keep their cards and gain tools", p9.locator("#books .entry-card .entry-head").count() == p9.locator("#books .entry-card").count())
+        p9.click('[data-focus="mode-auto"]')
+        p9.wait_for_timeout(900)
+        check("switching back to Automatic leaves nothing behind", p9.locator(left_over).count() == 0 and p9.locator("#books .entry-add-card").count() == 0 and p9.locator("#books .coverage").count() == 0)
+        p9.click('[data-focus="mode-custom"]')
+        p9.wait_for_timeout(900)
+        p9.mouse.move(0, 0)
+        p9.evaluate("""() => { window.__gap = new Promise(resolve => {
+            const heights = new Set(); let gaps = [];
+            const start = performance.now();
+            const tick = () => {
+                const strip = document.querySelector('#books .coverage'), grid = document.querySelector('#books .entry-grid');
+                const a = strip.getBoundingClientRect(), b = grid.getBoundingClientRect();
+                heights.add(Math.round(a.height)); gaps.push(Math.round((b.top - a.bottom) * 10) / 10);
+                performance.now() - start < 800 ? requestAnimationFrame(tick) : resolve({ heights: heights.size, spread: Math.max(...gaps) - Math.min(...gaps) });
+            };
+            tick();
+        }); }""")
+        p9.click('#books [data-focus="cover-summary"]')
+        gap = p9.evaluate("window.__gap")
+        check("the entries below follow the opening menu at its own rate", gap["heights"] >= 6 and gap["spread"] < 1, gap)
+        p9.wait_for_timeout(300)
+        check("the reached chips roll out of the summary chip", p9.locator("#books .cover-chip.ok:not(.summary)").count() >= 3 and p9.get_attribute('#books [data-focus="cover-summary"]', "aria-expanded") == "true")
+        p9.evaluate("""() => { window.__ghosts = new Promise(resolve => { let most = 0; const start = performance.now();
+            const tick = () => { most = Math.max(most, document.querySelectorAll('#books .chip-leaving').length); performance.now() - start < 1000 ? requestAnimationFrame(tick) : resolve(most); }; tick(); }); }""")
+        p9.click('#books [data-focus="cover-summary"]')
+        p9.wait_for_timeout(900)
+        check("closing the menu does not replay the chips fading out", p9.evaluate("window.__ghosts") == 0)
+        check("and roll back in", p9.locator("#books .cover-chip.ok:not(.summary)").count() == 0 and p9.get_attribute('#books [data-focus="cover-summary"]', "aria-expanded") == "false")
+        # A chip that changes state (amber to green) fades between the looks.
+        p9.click('#books [data-focus="cover-summary"]')
+        p9.wait_for_timeout(900)
+        p9.click('#wanted [data-focus="switch-depth_strider-frost_walker"]')
+        p9.wait_for_timeout(900)
+        check("a missing enchantment shows an amber chip", p9.locator('#books .cover-chip.short[data-ns="frost_walker"]').count() == 1)
+        fades = p9.evaluate("""() => { document.querySelector('#books [data-focus="cover-frost_walker"]').click();
+            return [...document.querySelectorAll('#books .cover-chip[data-ns="frost_walker"]')].some(chip => chip.classList.contains('ok') && chip.getAnimations().some(a => a.effect.getKeyframes().some(k => k.backgroundColor))); }""")
+        check("a chip that turns green fades between the looks", fades)
+        p9.wait_for_timeout(600)
+        key = p9.locator("#wanted .ench-group.exclusive").first.get_attribute("data-group")
+        group = '#wanted .ench-group.exclusive[data-group="%s"]' % key
+        check("a Pick one group with a pick shows its row", p9.locator(group + " > .ench-row").count() == 1)
+        p9.click('#wanted [data-focus="switch-%s-none"]' % key)
+        p9.wait_for_timeout(700)
+        check("None closes the row and leaves no copy", p9.locator(group + " > .ench-row").count() == 0)
+        p9.click('#wanted [data-focus^="switch-%s-"]:not([data-focus$="-none"]) >> nth=0' % key)
+        p9.wait_for_timeout(700)
+        check("an enchantment opens its row again", p9.locator(group + " > .ench-row").count() == 1 and p9.locator(group + " > .ench-row.chosen").count() == 1)
+        # Section 1 changes ease to a stop: the last change in #wanted's height, frame to frame, is small (a jump at the end is a snap).
+        def last_step(act):
+            p9.evaluate("""() => { window.__j = new Promise(resolve => {
+                const el = document.querySelector('#wanted'); let last = el.getBoundingClientRect().height, final = 0; const start = performance.now();
+                const tick = () => { const now = el.getBoundingClientRect().height; if (Math.abs(now - last) > 0.05) final = Math.abs(now - last); last = now; performance.now() - start < 900 ? requestAnimationFrame(tick) : resolve(final); };
+                tick();
+            }); }""")
+            act()
+            return p9.evaluate("window.__j")
+        p9.click("#wanted .preset >> text=Plain")
+        p9.wait_for_timeout(1000)
+        jump = last_step(lambda: p9.locator('[data-focus="bar-feather_falling"] .level-seg').nth(3).click())
+        check("adding an enchantment does not jump in height", jump < 4, jump)
+        p9.wait_for_timeout(600)
+        jump = last_step(lambda: p9.click('[data-focus="clear-feather_falling"]'))
+        check("removing an enchantment does not jump in height", jump < 4, jump)
+        p9.wait_for_timeout(600)
+        p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+        p9.wait_for_timeout(1000)
+        jump = last_step(lambda: p9.click('#wanted [data-focus="switch-%s-none"]' % key))
+        check("picking None in a group does not jump in height", jump < 4, jump)
+        # The glints share the page's clock: a redraw does not start a sheen over.
+        phase = lambda: p9.evaluate("[...document.getAnimations()].filter(a => a.animationName === 'glint' || a.animationName === 'row-glint').map(a => a.startTime)")
+        check("every glint starts at the timeline's zero", len(phase()) > 0 and set(phase()) == {0}, phase())
+        p9.click('#wanted .level-bar:visible .level-seg >> nth=0')
+        p9.wait_for_timeout(300)
+        check("a change in section 1 does not restart the glints", len(phase()) > 0 and set(phase()) == {0}, phase())
+        errors_extra = errors_extra + errors9
         for name, errs in (("desktop", errors), ("phone", errors2), ("small", errors3), ("smoke", errors4), ("section 1", errors6), ("anvil uses", errors_extra)):
             check(f"no page errors ({name})", not errs, errs)
         browser.close()

@@ -2,7 +2,7 @@
 import { EDITIONS, cleanName, createLogic, editionMetadata } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
-import { $, copyText, h, icon, motion_ok, readStorage, writeStorage } from "./Dom.js";
+import { $, copyText, h, icon, keepGlintsInStep, motion_ok, readStorage, writeStorage } from "./Dom.js";
 import { renderWanted, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
@@ -440,6 +440,7 @@ function fillPageText() {
 }
 
 async function init() {
+    keepGlintsInStep();
     try {
         await applyLanguage(startingLanguage());
     } catch (error) {

@@ -4,7 +4,7 @@ import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
 import { $, h, icon, motion_ok } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
-import { closeLines, growSmoothly, openLines, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
+import { closeLines, closeRow, growSmoothly, inertCopy, openLines, openRow, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
 
@@ -51,6 +51,22 @@ export function renderWanted() {
         const bar = group.querySelector(".level-bar");
         if (bar) old_bars.set(group.dataset.group, { levels: bar.querySelectorAll(".level-seg").length, segments: [...bar.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true)) });
     }
+    // The cost line of the preview's tooltip, so it can fold away in place if the redraw drops it.
+    const old_cost_line = box.querySelector(".wanted-preview .cost-line:not(.idle)");
+    const old_cost_copy = old_cost_line ? inertCopy(old_cost_line) : null;
+    // Each row's height, to ease a row that gets taller or shorter (a "not on your books" note appearing, say) instead of jumping.
+    const old_rows = new Map([...box.querySelectorAll(".ench-row[data-ns]")].map(row => [row.dataset.ns, row.getBoundingClientRect().height]));
+    // Each "Pick one" group before: which option was chosen, how its box looked, and a copy of its row,
+    // so None <-> an enchantment can animate (the row opens or closes, the options and the border fade).
+    const old_picks = new Map();
+    for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
+        const row = group.querySelector(":scope > .ench-row");
+        old_picks.set(group.dataset.group, {
+            selected: group.querySelector(".switch-option.selected")?.dataset.focus || null,
+            border: getComputedStyle(group).borderColor,
+            row: row ? inertCopy(row) : null
+        });
+    }
     // The preview's tooltip lines, to fade out the ones about to go (closeLines).
     const old_tip_box = old_height != null ? old_preview.querySelector(".mc-tooltip")?.getBoundingClientRect() : null;
     const old_width = old_tip_box ? old_tip_box.width : null;
@@ -94,6 +110,8 @@ export function renderWanted() {
         }
 
     }
+    const new_cost_line = box.querySelector(".wanted-preview .cost-line");
+    if (old_cost_copy && new_cost_line && new_cost_line.classList.contains("idle")) closeRow(new_cost_line.parentElement, old_cost_copy);
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
         growSmoothly(group, old_groups.get(group.dataset.group));
@@ -103,8 +121,39 @@ export function renderWanted() {
         const old = old_bars.get(group.dataset.group);
         const bar = group.querySelector(".level-bar");
         if (old && bar) rollLevelBar(bar, old.levels, old.segments);
+        animatePick(group, old_picks.get(group.dataset.group));
+    }
+    if (motion_ok() && !old_groups.size) {
+        for (const row of box.querySelectorAll(".ench-row[data-ns]")) {
+            const was = old_rows.get(row.dataset.ns);
+            const now = row.getBoundingClientRect().height;
+            if (was == null || Math.abs(was - now) < 1 || row.getAnimations().length) continue;
+            row.style.overflow = "hidden";
+            const clear = () => { row.style.overflow = ""; };
+            row.animate([{ height: was + "px" }, { height: now + "px" }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
+            setTimeout(clear, 400);
+        }
     }
     restoreFocus(box, focus);
+}
+
+// A "Pick one" group after a redraw: its chosen row opens or closes when the pick goes from or to
+// None (a switch from one enchantment to another is rollLevelBar's), the option that was chosen
+// fades out of its highlight and the new one fades in, and the border changes color smoothly.
+function animatePick(group, old) {
+    if (!old || !motion_ok()) return;
+    const row = group.querySelector(":scope > .ench-row");
+    if (row && !old.row) openRow(row);
+    else if (!row && old.row) closeRow(group, old.row);
+    const now = group.querySelector(".switch-option.selected"); // None is an option too, so there always is one
+    if (now && now.dataset.focus !== old.selected) {
+        const look = getComputedStyle(now);
+        const quiet = { backgroundColor: "rgba(0, 0, 0, 0)", boxShadow: "inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 3px rgba(0, 0, 0, 0)" };
+        const was = old.selected && group.querySelector(`[data-focus="${old.selected}"]`);
+        if (was) was.animate([{ backgroundColor: look.backgroundColor, boxShadow: look.boxShadow, color: look.color }, {}], { duration: 260, easing: "ease-out" });
+        now.animate([quiet, {}], { duration: 260, easing: "ease-out" });
+    }
+    if (getComputedStyle(group).borderColor !== old.border) group.animate([{ borderColor: old.border }, {}], { duration: 300, easing: "ease-out" });
 }
 
 // The element with focus inside `box' (by its data-focus), so a redraw can put the
@@ -183,37 +232,54 @@ function wantedPreview() {
     });
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
-    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell, costMeter());
+    cell.querySelector(".mc-tooltip").append(costLine());
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
 }
 
-// Under the preview: an XP orb and the total anvil levels of the best order for the books
-// you have (from the last calculation; dimmed while a new one runs, empty when there is none).
-// Results.js calls updateCostMeter whenever the results change.
+// The last line of the preview's tooltip: an XP orb and the anvil levels of the best order for the books
+// you have ("12 Levels"; from the last calculation, dimmed while a new one runs, folded away when there
+// is none). Results.js calls updateCostMeter whenever the results change; the line opens, closes and
+// changes its words smoothly.
 let meter_levels = null;
 let meter_none = false; // the last search found no order at all (too expensive)
 
-function costMeter() {
-    const meter = h("div", { class: "cost-meter", title: TEXT.wanted.cost_meter_help },
-        h("img", { class: "cost-meter-orb", src: "img/experience_orb.png", alt: "" }),
-        h("span", { class: "cost-meter-text" }));
-    fillCostMeter(meter);
-    return meter;
+function costLine() {
+    const line = h("div", { class: "cost-line", title: TEXT.wanted.cost_meter_help },
+        h("img", { class: "cost-line-orb", src: "img/experience_orb.png", alt: "" }),
+        h("span", { class: "cost-line-text" }));
+    fillCostMeter(line);
+    return line;
 }
 
-function fillCostMeter(meter) {
-    meter.classList.toggle("stale", running);
-    meter.classList.toggle("empty", meter_levels == null && !meter_none);
-    meter.classList.toggle("none", meter_levels == null && meter_none);
-    meter.querySelector(".cost-meter-text").textContent = meter_levels != null ? TEXT.wanted.cost_meter({ levels: meter_levels })
-        : meter_none ? TEXT.wanted.cost_meter_none : "";
+function fillCostMeter(line) {
+    const before = line.getBoundingClientRect().height;
+    line.classList.toggle("stale", running);
+    // Nothing chosen means nothing to cost: the line goes at once, not when the new search finishes.
+    const nothing = Object.keys(state.wanted).length === 0;
+    line.classList.toggle("idle", nothing || meter_levels == null && !meter_none);
+    line.classList.toggle("none", !nothing && meter_levels == null && meter_none);
+    const text = line.querySelector(".cost-line-text");
+    const words = nothing ? "" : meter_levels != null ? TEXT.wanted.cost_meter({ levels: meter_levels }) : meter_none ? TEXT.wanted.cost_meter_none : "";
+    const changed = text.textContent !== words;
+    text.textContent = words;
+    if (!line.isConnected || !motion_ok()) return;
+    // New words fade in instead of popping.
+    if (changed && words) text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+    // The line opens when a result arrives and folds away when there is none, so the tooltip eases to its new height.
+    const after = line.getBoundingClientRect().height;
+    if (Math.abs(after - before) < 1) return;
+    line.style.overflow = "hidden";
+    const clear = () => { line.style.overflow = ""; };
+    line.animate([{ height: before + "px", opacity: before ? 1 : 0 }, { height: after + "px", opacity: after ? 1 : 0 }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
+    setTimeout(clear, 400);
 }
 
 export function updateCostMeter() {
     const ok = last_result && last_result.status === "ok";
     if (ok && last_result.node) { meter_levels = last_result.node.cumulative_levels; meter_none = false; }
     else if (!running) { meter_levels = null; meter_none = Boolean(ok); }
-    const meter = document.querySelector("#wanted .cost-meter");
-    if (meter) fillCostMeter(meter);
+    const line = document.querySelector("#wanted .cost-line");
+    if (line) fillCostMeter(line);
 }
 
 // Opens or closes the item menu (the slot's button).
@@ -346,7 +412,7 @@ function wantedRow(ns, short = null) {
     const help = logic.describe(ns);
     const cost = chosen ? logic.bookCost(ns, chosen) : 0;
 
-    return h("div", { class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
+    return h("div", { "data-ns": ns, class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
         // Columns (CSS grid, so every row lines up): the name with what it does under it,
         // the cost once chosen, the level bar, and a × that clears it.
         h("div", { class: "ench-name" },

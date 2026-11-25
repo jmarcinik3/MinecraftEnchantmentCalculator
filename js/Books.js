@@ -3,7 +3,7 @@ import { MAX_COPIES, MAX_STEP_LEVELS, maxPriorWork, movePriority, roman } from "
 import { TEXT } from "./Text.js";
 import { logic, nextBookId, state } from "./Store.js";
 import { $, h, icon, motion_ok, readStorage, writeStorage } from "./Dom.js";
-import { animateCards, cardRects, closeLines, openLines, rollLines } from "./Motion.js";
+import { animateCards, animateChips, barSnapshot, chipSnapshot, cardRects, closeLines, leaveBar, openLines, pillRects, revealBar, rollChipsIn, rollChipsOut, rollLines, slidePills } from "./Motion.js";
 import { focusState, levelBar, restoreFocus } from "./Wanted.js";
 import { dragToReorder } from "./Ranking.js";
 import { stepLimit } from "./Options.js";
@@ -36,10 +36,19 @@ export function renderBooks() {
     // Switching Cards/List morphs each card into its new shape (animateCards).
     const view_changed = box.dataset.view != null && box.dataset.view !== books_view;
     box.dataset.view = books_view;
-    const old_rects = cardRects(box);
+    // Switching Automatic/Custom keeps the entries that are still there (matched by what they hold).
+    const mode = state.auto_books ? "auto" : "custom";
+    const mode_changed = box.dataset.mode != null && box.dataset.mode !== mode;
+    box.dataset.mode = mode;
+    const old_rects = cardRects(box, view_changed || mode_changed);
+    const old_pills = pillRects(box);
+    const old_chips = chipSnapshot(box.querySelector(":scope > .coverage"));
+    const old_strip = barSnapshot(box.querySelector(":scope > .coverage"));
+    const old_strip_height = old_strip ? parseFloat(old_strip.box.height) : 0;
+    const old_sigs = book_sigs;
     const old_grid = box.querySelector(".entry-grid");
     const old_keys = [...box.querySelectorAll(".entry-card[data-key]")].map(card => card.dataset.key).join();
-    const old_cards = view_changed ? new Map() : oldTooltips(box);
+    const old_cards = view_changed || mode_changed ? new Map() : oldTooltips(box);
     const old_height = old_grid ? old_grid.getBoundingClientRect().height : null;
     // Emptying the section shortens the page for a moment, and near its bottom the
     // browser scrolls up to fit; the scroll goes back once the cards are in again.
@@ -55,6 +64,7 @@ export function renderBooks() {
     const unwanted = new Set(check ? check.unwanted : []);
     if (entry_popover && !(custom && state.books.some(book => book.id === entry_popover.id))) entry_popover = null;
 
+    book_sigs = new Map(books.map(book => [String(book.id), bookSignature(book)]));
     const grid = h("div", { class: "entry-grid" + (books_view === "list" ? " list" : books_view === "slots" ? " slots" : "") },
         books.map((book, index) => entryCard(book, index, books.length, custom, unwanted)),
         custom ? addCard() : null
@@ -71,8 +81,23 @@ export function renderBooks() {
     // The same entries in the same order (only their enchantments changed): the tooltips' lines
     // animate in place, as in section 1, and the layout follows them. Otherwise the cards slide.
     const new_keys = [...box.querySelectorAll(".entry-card[data-key]")].map(card => card.dataset.key).join();
-    if (!view_changed && old_cards.size && old_keys === new_keys) animateLines(box, old_cards);
-    else animateCards(box, old_rects, old_height, view_changed); // holds the old height while it slides
+    slidePills(box, old_pills);
+    const strip = box.querySelector(":scope > .coverage");
+    if (mode_changed) {
+        if (strip && !old_strip) revealBar(strip);
+        else if (!strip && old_strip) leaveBar(box.querySelector(".toolbar"), old_strip);
+    } else if (coverage_roll && strip) {
+        rollChipsIn(strip, old_strip_height);
+    } else if (strip && old_strip && !coverage_rolled_in) {
+        animateChips(strip, old_chips);
+    }
+    coverage_roll = false;
+    coverage_rolled_in = false;
+    if (mode_changed) {
+        const { matched, leaving } = matchOldCards(old_rects, books, old_sigs);
+        animateCards(box, matched, old_height, "mode", leaving);
+    } else if (!view_changed && old_cards.size && old_keys === new_keys) animateLines(box, old_cards);
+    else animateCards(box, old_rects, old_height, view_changed ? "view" : false); // holds the old height while it slides
     if (scrollY !== scroll) scrollTo(scrollX, scroll);
     restoreFocus(box, focus);
     if (fresh_entry != null) {
@@ -108,6 +133,30 @@ function revealEntry(id) {
     if (top < margin) move = top - margin;
     else if (bottom > innerHeight - margin) move = Math.min(bottom - innerHeight + margin, top - margin);
     if (Math.abs(move) > 1) scrollBy({ top: move, behavior: motion_ok() ? "smooth" : "auto" });
+}
+
+// What each entry held at the last draw (by id), to find it again after a change of mode, when
+// the ids change: its kind and enchantments.
+let book_sigs = new Map();
+function bookSignature(book) {
+    return book.type + ":" + Object.entries(book.enchantments).map(([ns, level]) => ns + level).sort().join(",");
+}
+
+// After Automatic <-> Custom: each new entry takes the old card that held the same, in order;
+// the old cards left over fade out where they were, the new ones left over fade in.
+function matchOldCards(old_rects, books, old_sigs) {
+    const old_entries = [...old_rects].filter(([key]) => key !== "add-card");
+    const used = new Set();
+    const matched = new Map();
+    for (const book of books) {
+        const sig = bookSignature(book);
+        const found = old_entries.find(([key]) => !used.has(key) && old_sigs.get(key) === sig);
+        if (!found) continue;
+        used.add(found[0]);
+        matched.set(String(book.id), found[1]);
+    }
+    if (old_rects.has("add-card")) matched.set("add-card", old_rects.get("add-card"));
+    return { matched, leaving: old_entries.filter(([key]) => !used.has(key)).map(([, spec]) => spec) };
 }
 
 // Automatic (one book per chosen enchantment) or Custom (your own list). Custom starts
@@ -365,6 +414,29 @@ function animateLines(box, old_cards) {
 // with ✓, and from three of them on they fold into one "✓ All 7 reached" chip, which
 // opens the list.
 let coverage_open = false;
+let coverage_roll = false; // the next redraw shows the chips: they roll out of the summary chip (Motion.js rollChipsIn)
+let coverage_closing = false;
+let coverage_rolled_in = false; // the chips have just rolled back in: the redraw that drops them must not animate them again
+
+// Opening redraws, then the chips roll out row by row; closing rolls them back in first (last row first).
+function toggleCoverage(summary) {
+    if (coverage_closing) return;
+    if (!coverage_open) {
+        coverage_open = true;
+        coverage_roll = true;
+        renderBooks();
+        return;
+    }
+    coverage_closing = true;
+    summary.setAttribute("aria-expanded", "false");
+    summary.querySelector(".cover-caret").textContent = "▾";
+    rollChipsOut(summary.closest(".coverage"), () => {
+        coverage_closing = false;
+        coverage_open = false;
+        coverage_rolled_in = true;
+        renderBooks();
+    });
+}
 
 function coverageStrip() {
     const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
@@ -375,7 +447,7 @@ function coverageStrip() {
     const short = sorted.filter(item => !reached.includes(item));
     const okChip = ({ namespace: ns, level }) => {
         const name = logic.displayName(ns, level);
-        return h("span", { class: "cover-chip ok draggable", title: TEXT.books.cover_ok({ name }) + ". " + TEXT.books.chip_drag_hint, onpointerdown: event => chipDrag(event, ns, level) }, "✓ ", name);
+        return h("span", { "data-ns": ns, class: "cover-chip ok draggable", title: TEXT.books.cover_ok({ name }) + ". " + TEXT.books.chip_drag_hint, onpointerdown: event => chipDrag(event, ns, level) }, "✓ ", name);
     };
     const folded = reached.length >= 3;
     const summary_text = short.length ? TEXT.books.cover_some({ count: reached.length, total: sorted.length }) : TEXT.books.cover_all({ count: reached.length });
@@ -388,7 +460,7 @@ function coverageStrip() {
     const summary = folded ? h("button", {
         type: "button", class: "cover-chip ok summary", "data-focus": "cover-summary", "aria-expanded": String(coverage_open),
         title: TEXT.books.cover_toggle, "aria-label": summary_text + ". " + TEXT.books.cover_toggle,
-        onclick: () => { coverage_open = !coverage_open; renderBooks(); }
+        onclick: event => toggleCoverage(event.currentTarget)
     }, ring, summary_text, h("span", { class: "cover-caret", "aria-hidden": "true" }, coverage_open ? "▴" : "▾")) : null;
     return h("div", { class: "coverage", role: "group", "aria-label": TEXT.books.coverage_label },
         short.map(({ namespace: ns, level }) => {
@@ -396,7 +468,7 @@ function coverageStrip() {
             const reach = best[ns] || 0;
             const fix = TEXT.books.fix_new_book({ name });
             return h("button", {
-                type: "button", class: "cover-chip short draggable", "data-focus": "cover-" + ns, title: fix + ". " + TEXT.books.chip_drag_hint, "aria-label": fix,
+                type: "button", class: "cover-chip short draggable", "data-focus": "cover-" + ns, "data-ns": ns, title: fix + ". " + TEXT.books.chip_drag_hint, "aria-label": fix,
                 onclick: () => applyFix(ns, level), onpointerdown: event => chipDrag(event, ns, level)
             }, "+ ", name, h("span", { class: "cover-best" }, reach ? TEXT.books.fix_best({ level: roman(reach) }) : TEXT.wanted.not_on_books));
         }),
