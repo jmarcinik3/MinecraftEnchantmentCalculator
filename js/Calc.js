@@ -1,7 +1,7 @@
 // The search: the worker, requests and results.
 import { MAX_GROUPS, searchSize } from "./Logic.js";
 import { TEXT } from "./Text.js";
-import { language, logic, meta, state } from "./Store.js";
+import { engineMeta, language, logic, state } from "./Store.js";
 import { stepLimit } from "./Options.js";
 import { renderResults } from "./Results.js";
 import { applyCarriedProgress } from "./Link.js";
@@ -37,12 +37,21 @@ export function startWorker() {
         last_result = { status: "error", error: TEXT.results.worker_failed };
         renderResults();
     };
-    worker.postMessage({ message: "instantiate_metadata", metadata: meta });
+    worker.postMessage({ message: "instantiate_metadata", metadata: engineMeta() });
 }
 
 function restartWorker() {
     worker.terminate();
     startWorker();
+}
+
+// The game data changed (a mod was turned on or off): every worker starts again with the new data.
+export function resetWorkers() {
+    stopBreakSearch();
+    stopRunning();
+    if (preview_worker) preview_worker.terminate();
+    preview_worker = null;
+    restartWorker();
 }
 
 function stopRunning() {
@@ -97,7 +106,7 @@ function findBreak() {
         stopBreakSearch(false);
         renderResults();
     };
-    break_worker.postMessage({ message: "instantiate_metadata", metadata: meta });
+    break_worker.postMessage({ message: "instantiate_metadata", metadata: engineMeta() });
     break_worker.postMessage({
         message: "calculate_optimal", request_id: id, item_entries: logic.buildEntries(state),
         priority: ["max_step", "levels", "xp", "prior_work"], max_merge_levels: Infinity, edition: state.edition, rename: state.rename
@@ -165,7 +174,7 @@ export function previewMerge(left, right) {
             preview_waiting.delete(event.data.request_id);
             if (resolve) resolve(event.data);
         };
-        preview_worker.postMessage({ message: "instantiate_metadata", metadata: meta });
+        preview_worker.postMessage({ message: "instantiate_metadata", metadata: engineMeta() });
     }
     return new Promise(resolve => {
         const id = ++preview_id;

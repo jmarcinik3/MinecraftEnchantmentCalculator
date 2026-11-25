@@ -452,4 +452,15 @@ test("progress is reported, increases, and ends at 100%", () => {
     assert.deepStrictEqual(calls[calls.length - 1], [total, total]);
 });
 
+test("a mod's enchantments join the search like the game's own", () => {
+    const fancy = require(path.join(__dirname, "../json/mods/fancy_enchantments.json"));
+    const merged = { ...metadata, enchantments: { ...metadata.enchantments, ...fancy.enchantments } };
+    const modded = createEngine(merged);
+    const ns = "fancyenchantments:air_attack";
+    const max = fancy.enchantments[ns].max_level;
+    const root = modded.solve([["sword", [], 0], ["book", [["sharpness", 5]], 0], ["book", [[ns, max]], 0]], { priority: ["levels", "xp", "max_step", "prior_work"] });
+    assert.deepStrictEqual(levelsOf(root), { sharpness: 5, [ns]: max });
+    assert.strictEqual(root.merge_levels + root.left.merge_levels + (root.left.left ? root.left.left.merge_levels : 0) > 0, true);
+});
+
 console.log(`${passed} passed`);

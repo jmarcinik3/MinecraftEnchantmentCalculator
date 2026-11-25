@@ -6,6 +6,7 @@ import { $, h, icon, motionOk } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
 import { closeLines, closeRow, growSmoothly, inertCopy, openLines, openRow, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
 import { anvilCell } from "./Results.js";
+import { conflictGraph } from "./Graph.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
@@ -92,7 +93,7 @@ export function renderWanted() {
         return;
     }
 
-    box.append(wantedHead(presetChips()), wantedList());
+    box.append(...[wantedHead(presetChips()), conflictGraph(), wantedList()].filter(Boolean)); // append(null) would print "null"
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
@@ -171,28 +172,60 @@ export function restoreFocus(box, key) {
 function wantedList() {
     // Chosen enchantments the custom books can't reach (none in automatic mode).
     const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
+    const groupRow = group => {
+        const members = group.members;
+        if (group.exclusive && !state.allow_incompatible) return groupSwitch(members, short);
+        if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
+        // The label folds the bracket: the chosen rows stay, the rest hide (kept in `folded_groups` across redraws).
+        const key = members[0];
+        return h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : "") + (folded_groups.has(key) ? " folded" : ""), "data-group": key },
+            h("button", {
+                type: "button", class: "ench-group-label group-toggle", "data-focus": "group-" + key, "aria-expanded": String(!folded_groups.has(key)),
+                onclick: event => {
+                    const folded = !folded_groups.has(key);
+                    if (folded) folded_groups.add(key); else folded_groups.delete(key);
+                    event.currentTarget.parentElement.classList.toggle("folded", folded);
+                    event.currentTarget.setAttribute("aria-expanded", String(!folded));
+                }
+            }, (state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict) + " (" + members.length + ")"),
+            members.map(ns => wantedRow(ns, short.get(ns)))
+        );
+    };
     const rows = [];
+    const mods = new Map(); // mod name -> its groups (those with none of the game's own enchantments)
     let curses_shown = false;
     for (const group of logic.enchantmentGroups(state.item)) {
-        const members = group.members;
-        const switchable = group.exclusive && !state.allow_incompatible;
-        if (logic.isCurse(members[0]) && !curses_shown) {
+        const mod = logic.modOf(group.members[0]);
+        if (mod) {
+            if (!mods.has(mod)) mods.set(mod, []);
+            mods.get(mod).push(group);
+            continue;
+        }
+        if (logic.isCurse(group.members[0]) && !curses_shown) {
             rows.push(h("div", { class: "divider" }, TEXT.wanted.curses));
             curses_shown = true;
         }
-        if (switchable) {
-            rows.push(groupSwitch(members, short));
-        } else if (members.length === 1) {
-            rows.push(wantedRow(members[0], short.get(members[0])));
-        } else {
-            rows.push(h("div", { class: "ench-group" + (members.some(ns => state.wanted[ns]) ? " has-chosen" : ""), "data-group": members[0] },
-                h("div", { class: "ench-group-label" }, state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict),
-                members.map(ns => wantedRow(ns, short.get(ns)))
-            ));
-        }
+        rows.push(groupRow(group));
+    }
+    // A mod's own enchantments sit under its name, folded away until opened (or one is chosen).
+    for (const [mod, groups] of mods) {
+        const count = groups.reduce((sum, group) => sum + group.members.length, 0);
+        const chosen = groups.some(group => group.members.some(ns => state.wanted[ns]));
+        rows.push(h("details", {
+            class: "mod-section", "data-mod": mod, open: chosen || mod_open.has(mod),
+            ontoggle: event => { if (event.target.open) mod_open.add(mod); else mod_open.delete(mod); }
+        },
+            h("summary", {}, TEXT.wanted.mod_group({ name: mod, count })),
+            groups.map(groupRow)));
     }
     return h("div", { class: "wanted-list" }, rows);
 }
+
+// The conflict brackets the user folded (by their first enchantment), in this visit.
+const folded_groups = new Set();
+
+// The mods whose section the user opened (in this visit).
+const mod_open = new Set();
 
 // The top of section 1: the preview, with `controls` (the toolbar and presets) beside it
 // where the card is wide enough, else under it.
@@ -405,11 +438,13 @@ function groupSwitch(members, short) {
 // `short`: { best } when the custom books can't reach this chosen level.
 function wantedRow(ns, short = null) {
     const chosen = state.wanted[ns] || 0;
-    const blocker = !chosen && Object.keys(state.wanted).find(other => clashes(other, ns));
+    // Choosing it replaces every chosen enchantment it conflicts with (the note names them all).
+    const blockers = chosen ? [] : Object.keys(state.wanted).filter(other => clashes(other, ns));
+    const blocker = blockers[0];
     const name = logic.enchName(ns);
     const help = logic.describe(ns);
     const cost = chosen ? logic.bookCost(ns, chosen) : 0;
-    const replaces = blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null;
+    const replaces = blocker ? TEXT.wanted.replaces({ name: blockers.map(logic.enchName) }) : null;
 
     return h("div", { "data-ns": ns, class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
         // Columns (CSS grid, so every row lines up): the name with what it does under it,

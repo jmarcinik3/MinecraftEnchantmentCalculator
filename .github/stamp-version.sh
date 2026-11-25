@@ -37,6 +37,7 @@ fi
 stamp js/Calc.js '"js/Calculator.js"' "\"js/Calculator.js?v=$version\""
 stamp js/App.js '"json/metadata.json"' "\"json/metadata.json?v=$version\""
 stamp js/Calculator.js 'importScripts("Engine.js")' "importScripts(\"Engine.js?v=$version\")"
+stamp js/App.js 'const MODS_VERSION = ""' "const MODS_VERSION = \"?v=$version\""
 stamp js/Text.js 'const TEXT_VERSION = ""' "const TEXT_VERSION = \"?v=$version\""
 # The offline copy: its file list gets the same addresses, and each release a new cache.
 stamp ServiceWorker.js 'const VERSION = "dev"' "const VERSION = \"$version\""

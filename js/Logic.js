@@ -71,6 +71,50 @@ export function editionMetadata(meta, edition) {
     return { ...meta, enchantments };
 }
 
+// Mods whose enchantments can be added (Game rules > Mods). Each has a data file, json/mods/<id>.json:
+// { id, label, note, source, enchantments: {ns: {incompatible, items, max_level, weight}} (as in metadata.json,
+// keyed by the mod's own ids), names: {en: {ns: name}, <language>: ...}, descriptions: likewise }. Java only.
+export const MOD_IDS = ["fancy_enchantments"];
+
+// The metadata with the given mods' enchantments added. They list after the game's own in a tooltip, and a
+// conflict naming an enchantment that is not there (one the app can't show) is dropped.
+export function withMods(meta, mods) {
+    if (!mods.length) return meta;
+    const enchantments = { ...meta.enchantments };
+    const tooltip_order = [...(meta.tooltip_order || [])];
+    for (const mod of mods) {
+        for (const [ns, data] of Object.entries(mod.enchantments)) {
+            enchantments[ns] = { ...data, mod: mod.label };
+            tooltip_order.push(ns);
+        }
+    }
+    for (const mod of mods) {
+        for (const ns of Object.keys(mod.enchantments)) {
+            enchantments[ns] = { ...enchantments[ns], incompatible: enchantments[ns].incompatible.filter(other => other in enchantments) };
+        }
+    }
+    return { ...meta, enchantments, tooltip_order };
+}
+
+// The mods' names and descriptions in one language (English where a mod has none in it), shaped like `names`.
+export function modNames(mods, language) {
+    const pick = (mod, kind) => ({ ...(mod[kind] && mod[kind].en), ...(mod[kind] && mod[kind][language]) });
+    return {
+        enchantments: Object.assign({}, ...mods.map(mod => pick(mod, "names"))),
+        descriptions: Object.assign({}, ...mods.map(mod => pick(mod, "descriptions")))
+    };
+}
+
+// The mods a share link names (so their data can be loaded before the link is read).
+export function linkMods(text) {
+    try {
+        const data = JSON.parse(fromLinkText(text));
+        return Array.isArray(data.d) ? MOD_IDS.filter(id => data.d.includes(id)) : [];
+    } catch {
+        return [];
+    }
+}
+
 // Share-link text: URL-safe base64 of the UTF-8 bytes, so names with any characters
 // work (plain btoa only takes Latin-1). ASCII-only text encodes exactly as before, so
 // older links still load.
@@ -209,11 +253,15 @@ export function createLogic(meta, names = {}) {
         return tooltipSort(list).map(e => displayName(e.namespace, e.level)).join(", ");
     }
 
-    // Enchantments that can go on an item, alphabetical, curses last.
+    // The name of the mod an enchantment comes from, or null for the game's own.
+    const modOf = ns => enchantments[ns].mod || null;
+
+    // Enchantments that can go on an item, alphabetical, curses last, then the mods' (so their
+    // conflict groups follow the game's own).
     function applicable(item) {
         return Object.keys(enchantments)
             .filter(ns => enchantments[ns].items.includes(item))
-            .sort((a, b) => (isCurse(a) - isCurse(b)) || enchName(a).localeCompare(enchName(b)));
+            .sort((a, b) => (Boolean(modOf(a)) - Boolean(modOf(b))) || (isCurse(a) - isCurse(b)) || enchName(a).localeCompare(enchName(b)));
     }
 
     // Applicable enchantments split into conflict groups (linked by incompatibility), in
@@ -285,7 +333,8 @@ export function createLogic(meta, names = {}) {
 
     function maxAll(item, wanted, allow_incompatible = false) {
         const result = { ...wanted };
-        const options = applicable(item).filter(ns => !isCurse(ns));
+        // Only the game's own enchantments: a mod's are chosen by hand.
+        const options = applicable(item).filter(ns => !isCurse(ns) && !modOf(ns));
         const ordered = [...PREFERRED.filter(ns => options.includes(ns)), ...options.filter(ns => !PREFERRED.includes(ns))];
         for (const ns of ordered) {
             if (ns in result || allow_incompatible || !Object.keys(result).some(other => conflicts(other, ns))) result[ns] = maxLevel(ns);
@@ -438,7 +487,7 @@ export function createLogic(meta, names = {}) {
             const words = query.split(" ");
             const matches = names.filter(entry => entry.names.some(name =>
                 name.startsWith(query) || words.every(word => name.split(" ").some(part => part.startsWith(word)))));
-            matches.sort((a, b) => a.names[0].length - b.names[0].length);
+            matches.sort((a, b) => (Boolean(modOf(a.ns)) - Boolean(modOf(b.ns))) || a.names[0].length - b.names[0].length);
             return matches.length ? matches[0].ns : null;
         };
         const books = [];
@@ -585,6 +634,7 @@ export function createLogic(meta, names = {}) {
             n: state.no_step_limit ? 1 : 0,
             x: state.allow_incompatible ? 1 : 0,
             e: EDITIONS.indexOf(state.edition),
+            d: state.mods && state.mods.length ? state.mods : undefined,
             r: state.rename ? 1 : 0,
             m: state.rename_to || undefined,
             t: progress && progress.done.length ? progress.done : undefined,
@@ -606,6 +656,7 @@ export function createLogic(meta, names = {}) {
             rename: data.r === 1,
             rename_to: cleanName(data.m, edition),
             allow_incompatible,
+            mods: Array.isArray(data.d) ? MOD_IDS.filter(id => data.d.includes(id)) : [],
             wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
             auto_books: data.a !== 0,
             // Only the item's enchantments are offered, so others are dropped.
@@ -632,7 +683,7 @@ export function createLogic(meta, names = {}) {
 
     return {
         isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
+        modOf, applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf, parseBooks,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };

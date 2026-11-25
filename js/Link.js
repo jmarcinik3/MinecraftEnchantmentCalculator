@@ -1,5 +1,6 @@
 // Share links: saving the setup to the address and loading it (with optional progress).
-import { logic, nextBookId, setState, state } from "./Store.js";
+import { logic, mod_data, nextBookId, setState, state } from "./Store.js";
+import { linkMods } from "./Logic.js";
 import { syncRename } from "./Options.js";
 import { loadChecklist, orderKey, saveChecklist } from "./Results.js";
 import { last_result } from "./Calc.js";
@@ -58,7 +59,7 @@ export function currentLink() {
 // helpers, which know every enchantment; the caller then switches to the link's edition.
 export function readLink(text) {
     try {
-        useEdition("java");
+        useEdition("java", linkMods(text).filter(id => mod_data[id]));
         return logic.deserialize(text, () => nextBookId());
     } catch (error) {
         console.warn("Ignoring invalid link", error);

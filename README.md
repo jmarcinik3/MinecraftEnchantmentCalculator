@@ -2,7 +2,8 @@
 
 Finds the cheapest order to combine enchanted books and items on a Minecraft
 (Java or Bedrock Edition) anvil. Pick an item, choose the enchantments you want, and it
-lists the anvil steps one by one.
+lists the anvil steps one by one. In Java, Game rules > Mods can add the enchantments of
+Fancy Enchantments (data in `json/mods/`).
 
 ## Running it
 

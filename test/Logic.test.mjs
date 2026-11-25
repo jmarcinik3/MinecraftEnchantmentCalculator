@@ -10,7 +10,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 // data: URLs too (a data: URL has no folder to resolve "./" against).
 const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path)
     .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
-const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS } = await import(moduleUrl("../js/Logic.js"));
+const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT, LANGUAGES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
 const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
@@ -581,6 +581,68 @@ test("the recovery compass takes Curse of Vanishing in Bedrock only", () => {
     const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
     assert.ok(!logic.enchantableItems().includes("recovery_compass"));
     assert.ok(bedrock.enchantableItems().includes("recovery_compass"));
+});
+
+// ---------- Mods (json/mods/<id>.json) ----------
+const MODS = Object.fromEntries(MOD_IDS.map(id => [id, JSON.parse(read(`../json/mods/${id}.json`))]));
+
+test("every mod's data is well formed: items, levels, weights, conflicts and a name for each enchantment", () => {
+    for (const [id, mod] of Object.entries(MODS)) {
+        assert.strictEqual(mod.id, id);
+        assert.ok(mod.label && mod.note && mod.source, id);
+        for (const [ns, data] of Object.entries(mod.enchantments)) {
+            assert.ok(ns.includes(":") && !(ns in meta.enchantments), ns);
+            assert.ok(data.items.length && data.items.every(item => meta.items.includes(item)), ns);
+            assert.ok(Number.isInteger(data.max_level) && data.max_level >= 1, ns);
+            assert.ok(Number.isInteger(data.weight) && data.weight >= 1, ns);
+            for (const other of data.incompatible) assert.ok(other in meta.enchantments || other in mod.enchantments, ns + " conflicts with unknown " + other);
+            assert.ok(mod.names.en[ns], "name of " + ns);
+            assert.ok(!(mod.descriptions.en[ns] || "").includes("§"), "colour code in " + ns);
+        }
+        for (const language of Object.keys(mod.names)) for (const ns of Object.keys(mod.names[language])) assert.ok(ns in mod.enchantments, ns);
+    }
+});
+
+test("withMods adds the mods' enchantments after the game's own, tagged with the mod, and drops conflicts it can't show", () => {
+    const fancy = MODS.fancy_enchantments;
+    const merged = withMods(meta, [fancy]);
+    assert.strictEqual(withMods(meta, []), meta);
+    assert.strictEqual(Object.keys(merged.enchantments).length, Object.keys(meta.enchantments).length + Object.keys(fancy.enchantments).length);
+    assert.deepStrictEqual(merged.tooltip_order.slice(0, meta.tooltip_order.length), meta.tooltip_order);
+    const modded = createLogic(merged, { ...TEXTS.en.names, ...modNames([fancy], "en") });
+    assert.strictEqual(modded.modOf("fancyenchantments:advanced_sharpness"), "Fancy Enchantments");
+    assert.strictEqual(modded.modOf("sharpness"), null);
+    assert.ok(modded.conflicts("sharpness", "fancyenchantments:advanced_sharpness"));
+    assert.strictEqual(modded.enchName("fancyenchantments:advanced_sharpness"), "Advanced Sharpness");
+    const odd = withMods(meta, [{ label: "Odd", enchantments: { "odd:one": { incompatible: ["odd:gone", "sharpness"], items: ["sword"], max_level: 1, weight: 1 } } }]);
+    assert.deepStrictEqual(odd.enchantments["odd:one"].incompatible, ["sharpness"]);
+    // The game's own listed first, a mod's last.
+    const list = modded.applicable("sword");
+    assert.ok(list.indexOf("fancyenchantments:air_attack") > list.indexOf("vanishing_curse"));
+});
+
+test("Max all and the presets never add a mod's enchantments, but typed books can name them", () => {
+    const modded = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
+    assert.deepStrictEqual(modded.maxAll("sword", {}), logic.maxAll("sword", {}));
+    for (const preset of modded.presets("sword")) assert.ok(Object.keys(preset.wanted).every(ns => !modded.modOf(ns)));
+    assert.ok("fancyenchantments:air_attack" in modded.parseBooks("air attack 2", "sword").books[0]);
+    assert.ok("sharpness" in modded.parseBooks("sharp", "sword").books[0]);
+});
+
+test("a share link carries the mods, and reads their enchantments only with them", () => {
+    const fancy = MODS.fancy_enchantments;
+    const modded = createLogic(withMods(meta, [fancy]), { ...TEXTS.en.names, ...modNames([fancy], "en") });
+    const state = { ...baseState("sword"), mods: ["fancy_enchantments"], wanted: { sharpness: 5, "fancyenchantments:air_attack": 2 } };
+    const link = modded.serialize(state);
+    assert.deepStrictEqual(linkMods(link), ["fancy_enchantments"]);
+    const read_back = modded.deserialize(link, () => 0);
+    assert.deepStrictEqual(read_back.mods, ["fancy_enchantments"]);
+    assert.deepStrictEqual(read_back.wanted, { sharpness: 5, "fancyenchantments:air_attack": 2 });
+    // Without the mod's data the enchantment is dropped; links without mods are unchanged and name none.
+    assert.deepStrictEqual(logic.deserialize(link, () => 0).wanted, { sharpness: 5 });
+    assert.deepStrictEqual(linkMods(logic.serialize(baseState("sword"))), []);
+    assert.deepStrictEqual(linkMods("not a link"), []);
+    assert.deepStrictEqual(logic.deserialize(logic.serialize({ ...baseState("sword"), mods: [] }), () => 0).mods, []);
 });
 
 console.log(`${passed} passed`);

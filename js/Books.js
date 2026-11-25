@@ -803,6 +803,8 @@ function chipDrag(event, ns, level) {
 // enchantments not chosen in section 1.
 let entry_popover = null;
 let picker_all = false;
+let picker_query = "";              // what is typed in the picker's search box (shown with a mod on)
+const picker_mods_open = new Set(); // the mods whose group is open in the picker
 
 function togglePopover(id, kind, toggle, ns = null) {
     const here = entry_popover && entry_popover.id === id && entry_popover.kind === kind;
@@ -810,7 +812,7 @@ function togglePopover(id, kind, toggle, ns = null) {
     if (here && !ns) {
         entry_popover = null;
     } else {
-        if (!here) picker_all = false;
+        if (!here) { picker_all = false; picker_query = ""; }
         entry_popover = { id, kind, toggle, ns };
     }
     // Leaving a book that got no enchantments drops it, as closing its picker does.
@@ -835,6 +837,7 @@ export function openPicker(book) {
     const open = entry_popover && entry_popover.id !== book.id && state.books.find(other => other.id === entry_popover.id);
     if (open && isPlainBook(open)) dropBook(open);
     picker_all = false;
+    picker_query = "";
     entry_popover = { id: book.id, kind: "enchant", toggle: "add-" + book.id, ns: null };
 }
 
@@ -1032,7 +1035,10 @@ function enchantPicker(book) {
     const others = state.books.filter(other => other !== book).flatMap(other => Object.keys(other.enchantments));
     const options = logic.applicable(state.item);
     const wanted = options.filter(ns => ns in state.wanted);
-    const rest = options.filter(ns => !(ns in state.wanted));
+    // A mod's enchantments (the ones not chosen in section 1) are folded under its name, and searchable.
+    const modded = options.filter(ns => logic.modOf(ns) && !(ns in state.wanted));
+    const rest = options.filter(ns => !(ns in state.wanted) && !logic.modOf(ns));
+    const query = picker_query.trim().toLowerCase();
     const rest_shown = picker_all || !wanted.length ? rest : rest.filter(ns => book.enchantments[ns]);
     const hidden = rest.length - rest_shown.length;
     const spot = entry_popover && entry_popover.ns;
@@ -1054,21 +1060,53 @@ function enchantPicker(book) {
         type: "button", class: "picker-more", "data-focus": "pick-more-" + key,
         onclick: () => { picker_all = !picker_all; renderBooks(); }
     }, picker_all ? TEXT.books.show_fewer : TEXT.books.show_all({ count: hidden })) : h("span");
+    const search = modded.length ? h("input", {
+        type: "search", class: "picker-search", value: picker_query, "data-focus": "pick-search", placeholder: TEXT.books.picker_search,
+        "aria-label": TEXT.books.picker_search,
+        oninput: event => {
+            picker_query = event.target.value;
+            renderBooks();
+            const again = document.querySelector('#books [data-focus="pick-search"]');
+            if (again) again.setSelectionRange(picker_query.length, picker_query.length);
+        }
+    }) : null;
+    if (query) {
+        const found = options.filter(ns => logic.enchName(ns).toLowerCase().includes(query));
+        return h("div", { class: "entry-popover enchant", role: "group", "aria-label": TEXT.books.picker_label },
+            search, found.length ? found.map(row) : h("p", { class: "hint" }, TEXT.books.picker_no_match),
+            h("div", { class: "popover-foot" }, h("span"), pickerButtons(book, key)));
+    }
+    const mod_rows = new Map();
+    for (const ns of modded) {
+        if (!mod_rows.has(logic.modOf(ns))) mod_rows.set(logic.modOf(ns), []);
+        mod_rows.get(logic.modOf(ns)).push(ns);
+    }
     return h("div", { class: "entry-popover enchant", role: "group", "aria-label": TEXT.books.picker_label },
+        search,
         wanted.length && rest_shown.length ? h("div", { class: "picker-head" }, TEXT.books.picker_chosen) : null,
         wanted.map(row),
         wanted.length && rest_shown.length ? h("div", { class: "picker-head" }, TEXT.books.picker_other) : null,
         rest_shown.map(row),
-        h("div", { class: "popover-foot" }, more,
-            books_view === "slots" ? h("span", { class: "foot-actions" },
-                h("button", { type: "button", class: "btn small", "data-focus": "pick-type-" + key,
-                    onclick: () => { book.type = book.type === "item" ? "book" : "item"; commit(); } },
-                    book.type === "item" ? TEXT.books.switch_to_book : TEXT.books.switch_to_item({ item: logic.itemName(state.item) })),
-                h("button", { type: "button", class: "btn small", "data-focus": "pick-dup-" + key, onclick: () => duplicateEntry(book) }, TEXT.books.duplicate_short),
-                h("button", { type: "button", class: "btn small", "data-focus": "pick-remove-" + key,
-                    onclick: () => removeEntry(book, document.querySelector(`#books .entry-card[data-key="${key}"]`)) }, TEXT.books.remove_short)) : null,
-            h("button", { type: "button", class: "btn small", "data-focus": "pick-done-" + key, onclick: () => closePopover(true) }, TEXT.books.done))
+        [...mod_rows].map(([mod, list]) => h("details", {
+            class: "mod-section", open: list.some(ns => book.enchantments[ns]) || picker_mods_open.has(mod),
+            ontoggle: event => { if (event.target.open) picker_mods_open.add(mod); else picker_mods_open.delete(mod); }
+        }, h("summary", {}, TEXT.wanted.mod_group({ name: mod, count: list.length })), list.map(row))),
+        h("div", { class: "popover-foot" }, more, pickerButtons(book, key))
     );
+}
+
+// The picker's foot buttons: (in the Slots view) switch kind, duplicate and remove, then Done.
+function pickerButtons(book, key) {
+    return [
+        books_view === "slots" ? h("span", { class: "foot-actions" },
+            h("button", { type: "button", class: "btn small", "data-focus": "pick-type-" + key,
+                onclick: () => { book.type = book.type === "item" ? "book" : "item"; commit(); } },
+                book.type === "item" ? TEXT.books.switch_to_book : TEXT.books.switch_to_item({ item: logic.itemName(state.item) })),
+            h("button", { type: "button", class: "btn small", "data-focus": "pick-dup-" + key, onclick: () => duplicateEntry(book) }, TEXT.books.duplicate_short),
+            h("button", { type: "button", class: "btn small", "data-focus": "pick-remove-" + key,
+                onclick: () => removeEntry(book, document.querySelector(`#books .entry-card[data-key="${key}"]`)) }, TEXT.books.remove_short)) : null,
+        h("button", { type: "button", class: "btn small", "data-focus": "pick-done-" + key, onclick: () => closePopover(true) }, TEXT.books.done)
+    ];
 }
 
 // A level for `ns` on an entry (0 takes it off). It replaces a conflicting enchantment

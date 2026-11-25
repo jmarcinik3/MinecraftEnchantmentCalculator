@@ -1,0 +1,1962 @@
+{
+ "id": "fancy_enchantments",
+ "label": "Fancy Enchantments",
+ "note": "Forge and NeoForge, Minecraft 1.21.1 (elemental opposites conflict, as in its default settings)",
+ "source": "https://modrinth.com/mod/fancy-enchantments",
+ "enchantments": {
+  "fancyenchantments:abyssal_maelstrom": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "bow"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:advanced_fire_aspect": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves",
+    "fire_aspect"
+   ],
+   "items": [
+    "mace",
+    "sword"
+   ],
+   "max_level": 2,
+   "weight": 4
+  },
+  "fancyenchantments:advanced_flame": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves",
+    "flame",
+    "infinity"
+   ],
+   "items": [
+    "bow"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:advanced_looting": {
+   "incompatible": [
+    "looting"
+   ],
+   "items": [
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:advanced_protection": {
+   "incompatible": [
+    "blast_protection",
+    "fancyenchantments:mountain_supreme_protection",
+    "fire_protection",
+    "projectile_protection",
+    "protection"
+   ],
+   "items": [
+    "boots",
+    "chestplate",
+    "helmet",
+    "leggings",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 2
+  },
+  "fancyenchantments:advanced_sharpness": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "breach",
+    "density",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "impaling",
+    "sharpness",
+    "smite"
+   ],
+   "items": [
+    "axe",
+    "sword"
+   ],
+   "max_level": 5,
+   "weight": 2
+  },
+  "fancyenchantments:afterimage": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "leggings"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:ailment_devourer": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:air_attack": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:armor_forging": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "boots",
+    "chestplate",
+    "helmet",
+    "leggings",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:beyond_the_flash": {
+   "incompatible": [],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:blessed_wind": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "boots"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:blind_loyalty": {
+   "incompatible": [],
+   "items": [
+    "axe",
+    "boots",
+    "bow",
+    "brush",
+    "carrot_on_a_stick",
+    "carved_pumpkin",
+    "chestplate",
+    "compass",
+    "crossbow",
+    "elytra",
+    "fishing_rod",
+    "flint_and_steel",
+    "helmet",
+    "hoe",
+    "leggings",
+    "mace",
+    "pickaxe",
+    "shears",
+    "shield",
+    "shovel",
+    "sword",
+    "trident",
+    "turtle_helmet",
+    "warped_fungus_on_a_stick"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:blood_feed": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:blood_sacrifice": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:bloodthirsty": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:bubble_shield": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:bullying": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:calmer": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 5,
+   "weight": 2
+  },
+  "fancyenchantments:charge": {
+   "incompatible": [],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:condition_overload": {
+   "incompatible": [],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:counterattack": {
+   "incompatible": [],
+   "items": [
+    "shield"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:cracked_crown": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "helmet",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:cumbersome": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:cursed_gaze": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "helmet",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:dedication": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "boots",
+    "chestplate",
+    "helmet",
+    "leggings",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:delayed_execution": {
+   "incompatible": [],
+   "items": [
+    "axe",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:dexterity": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:dominion": {
+   "incompatible": [],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:downwind": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:drowning": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:duellists_prerogative": {
+   "incompatible": [
+    "fancyenchantments:feint_attack"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:eater_of_souls": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:empathy": {
+   "incompatible": [],
+   "items": [
+    "bow"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:eroding": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:eucharist": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:falling_stone": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "boots"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:fearless_challenger": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:feather_fall": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "leggings"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:feint_attack": {
+   "incompatible": [
+    "fancyenchantments:duellists_prerogative",
+    "sweeping"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:fire_disaster": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:floating": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:frozen_heart": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:gale": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "hoe",
+    "pickaxe",
+    "shears",
+    "shovel"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:gift_of_fire": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 5,
+   "weight": 1
+  },
+  "fancyenchantments:greed_supreme_looting": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit",
+    "looting"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:heavy_arrow": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "bow"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:heavy_blow": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:hungry": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:icy_burst": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:lava_burst": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  }, 
+  "fancyenchantments:lightness": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "shield"
+   ],
+   "max_level": 3,
+   "weight": 1
+  },
+  "fancyenchantments:lithic_siphon": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "axe",
+    "hoe",
+    "pickaxe",
+    "shears",
+    "shovel"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:melter": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:mountain_supreme_protection": {
+   "incompatible": [
+    "blast_protection",
+    "fancyenchantments:advanced_protection",
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels",
+    "fire_protection",
+    "projectile_protection",
+    "protection"
+   ],
+   "items": [
+    "boots",
+    "chestplate",
+    "helmet",
+    "leggings",
+    "turtle_helmet"
+   ],
+   "max_level": 4,
+   "weight": 4
+  },
+  "fancyenchantments:multiple_shot": {
+   "incompatible": [],
+   "items": [
+    "bow"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:nightmare": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "helmet",
+    "turtle_helmet"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:nirvana": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:ocean_current": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:over_healing": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:overflow": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:paladins_shield": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "shield"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:pervert": {
+   "incompatible": [],
+   "items": [
+    "leggings"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:pure_fate": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:purification_slash": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 2
+  },
+  "fancyenchantments:purifying": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen",
+    "smite"
+   ],
+   "items": [
+    "axe",
+    "sword"
+   ],
+   "max_level": 5,
+   "weight": 2
+  },
+  "fancyenchantments:pyromaniac": {
+   "incompatible": [
+    "blast_protection",
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "chestplate"
+   ],
+   "max_level": 5,
+   "weight": 4
+  },
+  "fancyenchantments:recoil": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:reflecting": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "shield"
+   ],
+   "max_level": 5,
+   "weight": 2
+  },
+  "fancyenchantments:rocket_jump": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "boots"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:rolling_stone": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "boots"
+   ],
+   "max_level": 3,
+   "weight": 2
+  },
+  "fancyenchantments:sacred_supreme_sharpness": {
+   "incompatible": [
+    "bane_of_arthropods",
+    "breach",
+    "density",
+    "fancyenchantments:advanced_sharpness",
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen",
+    "impaling",
+    "sharpness",
+    "smite"
+   ],
+   "items": [
+    "axe",
+    "sword"
+   ],
+   "max_level": 5,
+   "weight": 4
+  },
+  "fancyenchantments:sander": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:self_immolation": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:sharp_rock": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:sighs_of_ashes": {
+   "incompatible": [
+    "fancyenchantments:abyssal_maelstrom",
+    "fancyenchantments:blood_feed",
+    "fancyenchantments:bubble_shield",
+    "fancyenchantments:calmer",
+    "fancyenchantments:drowning",
+    "fancyenchantments:frozen_heart",
+    "fancyenchantments:icy_burst",
+    "fancyenchantments:ocean_current",
+    "fancyenchantments:overflow",
+    "fancyenchantments:spreading_spores",
+    "fancyenchantments:stacking_waves"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:solid_as_a_rock": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "shield"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:spreading_spores": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:stacking_waves": {
+   "incompatible": [
+    "fancyenchantments:advanced_fire_aspect",
+    "fancyenchantments:advanced_flame",
+    "fancyenchantments:armor_forging",
+    "fancyenchantments:fire_disaster",
+    "fancyenchantments:gift_of_fire",
+    "fancyenchantments:lava_burst",
+    "fancyenchantments:melter",
+    "fancyenchantments:nirvana",
+    "fancyenchantments:pyromaniac",
+    "fancyenchantments:rocket_jump",
+    "fancyenchantments:self_immolation",
+    "fancyenchantments:sighs_of_ashes"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:standing_wall": {
+   "incompatible": [
+    "fancyenchantments:afterimage",
+    "fancyenchantments:air_attack",
+    "fancyenchantments:blessed_wind",
+    "fancyenchantments:dexterity",
+    "fancyenchantments:downwind",
+    "fancyenchantments:feather_fall",
+    "fancyenchantments:floating",
+    "fancyenchantments:gale",
+    "fancyenchantments:lightness",
+    "fancyenchantments:recoil",
+    "fancyenchantments:reflecting",
+    "fancyenchantments:streamline",
+    "fancyenchantments:thrilling_thunder",
+    "fancyenchantments:wind_blade",
+    "fancyenchantments:wind_fire_wheels"
+   ],
+   "items": [
+    "shield"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:streamline": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "bow"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:the_fallen": {
+   "incompatible": [
+    "fancyenchantments:ailment_devourer",
+    "fancyenchantments:cracked_crown",
+    "fancyenchantments:dedication",
+    "fancyenchantments:eucharist",
+    "fancyenchantments:fearless_challenger",
+    "fancyenchantments:over_healing",
+    "fancyenchantments:paladins_shield",
+    "fancyenchantments:pure_fate",
+    "fancyenchantments:purification_slash",
+    "fancyenchantments:purifying",
+    "fancyenchantments:sacred_supreme_sharpness",
+    "fancyenchantments:unyielding_spirit"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:thrilling_thunder": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:unyielding_spirit": {
+   "incompatible": [
+    "fancyenchantments:blood_sacrifice",
+    "fancyenchantments:bloodthirsty",
+    "fancyenchantments:bullying",
+    "fancyenchantments:cursed_gaze",
+    "fancyenchantments:eater_of_souls",
+    "fancyenchantments:greed_supreme_looting",
+    "fancyenchantments:hungry",
+    "fancyenchantments:nightmare",
+    "fancyenchantments:the_fallen"
+   ],
+   "items": [
+    "helmet",
+    "turtle_helmet"
+   ],
+   "max_level": 1,
+   "weight": 4
+  },
+  "fancyenchantments:wind_blade": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "axe",
+    "mace",
+    "sword"
+   ],
+   "max_level": 3,
+   "weight": 4
+  },
+  "fancyenchantments:wind_fire_wheels": {
+   "incompatible": [
+    "fancyenchantments:cumbersome",
+    "fancyenchantments:eroding",
+    "fancyenchantments:falling_stone",
+    "fancyenchantments:heavy_arrow",
+    "fancyenchantments:heavy_blow",
+    "fancyenchantments:lithic_siphon",
+    "fancyenchantments:mountain_supreme_protection",
+    "fancyenchantments:rolling_stone",
+    "fancyenchantments:sander",
+    "fancyenchantments:sharp_rock",
+    "fancyenchantments:solid_as_a_rock",
+    "fancyenchantments:standing_wall"
+   ],
+   "items": [
+    "boots"
+   ],
+   "max_level": 1,
+   "weight": 4
+  }
+ },
+ "names": {
+  "en": {
+   "fancyenchantments:abyssal_maelstrom": "Abyssal Maelstrom",
+   "fancyenchantments:advanced_fire_aspect": "Advanced Fire Aspect",
+   "fancyenchantments:advanced_flame": "Advanced Flame",
+   "fancyenchantments:advanced_looting": "Advanced Looting",
+   "fancyenchantments:advanced_protection": "Advanced Protection",
+   "fancyenchantments:advanced_sharpness": "Advanced Sharpness",
+   "fancyenchantments:afterimage": "Afterimage",
+   "fancyenchantments:ailment_devourer": "Ailment Devourer",
+   "fancyenchantments:air_attack": "Air Attack",
+   "fancyenchantments:armor_forging": "Armor Forging",
+   "fancyenchantments:beyond_the_flash": "Beyond The Flash",
+   "fancyenchantments:blessed_wind": "Blessed Wind",
+   "fancyenchantments:blind_loyalty": "Blind Loyalty",
+   "fancyenchantments:blood_feed": "Blood Feed",
+   "fancyenchantments:blood_sacrifice": "Blood Sacrifice",
+   "fancyenchantments:bloodthirsty": "Bloodthirsty",
+   "fancyenchantments:bubble_shield": "Bubble Shield",
+   "fancyenchantments:bullying": "Bullying",
+   "fancyenchantments:calmer": "Calmer",
+   "fancyenchantments:charge": "Charge",
+   "fancyenchantments:condition_overload": "Condition Overload",
+   "fancyenchantments:counterattack": "Counterattack",
+   "fancyenchantments:cracked_crown": "Cracked Crown",
+   "fancyenchantments:cumbersome": "Cumbersome",
+   "fancyenchantments:cursed_gaze": "Cursed Gaze",
+   "fancyenchantments:dedication": "Dedication",
+   "fancyenchantments:delayed_execution": "Delayed Execution",
+   "fancyenchantments:dexterity": "Dexterity",
+   "fancyenchantments:dominion": "Dominion",
+   "fancyenchantments:downwind": "Downwind",
+   "fancyenchantments:drowning": "Drowning",
+   "fancyenchantments:duellists_prerogative": "Duellist's Prerogative",
+   "fancyenchantments:eater_of_souls": "Eater of Souls",
+   "fancyenchantments:empathy": "Empathy",
+   "fancyenchantments:eroding": "Eroding",
+   "fancyenchantments:eucharist": "Eucharist",
+   "fancyenchantments:falling_stone": "Falling Stone",
+   "fancyenchantments:fearless_challenger": "Fearless Challenger",
+   "fancyenchantments:feather_fall": "Feather Fall",
+   "fancyenchantments:feint_attack": "Feint Attack",
+   "fancyenchantments:fire_disaster": "Fire Disaster",
+   "fancyenchantments:floating": "Floating",
+   "fancyenchantments:frozen_heart": "Frozen Heart",
+   "fancyenchantments:gale": "Gale",
+   "fancyenchantments:gift_of_fire": "Gift of Fire",
+   "fancyenchantments:greed_supreme_looting": "Greed Supreme Looting",
+   "fancyenchantments:heavy_arrow": "Heavy Arrow",
+   "fancyenchantments:heavy_blow": "Heavy Blow",
+   "fancyenchantments:hungry": "Hungry",
+   "fancyenchantments:icy_burst": "Icy Burst",
+   "fancyenchantments:lava_burst": "Lava Burst",
+   "fancyenchantments:lightness": "Lightness",
+   "fancyenchantments:lithic_siphon": "Lithic Siphon",
+   "fancyenchantments:melter": "Melter",
+   "fancyenchantments:mountain_supreme_protection": "Mountain Supreme Protection",
+   "fancyenchantments:multiple_shot": "Multiple Shot",
+   "fancyenchantments:nightmare": "Nightmare",
+   "fancyenchantments:nirvana": "Nirvana",
+   "fancyenchantments:ocean_current": "Ocean Current",
+   "fancyenchantments:over_healing": "Over Healing",
+   "fancyenchantments:overflow": "Overflow",
+   "fancyenchantments:paladins_shield": "Paladin's Shield",
+   "fancyenchantments:pervert": "Pervert",
+   "fancyenchantments:pure_fate": "Pure Fate",
+   "fancyenchantments:purification_slash": "Purification Slash",
+   "fancyenchantments:purifying": "Purifying",
+   "fancyenchantments:pyromaniac": "Pyromaniac",
+   "fancyenchantments:recoil": "Recoil",
+   "fancyenchantments:reflecting": "Reflecting",
+   "fancyenchantments:rocket_jump": "Rocket Jump",
+   "fancyenchantments:rolling_stone": "Rolling Stone",
+   "fancyenchantments:sacred_supreme_sharpness": "Sacred Supreme Sharpness",
+   "fancyenchantments:sander": "Sander",
+   "fancyenchantments:self_immolation": "Self-Immolation",
+   "fancyenchantments:sharp_rock": "Sharp Rock",
+   "fancyenchantments:sighs_of_ashes": "Sighs of Ashes",
+   "fancyenchantments:solid_as_a_rock": "Solid As a Rock",
+   "fancyenchantments:spreading_spores": "Spreading Spores",
+   "fancyenchantments:stacking_waves": "Stacking Waves",
+   "fancyenchantments:standing_wall": "Standing Wall",
+   "fancyenchantments:streamline": "Streamline",
+   "fancyenchantments:the_fallen": "THE FALLEN",
+   "fancyenchantments:thrilling_thunder": "Thrilling Thunder",
+   "fancyenchantments:unyielding_spirit": "Unyielding Spirit",
+   "fancyenchantments:wind_blade": "Wind Blade",
+   "fancyenchantments:wind_fire_wheels": "Wind Fire Wheels"
+  }
+ },
+ "descriptions": {
+  "en": {
+   "fancyenchantments:abyssal_maelstrom": "The target hit will become a maelstrom involving enemies",
+   "fancyenchantments:advanced_fire_aspect": "Increase target burning time when hit",
+   "fancyenchantments:advanced_flame": "Increase target burning time when hit",
+   "fancyenchantments:advanced_looting": "More and more loot",
+   "fancyenchantments:advanced_protection": "More advanced protection",
+   "fancyenchantments:advanced_sharpness": "More powerful Sharpness",
+   "fancyenchantments:afterimage": "Provides dodge rate based on speed attributes",
+   "fancyenchantments:ailment_devourer": "Devours hostile magic, shortening the duration of negative effects",
+   "fancyenchantments:air_attack": "When in the air, the attack damage increases according to the distance of falling",
+   "fancyenchantments:armor_forging": "A mysterious record from the East, recording the technique of using damage to forge armor",
+   "fancyenchantments:beyond_the_flash": "When placed in the hot bar, each attack will inflict damage equivalent to the item's damage, consuming a large amount of durability. Only one item will be effective",
+   "fancyenchantments:blessed_wind": "Slightly increases movement speed, increase speed and step height while sprinting",
+   "fancyenchantments:blind_loyalty": "Even if forsaken, bound to return.",
+   "fancyenchantments:blood_feed": "Have a probability of increasing maximum health attribute after killing",
+   "fancyenchantments:blood_sacrifice": "Hit the target hard at the cost of own blood",
+   "fancyenchantments:bloodthirsty": "Feeling hungry, obtaining saturation from slaughter",
+   "fancyenchantments:bubble_shield": "When the character has sufficient oxygen, consume a part of the oxygen to reduce the damage",
+   "fancyenchantments:bullying": "One hit kills a baby creature",
+   "fancyenchantments:calmer": "Gain damage absorption when taking damage",
+   "fancyenchantments:charge": "Charge forward a certain distance after attacking the enemy, and become invincible during the charge",
+   "fancyenchantments:condition_overload": "Increase damage according to the number of negative effects of the target",
+   "fancyenchantments:counterattack": "Increases crit rate after blocking",
+   "fancyenchantments:cracked_crown": "Enhance the damage caused and received",
+   "fancyenchantments:cumbersome": "After the attack, there is a probability that the player will attack slowly for a period of time",
+   "fancyenchantments:cursed_gaze": "Give the monsters you gaze upon weakness and slowness effects",
+   "fancyenchantments:dedication": "Chance to consume the enchantment when hurt to enhance armor attributes",
+   "fancyenchantments:delayed_execution": "After attacking, the target enters a state of absorbing damage, and causes execution damage after a period of time",
+   "fancyenchantments:dexterity": "Increases attack range",
+   "fancyenchantments:dominion": "The power of a weapon increases with sum of its enchantment levels",
+   "fancyenchantments:downwind": "Attacks apply an upward force to the target, causing more damage to targets in the air",
+   "fancyenchantments:drowning": "Each attack consumes oxygen, and when the oxygen value is 0, the attack will cause damage",
+   "fancyenchantments:duellists_prerogative": "When there are no other creatures around you and the target, the damage you deal to it is increased",
+   "fancyenchantments:eater_of_souls": "The damage increases with Kill Count, but the enemies will not drop exp",
+   "fancyenchantments:empathy": "Now you understand how arrows feel...",
+   "fancyenchantments:eroding": "There is a chance to consume more durability",
+   "fancyenchantments:eucharist": "Gain a templar shield buff after eating high quality food",
+   "fancyenchantments:falling_stone": "Fall from a height to cause damage to enemies and avoid falling injuries",
+   "fancyenchantments:fearless_challenger": "When the target's health is much greater than the user's, gain damage bonus",
+   "fancyenchantments:feather_fall": "Sneaking in the air to gain a Slow Falling effect",
+   "fancyenchantments:feint_attack": "Reduces damage to the enemy that attack directly, and deals heavy damage to enemies around it",
+   "fancyenchantments:fire_disaster": "Killing enemies has a probability of generating a fire at their death location",
+   "fancyenchantments:floating": "Reduce damage when the player is on the ground",
+   "fancyenchantments:frozen_heart": "Apply slowness to the attacker when attacked",
+   "fancyenchantments:gale": "Gain Haste for a short time after breaking blocks",
+   "fancyenchantments:gift_of_fire": "Deals more damage to enemies on fire, but less damage when you are in water",
+   "fancyenchantments:greed_supreme_looting": "Greed is never satisfied",
+   "fancyenchantments:heavy_arrow": "Increases arrow damage and knockback and applies slowness",
+   "fancyenchantments:heavy_blow": "Chance to hit a heavy blow,slightly reduce attack speed",
+   "fancyenchantments:hungry": "Mobs drop more food",
+   "fancyenchantments:icy_burst": "Release icy burst upon slow target death, causing damage and slowness effects",
+   "fancyenchantments:lava_burst": "There is a chance of explosion when attacking an enemy",
+   "fancyenchantments:lightness": "Increases movement speed while blocking",
+   "fancyenchantments:lithic_siphon": "Mining 'stone' no longer drops blocks, but has a chance to drop minerals",
+   "fancyenchantments:melter": "Reduces weapon damage and temporarily reduces enemy armor when attacking",
+   "fancyenchantments:mountain_supreme_protection": "Stand firm like a mountain",
+   "fancyenchantments:multiple_shot": "Shoot additional arrows",
+   "fancyenchantments:nightmare": "When going to sleep, an explosion always occurs",
+   "fancyenchantments:nirvana": "When the health is low and on fire, health recovery is faster",
+   "fancyenchantments:ocean_current": "Increases attack speed, increases more in water,may be ineffective when on fire",
+   "fancyenchantments:over_healing": "Excessive healing will be converted into absorption",
+   "fancyenchantments:overflow": "Killing enemies has a probability of generating a puddle of water at their death location",
+   "fancyenchantments:paladins_shield": "Reduce the damage you receive, and take some of the damage for nearby companions or other players at a lower cost",
+   "fancyenchantments:pervert": "Prefer to wear nothing",
+   "fancyenchantments:pure_fate": "Helps to give birth to life to get rid of the curse",
+   "fancyenchantments:purification_slash": "Significantly reduce damage to players and pets, and remove their negative effects after attacking",
+   "fancyenchantments:purifying": "A more powerful smite,and can purify zombie villagers",
+   "fancyenchantments:pyromaniac": "When you would take explosion damage, you will be healed instead",
+   "fancyenchantments:recoil": "After attacking, there is a chance to be impacted upwards",
+   "fancyenchantments:reflecting": "Reflect enemy projectiles",
+   "fancyenchantments:rocket_jump": "Head down and attack, then rocket jump",
+   "fancyenchantments:rolling_stone": "Reduces damage taken and causes damage to enemies collided with while sprinting",
+   "fancyenchantments:sacred_supreme_sharpness": "There is endless evil waiting for judgment",
+   "fancyenchantments:sander": "The less durability, the higher the damage",
+   "fancyenchantments:self_immolation": "Attacking the enemy has a small chance of igniting yourself, and the probability is higher when the target is on fire",
+   "fancyenchantments:sharp_rock": "Adds damage based on armor value",
+   "fancyenchantments:sighs_of_ashes": "Increase damage based on remaining burning time",
+   "fancyenchantments:solid_as_a_rock": "Increases armor and toughness when holding a shield, reduces movement speed",
+   "fancyenchantments:spreading_spores": "Continuously striking, accumulating spores, and then erupting",
+   "fancyenchantments:stacking_waves": "Reduces weapon damage and temporarily reduces enemy armor when attacking",
+   "fancyenchantments:standing_wall": "Not afraid of damage from the front and shield-breaking attacks",
+   "fancyenchantments:streamline": "Speeds up arrows",
+   "fancyenchantments:the_fallen": "Weapon damage increases with the number of curse enchantments.",
+   "fancyenchantments:thrilling_thunder": "Chance to paralyze the target and cause loss of life",
+   "fancyenchantments:unyielding_spirit": "Get extra survival time before death, kill monsters to resurrect",
+   "fancyenchantments:wind_blade": "Increases damage by percentage based on movement speed attribute",
+   "fancyenchantments:wind_fire_wheels": "Run, Jump, and Take Off"
+  }
+ }
+}

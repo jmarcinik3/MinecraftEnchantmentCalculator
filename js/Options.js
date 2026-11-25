@@ -1,14 +1,14 @@
 // Section 3 settings: level limit, rename and "Your level".
-import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, clampStepLimit, cleanName } from "./Logic.js";
+import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, MOD_IDS, clampStepLimit, cleanName } from "./Logic.js";
 import { TEXT } from "./Text.js";
-import { logic, state } from "./Store.js";
+import { logic, mod_data, state } from "./Store.js";
 import { $, h, readStorage, writeStorage } from "./Dom.js";
 import { loadChecklist, orderKey, renderResults } from "./Results.js";
 import { last_result, scheduleCalculation } from "./Calc.js";
 import { saveToUrl } from "./Link.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { closeRow, inertCopy, openRow } from "./Motion.js";
-import { commit, setAllowIncompatible, setEdition, setupMenuClosing } from "./App.js";
+import { applyMods, commit, setAllowIncompatible, setEdition, setMod, setupMenuClosing } from "./App.js";
 
 // Kept in this browser only (not in share links): they are about the viewer, not the setup.
 const LEVEL_STORAGE_KEY = "enchantment-calculator-level";
@@ -21,6 +21,9 @@ let level_on = readStorage(LEVEL_ON_STORAGE_KEY, player_level != null) === true;
 export function stepLimit() {
     return state.no_step_limit ? Infinity : state.max_step;
 }
+
+// A mod's name before its data file has loaded (the switch shows it, and loads the file when pressed).
+const MOD_LABELS = { fancy_enchantments: "Fancy Enchantments" };
 
 const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
 const HOLD_DELAY_MS = 400;          // holding − / +: wait this long, then repeat
@@ -49,7 +52,8 @@ export function renderRanking() {
             optionRow(TEXT.ranking.edition, null, editionControl()),
             // No hover titles on these labels: the "?" beside each says what it is for.
             optionRow([TEXT.ranking.level_limit, helpTip("limit-help", TEXT.ranking.level_limit_help_label, TEXT.ranking.level_limit_help)], null, limitControl()),
-            optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch())
+            optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch()),
+            optionRow([TEXT.ranking.mods, helpTip("mods-help", TEXT.ranking.mods_help_label, TEXT.ranking.mods_help)], null, modsControl())
         )
     );
     const summary = optionsSummary();
@@ -74,25 +78,32 @@ export function renderRanking() {
     updateLevelMeter();
 }
 
-// The game's own rules: the level limit 39 and no conflicting enchantments together.
+// The game's own rules: the level limit 39, no conflicting enchantments together and no mods.
 function rulesAreVanilla() {
-    return !state.no_step_limit && state.max_step === MAX_STEP_LEVELS && !state.allow_incompatible;
+    return !state.no_step_limit && state.max_step === MAX_STEP_LEVELS && !state.allow_incompatible && !state.mods.length;
 }
 
 // Back to the game's own rules, in one step (the menu stays open).
 function resetRules() {
     state.max_step = MAX_STEP_LEVELS;
     state.no_step_limit = false;
+    if (state.mods.length) {
+        state.mods = [];
+        applyMods();
+    }
     if (state.allow_incompatible) setAllowIncompatible(false);
     else commit();
 }
 
-// "Level limit 39" (or "No level limit"), plus " · Conflicts allowed" when they are: what the
-// game rules button says (as its hover title and label) so a rule that isn't the game's own is
-// known with the menu closed.
+// "Level limit 39" (or "No level limit"), plus " · Conflicts allowed" when they are and the mods that are
+// on: what the game rules button says (as its hover title and label) so a rule that isn't the game's own
+// is known with the menu closed.
 function optionsSummary() {
     const limit = state.no_step_limit ? TEXT.ranking.options_no_limit : TEXT.ranking.options_limit({ limit: state.max_step });
-    return TEXT.ranking.options + ": " + (state.allow_incompatible ? limit + " · " + TEXT.ranking.options_conflicts : limit);
+    const parts = [limit];
+    if (state.allow_incompatible) parts.push(TEXT.ranking.options_conflicts);
+    for (const id of state.mods) if (mod_data[id]) parts.push(mod_data[id].label);
+    return TEXT.ranking.options + ": " + parts.join(" · ");
 }
 
 // What a game rule is for, in a "?" tip beside its label (tap on phones). Its bubble
@@ -123,6 +134,23 @@ function conflictsSwitch() {
         }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
             h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
     );
+}
+
+// Mods: a switch for each mod whose enchantments can be added, with where its numbers come from. Mods are
+// Java only, so on Bedrock the switches are off and disabled. The data loads when first needed.
+function modsControl() {
+    const java = state.edition === "java";
+    return h("div", { class: "mods-control" }, MOD_IDS.map(id => {
+        const on = java && state.mods.includes(id) && Boolean(mod_data[id]);
+        const mod = mod_data[id];
+        return h("div", { class: "mod-row" },
+            h("button", {
+                type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), disabled: !java,
+                "data-focus": "mod-" + id, "aria-label": mod ? mod.label : id, onclick: () => setMod(id, !on)
+            }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
+                h("span", {}, mod ? mod.label : MOD_LABELS[id])),
+            java ? h("span", { class: "mod-note" }, mod ? mod.note : "") : h("span", { class: "mod-note" }, TEXT.ranking.mods_java_only));
+    }));
 }
 
 // The panel is position: fixed, placed under the button whenever it opens and as the

@@ -1,7 +1,7 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
-import { cleanName, createLogic, editionMetadata } from "./Logic.js";
+import { cleanName, createLogic, editionMetadata, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
-import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
+import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, setState, state } from "./Store.js";
 import { $, copyText, h, icon, keepGlintsInStep, motionOk, readStorage, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
 import { renderWanted, setupItemMenu } from "./Wanted.js";
@@ -9,11 +9,13 @@ import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } fr
 import { renderMetrics } from "./Ranking.js";
 import { renderRanking, resultNode, setupOptionsMenu, syncRename } from "./Options.js";
 import { anvilRisk, renderResults } from "./Results.js";
-import { runCalculation, scheduleCalculation, startWorker } from "./Calc.js";
+import { resetWorkers, runCalculation, scheduleCalculation, startWorker } from "./Calc.js";
 import { currentLink, loadFromUrl, readLink, saveToUrl } from "./Link.js";
 import { setupInfoTip } from "./Tips.js";
 
 const META_URL = "json/metadata.json";
+const MODS_URL = "json/mods/";
+const MODS_VERSION = ""; // deploy sets it to "?v=<commit>" (like Text.js TEXT_VERSION)
 const SAVED_STORAGE_KEY = "enchantment-calculator-saved";
 const LANGUAGE_STORAGE_KEY = "enchantment-calculator-language";
 const COLLAPSED_STORAGE_KEY = "enchantment-calculator-collapsed";
@@ -68,9 +70,51 @@ export function setAllowIncompatible(allowed) {
 }
 
 // Each edition offers different enchantments (Bedrock has no Sweeping Edge), so the helpers
-// are rebuilt for it; callers then drop anything it does not have.
-export function useEdition(edition) {
-    setLogic(createLogic(editionMetadata(meta, edition), TEXT.names));
+// are rebuilt for it; callers then drop anything it does not have. Mods are Java only: in Bedrock
+// their enchantments are still known (a result on screen may name them) but never offered. Their
+// names come from their own data files.
+export function useEdition(edition, mods = state.mods) {
+    const loaded = mods.map(id => mod_data[id]).filter(Boolean);
+    const active = edition === "java" ? loaded : loaded.map(mod => ({
+        ...mod,
+        enchantments: Object.fromEntries(Object.entries(mod.enchantments).map(([ns, data]) => [ns, { ...data, items: [] }]))
+    }));
+    const mod_text = modNames(active, language);
+    const names = {
+        ...TEXT.names,
+        enchantments: { ...TEXT.names.enchantments, ...mod_text.enchantments },
+        descriptions: { ...TEXT.names.descriptions, ...mod_text.descriptions }
+    };
+    setLogic(createLogic(editionMetadata(withMods(meta, active), edition), names));
+}
+
+// Loads the data file of each mod in `ids` not loaded yet. Resolves to the ids that are available.
+export async function loadMods(ids) {
+    await Promise.all(ids.filter(id => !mod_data[id]).map(async id => {
+        try {
+            const response = await fetch(MODS_URL + id + ".json" + MODS_VERSION);
+            if (!response.ok) throw new Error(response.status + " " + response.statusText);
+            setModData(id, await response.json());
+        } catch (error) {
+            console.warn("Could not load mod " + id, error);
+        }
+    }));
+    return ids.filter(id => mod_data[id]);
+}
+
+// The enabled mods changed: rebuild the helpers and the workers, and drop what is no longer offered.
+export function applyMods() {
+    useEdition(state.edition);
+    if (state.item) sanitizeAll();
+    resetWorkers();
+}
+
+// Turns one mod on or off. Its data loads first, so a failed load leaves things as they were.
+export async function setMod(id, on) {
+    if (on && !(await loadMods([id])).length) return;
+    state.mods = MOD_IDS.filter(other => (other === id ? on : state.mods.includes(other)));
+    applyMods();
+    commit();
 }
 
 // The name as typed, when a switch to Bedrock (30 characters) cut it: switching back to
@@ -328,7 +372,8 @@ function deleteSetup(index) {
     renderSaved();
 }
 
-function loadSetup(link) {
+async function loadSetup(link) {
+    await loadMods(linkMods(link));
     const loaded = readLink(link);
     if (!loaded) return;
     setState(loaded);
@@ -446,7 +491,9 @@ async function init() {
         return;
     }
     useEdition("java");
+    await loadMods(linkMods(location.hash.slice(1)));
     loadFromUrl();
+    useEdition(state.edition);
     if (state.edition !== "java" && state.item) sanitizeAll();
     startWorker();
     setupCopyLink();
