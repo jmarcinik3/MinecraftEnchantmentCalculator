@@ -142,7 +142,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   IntersectionObserver tucks it away, `.tucked`, while the step shows, so it never covers it). The compact tree shows a slot and a one-line caption, the tooltip on hover;
   hovering or focusing an entry lights its path (`.path-self`/`.path-up`/`.path-down`, `mergeTree`). Density, anvil count and view stay in this browser, not in links.
 - All sections collapse from their heading (`.card.collapsible`, `setupCollapsing`; closed ones in
-  `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. The books badge in
+  `COLLAPSED_STORAGE_KEY`), showing a one-line summary (`renderSummaries`) while closed. Opening and closing slide the body and the gap under the heading (`slideSection` in Motion.js: sizes are fixed while it slides, `.closing` turns the arrow early, a second toggle finishes the first); `html { scrollbar-gutter: stable }` keeps room for the scrollbar so it never shifts the page. The books badge in
   the heading is excluded from the toggle click.
 - App.js extras: in `localStorage` (guarded `readStorage`/`writeStorage`), never in share links: "Your level"
   (`player_level`; Logic.js `levelTrack` shows the level before/after each step), the Steps | Slots | Tree view

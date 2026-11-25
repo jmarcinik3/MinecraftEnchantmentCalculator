@@ -3,6 +3,7 @@ import { EDITIONS, cleanName, createLogic, editionMetadata } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
 import { $, copyText, h, icon, keepGlintsInStep, motionOk, readStorage, writeStorage } from "./Dom.js";
+import { slideSection } from "./Motion.js";
 import { renderWanted, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
@@ -149,7 +150,7 @@ let collapsed = new Set(readStorage(COLLAPSED_STORAGE_KEY, []));
 function setCollapsed(section, closed) {
     closed ? collapsed.add(section) : collapsed.delete(section);
     writeStorage(COLLAPSED_STORAGE_KEY, [...collapsed]);
-    applyCollapsed();
+    slideSection(document.querySelector(`.card.collapsible[data-section="${section}"]`), closed, applyCollapsed);
 }
 
 function applyCollapsed() {

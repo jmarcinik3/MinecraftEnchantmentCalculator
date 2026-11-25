@@ -105,6 +105,10 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 .header-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end; }
 
+/* Room for the page's scrollbar is always kept, so it appearing (a section opening, entries
+   added) never pushes everything left. */
+html { scrollbar-gutter: stable; }
+
 /* The header's controls: one height, font, border and radius, so they read as one toolbar. */
 .header-control {
     height: 32px;
@@ -1575,7 +1579,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     transform: translateY(1px) rotate(-135deg);
     transition: transform 0.15s;
 }
-.card.collapsed .collapse-toggle::before { transform: translateY(-2px) rotate(45deg); }
+.card.collapsed .collapse-toggle::before, .card.closing .collapse-toggle::before { transform: translateY(-2px) rotate(45deg); }
 .collapse-toggle:hover, .collapse-toggle:focus-visible { background: var(--surface-alt); color: var(--text); }
 @media (prefers-reduced-motion: reduce) { .collapse-toggle::before { transition: none; } }
 .info-tip.alert { position: static; }

@@ -549,6 +549,16 @@ def main():
         p9.wait_for_timeout(1000)
         jump = last_step(lambda: p9.click('#wanted [data-focus="switch-%s-none"]' % key))
         check("picking None in a group does not jump in height", jump < 4, jump)
+        # A section slides shut and open, and leaves nothing fixed behind.
+        for section in ("wanted", "books", "order", "steps"):
+            toggle = '.card.collapsible[data-section="%s"] .collapse-toggle' % section
+            p9.click(toggle)
+            p9.wait_for_timeout(700)
+            closed = p9.evaluate("(s) => { const c = document.querySelector('.card[data-section=' + s + ']'); return c.classList.contains('collapsed') && c.querySelector(':scope > .section-body').hidden && !c.classList.contains('closing') && c.style.flex === ''; }", section)
+            p9.click(toggle)
+            p9.wait_for_timeout(700)
+            opened = p9.evaluate("(s) => { const c = document.querySelector('.card[data-section=' + s + ']'); const b = c.querySelector(':scope > .section-body'); return !c.classList.contains('collapsed') && !b.hidden && c.style.flex === '' && b.style.flex === '' && b.style.overflow === ''; }", section)
+            check("the %s section slides shut and open cleanly" % section, closed and opened, (closed, opened))
         # The glints share the page's clock: a redraw does not start a sheen over.
         phase = lambda: p9.evaluate("[...document.getAnimations()].filter(a => a.animationName === 'glint' || a.animationName === 'row-glint').map(a => a.startTime)")
         check("every glint starts at the timeline's zero", len(phase()) > 0 and set(phase()) == {0}, phase())

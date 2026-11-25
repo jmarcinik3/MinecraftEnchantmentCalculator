@@ -84,6 +84,6 @@ export function keepGlintsInStep() {
         if (queued) return;
         queued = true;
         requestAnimationFrame(() => { queued = false; syncGlints(); });
-    }).observe(document.body, { childList: true, subtree: true });
+    }).observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ["hidden", "class"] }); // a section opening starts its glints too
     syncGlints();
 }

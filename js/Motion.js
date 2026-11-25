@@ -379,6 +379,50 @@ function boxOf(element) {
     return { height: element.getBoundingClientRect().height + "px", ...Object.fromEntries(BOX_SIDES.map(side => [side, style[side]])) };
 }
 
+// A section opening or closing: its body, and the gap under its heading, slide to or from no
+// height. Opening applies the new state first (`apply` shows the body), then slides it open; closing
+// slides first and applies at the end (`apply` hides the body), with the arrow already turned
+// (`.closing`). Both sizes are fixed while it slides, since on a wide screen section 4's card and body
+// stretch to fill the column. A second toggle mid-slide finishes the first at once.
+export function slideSection(card, closing, apply) {
+    if (card.finishSlide) card.finishSlide();
+    const body = card.querySelector(":scope > .section-body");
+    const head = card.querySelector(":scope > h2, :scope > .section-head");
+    if (!motionOk() || !body || !head) return apply();
+    const gapOf = () => parseFloat(getComputedStyle(head).marginBottom) || 0;
+    let from = { height: body.getBoundingClientRect().height, gap: gapOf() };
+    let to = { height: 0, gap: 0 };
+    if (closing) {
+        card.classList.add("closing");
+    } else {
+        apply();
+        to = { height: body.getBoundingClientRect().height, gap: gapOf() };
+        from = { height: 0, gap: 0 };
+    }
+    const frame = box => ({ height: box.height + "px", marginBottom: box.gap + "px" });
+    const fixed = [card, body];
+    for (const element of fixed) element.style.flex = "none";
+    body.style.overflow = "hidden";
+    const animations = [
+        body.animate([{ height: frame(from).height, opacity: closing ? 1 : 0 }, { height: frame(to).height, opacity: closing ? 0 : 1 }], { duration: MORPH_MS, easing: MORPH_EASING }),
+        head.animate([{ marginBottom: frame(from).marginBottom }, { marginBottom: frame(to).marginBottom }], { duration: MORPH_MS, easing: MORPH_EASING })
+    ];
+    let done = false;
+    const finish = () => {
+        if (done) return;
+        done = true;
+        card.finishSlide = null;
+        for (const animation of animations) animation.cancel();
+        for (const element of fixed) element.style.flex = "";
+        body.style.overflow = "";
+        card.classList.remove("closing");
+        if (closing) apply();
+    };
+    card.finishSlide = finish;
+    Promise.allSettled(animations.map(animation => animation.finished)).then(finish);
+    setTimeout(finish, MORPH_MS + 150);
+}
+
 // A box that has just appeared opens from no height and fades in; one that has gone (a copy of it,
 // laid where it was) closes the same way, so what follows slides with it.
 function openBox(element, duration, easing) {
