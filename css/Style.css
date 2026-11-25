@@ -125,10 +125,6 @@ html { scrollbar-gutter: stable; }
     cursor: pointer;
 }
 .header-control:hover { background: var(--surface-alt); }
-.header-control.segmented { padding: 0; overflow: hidden; }
-.header-control.segmented button { height: 100%; font-size: 13px; padding: 0 10px; }
-.header-control.segmented:hover { background: transparent; }
-.saved-icon { display: none; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; flex: none; }
 .copy-link .link-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; flex: none; }
 /* Sun/moon: an icon-only header button. */
 .theme-toggle { justify-content: center; padding: 0 9px; }
@@ -151,12 +147,8 @@ html { scrollbar-gutter: stable; }
     /* A little tighter, so the toolbar (with the sun/moon) stays on one row on a 375px phone,
        in Spanish too. */
     header .header-actions { gap: 5px; }
-    .header-control.segmented button { padding: 0 7px; }
     .copy-link, .theme-toggle { padding: 0 8px; }
     .header-actions .saved-menu > .header-control { padding: 0 8px; }
-    /* Saved is a bookmark icon, like Copy link, so the toolbar fits one row on a 375px phone in Spanish too. */
-    .saved-label { display: none; }
-    .saved-icon { display: block; }
 }
 
 .site-header {
@@ -1953,7 +1945,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* An experience bar: black frame, dark empty segments, bright green filled ones. */
 .step-progress-track { display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
-.step-progress-cell { flex: 1; background: #2a2a2a; box-shadow: inset 0 1px 0 #3d3d3d; transition: background-color 0.25s ease-out; }
+.step-progress-cell { flex: 1; padding: 0; border: none; cursor: pointer; background: #2a2a2a; box-shadow: inset 0 1px 0 #3d3d3d; transition: background-color 0.25s ease-out; }
 .step-progress-cell.filled { background: linear-gradient(#b2ff4d, #80ff20 40%, #3d9b0a); box-shadow: none; }
 /* Level up: the bar flashes bright and a glow rises once, as when the XP bar fills in the game. */
 .step-progress-track.level-up { animation: level-up 0.9s ease-out; }
@@ -2001,6 +1993,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     font: 600 12px/1 system-ui, sans-serif;
 }
 .anvil-risk-icon { width: 16px; height: 16px; image-rendering: pixelated; }
+.anvil-risk-label { margin: 0 4px 0 2px; font-weight: 600; }
+@media (max-width: 600px) { .anvil-risk-label { display: none; } }
 .anvil-risk.risk-none .info-tip-button, .anvil-risk.risk-low .info-tip-button { background: var(--success-bg); color: var(--success-text); }
 .anvil-risk.risk-medium .info-tip-button { background: var(--warning-bg); color: var(--warning-text); }
 .anvil-risk.risk-high .info-tip-button { background: var(--danger-bg); color: var(--danger-text); }
@@ -2116,8 +2110,9 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .header-actions, #ranking, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
     .step-tick input, .step-fold, .step-summary, .step-reset,
     .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
-    .anvil-step.folded .anvil-row { display: grid !important; }
-    .anvil-step.folded .step-instruction { display: block !important; }
+    /* On paper each step is its sentence (everything the slots show, in words), not the full-size cards. */
+    .anvil-step .anvil-row, .anvil-step .step-words, .anvil-step .step-caption, .step-progress-track { display: none !important; }
+    .anvil-step .step-print { display: block !important; font-weight: normal; margin: 0 0 4px; }
     /* "You are here" is for the screen: on paper every step looks the same. */
     .anvil-step.current { border-color: var(--border-strong) !important; box-shadow: none !important; }
     .anvil-step.current .step-node { box-shadow: none !important; border-color: var(--border-strong) !important; color: var(--text) !important; }
@@ -2152,7 +2147,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
    the enchantment names keep room beside their level bars. */
 @media (max-width: 359px) {
     header .header-actions { gap: 4px; }
-    .header-control.segmented button { padding: 0 5px; }
     .copy-link, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
     .language-select { padding: 0 2px; }
     .ench-row { column-gap: 6px; }
@@ -2274,7 +2268,20 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .round-label .info-tip-button { width: 16px; height: 16px; font-size: 10px; }
 .cell-label { font: 600 10px/1 system-ui, sans-serif; letter-spacing: 0.05em; text-transform: uppercase; color: var(--gui-text); }
 .step-instruction { margin: 0 0 8px; font-size: 13px; line-height: 1.4; color: var(--text-secondary); }
-.anvil-step.folded .step-instruction { display: none; }
+.anvil-step.folded .step-words { display: none; }
+/* "In words": the sentence behind a small disclosure, so the three slots lead. */
+.step-words { margin: 0 0 8px; }
+.step-words > summary { display: inline-block; cursor: pointer; font-size: 12px; color: var(--text-secondary); list-style: none; }
+.step-words > summary::-webkit-details-marker { display: none; }
+.step-words > summary::before { content: "\25b8"; display: inline-block; margin-right: 4px; transition: transform 0.15s; }
+.step-words[open] > summary::before { transform: rotate(90deg); }
+.step-words > summary:hover { color: var(--text); }
+.step-words > .step-instruction { margin: 4px 0 0; }
+/* The Slots view's caption under its row. */
+.step-caption { display: none; }
+.anvil-step.flash { animation: entry-flash 1.4s ease-out; }
+.result-goal { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.step-progress-main .level-status { flex-basis: 100%; }
 .level-checkpoint { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 12px; }
 .mc-from { font-size: 11px; color: #8a8a8a; }
 .anvil-cell.result .mc-ench:not(.changed) { opacity: 0.6; }
@@ -2310,6 +2317,7 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .final-card { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0 32px; padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius); }
 .final-title { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
 .final-card .anvil-cell { flex-direction: row; align-items: flex-start; gap: 10px; width: max-content; max-width: 100%; }
+.final-card .mc-slot { flex: none; } /* a wide tooltip must not squeeze the slot narrower than it is tall */
 .final-card.done { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
 .final-card.done .final-title { color: var(--success-text); }
 .final-card.done .mc-slot { box-shadow: 0 0 0 3px #80ff20; }
@@ -2331,7 +2339,8 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .slots-mode .anvil-row .arrow-glyph { transform: none; font-size: 18px; }
 .slots-mode .anvil-cell.result { justify-self: start; width: auto; min-width: 0; }
 .slots-mode .anvil-cell { position: relative; }
-.slots-mode .cell-label, .slots-mode .cell-meta, .slots-mode .step-instruction, .slots-mode .anvil-cell .mc-tooltip { display: none; }
+.slots-mode .cell-label, .slots-mode .cell-meta, .slots-mode .step-words, .slots-mode .anvil-cell .mc-tooltip { display: none; }
+.slots-mode .step-caption { display: block; margin: 6px 2px 0; font-size: 12px; color: var(--text-secondary); }
 /* Hover only where there is a mouse (on touch a tap leaves :hover stuck on), keyboard focus, or a tap (.tip-open). */
 .slots-mode .anvil-cell.tip-open .mc-tooltip, .slots-mode .anvil-cell:has(:focus-visible) .mc-tooltip { display: block; position: absolute; top: 54px; left: 0; z-index: 30; width: max-content; max-width: 240px; pointer-events: none; }
 @media (hover: hover) {
@@ -2377,3 +2386,19 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .break-title { font-weight: 700; }
 .break-step { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
 .break-op { font-size: 18px; color: var(--text-secondary); }
+/* Section 4's tree on a phone: a narrower indent, and a tree too wide for the card scrolls sideways instead of squeezing its tooltips. */
+@media (max-width: 600px) {
+    .tree-children { margin-left: 8px; padding-left: 8px; }
+    .merge-tree:not(.compact) { overflow-x: auto; padding-bottom: 6px; }
+    .merge-tree:not(.compact) .tree-tooltip { flex: 0 0 auto; min-width: 9em; max-width: 16em; }
+}
+/* Copy: a small menu of the ways to copy the steps. */
+.copy-menu { position: relative; }
+.copy-menu > summary { list-style: none; cursor: pointer; }
+.copy-menu > summary::-webkit-details-marker { display: none; }
+.copy-menu > summary::after { content: "\25be"; margin-left: 5px; font-size: 10px; }
+.copy-menu[open] > summary { background: var(--surface-alt); }
+.copy-panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+.copy-panel .btn { white-space: nowrap; }
+/* The edition switch in the Game rules panel. */
+.edition-switch button { height: 32px; padding: 0 12px; }

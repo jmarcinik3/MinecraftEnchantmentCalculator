@@ -1,5 +1,5 @@
 // Section 3 settings: level limit, rename and "Your level".
-import { MAX_NAME_LENGTH, MAX_STEP_LEVELS, clampStepLimit, cleanName } from "./Logic.js";
+import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, clampStepLimit, cleanName } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, state } from "./Store.js";
 import { $, h, readStorage, writeStorage } from "./Dom.js";
@@ -8,7 +8,7 @@ import { last_result, scheduleCalculation } from "./Calc.js";
 import { saveToUrl } from "./Link.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { closeRow, inertCopy, openRow } from "./Motion.js";
-import { commit, setAllowIncompatible, setupMenuClosing } from "./App.js";
+import { commit, setAllowIncompatible, setEdition, setupMenuClosing } from "./App.js";
 
 // Kept in this browser only (not in share links): they are about the viewer, not the setup.
 const LEVEL_STORAGE_KEY = "enchantment-calculator-level";
@@ -46,6 +46,7 @@ export function renderRanking() {
             }, TEXT.ranking.rules_reset)
         ),
         h("div", { class: "options" },
+            optionRow(TEXT.ranking.edition, null, editionControl()),
             // No hover titles on these labels: the "?" beside each says what it is for.
             optionRow([TEXT.ranking.level_limit, helpTip("limit-help", TEXT.ranking.level_limit_help_label, TEXT.ranking.level_limit_help)], null, limitControl()),
             optionRow([TEXT.ranking.allow_conflicts, helpTip("conflicts-help", TEXT.ranking.allow_conflicts_help_label, TEXT.ranking.allow_conflicts_help)], null, conflictsSwitch())
@@ -100,6 +101,15 @@ function helpTip(id, label, text) {
     const tip = infoTip(id, "?", label, text, "option-help");
     floatBubble(tip);
     return tip;
+}
+
+// Java or Bedrock: their anvil rules differ. Not a rule "Reset to vanilla" changes (both are the game).
+function editionControl() {
+    return h("div", { class: "segmented edition-switch", role: "group", "aria-label": TEXT.page.edition_label },
+        EDITIONS.map(edition => h("button", {
+            type: "button", class: state.edition === edition ? "selected" : "", "aria-pressed": String(state.edition === edition),
+            "data-focus": "edition-" + edition, title: TEXT.page.editions[edition].help, onclick: () => setEdition(edition)
+        }, TEXT.page.editions[edition].label)));
 }
 
 // Allow conflicts: an on/off switch.

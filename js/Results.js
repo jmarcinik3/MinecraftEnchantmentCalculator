@@ -17,7 +17,10 @@ const COMPACT_STORAGE_KEY = "enchantment-calculator-tree-compact";
 // "steps": a card per step; "slots": one line of slots per step; "tree".
 let result_view = ["tree", "slots"].includes(readStorage(VIEW_STORAGE_KEY, "steps")) ? readStorage(VIEW_STORAGE_KEY, "steps") : "steps";
 // Tree view: only the slots, with the details on hover.
-let tree_compact = readStorage(COMPACT_STORAGE_KEY, false) === true;
+// Phones start with the compact tree (a slot and a caption per entry): full tooltips are too wide there.
+let tree_compact = readStorage(COMPACT_STORAGE_KEY, matchMedia("(max-width: 600px)").matches) === true;
+// Whether the "In words" lines under the steps are open (they all follow the last one toggled).
+let words_open = false;
 // Each redraw (a tick, a new name, a new level) rebuilds the steps; their scroll position
 // is kept when the same view of the same order comes back.
 export let steps_scroll = { key: null, top: 0 };
@@ -152,6 +155,13 @@ export function renderResults() {
         h("button", { type: "button", class: "btn small", onclick: () => foldAll(false) }, TEXT.results.expand_all),
         h("button", { type: "button", class: "btn small", onclick: () => foldAll(true) }, TEXT.results.collapse_all));
 
+    // The goal, before the steps: what is made, what it costs and in how many steps.
+    content.append(h("p", { class: "result-goal" }, TEXT.results.goal({
+        item: nodeName(node),
+        enchantments: TEXT.results.goal_enchantments({ count: node.enchantments.length }),
+        levels: node.cumulative_levels + " " + TEXT.ranking.criteria.levels.unit({ value: node.cumulative_levels }),
+        steps: TEXT.page.summary_steps({ count: steps.length })
+    })));
     content.append(h("div", { class: "toolbar result-tools" },
         h("div", { class: "segmented", role: "group", "aria-label": TEXT.results.view_label },
             [["steps", TEXT.results.view_steps], ["slots", TEXT.results.view_slots], ["tree", TEXT.results.view_tree]].map(([view, label]) => h("button", {
@@ -161,10 +171,7 @@ export function renderResults() {
         stepProgress(steps, done, remaining.needed, order_key, [compact, fold_buttons]),
         // Copy steps and Print go to the next row together, never one without the other.
         h("div", { class: "result-actions" },
-            h("button", {
-                type: "button", class: "btn small copy-steps", title: TEXT.results.copy_steps_help,
-                onclick: event => copyText(event.currentTarget, stepsText(node, steps), TEXT.results.copy_steps)
-            }, TEXT.results.copy_steps),
+            copyMenu(node, steps, done),
             h("button", { type: "button", class: "btn small", title: TEXT.results.print_help, onclick: () => window.print() }, TEXT.results.print))
     ));
 
@@ -204,7 +211,7 @@ export function renderResults() {
         // The finished item, after the last step.
         scroller.append(h("section", { class: "final-card" + (current == null ? " done" : "") },
             h("div", { class: "final-title" }, current == null ? TEXT.results.final_done : TEXT.results.final_title),
-            anvilCell(node, null, "final")));
+            anvilCell(node, null, "final", null, entryHover(node))));
         // Phones: the current step and a Done button stay at the bottom while scrolling.
         if (current != null) scroller.append(currentBar(steps, done, order_key, current));
         watchCurrentStep();
@@ -234,7 +241,8 @@ export function anvilRisk(uses) {
     const chance = anvilBreakChance(uses);
     const risk = chance === 0 ? "none" : chance < ANVIL_RISK_MEDIUM ? "low" : chance < ANVIL_RISK_HIGH ? "medium" : "high";
     const tip = infoTip("anvil-risk-tip",
-        [h("img", { class: "anvil-risk-icon", src: "img/anvil.png", alt: "" }), chance === 0 ? TEXT.results.anvil_safe_short : percentText(chance)],
+        [h("img", { class: "anvil-risk-icon", src: "img/anvil.png", alt: "" }), h("span", { class: "anvil-risk-label" }, TEXT.results.anvil_wear_label),
+            chance === 0 ? TEXT.results.anvil_safe_short : percentText(chance)],
         anvilRiskText(uses),
         h("span", {}, h("strong", {}, anvilRiskText(uses)), " ", TEXT.results.anvil_wear_help),
         "anvil-risk risk-" + risk);
@@ -321,7 +329,7 @@ function mergeTree(root, steps, done, order_key) {
                 "data-step-card": number || null, title: number ? fold_label : null,
                 onclick: number ? event => { if (!event.target.closest(".tree-step, .step-fold")) toggleFold(order_key, number, !folded); } : null,
                 // A starting item lights its card in section 2 and scrolls to it on a click (entryHover).
-                ...(node.left ? {} : entryHover(node))
+                ...entryHover(node)
             },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
                 // Compact: a one-line caption next to the slot; the tooltip shows on hover.
@@ -380,6 +388,21 @@ function stepsText(root, steps) {
             lines.push(text.text_step({ number: step.number, left: part(step.left), right: part(step.right), levels: step.node.merge_levels }) + rename);
         }
     });
+    lines.push("", location.href);
+    return lines.join("\n");
+}
+
+// The steps as a Markdown checklist (a box for each, ticked for the ones done), for a chat or notes.
+function checklistText(root, steps, done) {
+    const text = TEXT.results;
+    const part = side => side.kind === "step"
+        ? text.text_result_of({ number: side.index })
+        : side.node.enchantments.length ? text.text_entry({ name: nodeName(side.node), enchantments: logic.summary(side.node.enchantments) }) : nodeName(side.node);
+    const lines = [text.text_wanted({ item: logic.itemName(state.item), enchantments: logic.summary(root.enchantments) }), ""];
+    for (const step of steps) {
+        const rename = step.node.renamed ? " (" + text.text_rename_to({ name: state.rename_to.trim() }) + ")" : "";
+        lines.push("- [" + (done.has(step.number) ? "x" : " ") + "] " + text.text_step({ number: step.number, left: part(step.left), right: part(step.right), levels: step.node.merge_levels }) + rename);
+    }
     lines.push("", location.href);
     return lines.join("\n");
 }
@@ -479,10 +502,24 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
 
     return h("li", {
         class: "anvil-step" + (is_done ? " done" : "") + (folded ? " folded" : "") + (current ? " current" : ""),
-        "data-step-card": number, tabindex: "0", "aria-keyshortcuts": "Space",
-        // Space ticks (or unticks) the focused step.
+        "data-step-card": number, tabindex: "0", "aria-keyshortcuts": "Space ArrowUp ArrowDown Enter",
+        // On the focused step: Space ticks (or unticks) it, Up and Down move to the neighbouring step, and
+        // Enter folds or unfolds it (not in the Slots view, where steps never fold).
         onkeydown: event => {
-            if (event.key !== " " || event.target !== event.currentTarget) return;
+            if (event.target !== event.currentTarget) return;
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+                event.preventDefault();
+                const cards = [...document.querySelectorAll("#results .anvil-step")];
+                const next = cards[cards.indexOf(event.currentTarget) + (event.key === "ArrowDown" ? 1 : -1)];
+                if (next) { next.focus({ preventScroll: true }); next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" }); }
+                return;
+            }
+            if (event.key === "Enter" && foldable) {
+                event.preventDefault();
+                toggleFold(order_key, number, !folded);
+                return;
+            }
+            if (event.key !== " ") return;
             event.preventDefault();
             keepInPlace(`[data-step-card="${number}"]`, () => {
                 saveTicks(order_key, steps, done, logic.tickStep(steps, done, number, !is_done));
@@ -496,19 +533,24 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         head,
         // With "Your level" filled in and too low: how many levels to gain before this step.
         level && level.short ? h("div", { class: "level-checkpoint" }, TEXT.results.checkpoint({ count: level.short, level: cost })) : null,
-        h("p", { class: "step-instruction" }, stepInstruction(step)),
+        h("details", { class: "step-words", open: words_open, ontoggle: event => { words_open = event.target.open; } },
+            h("summary", {}, TEXT.results.step_words),
+            h("p", { class: "step-instruction" }, stepInstruction(step))),
+        h("p", { class: "print-only step-print" }, stepInstruction(step)),
         h("div", { class: "anvil-row" },
-            anvilCell(step.left.node, null, "left", entryRef(step.left), step.left.kind === "step" ? {} : entryHover(step.left.node), TEXT.results.slot_left),
+            anvilCell(step.left.node, null, "left", entryRef(step.left), entryHover(step.left.node), TEXT.results.slot_left),
             h("div", { class: "anvil-op", "aria-hidden": "true" }, "+"),
-            anvilCell(step.right.node, null, "right", entryRef(step.right), step.right.kind === "step" ? {} : entryHover(step.right.node), TEXT.results.slot_right),
+            anvilCell(step.right.node, null, "right", entryRef(step.right), entryHover(step.right.node), TEXT.results.slot_right),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
                 costChip(step),
                 // A step you can't afford says so in the checkpoint above, not here too.
                 level && !level.short ? levelMeter(level) : null
             ),
-            anvilCell(step.node, changed, "result", h("span", { class: "cell-meta" }, TEXT.results.result_work({ count: step.node.prior_work })), {}, TEXT.results.slot_result)
-        )
+            anvilCell(step.node, changed, "result", h("span", { class: "cell-meta" }, TEXT.results.result_work({ count: step.node.prior_work })), entryHover(step.node), TEXT.results.slot_result)
+        ),
+        // The Slots view's one-line caption, since the slots alone look alike.
+        h("p", { class: "step-caption" }, stepLine(step))
     );
 }
 
@@ -572,6 +614,14 @@ function watchCurrentStep() {
     current_watch.observe(step);
 }
 
+// Ticks a step (and the ones it needs) and brings the next step into view.
+function markStepDone(steps, done, order_key, number) {
+    saveTicks(order_key, steps, done, logic.tickStep(steps, done, number, true));
+    renderResults();
+    const next = document.querySelector("#results .anvil-step.current");
+    if (next) next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" });
+}
+
 // Phones: the current step's line and a Done button, kept at the bottom of the screen while
 // the steps scroll (CSS shows it under 900px).
 function currentBar(steps, done, order_key, current) {
@@ -587,12 +637,7 @@ function currentBar(steps, done, order_key, current) {
         }, "↑"),
         h("button", {
             type: "button", class: "btn small primary",
-            onclick: () => {
-                saveTicks(order_key, steps, done, logic.tickStep(steps, done, current, true));
-                renderResults();
-                const next = document.querySelector("#results .anvil-step.current");
-                if (next) next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" });
-            }
+            onclick: () => markStepDone(steps, done, order_key, current)
         }, TEXT.results.bar_done));
 }
 
@@ -630,9 +675,18 @@ function entryRef(side) {
     return side.kind === "step" ? h("span", { class: "cell-meta" }, TEXT.results.from_step({ number: side.index })) : null;
 }
 
-// Attributes for a starting slot (in Steps or Tree): hovering it highlights its section 2
-// card, and a click or tap scrolls to the card and flashes it (useful on phones).
-function entryHover(leaf) {
+// The books and items you start with that went into `node` (itself, when it is one).
+function leavesOf(node) {
+    return node.left ? [...leavesOf(node.left), ...leavesOf(node.right)] : [node];
+}
+
+// Attributes for a slot (in Steps, Slots or Tree). A starting slot: hovering it highlights its
+// section 2 card, and a click or tap scrolls to the card and flashes it (useful on phones). A merged
+// item: hovering or focusing it highlights every section 2 card that went into it (only with a mouse
+// or the keyboard: on touch the emulated hover would stay lit).
+function entryHover(node) {
+    if (node.left) return sourcesHover(node);
+    const leaf = node;
     const index = entryIndexOf(leaf);
     if (index < 0) return {};
     const card = () => document.querySelector(`#books .entry-card[data-index="${index}"]`);
@@ -661,6 +715,13 @@ function entryHover(leaf) {
     };
 }
 
+function sourcesHover(node) {
+    const cards = () => [...new Set(leavesOf(node).map(entryIndexOf))].filter(index => index >= 0)
+        .map(index => document.querySelector(`#books .entry-card[data-index="${index}"]`)).filter(Boolean);
+    const light = on => { if (!on || matchMedia("(hover: hover)").matches) for (const card of cards()) card.classList.toggle("highlight", on); };
+    return { onmouseenter: () => light(true), onmouseleave: () => light(false), onfocusin: () => light(true), onfocusout: () => light(false) };
+}
+
 // The section 2 entry a starting slot is (by what it is, its enchantments and prior work;
 // copies of one entry are interchangeable, so the first match is the one), or -1.
 function entryIndexOf(leaf) {
@@ -684,6 +745,40 @@ function announce(text, order_key, count) {
     if (same_order && changed) $("#live").textContent = text;
 }
 
+// "Copy": a small menu of the two ways to take the steps along: as plain text, or as a checklist.
+function copyMenu(node, steps, done) {
+    const menu = h("details", { class: "copy-menu" }, h("summary", { class: "btn small" }, TEXT.results.copy_menu));
+    const item = (name, title, text) => h("button", {
+        type: "button", class: "btn small " + name, title,
+        onclick: event => {
+            copyText(event.currentTarget, text(), TEXT.results[name === "copy-steps" ? "copy_steps" : "copy_checklist"]);
+            setTimeout(() => { menu.open = false; }, 900); // after the "Copied" it says
+        }
+    }, TEXT.results[name === "copy-steps" ? "copy_steps" : "copy_checklist"]);
+    menu.append(h("div", { class: "copy-panel" },
+        item("copy-steps", TEXT.results.copy_steps_help, () => stepsText(node, steps)),
+        item("copy-checklist", TEXT.results.copy_checklist_help, () => checklistText(node, steps, done))));
+    return menu;
+}
+// The menu closes on a click outside it, or on Escape (one listener for the menu of every redraw).
+document.addEventListener("click", event => { for (const open of document.querySelectorAll(".copy-menu[open]")) if (!open.contains(event.target)) open.open = false; });
+document.addEventListener("keydown", event => { if (event.key === "Escape") for (const open of document.querySelectorAll(".copy-menu[open]")) open.open = false; });
+
+// Brings a step into view (unfolding it, in the Steps view) and flashes it.
+function jumpToStep(order_key, number) {
+    if (result_view === "steps" && isFolded(order_key, number, loadChecklist(order_key), true)) {
+        foldsFor(order_key).set(number, false);
+        renderResults();
+    }
+    const card = document.querySelector(`#results [data-step-card="${number}"]`);
+    if (!card) return;
+    card.scrollIntoView({ block: "center", behavior: motionOk() ? "smooth" : "auto" });
+    card.focus({ preventScroll: true });
+    card.classList.remove("flash");
+    void card.offsetWidth; // restart the flash
+    card.classList.add("flash");
+}
+
 // In the toolbar: "3 of 7 done · 18 levels to go" over a bar that fills as steps are
 // ticked, and ↺ to untick them all; `extra` are more buttons for the same row (some may be null).
 function stepProgress(steps, done, levels, order_key, extra) {
@@ -696,12 +791,22 @@ function stepProgress(steps, done, levels, order_key, extra) {
     // The bar, its text and ↺ stay together; the extra buttons (Compact, Expand all /
     // Collapse all) wrap to their own row as one group when there is no room beside them.
     const tools = extra.filter(Boolean);
+    // With "Your level" tracked: enough for what is left, or how many levels are missing.
+    const level = activeLevel();
+    const level_status = level != null && levels > 0
+        ? h("span", { class: "level-status " + (level >= levels ? "enough" : "short") },
+            level >= levels ? TEXT.ranking.level_enough_now : TEXT.ranking.level_need_more({ short: levels - level })) : null;
     return h("div", { class: "step-progress" },
         h("div", { class: "step-progress-main" },
-            h("div", { class: "step-progress-track" + (level_up ? " level-up" : ""), role: "progressbar", "aria-valuetext": summary, "aria-valuemin": "0", "aria-valuemax": String(total), "aria-valuenow": String(count) },
-                // Drawn like the game's experience bar: one segment per step, filling from the left.
-                steps.map((step, index) => h("span", { class: "step-progress-cell" + (index < count ? " filled" : "") }))),
+            h("div", { class: "step-progress-track" + (level_up ? " level-up" : ""), role: "group", "aria-label": summary },
+                // Drawn like the game's experience bar: one segment per step, filling from the left; each one jumps to its step.
+                steps.map((step, index) => h("button", {
+                    type: "button", class: "step-progress-cell" + (index < count ? " filled" : ""),
+                    "aria-label": TEXT.results.jump_to_step({ number: step.number }), title: TEXT.results.jump_to_step({ number: step.number }),
+                    onclick: () => jumpToStep(order_key, step.number)
+                }))),
             h("span", { class: "step-progress-text" }, summary),
+            level_status,
             h("button", {
                 type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
                 disabled: count === 0, onclick: () => { saveTicks(order_key, steps, done, new Set()); renderResults(); }

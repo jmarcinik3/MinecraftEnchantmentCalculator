@@ -1,5 +1,5 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
-import { EDITIONS, cleanName, createLogic, editionMetadata } from "./Logic.js";
+import { cleanName, createLogic, editionMetadata } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setState, state } from "./Store.js";
 import { $, copyText, h, icon, keepGlintsInStep, motionOk, readStorage, writeStorage } from "./Dom.js";
@@ -77,7 +77,7 @@ export function useEdition(edition) {
 // Java gives the whole name again, unless it was changed in between.
 let uncut_name = null;
 
-function setEdition(edition) {
+export function setEdition(edition) {
     if (state.edition === edition) return;
     const typed = uncut_name != null && cleanName(uncut_name, state.edition) === state.rename_to ? uncut_name : state.rename_to;
     state.edition = edition;
@@ -134,7 +134,6 @@ function render() {
     renderSaved();
     renderWanted();
     renderBooks();
-    renderEdition();
     renderRanking();
     renderResults();
     if (scrollY !== scroll) scrollTo(scrollX, scroll);
@@ -356,16 +355,6 @@ function setupSavedMenu() {
 }
 
 // ---------- Header controls (edition, theme, reset, copy link) ----------
-
-function renderEdition() {
-    $("#edition").replaceChildren(...EDITIONS.map(edition => h("button", {
-        type: "button",
-        class: state.edition === edition ? "selected" : "",
-        "aria-pressed": String(state.edition === edition),
-        title: TEXT.page.editions[edition].help,
-        onclick: () => setEdition(edition)
-    }, TEXT.page.editions[edition].label)));
-}
 
 // Light or dark: follows the system until the sun/moon button picks one, which is then
 // remembered here (index.html applies it before the page draws, so there is no flash).

@@ -7,7 +7,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
 ## Files
 - `index.html`: shell with 2 left sections (1 Item and enchantments `#wanted`, 2 Books and items `#books`) and
   2 right ones (3 Best order: `#metrics` tiles and `#ranking` settings; 4 Anvil uses, `.results-card`: `#results` with status
-  messages, anvil wear, the Steps | Slots | Tree row and the steps), all collapsible (+ `#edition`, `#copy-link`,
+  messages, anvil wear, the Steps | Slots | Tree row and the steps), all collapsible (+ `#copy-link`,
   `#language`, `#theme` (sun/moon: `setupTheme`/`renderTheme`, `THEME_STORAGE_KEY`, `data-theme` on <html>, set early by an inline
   script in index.html; Style.css dark tokens apply under `prefers-color-scheme: dark` unless `data-theme="light"`, or with
   `data-theme="dark"`), and the `#saved` menu, a `<details>` whose `#saved-panel` App.js fills). The header controls share
@@ -136,7 +136,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   made by a step says "From step N" (`entryRef`), the result its prior work, the cost is always the game's green, and `levelMeter` draws "Lv 30 → 28" with a bar.
 - Section 4 with no valid order: the warning says why and, when the level limit was lowered, offers "Use the game's limit (39)";
   section 1's cost meter says "No valid order" (`meter_none`) instead of leaving its space blank.
-- Section 4 extras (`renderResults`): the toolbar is the Steps | Slots | Tree switch (`result_view`), Copy steps, Print, and the progress on its own row with Expand all / Collapse all (`.fold-buttons`, Steps and Tree; by default only the current step is in full
+- Section 4 extras (`renderResults`): the toolbar is the Steps | Slots | Tree switch (`result_view`), a Copy menu (`copyMenu`: Copy steps as text, Copy checklist as Markdown with boxes), Print, and the progress on its own row with Expand all / Collapse all (`.fold-buttons`, Steps and Tree; by default only the current step is in full
   and the rest fold to a line, hand folds win) and, in Tree, Compact (`tree_compact`). Heading summary is "N steps". Each step says Left slot / Right slot / Result (`cell-label`), has a sentence
   (`stepInstruction`: what to put where, the rename note), a cost chip with a floating breakdown (`costChip`/`showCost`: enchantments, each side's
   prior work 2^n - 1, rename), the result dims lines it didn't change and shows a raised enchantment's old level (`.mc-from`, `anvilCell` takes a Set or a
@@ -154,7 +154,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   loaded via `readLink`; × removes one), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
   step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks); hovering a starting item lights its section 2 card and a click scrolls to it (`entryHover`, as in the Steps view); each merge folds its inputs away like its step does (same `isFolded`/`toggleFold` state, ▾/▴ `.step-fold`). Ticking a step also ticks
   the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Section 4's heading always shows the uses (`renderStepsSummary`) and the break risk (`anvilRisk`: an
-  `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), "Copy steps" (`stepsText`), and Print (`@media print` in Style.css; `.print-only` lines).
+  `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), Copy (`stepsText`, `checklistText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
   keyed by its steps (`orderKey`: each slot's item, enchantments and prior work, not the costs, so a rename keeps the ticks); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
@@ -213,3 +213,10 @@ reference is missing: when renaming or adding one of those files or imports, upd
 ## Conventions
 camelCase functions, PascalCase classes/filenames, snake_case variables, UPPER_CASE constants.
 Keep Engine.js DOM-free and UMD. Keep UI text short, and in `json/text/*.json`.
+- Section 4 additions: a goal line above the toolbar (`.result-goal`), the progress bar's segments are buttons that jump to their step
+  (`jumpToStep`), "Your level" says "Need N more levels"/"Enough" beside the progress, each step's sentence is behind an "In words"
+  disclosure (`.step-words`; on paper each step prints that sentence as `.step-print` instead of the slots), the Slots view adds a caption under
+  each row (`.step-caption`), Up/Down/Enter move between and fold the focused step, the heading's anvil badge is labelled "Anvil wear" (wide screens),
+  and phones start with the compact tree (a wide tree scrolls sideways). Hovering or focusing a merged item (an input made by an earlier step, a
+  result, the finished item, a tree merge) lights every section 2 card that went into it (`leavesOf`, `sourcesHover`); a starting item lights its own.
+- The Java | Bedrock switch (`editionControl`, `setEdition` in App.js) is the first row of the Game rules menu (it is not one of the rules Reset to vanilla changes).
