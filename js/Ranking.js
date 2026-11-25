@@ -4,13 +4,21 @@ import { TEXT } from "./Text.js";
 import { language, state } from "./Store.js";
 import { $, h } from "./Dom.js";
 import { running } from "./Calc.js";
-import { resultNode } from "./Options.js";
+import { resultNode, stepLimit } from "./Options.js";
 import { commit } from "./App.js";
 
 function setPriority(priority) {
     state.priority = priority;
     commit();
 }
+
+// One tap sets what matters most: that tile first, the others in their usual order.
+const RANK_PRESETS = [
+    ["levels", ["levels", "xp", "max_step", "prior_work"]],
+    ["xp", ["xp", "levels", "max_step", "prior_work"]],
+    ["step", ["max_step", "levels", "xp", "prior_work"]],
+    ["prior", ["prior_work", "levels", "xp", "max_step"]]
+];
 
 // Drag to reorder, for the ranking tiles and the custom entries. Pointer events cover
 // mouse, pen and touch alike (the HTML drag-and-drop API does not work on touch screens).
@@ -71,7 +79,7 @@ export function renderMetrics(rebuild = false) {
     const order = state.priority.join(",");
     if (rebuild || box.dataset.order !== order) {
         box.dataset.order = order;
-        box.replaceChildren(h("ol", { class: "metrics" }, state.priority.map(rankTile)));
+        box.replaceChildren(rankPresets(), h("ol", { class: "metrics" }, state.priority.map(rankTile)), rankCaption());
     }
 
     const node = resultNode(); // nothing to show without a step
@@ -81,11 +89,38 @@ export function renderMetrics(rebuild = false) {
         max_step: node.max_step,
         prior_work: node.prior_work
     };
+    const limit = stepLimit();
     for (const tile of box.querySelectorAll(".rank-tile")) {
-        tile.querySelector(".metric-value").textContent = values ? values[tile.dataset.criterion] : TEXT.ranking.no_value;
+        const criterion = tile.dataset.criterion;
+        const copy = TEXT.ranking.criteria[criterion];
+        const value = values ? node[criterion === "xp" ? "cumulative_xp" : criterion === "levels" ? "cumulative_levels" : criterion] : null;
+        tile.querySelector(".metric-value").textContent = values ? values[criterion] : TEXT.ranking.no_value;
+        tile.querySelector(".metric-unit").textContent = values ? copy.unit({ value }) : "";
+        // The biggest step also says how close it is to the limit: amber within 5 levels of it, red at it.
+        const finite = criterion === "max_step" && limit !== Infinity;
+        tile.querySelector(".metric-note").textContent = finite ? TEXT.ranking.max_step_limited({ limit }) : copy.note;
+        tile.classList.toggle("near", Boolean(values) && finite && value >= limit - 5 && value < limit);
+        tile.classList.toggle("at", Boolean(values) && finite && value >= limit);
     }
     // A new result is on its way: fade the old numbers.
     box.classList.toggle("updating", running);
+}
+
+// "Rank by": four chips that put one criterion first.
+function rankPresets() {
+    const current = state.priority.join();
+    return h("div", { class: "rank-presets" },
+        h("span", { class: "rank-presets-label" }, TEXT.ranking.rank_presets_label),
+        RANK_PRESETS.map(([key, priority]) => h("button", {
+            type: "button", class: "preset" + (current === priority.join() ? " selected" : ""),
+            "aria-pressed": String(current === priority.join()), onclick: () => setPriority([...priority])
+        }, TEXT.ranking.rank_presets[key])));
+}
+
+// Under the tiles: the ranking in words.
+function rankCaption() {
+    const [first, ...rest] = state.priority.map(criterion => TEXT.ranking.criteria[criterion].label);
+    return h("p", { class: "rank-caption" }, TEXT.ranking.rank_caption({ first, rest }));
 }
 
 function rankTile(criterion, index) {
@@ -101,11 +136,12 @@ function rankTile(criterion, index) {
         // The name gets the whole top line, so longer ones ("Trabajo anterior") stay on one
         // line; the arrows sit beside the value below.
         h("div", { class: "rank-tile-head" },
+            h("span", { class: "rank-grip", "aria-hidden": "true" }),
             h("span", { class: "rank-num" }, index + 1),
             h("span", { class: "metric-label" }, label)
         ),
         h("div", { class: "rank-tile-body" },
-            h("div", { class: "metric-value" }),
+            h("div", { class: "metric-figure" }, h("span", { class: "metric-value" }), h("span", { class: "metric-unit" })),
             h("button", {
                 type: "button", class: "rank-move", disabled: index === 0,
                 "aria-label": TEXT.ranking.rank_higher_label({ label }), onclick: () => setPriority(movePriority(state.priority, index, -1))
@@ -114,6 +150,7 @@ function rankTile(criterion, index) {
                 type: "button", class: "rank-move", disabled: last,
                 "aria-label": TEXT.ranking.rank_lower_label({ label }), onclick: () => setPriority(movePriority(state.priority, index, 1))
             }, "›")
-        )
+        ),
+        h("div", { class: "metric-note" })
     );
 }

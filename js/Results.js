@@ -7,7 +7,7 @@ import { $, copyText, h, icon, motionOk, readStorage, writeStorage } from "./Dom
 import { keepInPlace, revealBelow } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
-import { cancelCalculation, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
+import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { commit, renderOrderSummary, renderStepsSummary } from "./App.js";
 
@@ -103,7 +103,8 @@ export function renderResults() {
             lowered ? h("button", {
                 type: "button", class: "btn small",
                 onclick: () => { state.max_step = MAX_STEP_LEVELS; commit(); }
-            }, TEXT.results.use_game_limit({ limit: MAX_STEP_LEVELS })) : null));
+            }, TEXT.results.use_game_limit({ limit: MAX_STEP_LEVELS })) : null,
+            whereItBreaks()));
         return;
     }
     if (!node.left) {
@@ -188,7 +189,7 @@ export function renderResults() {
             h("ol", { class: "anvil-steps" }, round.map(step =>
                 anvilStep(step, done, order_key, steps,
                     track && !done.has(step.number) ? track.steps[step.number - 1] : null,
-                    step.number === current, !slots && isFolded(order_key, step.number, done, step.number !== current))))
+                    step.number === current, !slots && isFolded(order_key, step.number, done, step.number !== current), !slots)))
         )));
         // Slots view on touch: a tap on a slot shows its tooltip (there is no hover); another tap, or one elsewhere, hides it.
         if (slots) {
@@ -240,6 +241,33 @@ export function anvilRisk(uses) {
     tip.querySelector(".info-tip-bubble").setAttribute("role", "tooltip");
     floatBubble(tip);
     return tip;
+}
+
+// With no order within the limit: the step that breaks it, in the order with the smallest biggest step
+// (from a search with no limit), with the cheapest way out: raise the limit to what it needs, or, when
+// even the game's limit would stop it, remove the limit (for mods).
+function whereItBreaks() {
+    if (state.no_step_limit || !last_break) return null;
+    if (last_break.status === "running") return h("p", { class: "hint" }, TEXT.results.break_looking);
+    const node = last_break.node;
+    if (last_break.status !== "done" || !node || !node.left) return null;
+    const steps = logic.collectSteps(node);
+    const worst = steps.reduce((most, step) => (step.node.merge_levels > most.node.merge_levels ? step : most));
+    const levels = worst.node.merge_levels;
+    const fits = levels <= MAX_STEP_LEVELS;
+    return h("div", { class: "break-down" },
+        h("div", { class: "break-title" }, TEXT.results.break_title),
+        h("p", {}, fits
+            ? TEXT.results.break_step({ steps: steps.length, number: worst.number, levels, limit: state.max_step })
+            : TEXT.results.break_beyond({ number: worst.number, levels, game: MAX_STEP_LEVELS })),
+        h("div", { class: "break-step slots-mode" },
+            anvilCell(worst.left.node, null, "left"), h("span", { class: "break-op" }, "+"),
+            anvilCell(worst.right.node, null, "right"), h("span", { class: "break-op" }, "→"),
+            anvilCell(worst.node, null, "result"),
+            h("span", { class: "anvil-cost break-cost" }, TEXT.results.cost({ levels }))),
+        fits
+            ? h("button", { type: "button", class: "btn small primary", onclick: () => { state.max_step = levels; state.no_step_limit = false; commit(); } }, TEXT.results.break_raise({ limit: levels }))
+            : h("button", { type: "button", class: "btn small", onclick: () => { state.no_step_limit = true; commit(); } }, TEXT.results.break_remove));
 }
 
 function anvilRiskText(uses) {
@@ -420,8 +448,9 @@ function stepTick(number, done, order_key, steps) {
 
 // One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a box to tick it off.
 // `level`: { before, after, short } with "Your level" filled in, else null.
-// `folded`: shown as its head only (isFolded).
-function anvilStep(step, done, order_key, steps, level = null, current = false, folded = false) {
+// `folded`: shown as its head only (isFolded). `foldable` false (the Slots view): always open, and nothing on
+// the head looks clickable.
+function anvilStep(step, done, order_key, steps, level = null, current = false, folded = false, foldable = true) {
     const number = step.number;
     const is_done = done.has(number);
     const tick = stepTick(number, done, order_key, steps);
@@ -431,25 +460,21 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         .filter(e => left_levels.get(e.namespace) !== e.level)
         .map(e => [e.namespace, left_levels.get(e.namespace)]));
 
-    // The cost in the game's green, amber within 5 levels of the level limit, red at it
-    // (with no limit, measured against the game's own 39).
-    const limit = state.no_step_limit ? MAX_STEP_LEVELS : state.max_step;
     const cost = step.node.merge_levels;
-    const cost_class = cost >= limit ? " at-limit" : limit - cost <= 5 ? " near-limit" : "";
 
     // Every step folds and unfolds the same way: a click anywhere on its head (but the
     // tick) or its ▾/▴ button. Folded, the head says what the step does.
     const fold_label = folded ? TEXT.results.expand_step : TEXT.results.collapse_step;
     const head = h("div", {
-        class: "step-head", title: fold_label,
-        onclick: event => { if (!event.target.closest(".step-tick, .step-fold")) toggleFold(order_key, number, !folded); }
+        class: "step-head" + (foldable ? "" : " fixed"), title: foldable ? fold_label : null,
+        onclick: foldable ? event => { if (!event.target.closest(".step-tick, .step-fold")) toggleFold(order_key, number, !folded); } : null
     },
         h("label", { class: "step-tick", title: TEXT.results.step_done_help }, tick, h("span", {}, TEXT.results.step_title({ number }))),
         h("span", { class: "step-summary" }, folded ? stepLine(step) : null),
-        h("button", {
+        foldable ? h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
             onclick: () => toggleFold(order_key, number, !folded)
-        }, folded ? "▾" : "▴")
+        }, folded ? "▾" : "▴") : null
     );
 
     return h("li", {
@@ -478,7 +503,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
             anvilCell(step.right.node, null, "right", entryRef(step.right), step.right.kind === "step" ? {} : entryHover(step.right.node), TEXT.results.slot_right),
             h("div", { class: "anvil-arrow" },
                 h("span", { class: "arrow-glyph", "aria-hidden": "true" }, "➔"),
-                costChip(step, cost_class),
+                costChip(step),
                 // A step you can't afford says so in the checkpoint above, not here too.
                 level && !level.short ? levelMeter(level) : null
             ),
@@ -501,7 +526,7 @@ function stepInstruction(step) {
 
 // The cost in the game's green; hovering, focusing or tapping it shows where the levels come
 // from: the enchantments, each side's prior work (2^n - 1) and the rename, as numbers and a bar.
-function costChip(step, cost_class) {
+function costChip(step) {
     const cost = step.node.merge_levels;
     const penalty = work => 2 ** (work || 0) - 1;
     const renamed = step.node.renamed ? 1 : 0;
@@ -517,7 +542,7 @@ function costChip(step, cost_class) {
         h("span", { class: "cost-bar", "aria-hidden": "true" }, rows.map(([, value, kind]) => h("span", { class: "cost-seg " + kind, style: `flex: ${value}` }))),
         rows.map(([label, value, kind]) => h("span", { class: "cost-row" }, h("i", { class: "cost-dot " + kind }), label, h("b", {}, "+" + value))));
     const chip = h("span", {
-        class: "anvil-cost has-breakdown" + cost_class, tabindex: "0",
+        class: "anvil-cost has-breakdown", tabindex: "0",
         onmouseenter: () => showCost(chip, bubble), onfocus: () => showCost(chip, bubble),
         onmouseleave: () => chip.classList.remove("open"), onblur: () => chip.classList.remove("open"),
         onclick: () => (chip.classList.contains("open") ? chip.classList.remove("open") : showCost(chip, bubble))

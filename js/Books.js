@@ -158,6 +158,14 @@ function matchOldCards(old_rects, books, old_sigs) {
     return { matched, leaving: old_entries.filter(([key]) => !used.has(key)).map(([, spec]) => spec) };
 }
 
+// Back to Automatic: the custom list is dropped.
+function useAutomatic() {
+    state.auto_books = true;
+    state.books = [];
+    entry_popover = null;
+    commit();
+}
+
 // Automatic (one book per chosen enchantment) or Custom (your own list). Custom starts
 // from the automatic list; going back to Automatic drops the custom one.
 function modeSwitch() {
@@ -167,10 +175,7 @@ function modeSwitch() {
         onclick: () => {
             if (state.auto_books === auto) return;
             if (auto) {
-                state.auto_books = true;
-                state.books = [];
-                entry_popover = null;
-                commit();
+                useAutomatic();
             } else {
                 customizeBooks();
             }
@@ -1134,7 +1139,12 @@ function renderBooksAlert(check) {
         box.replaceChildren();
         return;
     }
-    const details = check.short.map(fixSuggestion);
+    // After the fixes, a way out: let Automatic make the books.
+    const details = [...check.short.map(fixSuggestion), h("div", { class: "fix" },
+        h("div", { class: "fix-title" }, TEXT.books.automatic),
+        h("button", { type: "button", class: "fix-option", onclick: useAutomatic },
+            h("span", { class: "fix-action" }, TEXT.books.alert_auto),
+            h("span", { class: "fix-replaces" }, TEXT.books.alert_auto_note)))];
     box.replaceChildren(infoTip("books-alert-tip", TEXT.books.alert({ count: check.short.length }),
         TEXT.books.alert_label({ count: check.short.length }), details, "alert"));
 }

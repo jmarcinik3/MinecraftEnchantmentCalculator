@@ -22,6 +22,11 @@ let progress_clock = null;
 const ESTIMATE_AFTER_S = 5;      // say the time once a search has run this long
 const ESTIMATE_FROM_SHARE = 0.005; // and guess what is left once this much is done
 export let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
+// When the search found no order within the level limit: a second search with no limit, for the order
+// whose biggest step is smallest, to show which step breaks the limit. { status: "running" | "done" | "failed", node? }
+export let last_break = null;
+let break_worker = null;
+let break_id = 0;
 
 export function startWorker() {
     worker = new Worker(WORKER_URL);
@@ -79,8 +84,35 @@ export function scheduleCalculation() {
     calc_timer = setTimeout(runCalculation, CALC_DELAY_MS);
 }
 
+// Where the limit breaks: the cheapest biggest step with no limit (its own worker, so the main search and
+// the drag previews are not held up). Only the biggest step matters, so that is what it ranks first.
+function findBreak() {
+    const id = ++break_id;
+    last_break = { status: "running" };
+    break_worker = new Worker(WORKER_URL);
+    break_worker.onmessage = event => {
+        const data = event.data;
+        if (data.request_id !== id || data.message === "progress") return;
+        last_break = data.message === "optimal_searched" ? { status: "done", node: data.result } : { status: "failed" };
+        stopBreakSearch(false);
+        renderResults();
+    };
+    break_worker.postMessage({ message: "instantiate_metadata", metadata: meta });
+    break_worker.postMessage({
+        message: "calculate_optimal", request_id: id, item_entries: logic.buildEntries(state),
+        priority: ["max_step", "levels", "xp", "prior_work"], max_merge_levels: Infinity, edition: state.edition, rename: state.rename
+    });
+}
+
+function stopBreakSearch(forget = true) {
+    if (break_worker) break_worker.terminate();
+    break_worker = null;
+    if (forget) last_break = null;
+}
+
 export function runCalculation() {
     clearTimeout(calc_timer);
+    stopBreakSearch();
     // The search is one synchronous call, so a newer request has to replace the worker.
     if (running) restartWorker();
     stopRunning();
@@ -160,6 +192,7 @@ function handleWorkerMessage(event) {
     } else if (data.message === "optimal_searched") {
         stopRunning();
         last_result = { status: "ok", node: data.result };
+        if (!data.result && !state.no_step_limit) findBreak();
         applyCarriedProgress(data.result);
         renderResults();
     } else if (data.message === "calculation_failed") {

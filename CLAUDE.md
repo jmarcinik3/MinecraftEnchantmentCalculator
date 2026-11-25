@@ -57,24 +57,29 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Limit: at most `MAXIMUM_GROUPS` (2^20) groups, i.e. 20 all-different entries; repeats are cheap. Logic.js
   `searchSize` computes the same groups/splits for the page's slow warning (`SLOW_SPLITS` in Store.js) and limit.
 - Section 3 ("Best order", collapsed summary = all four results in ranking order, `renderOrderSummary`): the ? tip in its
-  heading and, beside it in a `.section-head`, the settings menu (`#options-menu` `<details>`: a button showing
-  `optionsSummary` + gear, opening `#limit-panel`, "Game rules": the level limit slider and the Allow conflicts switch (`conflictsSwitch`; the
-  button's summary adds "Conflicts allowed" when on; under 600px the button is the gear alone, with a dot (`.changed`) when a
-  rule isn't the default); closes on outside click/Escape via
-  `setupMenuClosing`), then the tiles (`#metrics`), then `#ranking` (`renderRanking`: one `.options` grid with
-  Rename and Your level; `updateLevelMeter` fills its XP bar and "Set to N"). Ticked steps count as 0 for your
+  heading (the heading row is a `.section-head`: the h2 and the collapse arrow), then `#metrics` (`renderMetrics`): the "Rank by"
+  chips (`rankPresets`, `RANK_PRESETS`: one tap puts a criterion first), the four tiles (a grip, the number, the label; the value with its unit,
+  `criteria.<c>.unit`, and a note under it, `criteria.<c>.note`; the Max level tile says "(limit N)" and is amber within 5 levels of the
+  limit, red at it: `.near`/`.at`) and a caption in words (`rankCaption`), then `#ranking` (`renderRanking`: one `.options` grid with Rename and
+  Your level; under 480px each label sits above its control). The Game rules menu is in the page header with the other global buttons
+  (`#options-menu` `<details>`, `.header-control.options-button`: the label "Game rules" + gear, its hover title and label say the limit and
+  conflicts; a dot (`.changed`) when a rule isn't the default, and under 600px the gear alone). It opens `#limit-panel`: the level limit slider, the Allow
+  conflicts switch (`conflictsSwitch`) and "Reset to vanilla" (`resetRules`, disabled while the rules are the game's own); it closes on outside click/Escape via `setupMenuClosing`. Ticked steps count as 0 for your
   level (`remainingLevels`: already paid for), and ticking redraws the results; the Levels tile keeps the full total.
   On desktop (900px+) the right column is a window-high flex column (section 3 natural height, section 4 the rest) and only `.steps-scroll` (the steps or tree, under the Steps | Slots | Tree row)
   scrolls; `steps_scroll` keeps its position across redraws of the same order and view. Phones scroll the page.
-- Options (`renderRanking`, 2-column `.options` grids, refocusing by `data-focus` after redraws):
-  level limit slider 1-39 plus an ∞ button (= `no_step_limit`), commits on release, value tappable to type
-  (`editLimit`); "Your level" −/+ (`holdButton` repeats while held) around a green number with an XP bar filling
-  toward the order's total levels (`updateLevelMeter`), an on/off toggle showing `img/experience_orb.png`, and "Set to N" (`#level-set`: the unticked steps' total) (off shows ∞ in place of the number) (`level_on`,
-  `LEVEL_ON_STORAGE_KEY`; `activeLevel()` is what the steps use; changing the number turns it on); Rename is one anvil-style name box (`nameField`:
-  `img/name_tag.png`, "+1 level" badge, character count); empty is no rename and shows the item's name as a gray
-  placeholder; any typed name renames; `state.rename` follows whether `rename_to` has text (`syncRename`,
+- Options (`renderRanking`, refocusing by `data-focus` after redraws): the level limit slider 1-39 (in the Game rules menu) plus an
+  infinity button (= `no_step_limit`), commits on release, value tappable to type (`editLimit`). "Your level" is a switch, "Track my
+  level" (`level_on`, `LEVEL_ON_STORAGE_KEY`; `activeLevel()` is what the steps use); on, it opens (`openRow`/`closeRow`) a number with - / +
+  (`holdButton` repeats while held) and an XP bar filling toward the order's total levels (`updateLevelMeter`), a "Set to the N you need" button
+  (`#level-set`: the unticked steps' total) and a status line (`#level-status`: "Need N more levels" in red, or "Enough for this order" in green).
+  Rename is one anvil-style name box (`nameField`: `img/name_tag.png`, "+1 level" badge, character count); empty is no rename and shows the
+  item's name as a gray placeholder; any typed name renames; `state.rename` follows whether `rename_to` has text (`syncRename`,
   also on load/edition change), and typing only reschedules the search when that flips, without redrawing the box.
   Only the limit commits; your level and the name redraw just the results.
+- With no order within the limit, Section 4 says why and, from a second search with no limit that ranks the biggest step first
+  (`findBreak` in Calc.js, `last_break`), shows where it breaks (`whereItBreaks`: the step that costs most, as three slots, with its cost)
+  and the cheapest way out: "Raise the limit to N" (the smallest limit that works), or, when even the game's 39 would stop it, "Remove the limit (mods)".
 - The Best order "?" bubble and the Game rules "?"s (`helpTip`, Level limit and Allow conflicts) are `position: fixed` (`floatBubble`,
   `.info-tip.floating`, one shared scroll/resize listener), placed under the "?" on open, hover, focus and scroll, and the
   Game rules panel is fixed too (placed by `setupOptionsMenu`), so none of them adds height to the scrolling right column.
@@ -128,8 +133,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   focused step ticks it), steps fold to one line (`stepLine`; done ones by default, any by a click on the head or its button: `isFolded`/
   `toggleFold`, `step_folds` overrides, dropped for a step whose tick changes via `saveTicks`), the row is an anvil-window
   panel (`--gui-*` tokens), hovering a starting input highlights its section 2 card and clicking scrolls to it (`entryHover`/`entryIndexOf`), an input
-  made by a step says "From step N" (`entryRef`), the result its prior work, the cost is amber within 5 of the level limit and red at
-  it, and `levelMeter` draws "Lv 30 → 28" with a bar.
+  made by a step says "From step N" (`entryRef`), the result its prior work, the cost is always the game's green, and `levelMeter` draws "Lv 30 → 28" with a bar.
 - Section 4 with no valid order: the warning says why and, when the level limit was lowered, offers "Use the game's limit (39)";
   section 1's cost meter says "No valid order" (`meter_none`) instead of leaving its space blank.
 - Section 4 extras (`renderResults`): the toolbar is the Steps | Slots | Tree switch (`result_view`), Copy steps, Print, and the progress on its own row with Expand all / Collapse all (`.fold-buttons`, Steps and Tree; by default only the current step is in full
@@ -137,7 +141,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (`stepInstruction`: what to put where, the rename note), a cost chip with a floating breakdown (`costChip`/`showCost`: enchantments, each side's
   prior work 2^n - 1, rename), the result dims lines it didn't change and shows a raised enchantment's old level (`.mc-from`, `anvilCell` takes a Set or a
   Map to the old level), a `.level-checkpoint` when Your level is too low, and the rounds have a floating "?" (`roundTip`). The Slots view is the same markup with
-  `.slots-mode` CSS (one line of slots, tooltips on hover). After the steps a `.final-card` shows the finished item (green once every step is ticked). Under 900px a sticky
+  `.slots-mode` CSS (one line of slots, tooltips on hover; its steps never fold: `foldable` false, no arrow). After the steps a `.final-card` shows the finished item (green once every step is ticked). Under 900px a sticky
   `.current-bar` (`currentBar`) keeps the current step and a Done button on screen while that step is off screen (`watchCurrentStep`: an
   IntersectionObserver tucks it away, `.tucked`, while the step shows, so it never covers it). The compact tree shows a slot and a one-line caption, the tooltip on hover;
   hovering or focusing an entry lights its path (`.path-self`/`.path-up`/`.path-down`, `mergeTree`). Density, anvil count and view stay in this browser, not in links.
@@ -164,7 +168,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   `optimal_searched`, `calculation_failed`, `merge_previewed` (all carry `request_id`).
 - `js/Logic.js` (ES module): `createLogic(meta, names)` UI helpers: rarity, display names, tooltip sort, applicable
   enchantments, `maxAll`, `buildEntries(state)`, `missing`, `extra` (result enchantments not chosen), `bestLevels`/`checkBooks`/`addBook`/`twinOf` (pre-calculation warnings: a badge on the section 2
-  heading whose bubble offers one fix per enchantment, a book at the chosen level; adding merges into an identical entry and drops books and
+  heading whose bubble offers one fix per enchantment, a book at the chosen level, then "Switch to Automatic" (`useAutomatic`); adding merges into an identical entry and drops books and
   items whose only enchantment is a lower level of it (any prior work; never the last item), and marks on section 1 rows; Tips.js `infoTip` builds the badge), `collectSteps(root)` (steps in rounds of independent steps, cheapest first; `stepRounds` splits them), `tickStep`, `serialize`/`deserialize`
   (share links; old `o` objective links still load). Also exports `roman`, `maxPriorWork(step_limit)` (highest usable
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),

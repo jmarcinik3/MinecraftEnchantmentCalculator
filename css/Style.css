@@ -128,6 +128,7 @@ html { scrollbar-gutter: stable; }
 .header-control.segmented { padding: 0; overflow: hidden; }
 .header-control.segmented button { height: 100%; font-size: 13px; padding: 0 10px; }
 .header-control.segmented:hover { background: transparent; }
+.saved-icon { display: none; width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linejoin: round; flex: none; }
 .copy-link .link-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; flex: none; }
 /* Sun/moon: an icon-only header button. */
 .theme-toggle { justify-content: center; padding: 0 9px; }
@@ -153,6 +154,9 @@ html { scrollbar-gutter: stable; }
     .header-control.segmented button { padding: 0 7px; }
     .copy-link, .theme-toggle { padding: 0 8px; }
     .header-actions .saved-menu > .header-control { padding: 0 8px; }
+    /* Saved is a bookmark icon, like Copy link, so the toolbar fits one row on a 375px phone in Spanish too. */
+    .saved-label { display: none; }
+    .saved-icon { display: block; }
 }
 
 .site-header {
@@ -1065,48 +1069,35 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* Section 3's settings, under the tiles. */
 .settings { margin-bottom: 4px; }
 
-/* The settings menu in section 3's heading: a button ("Game rules" summary + gear) that opens a
-   panel with the level limit slider. */
+/* The Game rules menu in the header: a header control (label and gear) that opens a panel with the
+   level limit and Allow conflicts. A dot says a rule isn't the game's own; under 600px it is the gear alone. */
 .options-menu { position: relative; min-width: 0; flex: none; }
-/* 26px, the collapse arrow's height, so section 3's heading is as tall as the others. */
-.options-button {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    height: 26px;
-    padding: 0 4px 0 10px;
-    border: 1px solid var(--border-strong);
-    border-radius: 16px;
-    list-style: none;
-    cursor: pointer;
-    font-size: 12px;
-    color: var(--text-secondary);
-    user-select: none;
-}
+.options-button { position: relative; list-style: none; user-select: none; }
 .options-button::-webkit-details-marker { display: none; }
-.options-button:hover, .options-menu[open] > .options-button { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+.options-menu[open] > .options-button { background: var(--surface-alt); }
 .options-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gear-icon { flex: none; width: 16px; height: 16px; transition: transform 0.25s; }
 .options-menu[open] .gear-icon { transform: rotate(45deg); }
-/* Phones: the gear alone (the summary is too long beside the heading), with an accent
-   dot when a rule isn't the game's own. */
-@media (max-width: 600px) {
-    .options-button { position: relative; width: 26px; padding: 0; justify-content: center; }
-    .options-summary { display: none; }
-    .options-button.changed::after {
-        content: "";
-        position: absolute;
-        top: -2px;
-        right: -2px;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background: var(--accent);
-        box-shadow: 0 0 0 2px var(--surface);
-    }
+.options-button.changed::after {
+    content: "";
+    position: absolute;
+    top: -3px;
+    right: -3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 0 2px var(--bg, var(--surface));
 }
+@media (max-width: 600px) {
+    .options-button { width: 32px; padding: 0; justify-content: center; }
+    .options-summary { display: none; }
+}
+@media (max-width: 440px) {
+    .options-button { width: 28px; }
+}
+.options-panel-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
 .options-panel-title {
-    margin-bottom: 10px;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
@@ -1218,6 +1209,14 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .options-panel .option-control + .option-label { margin-top: 8px; }
 }
 
+/* Section 3's settings on a narrow card: each label above its control, so the level limit's slider
+   (with its infinity stop and value) gets the whole width. */
+@media (max-width: 480px) {
+    #ranking .options { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    #ranking .option-label { line-height: 1.4; }
+    #ranking .option-control + .option-label { margin-top: 8px; }
+}
+
 /* Level limit: 1 ──●── 39 [∞] [value] */
 .limit { display: flex; align-items: center; gap: 8px; height: 32px; min-width: 0; }
 .limit-end { font-size: 11px; color: var(--text-muted); }
@@ -1300,8 +1299,14 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .limit-value.unlimited { color: #d4c6fb; text-shadow: none; font-family: system-ui, sans-serif; font-size: 18px; }
 .limit-edit { border: 1px solid var(--accent); background: var(--surface); color: var(--text); padding: 0 4px; }
 
-/* Your level: [−][ 30 / XP bar ][+] (30) (Max) */
-.level-control { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+/* Your level: a switch, then (while it is on) the number with its XP bar and a button, and a status line. */
+.level-control { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.level-toggle { min-height: 32px; }
+.level-body { display: grid; gap: 6px; justify-items: start; min-width: 0; }
+.level-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.level-status { margin: 0; min-height: 1.3em; font-size: 12px; color: var(--text-secondary); }
+.level-status.short { color: var(--danger-text); font-weight: 600; }
+.level-status.enough { color: var(--success-text); font-weight: 600; }
 .xp-box {
     display: flex;
     align-items: stretch;
@@ -1345,39 +1350,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .xp-bar { position: absolute; left: 5px; right: 5px; bottom: 4px; height: 4px; background: #1b1b1b; border: 1px solid #000; }
 .xp-fill { height: 100%; width: 0; background: #e0a23a; transition: width 0.15s; }
 .xp-bar.enough .xp-fill { background: #80ff20; }
-/* Off: the steps ignore your level, so ∞ takes the number's place (as with no level
-   limit) and − / + fade. */
-.xp-infinity {
-    display: none;
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    padding: 0;
-    border: none;
-    background: #3b3b3b;
-    color: #d4c6fb;
-    font: 18px/1 system-ui, sans-serif;
-    cursor: pointer;
-    align-items: center;
-    justify-content: center;
-}
-.xp-box.off .xp-infinity { display: flex; }
-.xp-box.off .xp-step { opacity: 0.45; }
-/* On/off for following your level: a round button with an XP orb, like the ∞ stop. */
-.level-toggle {
-    flex: none;
-    width: 32px;
-    height: 32px;
-    padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px dashed var(--border-strong);
-    border-radius: 50%;
-    background: none;
-    cursor: pointer;
-}
-.level-toggle:hover { border-color: var(--accent); }
 .level-set { flex: none; white-space: nowrap; }
 
 /* Small controls keep their look but get a hit area of at least 24px (40px on touch
@@ -1390,31 +1362,26 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .rule-switch::after { inset: -10px -4px; }
     .rank-move::after { inset: -12px -3px; }
 }
-.level-toggle.on { border-style: solid; border-color: var(--accent); background: var(--accent-bg); }
-/* The game's orb, kept sharp. The image has empty space around the orb, so it is drawn
-   larger than the button's other icons. Gray while off, glowing while on. */
-.xp-orb { display: block; width: 28px; height: 28px; image-rendering: pixelated; filter: grayscale(1) opacity(0.6); }
-.level-toggle.on .xp-orb { filter: drop-shadow(0 0 3px rgba(128, 255, 32, 0.7)); }
-
 /* Rename: one anvil-style name box. The name tag and "+1 level" light up while a name is typed. */
 .anvil-name {
     display: flex;
     align-items: center;
     gap: 8px;
     height: 32px;
+    max-width: 320px;
     padding: 0 8px 0 6px;
-    border: 2px solid;
-    border-color: #373737 #ffffff #ffffff #373737;
+    border: 1px solid #373737;
+    border-radius: 6px;
     background: #000;
 }
-.anvil-name:focus-within { border-color: #a0a0a0; }
+.anvil-name:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 .anvil-name-input {
     flex: 1;
     min-width: 0;
     border: none;
     background: transparent;
     color: #fff;
-    font: italic 14px/1 "Minecraft", system-ui, sans-serif;
+    font: italic 13px/1 "Minecraft", system-ui, sans-serif;
     text-shadow: 1px 1px 0 #3f3f3f;
 }
 .anvil-name-input::placeholder { color: #8b8b8b; font-style: normal; text-shadow: none; }
@@ -1489,11 +1456,26 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .rank-tile.dragging { opacity: 0.55; cursor: grabbing; }
 .rank-tile.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
 .rank-tile-head { display: flex; align-items: baseline; gap: 5px; }
+/* The grip: two columns of dots, so the tile looks draggable. */
+.rank-grip { flex: none; align-self: center; width: 8px; height: 12px; opacity: 0.4; background: radial-gradient(circle, currentColor 1.1px, transparent 1.5px) 0 0 / 4px 4px; }
 /* One line: the narrowest tile (120px) fits "Trabajo anterior"; longer names end in "…". */
 .rank-tile-head .metric-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .rank-num { flex: none; font-size: 11px; font-weight: 600; color: var(--text-muted); }
 .rank-tile-body { display: flex; align-items: center; gap: 2px; }
-.rank-tile-body .metric-value { flex: 1; min-width: 0; }
+.metric-figure { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; }
+.metric-unit { font-size: 11px; color: var(--text-secondary); }
+.metric.primary .metric-unit { color: inherit; opacity: 0.8; }
+.metric-note { margin-top: 2px; font-size: 11px; line-height: 1.3; color: var(--text-muted); }
+.metric.primary .metric-note { color: inherit; opacity: 0.8; }
+/* The biggest step close to the level limit (within 5 levels) is amber, at the limit red. */
+.rank-tile.near { box-shadow: inset 0 0 0 1px var(--warning-text); }
+.rank-tile.at { box-shadow: inset 0 0 0 2px var(--danger-text); }
+.rank-tile.near .metric-note, .rank-tile.near .metric-unit { color: var(--warning-text); font-weight: 600; opacity: 1; }
+.rank-tile.at .metric-note, .rank-tile.at .metric-unit { color: var(--danger-text); font-weight: 600; opacity: 1; }
+/* Rank by: chips that put one criterion first; the ranking in words under the tiles. */
+.rank-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
+.rank-presets-label { font-size: 12px; color: var(--text-secondary); }
+.rank-caption { margin: 8px 0 0; font-size: 12px; color: var(--text-secondary); }
 .rank-tile.primary .rank-num { color: inherit; }
 .metrics-box.updating .metric-value { opacity: 0.4; }
 .metric { background: var(--surface-alt); border-radius: var(--radius); padding: 10px; }
@@ -1719,6 +1701,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .step-tick input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 /* The whole head (but the tick) folds and unfolds the step; ▾/▴ says which it will do. */
 .step-head { cursor: pointer; }
+.step-head.fixed { cursor: default; } /* the Slots view's steps never fold */
 .step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-fold {
     flex: none;
@@ -1951,9 +1934,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .level-meter { display: block; width: 56px; height: 4px; overflow: hidden; border-radius: 2px; background: rgba(0, 0, 0, 0.25); }
 .level-meter-fill { display: block; height: 100%; background: #80ff20; }
-/* The cost near the level limit (amber) and at it (red, like "Too Expensive!"). */
-.anvil-cost.near-limit { color: #ffcf40; text-shadow: 1px 1px 0 #3f3008; }
-.anvil-cost.at-limit { color: #ff6060; text-shadow: 1px 1px 0 #3f1010; }
 /* Under a slot's tooltip: the step that made it, or the result's
    prior work. */
 .cell-meta { font: 11px/1.3 system-ui, sans-serif; color: var(--gui-text); text-align: center; }
@@ -2391,3 +2371,9 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .segmented.sliding button.selected { background: transparent; }
 .coverage { position: relative; }
 .chip-leaving { position: absolute; pointer-events: none; }
+/* No order within the limit: where it breaks, and the way out. */
+.break-down { display: grid; gap: 8px; justify-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--warning-text); }
+.break-down p { margin: 0; }
+.break-title { font-weight: 700; }
+.break-step { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
+.break-op { font-size: 18px; color: var(--text-secondary); }
