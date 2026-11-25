@@ -513,8 +513,11 @@ def main():
         p9.wait_for_timeout(900)
         check("a missing enchantment shows an amber chip", p9.locator('#books .cover-chip.short[data-ns="frost_walker"]').count() == 1)
         fades = p9.evaluate("""() => { document.querySelector('#books [data-focus="cover-frost_walker"]').click();
-            return [...document.querySelectorAll('#books .cover-chip[data-ns="frost_walker"]')].some(chip => chip.classList.contains('ok') && chip.getAnimations().some(a => a.effect.getKeyframes().some(k => k.backgroundColor))); }""")
-        check("a chip that turns green fades between the looks", fades)
+            const chips = [...document.querySelectorAll('#books .cover-chip[data-ns="frost_walker"]')].filter(chip => chip.classList.contains('ok'));
+            const keys = chips.flatMap(chip => chip.getAnimations().flatMap(a => a.effect.getKeyframes()));
+            return { crosses: keys.some(k => k.opacity !== undefined && k.opacity !== '1') && document.querySelectorAll('#books .chip-leaving').length >= 1, widths: keys.some(k => k.width !== undefined) }; }""")
+        check("a chip that turns green crosses over from the amber one", fades["crosses"], fades)
+        check("and never animates its width (that would push the other chips off their paths)", not fades["widths"], fades)
         p9.wait_for_timeout(600)
         key = p9.locator("#wanted .ench-group.exclusive").first.get_attribute("data-group")
         group = '#wanted .ench-group.exclusive[data-group="%s"]' % key

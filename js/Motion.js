@@ -533,14 +533,17 @@ export function animateChips(strip, old) {
             if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) chip.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], timing);
             continue;
         }
-        const style = getComputedStyle(chip);
-        chip.style.overflow = "hidden";
-        const clear = () => { chip.style.overflow = ""; };
-        chip.animate([
-            { transform: `translate(${dx}px, ${dy}px)`, width: was.width + "px", backgroundColor: was.background, color: was.color, borderColor: was.border },
-            { transform: "none", width: box.width + "px", backgroundColor: style.backgroundColor, color: style.color, borderColor: style.borderTopColor }
-        ], timing).finished.then(clear, clear);
-        setTimeout(clear, timing.duration + 150);
+        // A chip that changed state crosses over: a copy of the old one travels to the new place and fades
+        // out while the new one travels and fades in. Its width is never animated: that would move every
+        // chip after it, and the slides above would end up somewhere else.
+        chip.animate([{ transform: `translate(${dx}px, ${dy}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], timing);
+        const ghost = h("span", { class: "chip-leaving", "aria-hidden": "true" }, was.copy);
+        Object.assign(ghost.style, { left: was.left + "px", top: was.top + "px", width: was.width + "px", height: was.height + "px" });
+        was.copy.style.margin = "0";
+        strip.append(ghost);
+        const remove = () => ghost.remove();
+        ghost.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${-dx}px, ${-dy}px)`, opacity: 0 }], timing).finished.then(remove, remove);
+        setTimeout(remove, timing.duration + 150);
     }
     // Chips that are no longer there fade out where they were.
     for (const [ns, was] of old.chips) {
