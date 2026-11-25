@@ -325,6 +325,34 @@ export function createLogic(meta, names = {}) {
         return { cards, bridges };
     }
 
+    // A conflict bracket that is two or three sides: each side's enchantments are compatible with each other and conflict with every
+    // enchantment of the other sides (Fancy Enchantments' elements: Aer against Terra). Pick any from one side. Up to four
+    // enchantments with at most two conflicts each are set apart (`apart`), so a stray extra conflict (Advanced Fire Aspect also
+    // conflicting with vanilla Fire Aspect) does not spoil the shape. Returns { parts, apart }, or null for any other shape.
+    function pickSide(members) {
+        let core = [...members];
+        const apart = [];
+        for (let attempt = 0; attempt < 5; attempt++) {
+            const parts = [];
+            const left = new Set(core);
+            for (const ns of core) {
+                if (!left.has(ns)) continue;
+                const part = core.filter(other => left.has(other) && (other === ns || !conflicts(ns, other)));
+                part.forEach(other => left.delete(other));
+                parts.push(part);
+            }
+            const clean = parts.every(part => part.every(a => part.every(b => a === b || !conflicts(a, b)))) &&
+                parts.every((part, i) => parts.every((other, j) => i === j || part.every(a => other.every(b => conflicts(a, b)))));
+            if (clean && parts.length >= 2 && parts.length <= 3 && parts.some(part => part.length > 1) && core.length >= 4) return { parts, apart };
+            const degree = ns => core.filter(other => conflicts(ns, other)).length;
+            const weakest = [...core].sort((a, b) => degree(a) - degree(b))[0];
+            if (!weakest || degree(weakest) > 2 || attempt === 4) return null;
+            core = core.filter(ns => ns !== weakest);
+            apart.push(weakest);
+        }
+        return null;
+    }
+
     function enchantableItems() {
         return meta.items.filter(item => item !== "book" && applicable(item).length > 0);
     }
@@ -718,7 +746,7 @@ export function createLogic(meta, names = {}) {
 
     return {
         isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        modOf, conflictsWith, applicable, enchantmentGroups, pickEach, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
+        modOf, conflictsWith, applicable, enchantmentGroups, pickEach, pickSide, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf, parseBooks,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };

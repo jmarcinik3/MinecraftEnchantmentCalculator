@@ -128,7 +128,7 @@ export function renderWanted() {
         if (old && bar) rollLevelBar(bar, old.levels, old.segments);
         animatePick(group, old_picks.get(group.dataset.group));
     }
-    for (const section of box.querySelectorAll(".pick-each[data-each]")) animateEach(section, old_each.get(section.dataset.each));
+    for (const section of box.querySelectorAll(".pick-each[data-each], .pick-side[data-side]")) animateEach(section, old_each.get(section.dataset.each || section.dataset.side));
     if (motionOk() && !old_groups.size) {
         for (const row of box.querySelectorAll(".ench-row[data-ns]")) {
             const was = old_rows.get(row.dataset.ns);
@@ -204,11 +204,15 @@ function wantedList() {
     };
     // A bracket of two groups joined by an enchantment is "Pick one in each" (not while searching: a cut-down bracket may not be that shape).
     const eachOf = group => (state.allow_incompatible || query ? null : logic.pickEach(group.members));
+    // ...and one that is two sides (each side compatible inside, conflicting with the other) is "Pick a side".
+    const sideOf = group => (state.allow_incompatible || query || group.exclusive || eachOf(group) ? null : logic.pickSide(group.members));
     const groupRow = group => {
         const members = group.members;
         if (group.exclusive && !state.allow_incompatible) return groupSwitch(members, short);
         const each = eachOf(group);
         if (each) return pickEachSection(members, each, short);
+        const side = sideOf(group);
+        if (side) return pickSideSection(members, side, short);
         if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
         // The label folds the bracket: the chosen rows stay, the rest hide (kept in `folded_groups` across redraws).
         const key = members[0];
@@ -227,7 +231,7 @@ function wantedList() {
         );
     };
     // Alone first, then the "Pick one" cards, then the brackets of partial conflicts (each kind keeps its alphabetical order).
-    const kind = group => (group.members.length === 1 ? 0 : (group.exclusive && !state.allow_incompatible) || eachOf(group) ? 1 : 2);
+    const kind = group => (group.members.length === 1 ? 0 : (group.exclusive && !state.allow_incompatible) || eachOf(group) || sideOf(group) ? 1 : 2);
     const byKind = groups => [...groups].sort((a, b) => kind(a) - kind(b));
     const rows = [];
     const own = [];
@@ -613,17 +617,49 @@ function pickEachSection(members, each, short) {
         h("div", { class: "each-rows" }, members.filter(chosen).map(ns => wantedRow(ns, short.get(ns)))));
 }
 
+// "Pick a side": a conflict bracket that is two or three sides (Logic pickSide) as one card with a lane of chips for each side
+// (pick any number inside one lane; a chip of another lane replaces them), a lane for the few that conflict with the sides but
+// are not part of the shape, then the chosen rows once. The side taken is marked, the others dimmed.
+function pickSideSection(members, side, short) {
+    const chosen = ns => Boolean(state.wanted[ns]);
+    const names = list => list.map(ns => logic.enchName(ns));
+    const active = side.parts.find(part => part.some(chosen));
+    const lane = (part, apart) => {
+        const chips = part.map(ns => {
+            const rivals = chosen(ns) ? [] : members.filter(other => chosen(other) && logic.conflicts(ns, other));
+            // Only a conflict the sides do not already show fades: one with an enchantment set apart (Fire Aspect, Advanced Fire Aspect).
+            const stray = rivals.some(other => side.apart.includes(other) || side.apart.includes(ns));
+            return h("button", {
+                type: "button", class: "switch-option" + (chosen(ns) ? " selected" : "") + (stray ? " blocked" : ""), "aria-pressed": String(chosen(ns)),
+                "data-opt": ns, "data-focus": "side-" + ns,
+                title: rivals.length ? TEXT.wanted.replaces({ name: names(rivals) }) : logic.describe(ns) || null,
+                onclick: () => setWanted(ns, chosen(ns) ? 0 : logic.maxLevel(ns)) // (a pick from another side drops the ones it replaces)
+            }, logic.enchName(ns));
+        });
+        const title = apart ? TEXT.wanted.group_side_apart : TEXT.wanted.group_any_of({ names: names(part).slice(0, 3).join(", ") + (part.length > 3 ? "…" : "") });
+        // A side is a row of its own, styled like a group of "Pick one in each".
+        return h("div", { class: "each-card" + (!apart && part === active ? " active" : "") },
+            h("div", { class: "each-card-title" }, title),
+            h("div", { class: "group-switch", role: "group", "aria-label": title }, chips));
+    };
+    return h("div", { class: "ench-group exclusive pick-side" + (members.some(chosen) ? " has-chosen" : ""), "data-side": members[0] },
+        h("div", { class: "ench-group-label" }, TEXT.wanted.group_pick_side),
+        h("div", { class: "each-cards" }, side.parts.map(part => lane(part, false)), side.apart.length ? lane(side.apart, true) : null),
+        h("div", { class: "each-rows" }, members.filter(chosen).map(ns => wantedRow(ns, short.get(ns)))));
+}
+
 // What a "Pick one in each" section looks like before a redraw, by its first member: its chosen rows in order (a copy to fold
 // away, the height, the level bar), the options selected, and the border colour.
 function captureEach(box) {
     const old = new Map();
-    for (const section of box.querySelectorAll(".pick-each[data-each]")) {
-        old.set(section.dataset.each, {
+    for (const section of box.querySelectorAll(".pick-each[data-each], .pick-side[data-side]")) {
+        old.set(section.dataset.each || section.dataset.side, {
             rows: [...section.querySelectorAll(".each-rows > .ench-row")].map(row => ({
                 ns: row.dataset.ns, copy: inertCopy(row), height: row.getBoundingClientRect().height,
                 levels: row.querySelectorAll(".level-seg").length, segments: [...row.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true))
             })),
             options: new Set([...section.querySelectorAll(".switch-option.selected")].map(button => button.dataset.opt)),
+            blocked: new Set([...section.querySelectorAll(".switch-option.blocked")].map(button => button.dataset.opt)),
             border: getComputedStyle(section).borderColor
         });
     }
@@ -665,6 +701,13 @@ function animateEach(section, old) {
         // ...but it folds where it was: before the first row that stays and came after it, or the rows below would jump up.
         const after = rows.find(other => before.includes(other.dataset.ns) && before.indexOf(other.dataset.ns) > before.indexOf(row.ns));
         if (after) rows_box.insertBefore(row.copy, after);
+    }
+    // A stray conflict (Fire Aspect with Advanced Fire Aspect) that begins or stops fades down or back up.
+    for (const button of section.querySelectorAll(".switch-option[data-opt]")) {
+        const blocked = button.classList.contains("blocked");
+        if (blocked !== old.blocked.has(button.dataset.opt) && old.options && !(old.options.has(button.dataset.opt) || button.classList.contains("selected"))) {
+            button.animate([{ opacity: blocked ? 1 : 0.55 }, {}], { duration: 260, easing: "ease-out" });
+        }
     }
     const selected = [...section.querySelectorAll(".switch-option.selected")];
     const keys = new Set(selected.map(button => button.dataset.opt));

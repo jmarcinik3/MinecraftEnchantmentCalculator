@@ -725,7 +725,7 @@ def part_fancy(browser, base):
     check("the Mods row offers Fancy Enchantments, off", p11.get_attribute('#limit-panel [data-focus="mod-fancy_enchantments"]', "aria-checked") == "false")
     p11.click('#limit-panel [data-focus="mod-fancy_enchantments"]')
     p11.wait_for_selector("#wanted .mod-section")
-    check("turning it on adds its enchantments, folded under its name", p11.locator("#wanted .ench-row").count() > vanilla_rows + 40 and not p11.locator("#wanted .mod-section").evaluate("e => e.open"))
+    check("turning it on adds its enchantments, folded under its name", p11.locator("#wanted .ench-row, #wanted .pick-side .switch-option").count() > vanilla_rows + 40 and not p11.locator("#wanted .mod-section").evaluate("e => e.open"))
     check("the Game rules button names the mod and shows the changed dot", "Fancy Enchantments" in p11.get_attribute("#options-menu summary", "title") and "changed" in p11.get_attribute("#options-menu summary", "class"))
     p11.keyboard.press("Escape")
     p11.click("#wanted .graph-box > summary")
@@ -755,7 +755,8 @@ def part_fancy(browser, base):
     check("a conflict bracket folds from its label, hiding rows that are not chosen", p11.locator("#wanted .ench-group.folded").count() == 1 and p11.locator("#wanted .ench-group.folded .ench-row:visible").count() < before and toggle.get_attribute("aria-expanded") == "false", before)
     toggle.click()
     check("and unfolds again", p11.locator("#wanted .ench-group.folded").count() == 0 and p11.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count() == before)
-    p11.click('#wanted [data-ns="fancyenchantments:air_attack"] .level-seg[data-level="2"]')
+    p11.locator("#wanted .pick-side .switch-option", has_text="Air Attack").first.click() # (it is in a Pick a side section: no row until it is picked)
+    p11.click('#wanted .each-rows [data-ns="fancyenchantments:air_attack"] .level-seg[data-level="2"]')
     p11.click('#wanted [data-ns="sharpness"] .level-seg[data-level="5"]')
     p11.wait_for_selector("#results .anvil-step")
     check("a mod's enchantment goes through the search", "Air Attack" in p11.inner_text("#results"), p11.inner_text("#results")[:200])
@@ -911,7 +912,8 @@ def part_mod_off(browser, base):
     p17.wait_for_selector("#wanted .mod-section")
     p17.keyboard.press("Escape")
     p17.click("#wanted .mod-section > summary")
-    p17.click('#wanted [data-ns="fancyenchantments:air_attack"] .level-seg[data-level="2"]')
+    p17.locator("#wanted .pick-side .switch-option", has_text="Air Attack").first.click()
+    p17.click('#wanted .each-rows [data-ns="fancyenchantments:air_attack"] .level-seg[data-level="2"]')
     p17.click('#wanted [data-ns="sharpness"] .level-seg[data-level="5"]')
     p17.wait_for_selector("#results .anvil-step")
     p17.wait_for_function("document.querySelector('#wanted .cost-line') && document.querySelector('#wanted .cost-line').textContent.includes('10')")
@@ -955,6 +957,7 @@ def part_pick_each(browser, base):
     check("the joining enchantment's hover text names it, says what it does and that it is in more than one group, and appears nowhere else in the section", len(tips) == 2 and all(tip.startswith("Selfish ⇄ ") and "In more than one group" in tip and len(tip) > 60 for tip in tips) and "In more than one group" not in p20.locator("#wanted .pick-each").inner_text(), tips)
     card = lambda index, text: p20.locator("#wanted .each-card").nth(index).locator(".switch-option", has_text=text).first
     card(0, "Legacy").click()
+    check("nothing fades in Pick one in each: the options that conflict with a pick stay as they are", p20.locator("#wanted .pick-each .switch-option.blocked").count() == 0)
     card(1, "Buffered").click()
     settle(p20)
     chosen = p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)")
@@ -979,6 +982,47 @@ def part_pick_each(browser, base):
     tops = [f[2] for f in frames]
     check("switching in place keeps one row (none folds or opens) and the level bar moves smoothly as the row grows", all(f[0] == 1 for f in frames) and max(tops) > min(tops) + 4 and len(set(tops)) >= 4 and tops == sorted(tops), frames[:14])
     return errors20
+
+
+def part_pick_side(browser, base):
+    """Pick a side: a sword with Fancy Enchantments (Aer against Terra, Aqua against Ignis)"""
+    _, p21, errors21 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p21.click("#wanted .item-grid >> text=Sword")
+    p21.click("#options-menu summary")
+    p21.click('#limit-panel [data-focus="mod-fancy_enchantments"]')
+    p21.wait_for_selector("#wanted .pick-side")
+    p21.keyboard.press("Escape")
+    p21.click("#wanted .mod-section > summary")
+    sizes = p21.evaluate("[...document.querySelectorAll('#wanted .pick-side')].map(s => [...s.querySelectorAll('.each-card')].map(l => l.querySelectorAll('.switch-option').length))")
+    check("the big elemental brackets are Pick a side sections, a lane per side (and a lane for a stray conflict)", sorted(map(sorted, sizes)) == [[1, 7, 7], [5, 7]], sizes)
+    lanes = lambda section: p21.locator("#wanted .pick-side").nth(section).locator(".each-card")
+    # The Aer against Terra section (the one with 5 and 7).
+    index = [i for i, s in enumerate(sizes) if sorted(s) == [5, 7]][0]
+    lanes(index).nth(0).locator(".switch-option").nth(0).click()
+    lanes(index).nth(0).locator(".switch-option").nth(1).click()
+    settle(p21)
+    chosen = p21.eval_on_selector_all("#wanted .pick-side >> nth=%d >> .each-rows > .ench-row.chosen" % index, "e => e.length")
+    check("any number can be picked inside one side; that side is outlined and nothing fades", chosen == 2 and p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active").count() == 1 and p21.locator("#wanted .pick-side").nth(index).locator(".switch-option.blocked").count() == 0, chosen)
+    lanes(index).nth(1).locator(".switch-option").nth(0).click()
+    settle(p21)
+    check("a pick from the other side replaces them all", p21.locator("#wanted .pick-side").nth(index).locator(".each-rows > .ench-row.chosen").count() == 1 and p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active .switch-option.selected").count() == 1)
+    p21.locator("#wanted .pick-side").nth(index).locator(".switch-option.selected").click()
+    settle(p21)
+    # An enchantment set apart (Fire Aspect, which only conflicts with Advanced Fire Aspect) fades when its conflict is chosen, and the reverse.
+    fire = [i for i, s in enumerate(sizes) if sorted(s) == [1, 7, 7]][0]
+    section = p21.locator("#wanted .pick-side").nth(fire)
+    section.locator(".switch-option", has_text="Advanced Fire Aspect").click()
+    settle(p21)
+    check("an enchantment set apart fades when the one it conflicts with is chosen", section.locator(".switch-option.blocked", has_text="Fire Aspect").count() == 1 and section.locator(".switch-option.blocked").count() == 1)
+    section.locator(".switch-option.selected").click()
+    settle(p21)
+    section.locator(".each-card").nth(2).locator(".switch-option").click() # Fire Aspect itself
+    settle(p21)
+    check("and the other way round: Advanced Fire Aspect fades when Fire Aspect is chosen", section.locator(".switch-option.blocked", has_text="Advanced Fire Aspect").count() == 1 and section.locator(".switch-option.blocked").count() == 1)
+    section.locator(".switch-option.selected").click()
+    settle(p21)
+    check("clearing the pick takes both sides back to neutral", p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active").count() == 0)
+    return errors21
 
 
 def part_narrow_results(browser, base):
@@ -1014,7 +1058,7 @@ def part_narrow_results(browser, base):
     return errors18
 
 
-PARTS = [part_steps, part_section1, part_books, part_anvil_uses, part_chips, part_ranking, part_elytra, part_fancy, part_two_mods, part_level_rows, part_mod_off, part_cost_width, part_pick_each, part_narrow_results]
+PARTS = [part_steps, part_section1, part_books, part_anvil_uses, part_chips, part_ranking, part_elytra, part_fancy, part_two_mods, part_level_rows, part_mod_off, part_cost_width, part_pick_each, part_pick_side, part_narrow_results]
 
 
 def run_part(part, base):

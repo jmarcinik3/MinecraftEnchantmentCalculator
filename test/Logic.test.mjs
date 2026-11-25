@@ -644,6 +644,21 @@ test("a bracket of two groups joined by one enchantment is picked from as one in
     for (const group of fancy.enchantmentGroups("sword")) if (!group.exclusive && group.members.length > 5) assert.strictEqual(fancy.pickEach(group.members), null);
 });
 
+test("a bracket that is two sides (compatible inside, conflicting across) is picked from as a side", () => {
+    const fancy = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
+    const sided = fancy.enchantmentGroups("sword").filter(group => !group.exclusive).map(group => fancy.pickSide(group.members)).filter(Boolean);
+    assert.deepStrictEqual(sided.map(side => side.parts.map(part => part.length).sort()).sort(), [[5, 7], [7, 7]]); // Aer against Terra; Aqua against Ignis
+    const fire = sided.find(side => side.apart.length);
+    assert.deepStrictEqual(fire.apart, ["fire_aspect"]); // the vanilla enchantment that only conflicts with Advanced Fire Aspect is set apart
+    assert.ok(sided.every(side => side.parts.every(part => part.every(a => part.every(b => a === b || !fancy.conflicts(a, b))))));
+    // Pick one groups, joined groups and the chain are not sides.
+    assert.strictEqual(logic.pickSide(["protection", "fire_protection", "blast_protection", "projectile_protection"]), null);
+    const spellbound = createLogic(withMods(meta, [MODS.spellbound]), { ...TEXTS.en.names, ...modNames([MODS.spellbound], "en") });
+    const joined = spellbound.enchantmentGroups("flint_and_steel").find(group => !group.exclusive && group.members.length > 1);
+    assert.strictEqual(spellbound.pickSide(joined.members), null);
+    assert.ok(spellbound.pickEach(joined.members));
+});
+
 test("Max all and the presets never add a mod's enchantments, but typed books can name them", () => {
     const modded = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
     assert.deepStrictEqual(modded.maxAll("sword", {}), logic.maxAll("sword", {}));
