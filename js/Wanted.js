@@ -92,6 +92,7 @@ export function renderWanted() {
             h("button", { type: "button", class: "btn small example", onclick: tryExample }, TEXT.wanted.example)
         );
         restoreFocus(box, focus);
+        restoreConflicts();
         return;
     }
 
@@ -136,6 +137,7 @@ export function renderWanted() {
         }
     }
     restoreFocus(box, focus);
+    restoreConflicts();
 }
 
 // Eases a row's height from `from` to its new one (the box clips while it does).
@@ -214,7 +216,7 @@ function wantedList() {
                     event.currentTarget.setAttribute("aria-expanded", String(!folded));
                 }
             }, (state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict) + " (" + members.length + ")"),
-            members.map(ns => wantedRow(ns, short.get(ns)))
+            members.map(ns => wantedRow(ns, short.get(ns), true))
         );
     };
     const rows = [];
@@ -271,8 +273,97 @@ function wantedSearch() {
             wanted_query = event.target.value;
             document.querySelector("#wanted .wanted-list").replaceWith(wantedList());
             markSearch(searchMatcher());
+            restoreConflicts();
         }
     });
+}
+
+// "Conflicts with N" chips on the rows of a conflict bracket. Hovering (or keyboard-focusing) a chip lights the rows it
+// conflicts with and shows their names in a game tooltip (the first TIP_CAP, then "+N more"); clicking or tapping it keeps
+// both until a click elsewhere, Escape, or a click on the chip again, as the page's other tooltips close.
+const TIP_CAP = 8;
+let conflict_tip = null;   // the tooltip on screen
+let conflict_pin = null;   // the enchantment whose chip was clicked to keep its tooltip and highlights
+let conflict_shown = null; // the enchantment whose tooltip is on screen
+
+function conflictChip(ns, count) {
+    return h("button", {
+        type: "button", class: "conflict-chip" + (conflict_pin === ns ? " pinned" : ""), "data-conflicts": ns, "data-focus": "conflicts-" + ns,
+        "aria-pressed": String(conflict_pin === ns),
+        // Not by hover on touch, where a tap would leave it lit; the click pins it there.
+        onmouseenter: event => { if (matchMedia("(hover: hover)").matches) showConflicts(event.currentTarget, ns); },
+        onmouseleave: restoreConflicts,
+        onfocus: event => { if (event.currentTarget.matches(":focus-visible")) showConflicts(event.currentTarget, ns); },
+        onblur: restoreConflicts,
+        onclick: event => {
+            event.stopPropagation();
+            conflict_pin = conflict_pin === ns ? null : ns;
+            if (conflict_pin) showConflicts(event.currentTarget, ns); else hideConflicts();
+            for (const chip of document.querySelectorAll("#wanted .conflict-chip")) {
+                chip.classList.toggle("pinned", chip.dataset.conflicts === conflict_pin);
+                chip.setAttribute("aria-pressed", String(chip.dataset.conflicts === conflict_pin));
+            }
+        }
+    }, TEXT.wanted.conflicts_with({ count }));
+}
+
+function chipOf(ns) {
+    return document.querySelector(`#wanted .conflict-chip[data-conflicts="${ns}"]`);
+}
+
+function showConflicts(chip, ns) {
+    hideConflicts();
+    const names = logic.conflictsWith(ns, state.item).map(logic.enchName);
+    if (!names.length) return;
+    conflict_shown = ns;
+    chip.closest(".ench-row").classList.add("rival-self");
+    for (const row of document.querySelectorAll("#wanted .ench-row[data-ns]")) if (logic.conflicts(ns, row.dataset.ns)) row.classList.add("rival");
+    const shown = names.slice(0, TIP_CAP);
+    if (names.length > TIP_CAP) shown.push(TEXT.wanted.conflicts_more({ count: names.length - TIP_CAP }));
+    conflict_tip = h("div", { class: "mc-tooltip conflict-tip", role: "tooltip" }, TEXT.wanted.conflicts_title({ names: shown }));
+    document.body.append(conflict_tip);
+    placeConflictTip(chip);
+}
+
+// Under the chip, kept on screen (above it near the window's foot).
+function placeConflictTip(chip) {
+    const rect = chip.getBoundingClientRect();
+    const tip = conflict_tip.getBoundingClientRect();
+    const below = rect.bottom + 6 + tip.height <= innerHeight;
+    conflict_tip.style.left = Math.max(8, Math.min(rect.left, innerWidth - tip.width - 8)) + "px";
+    conflict_tip.style.top = (below ? rect.bottom + 6 : rect.top - 6 - tip.height) + "px";
+}
+
+function hideConflicts() {
+    if (conflict_tip) conflict_tip.remove();
+    conflict_tip = null;
+    conflict_shown = null;
+    for (const row of document.querySelectorAll("#wanted .rival, #wanted .rival-self")) row.classList.remove("rival", "rival-self");
+}
+
+// Back to what is kept (the pinned chip's tooltip and highlights, if its row is still there), after a pointer leaves a chip or a redraw.
+function restoreConflicts() {
+    hideConflicts();
+    if (!conflict_pin) return;
+    const chip = chipOf(conflict_pin);
+    if (chip) showConflicts(chip, conflict_pin); else conflict_pin = null;
+}
+
+// A click elsewhere or Escape lets go of the pinned chip, like the "?" bubbles; the tooltip follows its chip on scroll.
+export function setupConflictTips() {
+    const release = () => {
+        conflict_pin = null;
+        hideConflicts();
+        for (const chip of document.querySelectorAll("#wanted .conflict-chip")) { chip.classList.remove("pinned"); chip.setAttribute("aria-pressed", "false"); }
+    };
+    document.addEventListener("click", event => { if (conflict_pin && !event.target.closest(".conflict-chip")) release(); });
+    document.addEventListener("keydown", event => { if (event.key === "Escape" && (conflict_pin || conflict_shown)) release(); });
+    const follow = () => {
+        const chip = conflict_shown && chipOf(conflict_shown);
+        if (chip && conflict_tip) placeConflictTip(chip); else if (conflict_tip) hideConflicts();
+    };
+    document.addEventListener("scroll", follow, { capture: true, passive: true });
+    addEventListener("resize", follow);
 }
 
 // The conflict brackets the user folded (by their first enchantment), in this visit.
@@ -491,7 +582,7 @@ function groupSwitch(members, short) {
 // and its level bar. One that conflicts with a chosen enchantment is dimmed, and choosing
 // it replaces that one.
 // `short`: { best } when the custom books can't reach this chosen level.
-function wantedRow(ns, short = null) {
+function wantedRow(ns, short = null, chip = false) {
     const chosen = state.wanted[ns] || 0;
     // Choosing it replaces every chosen enchantment it conflicts with (the note names them all).
     const blockers = chosen ? [] : Object.keys(state.wanted).filter(other => clashes(other, ns));
@@ -501,6 +592,8 @@ function wantedRow(ns, short = null) {
     const cost = chosen ? logic.bookCost(ns, chosen) : 0;
     const replaces = blocker ? TEXT.wanted.replaces({ name: blockers.map(logic.enchName) }) : null;
 
+    // In a conflict bracket: a chip with how many it conflicts with (hover it for which).
+    const rivals = chip ? logic.conflictsWith(ns, state.item).length : 0;
     return h("div", { "data-ns": ns, class: "ench-row" + (blocker ? " conflict" : "") + (chosen ? " chosen" : "") + (logic.isCurse(ns) ? " curse" : "") },
         // Columns (CSS grid, so every row lines up): the name with what it does under it,
         // the cost once chosen, the level bar, and a × that clears it.
@@ -511,7 +604,8 @@ function wantedRow(ns, short = null) {
                 name,
                 blocker ? h("span", { class: "replaces-mark", title: replaces }, replaces) : null,
                 short ? h("span", { class: "short-mark", title: TEXT.wanted.short_help },
-                    short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null
+                    short.best ? TEXT.wanted.books_reach({ level: roman(short.best) }) : TEXT.wanted.not_on_books) : null,
+                rivals ? conflictChip(ns, rivals) : null
             ),
             help ? h("span", { class: "ench-desc", title: help }, help) : null
         ),

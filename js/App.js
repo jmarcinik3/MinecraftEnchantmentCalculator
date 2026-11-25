@@ -4,7 +4,7 @@ import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, setState, state } from "./Store.js";
 import { $, copyText, h, icon, keepGlintsInStep, motionOk, readStorage, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
-import { renderWanted, setupItemMenu } from "./Wanted.js";
+import { renderWanted, setupConflictTips, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
 import { renderRanking, resultNode, setupOptionsMenu, syncRename } from "./Options.js";
@@ -504,6 +504,7 @@ async function init() {
     setupInfoTip();
     setupSavedMenu();
     setupItemMenu();
+    setupConflictTips();
     setupEntryPopover();
     setupOptionsMenu();
     setupCollapsing();

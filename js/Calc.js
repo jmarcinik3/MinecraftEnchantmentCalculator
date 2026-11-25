@@ -54,7 +54,14 @@ export function resetWorkers() {
     restartWorker();
 }
 
+// What the search is doing, on <html data-search>: "pending" (waiting out the debounce), "running" or "idle".
+// Nothing in the page reads it: the browser tests wait on it instead of sleeping.
+function markSearch(status) {
+    document.documentElement.dataset.search = status;
+}
+
 function stopRunning() {
+    markSearch("idle");
     running = false;
     show_progress = false;
     clearTimeout(progress_timer);
@@ -90,6 +97,7 @@ function showProgress() {
 
 export function scheduleCalculation() {
     clearTimeout(calc_timer);
+    markSearch("pending");
     calc_timer = setTimeout(runCalculation, CALC_DELAY_MS);
 }
 
@@ -140,6 +148,7 @@ export function runCalculation() {
 
     request_id++;
     running = true;
+    markSearch("running");
     started_at = performance.now();
     progress_share = 0;
     progress_timer = setTimeout(() => {

@@ -747,3 +747,33 @@ export function rollLevelBar(bar, old_levels, old_segments) {
     Promise.allSettled(animations.map(animation => animation.finished)).then(settle);
     setTimeout(settle, 1000);
 }
+
+// Eases `element` from the height it had (`from`) to its new one; it clips while it does (a folding step hides what is inside).
+export function easeHeight(element, from, duration = 260) {
+    const to = element.getBoundingClientRect().height;
+    if (Math.abs(to - from) < 1 || !motionOk()) return;
+    element.style.overflow = "hidden";
+    const clear = () => { element.style.overflow = ""; };
+    element.animate([{ height: from + "px" }, { height: to + "px" }], { duration, easing: "ease-out" }).finished.then(clear, clear);
+    setTimeout(clear, duration + 200);
+}
+
+// Section 4 switching between Steps, Slots and Tree: the new view fades in while a copy of the old one (`old`:
+// { copy, rect, top }, taken before the redraw) fades out over it, and the box eases to its new height where it
+// is as tall as its content (a phone). `container` holds the copy (position: relative).
+export function crossfadeView(scroller, container, old) {
+    if (!motionOk()) return;
+    const { copy, rect, top } = old;
+    Object.assign(copy.style, {
+        position: "absolute", top: scroller.offsetTop + "px", left: scroller.offsetLeft + "px", width: rect.width + "px",
+        height: rect.height + "px", overflow: "hidden", margin: "0", pointerEvents: "none"
+    });
+    container.append(copy);
+    copy.scrollTop = top;
+    const remove = () => copy.remove();
+    copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "ease-in", fill: "forwards" }).finished.then(remove, remove);
+    setTimeout(remove, 900); // a hidden tab never finishes animations
+    scroller.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: "ease-out" });
+    growSmoothly(scroller, rect.height);
+}
+

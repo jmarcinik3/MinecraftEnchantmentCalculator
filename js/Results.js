@@ -4,7 +4,7 @@ import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searc
 import { TEXT } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
 import { $, copyText, h, icon, motionOk, readStorage, writeStorage } from "./Dom.js";
-import { keepInPlace, revealBelow } from "./Motion.js";
+import { crossfadeView, easeHeight, inertCopy, keepInPlace, revealBelow } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
@@ -48,7 +48,33 @@ function saveTicks(order_key, steps, done, next) {
     saveChecklist(order_key, next);
 }
 
+// Set just before a redraw that changes the view (Steps, Slots, Tree, Compact) or folds every step, so the redraw
+// can animate the change; renderResults takes it (and clears it) at once.
+let view_change = null;
+let fold_change = null;
+
+// The steps and tree as they are, before the view changes: a copy to fade out and where it was.
+function rememberView() {
+    const scroller = document.querySelector("#results .steps-scroll");
+    if (!scroller || !motionOk()) { view_change = null; return; }
+    const copy = inertCopy(scroller);
+    // Nothing in the copy may be found as a step, a tick box or a link to a card (the real ones are what the page and the tests look up).
+    for (const part of copy.querySelectorAll("[data-step], [data-step-card], [data-entry-link], [data-view]")) {
+        for (const name of ["data-step", "data-step-card", "data-entry-link", "data-view"]) part.removeAttribute(name);
+    }
+    for (const tip of copy.querySelectorAll(".info-tip")) tip.classList.remove("floating");
+    view_change = { copy, rect: scroller.getBoundingClientRect(), top: scroller.scrollTop };
+}
+
+// The box of each step (its card, or its tree node), by step number.
+const stepBoxes = () => new Map([...document.querySelectorAll("#results [data-step-card]")]
+    .map(el => [el.dataset.stepCard, el.classList.contains("tree-line") ? el.parentElement : el]));
+
 export function renderResults() {
+    const change = view_change;
+    const folding = fold_change;
+    view_change = null;
+    fold_change = null;
     updateCostMeter();
     renderMetrics();
     renderOrderSummary();
@@ -141,17 +167,25 @@ export function renderResults() {
 
     const left = steps.map(step => step.number).filter(number => !done.has(number));
     const current = left.length ? Math.min(...left) : null;
-    const setView = view => { result_view = view; writeStorage(VIEW_STORAGE_KEY, view); renderResults(); };
+    const setView = view => {
+        if (view === result_view) return;
+        rememberView();
+        result_view = view;
+        writeStorage(VIEW_STORAGE_KEY, view);
+        renderResults();
+    };
     // Tree: a button for showing only the slots. Steps and Tree: Expand all / Collapse all.
     const compact = result_view === "tree" ? h("button", {
         type: "button", class: "btn small density", "aria-pressed": String(tree_compact), title: TEXT.results.compact_help,
-        onclick: () => { tree_compact = !tree_compact; writeStorage(COMPACT_STORAGE_KEY, tree_compact); renderResults(); }
+        onclick: () => { rememberView(); tree_compact = !tree_compact; writeStorage(COMPACT_STORAGE_KEY, tree_compact); renderResults(); }
     }, TEXT.results.compact) : null;
     const foldAll = fold => {
+        const was = new Map([...stepBoxes()].map(([number, el]) => [number, el.getBoundingClientRect().height]));
         for (const step of steps) foldsFor(order_key).set(step.number, fold);
+        fold_change = was;
         renderResults();
     };
-    const fold_buttons = result_view === "slots" ? null : h("span", { class: "fold-buttons" },
+    const fold_buttons = h("span", { class: "fold-buttons" },
         h("button", { type: "button", class: "btn small", onclick: () => foldAll(false) }, TEXT.results.expand_all),
         h("button", { type: "button", class: "btn small", onclick: () => foldAll(true) }, TEXT.results.collapse_all));
 
@@ -196,7 +230,8 @@ export function renderResults() {
             h("ol", { class: "anvil-steps" }, round.map(step =>
                 anvilStep(step, done, order_key, steps,
                     track && !done.has(step.number) ? track.steps[step.number - 1] : null,
-                    step.number === current, !slots && isFolded(order_key, step.number, done, step.number !== current), !slots)))
+                    // Steps start with only the current one in full; Slots with every one open (a line of slots each).
+                    step.number === current, isFolded(order_key, step.number, done, !slots && step.number !== current))))
         )));
         // Slots view on touch: a tap on a slot shows its tooltip (there is no hover); another tap, or one elsewhere, hides it.
         if (slots) {
@@ -220,6 +255,12 @@ export function renderResults() {
     const scroll_key = result_view + "|" + order_key;
     if (steps_scroll.key === scroll_key) scroller.scrollTop = steps_scroll.top;
     steps_scroll = { key: scroll_key, top: scroller.scrollTop };
+
+    if (change) crossfadeView(scroller, content, change);
+    // Expand all / Collapse all: each step that opens or folds eases its height, so what is below moves with it.
+    if (folding) {
+        for (const [number, el] of stepBoxes()) if (folding.has(number)) easeHeight(el, folding.get(number));
+    }
 }
 
 // The "?" in a round's label: why its steps can go in any order (a bubble that floats over the page).
@@ -311,7 +352,7 @@ function mergeTree(root, steps, done, order_key) {
         const renamed = Boolean(node.renamed && state.rename_to.trim());
         const before = node.left ? new Map(node.left.enchantments.map(e => [e.namespace, e.level])) : null;
         const enchantments = logic.tooltipSort(node.enchantments).flatMap((e, index) => [
-            index ? ", " : null,
+            index ? h("span", { class: "ench-sep" }, ", ") : null,
             h("span", {
                 class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") +
                     (before && before.get(e.namespace) !== e.level ? " changed" : "")
@@ -471,9 +512,8 @@ function stepTick(number, done, order_key, steps) {
 
 // One anvil step drawn like the game's anvil: [left] + [right] -> [result], with a box to tick it off.
 // `level`: { before, after, short } with "Your level" filled in, else null.
-// `folded`: shown as its head only (isFolded). `foldable` false (the Slots view): always open, and nothing on
-// the head looks clickable.
-function anvilStep(step, done, order_key, steps, level = null, current = false, folded = false, foldable = true) {
+// `folded`: shown as its head only (isFolded), in the Steps and Slots views alike.
+function anvilStep(step, done, order_key, steps, level = null, current = false, folded = false) {
     const number = step.number;
     const is_done = done.has(number);
     const tick = stepTick(number, done, order_key, steps);
@@ -489,22 +529,22 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
     // tick) or its ▾/▴ button. Folded, the head says what the step does.
     const fold_label = folded ? TEXT.results.expand_step : TEXT.results.collapse_step;
     const head = h("div", {
-        class: "step-head" + (foldable ? "" : " fixed"), title: foldable ? fold_label : null,
-        onclick: foldable ? event => { if (!event.target.closest(".step-tick, .step-fold")) toggleFold(order_key, number, !folded); } : null
+        class: "step-head", title: fold_label,
+        onclick: event => { if (!event.target.closest(".step-tick, .step-fold")) toggleFold(order_key, number, !folded); }
     },
         h("label", { class: "step-tick", title: TEXT.results.step_done_help }, tick, h("span", {}, TEXT.results.step_title({ number }))),
         h("span", { class: "step-summary" }, folded ? stepLine(step) : null),
-        foldable ? h("button", {
+        h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
             onclick: () => toggleFold(order_key, number, !folded)
-        }, folded ? "▾" : "▴") : null
+        }, folded ? "▾" : "▴")
     );
 
     return h("li", {
         class: "anvil-step" + (is_done ? " done" : "") + (folded ? " folded" : "") + (current ? " current" : ""),
         "data-step-card": number, tabindex: "0", "aria-keyshortcuts": "Space ArrowUp ArrowDown Enter",
         // On the focused step: Space ticks (or unticks) it, Up and Down move to the neighbouring step, and
-        // Enter folds or unfolds it (not in the Slots view, where steps never fold).
+        // Enter folds or unfolds it.
         onkeydown: event => {
             if (event.target !== event.currentTarget) return;
             if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -514,7 +554,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
                 if (next) { next.focus({ preventScroll: true }); next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" }); }
                 return;
             }
-            if (event.key === "Enter" && foldable) {
+            if (event.key === "Enter") {
                 event.preventDefault();
                 toggleFold(order_key, number, !folded);
                 return;
@@ -766,7 +806,7 @@ document.addEventListener("keydown", event => { if (event.key === "Escape") for 
 
 // Brings a step into view (unfolding it, in the Steps view) and flashes it.
 function jumpToStep(order_key, number) {
-    if (result_view === "steps" && isFolded(order_key, number, loadChecklist(order_key), true)) {
+    if (result_view !== "tree" && isFolded(order_key, number, loadChecklist(order_key), result_view === "steps")) {
         foldsFor(order_key).set(number, false);
         renderResults();
     }

@@ -149,7 +149,7 @@ function modsControl() {
                 "data-focus": "mod-" + id, "aria-label": mod ? mod.label : id, onclick: () => setMod(id, !on)
             }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
                 h("span", {}, mod ? mod.label : MOD_LABELS[id])),
-            java ? h("span", { class: "mod-note" }, mod ? mod.note : "") : h("span", { class: "mod-note" }, TEXT.ranking.mods_java_only));
+            java ? (on && mod ? h("span", { class: "mod-note" }, mod.note) : null) : h("span", { class: "mod-note" }, TEXT.ranking.mods_java_only));
     }));
 }
 

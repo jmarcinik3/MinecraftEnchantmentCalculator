@@ -1688,7 +1688,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .step-tick input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
 /* The whole head (but the tick) folds and unfolds the step; ▾/▴ says which it will do. */
 .step-head { cursor: pointer; }
-.step-head.fixed { cursor: default; } /* the Slots view's steps never fold */
 .step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-fold {
     flex: none;
@@ -2343,7 +2342,8 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
     .slots-mode .anvil-cell.result:hover .mc-tooltip { left: auto; right: 0; }
 }
 .slots-mode .anvil-cell.result.tip-open .mc-tooltip { left: auto; right: 0; }
-.slots-mode .anvil-step.folded .anvil-row { display: none; }
+/* Folded, a Slots step is its head only, like a folded Steps one: the row of slots and its caption go. */
+.slots-mode .anvil-step.folded .anvil-row, .slots-mode .anvil-step.folded .step-caption { display: none; }
 /* The compact tree: each entry a slot and a one-line caption; the tooltip shows on hover. */
 .tree-caption { display: none; }
 .merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
@@ -2439,4 +2439,18 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 /* The graph under a search: matching nodes ringed, the rest faded. */
 .graph-node.unmatched { opacity: 0.18; }
 .graph-node.match circle { stroke: var(--text); stroke-width: 3.5; }
-
+/* The conflict-bracket tooltip: a game tooltip placed by Wanted.js (fixed, so no row or card clips it). */
+.conflict-tip { position: fixed; z-index: 60; width: max-content; max-width: 300px; padding: 4px 8px; color: #f4f4f4; pointer-events: none; }
+/* The "Conflicts with N" chip: hover or focus it to light the rows it conflicts with and list them; click it to keep them. */
+.conflict-chip { margin-left: 8px; padding: 1px 7px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface-alt); color: var(--text-secondary); font: 11px/1.5 system-ui, sans-serif; white-space: nowrap; cursor: pointer; vertical-align: middle; }
+.conflict-chip:hover, .conflict-chip:focus-visible, .conflict-chip.pinned { color: var(--text); border-color: var(--accent); }
+.conflict-chip.pinned { background: var(--accent-bg); }
+.ench-row.rival { background: rgba(122, 63, 214, 0.16); box-shadow: inset 0 0 0 1px var(--accent); }
+.ench-row.rival-self { background: rgba(122, 63, 214, 0.28); }
+/* The full tree on a small window or a touch screen: each enchantment on its own line in a tooltip, no commas. */
+@media (max-width: 600px), (hover: none) {
+    .merge-tree:not(.compact) .tree-tooltip .mc-ench > .mc-ench { display: block; }
+    .merge-tree:not(.compact) .tree-tooltip .ench-sep { display: none; }
+}
+/* Section 4's redraw copies the old view over the new one while the views cross-fade. */
+.results-content { position: relative; }

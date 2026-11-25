@@ -227,6 +227,11 @@ export function createLogic(meta, names = {}) {
         return enchantments[a].incompatible.includes(b) || enchantments[b].incompatible.includes(a);
     }
 
+    // The enchantments `item` can take that conflict with `ns`.
+    function conflictsWith(ns, item) {
+        return applicable(item).filter(other => conflicts(ns, other));
+    }
+
     // Name color tier, as in Java Edition: items without a listed rarity are common, and
     // enchanting raises common/uncommon to rare and rare to epic (epic is the cap).
     // An enchanted book is a common book with enchantments, so it shows as rare.
@@ -684,7 +689,7 @@ export function createLogic(meta, names = {}) {
 
     return {
         isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        modOf, applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
+        modOf, conflictsWith, applicable, enchantmentGroups, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf, parseBooks,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };

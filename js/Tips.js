@@ -36,7 +36,8 @@ export function floatBubble(tip) {
     if (!floating_listeners) {
         // Once for all of them, since tips in redrawn panels are new each time.
         floating_listeners = true;
-        const placeAll = () => { for (const other of document.querySelectorAll(".info-tip.floating")) other.place(); };
+        // (a copy of a tip, laid over the page for a fade-out, has no place())
+        const placeAll = () => { for (const other of document.querySelectorAll(".info-tip.floating")) if (other.place) other.place(); };
         document.addEventListener("scroll", placeAll, { capture: true, passive: true });
         addEventListener("resize", placeAll);
     }

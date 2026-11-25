@@ -141,7 +141,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   (`stepInstruction`: what to put where, the rename note), a cost chip with a floating breakdown (`costChip`/`showCost`: enchantments, each side's
   prior work 2^n - 1, rename), the result dims lines it didn't change and shows a raised enchantment's old level (`.mc-from`, `anvilCell` takes a Set or a
   Map to the old level), a `.level-checkpoint` when Your level is too low, and the rounds have a floating "?" (`roundTip`). The Slots view is the same markup with
-  `.slots-mode` CSS (one line of slots, tooltips on hover; its steps never fold: `foldable` false, no arrow). After the steps a `.final-card` shows the finished item (green once every step is ticked). Under 900px a sticky
+  `.slots-mode` CSS (one line of slots, tooltips on hover; its steps fold like the Steps view's, with the same Expand all / Collapse all and fold state, but all start open: a folded one is its head and one-line summary only). After the steps a `.final-card` shows the finished item (green once every step is ticked). Under 900px a sticky
   `.current-bar` (`currentBar`) keeps the current step and a Done button on screen while that step is off screen (`watchCurrentStep`: an
   IntersectionObserver tucks it away, `.tucked`, while the step shows, so it never covers it). The compact tree shows a slot and a one-line caption, the tooltip on hover;
   hovering or focusing an entry lights its path (`.path-self`/`.path-up`/`.path-down`, `mergeTree`). Density, anvil count and view stay in this browser, not in links.
@@ -200,6 +200,9 @@ Edit `metadata.json` (enchantment `items` lists, `items`, `rarity`, `tooltip_ord
 (loads Logic.js and Text.js through data: URLs, `moduleUrl` inlining their `./X.js` imports, and reads json/text directly).
 `python test/Browser.test.py` drives the page in Chromium (Playwright: `pip install playwright`, `playwright install chromium`;
 skips itself when it isn't installed): results, ticking/folding, link with progress, hover/keyboard links, Tree, print, phone and 320px widths.
+It is split into independent `part_...` functions run side by side (`JOBS`, each in its own Chromium; `--serial` for one at a time), about 30s instead of 90s; add new checks to the part
+of their section or as a new part, and wait with `settle(page)` (search idle: `<html data-search>` "pending" | "running" | "idle", set by Calc.js; and no finite animation running), not `wait_for_timeout`
+(which is kept only where a frame sampler needs its window).
 
 ## CI and hosting
 `.github/workflows/pages.yml` runs both test files on every push, pull request, and manual run (the browser test is its own job,
@@ -236,4 +239,8 @@ Keep Engine.js DOM-free and UMD. Keep UI text short, and in `json/text/*.json`.
   book multiplier from `RARITY` (1 common, 2 uncommon, 3 rare, else very rare); Mounted, Monogamous and Polygamous are disabled by default and left out. Conflicts: every Spellbound enchantment conflicts with the others in its category tag(s) (and
   with the vanilla ones listed in the tag), and with any vanilla enchantment that conflicts with the category's "parent" vanilla enchantments (damage: Sharpness and Power; fortune: Fortune and Silk Touch; utility: Knockback, Punch, Riptide, Channeling,
   Frost Walker, Soul Speed and Aqua Affinity; repair: Mending; and so on, `SBTags.CATEGORY_PARENTS`). Its pages (Modrinth, CurseForge) are older than the source and list fewer enchantments.
+- Section 1 rows in a conflict bracket carry a "Conflicts with N" chip (`conflictChip`, `.conflict-chip`, `logic.conflictsWith`): hovering or keyboard-focusing it lights the rows it conflicts with (`.rival`, the row itself `.rival-self`) and shows their names in a fixed game tooltip (`.conflict-tip`, the first 8 then "+N more");
+  clicking or tapping it pins both (`conflict_pin`, `aria-pressed`) until a click elsewhere, Escape or a click on the chip again, like the "?" bubbles (`setupConflictTips`; the tooltip follows its chip on scroll, `restoreConflicts` after redraws). Hovering a row alone shows nothing. The Game rules Mods row shows a mod's note only while the mod is on.
+- Section 4: the full Tree lists each enchantment of a tooltip on its own line on a small window or a touch screen (`.ench-sep` hidden, CSS). Switching Steps, Slots, Tree or Compact cross-fades (`rememberView` copies the old `.steps-scroll`, `crossfadeView` in Motion.js
+  fades the copy out over the new one and eases the height on phones; the copy has the step/view data attributes stripped so nothing finds it), and Expand all / Collapse all ease each step's height (`easeHeight`, `fold_change`).
 
