@@ -1,6 +1,5 @@
 // Small DOM and storage helpers used everywhere: h(), $, icon, guarded localStorage, the copy button, motion check.
 import { TEXT } from "./Text.js";
-import { meta } from "./Store.js";
 
 export const COPIED_MS = 1500; // how long "Copied" shows on a copy button
 
@@ -24,7 +23,7 @@ export const $ = selector => document.querySelector(selector);
 export function icon(item_ns, small = false) {
     return h("img", {
         class: "item-icon" + (small ? " small" : ""),
-        src: "img/" + ((meta.icons && meta.icons[item_ns]) || `${item_ns}.png`),
+        src: `img/${item_ns}.svg`,
         alt: "",
         draggable: "false", // so a drag that starts on it is ours, not the browser's picture drag
         "aria-hidden": "true"

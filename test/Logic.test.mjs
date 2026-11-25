@@ -34,7 +34,7 @@ const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], prio
 
 test("every item has an icon file", () => {
     for (const item of meta.items) {
-        const file = (meta.icons && meta.icons[item]) || `${item}.png`;
+        const file = `${item}.svg`;
         assert.doesNotThrow(() => readFileSync(new URL(`../img/${file}`, import.meta.url)), file);
     }
 });

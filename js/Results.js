@@ -79,7 +79,7 @@ export function renderResults() {
 
     if (result.status === "empty") {
         const message = !state.item ? TEXT.results.pick_item : TEXT.results.choose_enchantments;
-        box.append(h("div", { class: "empty" }, h("img", { src: "img/enchanting_table.png", alt: "" }), h("p", {}, message)));
+        box.append(h("div", { class: "empty" }, h("img", { src: "img/enchanting_table.svg", alt: "" }), h("p", {}, message)));
         return;
     }
     if (result.status === "cancelled") {
@@ -241,7 +241,7 @@ export function anvilRisk(uses) {
     const chance = anvilBreakChance(uses);
     const risk = chance === 0 ? "none" : chance < ANVIL_RISK_MEDIUM ? "low" : chance < ANVIL_RISK_HIGH ? "medium" : "high";
     const tip = infoTip("anvil-risk-tip",
-        [h("img", { class: "anvil-risk-icon", src: "img/anvil.png", alt: "" }), h("span", { class: "anvil-risk-label" }, TEXT.results.anvil_wear_label),
+        [h("img", { class: "anvil-risk-icon", src: "img/anvil.svg", alt: "" }), h("span", { class: "anvil-risk-label" }, TEXT.results.anvil_wear_label),
             chance === 0 ? TEXT.results.anvil_safe_short : percentText(chance)],
         anvilRiskText(uses),
         h("span", {}, h("strong", {}, anvilRiskText(uses)), " ", TEXT.results.anvil_wear_help),

@@ -416,9 +416,9 @@ function nameField() {
     return box;
 }
 
-// The game's name tag (img/name_tag.png).
+// The game's name tag (img/name_tag.svg).
 function nameTagIcon() {
-    return h("img", { class: "name-tag-icon", src: "img/name_tag.png", alt: "", "aria-hidden": "true" });
+    return h("img", { class: "name-tag-icon", src: "img/name_tag.svg", alt: "", "aria-hidden": "true" });
 }
 
 // Renaming is on exactly when a name is typed. Returns whether it is.

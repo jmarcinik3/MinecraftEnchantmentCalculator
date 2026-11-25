@@ -268,10 +268,6 @@
         "carrot_on_a_stick", "warped_fungus_on_a_stick", "shield", "elytra", "carved_pumpkin", "trident",
         "turtle_helmet", "crossbow", "brush", "mace", "spear"
     ],
-    "icons": {
-        "mace": "mace.svg",
-        "spear": "spear.svg"
-    },
     "rarity": {
         "elytra": "epic",
         "mace": "epic",

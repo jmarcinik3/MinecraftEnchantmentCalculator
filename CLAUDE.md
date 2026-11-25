@@ -73,7 +73,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   level" (`level_on`, `LEVEL_ON_STORAGE_KEY`; `activeLevel()` is what the steps use); on, it opens (`openRow`/`closeRow`) a number with - / +
   (`holdButton` repeats while held) and an XP bar filling toward the order's total levels (`updateLevelMeter`), a "Set to the N you need" button
   (`#level-set`: the unticked steps' total) and a status line (`#level-status`: "Need N more levels" in red, or "Enough for this order" in green).
-  Rename is one anvil-style name box (`nameField`: `img/name_tag.png`, "+1 level" badge, character count); empty is no rename and shows the
+  Rename is one anvil-style name box (`nameField`: `img/name_tag.svg`, "+1 level" badge, character count); empty is no rename and shows the
   item's name as a gray placeholder; any typed name renames; `state.rename` follows whether `rename_to` has text (`syncRename`,
   also on load/edition change), and typing only reschedules the search when that flips, without redrawing the box.
   Only the limit commits; your level and the name redraw just the results.
@@ -154,7 +154,7 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   loaded via `readLink`; × removes one), and the language. The Tree view (`mergeTree`) draws each entry as a game slot + tooltip (rarity colors, game font) and its
   step badges carry the same tick boxes as the Steps view (`stepTick`, shared ticks); hovering a starting item lights its section 2 card and a click scrolls to it (`entryHover`, as in the Steps view); each merge folds its inputs away like its step does (same `isFolded`/`toggleFold` state, ▾/▴ `.step-fold`). Ticking a step also ticks
   the steps it needs and unticking one unticks the steps that need it (Logic.js `tickStep`); "Uncheck all" clears them. Section 4's heading always shows the uses (`renderStepsSummary`) and the break risk (`anvilRisk`: an
-  `.info-tip` pill with `img/anvil.png` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), Copy (`stepsText`, `checklistText`), and Print (`@media print` in Style.css; `.print-only` lines).
+  `.info-tip` pill with `img/anvil.svg` and the chance, colored by Logic.js `anvilBreakChance`: 12% damage per use, breaks on the 3rd), Copy (`stepsText`, `checklistText`), and Print (`@media print` in Style.css; `.print-only` lines).
   The step checklist is stored in `localStorage` (`CHECKLIST_STORAGE_KEY`) for the order on screen only,
   keyed by its steps (`orderKey`: each slot's item, enchantments and prior work, not the costs, so a rename keeps the ticks); custom entries reorder by a grip (`entryHandle`: drag or arrow keys over `.entry-card`s; order is cosmetic);
   the result tiles are also the ranking (`renderMetrics`; both drag via pointer events in `dragToReorder` so touch works; values update in place so a result arriving mid-drag does not redraw them).
@@ -174,11 +174,11 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   prior work, from the 2^n - 1 penalty; Infinity with no limit), `MAX_STEP_LEVELS` (39),
   `CRITERIA`, `normalizePriority`, `movePriority`, `clampStepLimit`.
 - `json/metadata.json`: game data only, no names (the recovery compass takes Curse of Vanishing in Bedrock only, via that curse's `bedrock.items`; the enchantment key `sweeping` is Java's `sweeping_edge`, kept so old share links load): keys `enchantments` ({incompatible, items, max_level, weight,
-  optional `bedrock`}), `items` (list of item namespaces), `icons`, `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
+  optional `bedrock`}), `items` (list of item namespaces; each has `img/<item>.svg`), `rarity`, `tooltip_order`. It's long, so grep for the entry you need instead of reading it all.
 - `ServiceWorker.js` (site root, since a worker only covers its folder): offline copy, network first (with `cache: "no-cache"`, so the HTTP cache never serves a stale file). Precaches the
   JS/CSS/JSON files (add new ones to `FILES`); `VERSION` is stamped on deploy so the URLs match and old caches go.
   `manifest.webmanifest` + `img/app_icon_*.png` make it installable.
-- `css/Style.css`, `img/<item>.png|svg`, `font/minecraft.woff`.
+- `css/Style.css`, `img/*.svg` (16x16 pixel-art items, one rect per pixel; anvil, shield and enchanting table traced from renders; only the app icons stay PNG), `font/minecraft.woff`.
 
 ## Game rules implemented (Engine.js)
 Book vs. item multipliers (`weight`), prior-work penalty `2^n - 1`, level caps,
@@ -192,8 +192,8 @@ levels it gains over the target's. A metadata enchantment's `bedrock` object ove
 (Impaling `weight` 1; Sweeping Edge `items: []`, since Bedrock lacks it). Logic.js `editionMetadata` applies the same overrides.
 
 ## Adding an item or enchantment
-Edit `metadata.json` (enchantment `items` lists, `items`, `icons`, `rarity`, `tooltip_order`), add its name to
-`names` in every `json/text/*.json`, add an image to `img/`, then run the tests.
+Edit `metadata.json` (enchantment `items` lists, `items`, `rarity`, `tooltip_order`), add its name to
+`names` in every `json/text/*.json`, add `img/<item>.svg`, then run the tests.
 
 ## Tests (run after engine/logic changes)
 `node test/Engine.test.js` (includes brute-force cross-check) and `node test/Logic.test.mjs`

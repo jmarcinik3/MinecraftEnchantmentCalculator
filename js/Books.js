@@ -237,7 +237,7 @@ function entryCard(book, index, count, editable, unwanted) {
             "aria-expanded": String(work_open), onclick: () => togglePopover(book.id, "work", "work-" + key)
         }, content);
     };
-    const work_badge = prior_work ? badge([h("img", { class: "badge-anvil", src: "img/anvil.png", alt: "" }), prior_work], TEXT.books.work_badge({ count: prior_work })) : null;
+    const work_badge = prior_work ? badge([h("img", { class: "badge-anvil", src: "img/anvil.svg", alt: "" }), prior_work], TEXT.books.work_badge({ count: prior_work })) : null;
     const more = editable && !work_badge ? h("button", {
         type: "button", class: "entry-more popover-toggle" + (work_open ? " open" : ""), "data-focus": "more-" + key,
         title: TEXT.books.count_help, "aria-label": TEXT.books.count_help, "aria-expanded": String(work_open),
@@ -932,7 +932,7 @@ function workRow(book, key) {
             type: "button", class: "anvil-pip" + (uses <= prior_work ? " on" : ""), "data-focus": "pop-work-" + key + "-" + uses,
             "aria-label": TEXT.books.work_badge({ count: uses }), "aria-pressed": String(uses <= prior_work),
             onclick: event => { if (event.detail === 0) set(prior_work === uses ? uses - 1 : uses); }
-        }, h("img", { src: "img/anvil.png", alt: "", draggable: "false" })));
+        }, h("img", { src: "img/anvil.svg", alt: "", draggable: "false" })));
     }
     const show = value => pips.forEach((pip, index) => {
         pip.classList.toggle("on", index > 0 && index <= value);

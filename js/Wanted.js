@@ -243,7 +243,7 @@ let meter_none = false; // the last search found no order at all (too expensive)
 
 function costLine() {
     const line = h("div", { class: "cost-line", title: TEXT.wanted.cost_meter_help },
-        h("img", { class: "cost-line-orb", src: "img/experience_orb.png", alt: "" }),
+        h("img", { class: "cost-line-orb", src: "img/experience_orb.svg", alt: "" }),
         h("span", { class: "cost-line-text" }));
     fillCostMeter(line);
     return line;
@@ -416,7 +416,7 @@ function wantedRow(ns, short = null) {
         // the cost once chosen, the level bar, and a × that clears it.
         h("div", { class: "ench-name" },
             // A small enchanted book that glints once the enchantment is chosen.
-            h("span", { class: "ench-book" + (chosen ? " lit" : ""), "aria-hidden": "true" }, h("img", { src: "img/book.png", alt: "" })),
+            h("span", { class: "ench-book" + (chosen ? " lit" : ""), "aria-hidden": "true" }, h("img", { src: "img/book.svg", alt: "" })),
             h("span", { class: "ench-title" },
                 name,
                 blocker ? h("span", { class: "replaces-mark", title: replaces }, replaces) : null,
