@@ -668,14 +668,34 @@ function fillCostMeter(line) {
     line.classList.toggle("none", !nothing && meter_levels == null && meter_none);
     const text = line.querySelector(".cost-line-text");
     const words = nothing ? "" : meter_levels != null ? TEXT.wanted.cost_meter({ levels: meter_levels }) : meter_none ? TEXT.wanted.cost_meter_none : "";
-    const changed = text.textContent !== words;
+    const old_words = text.textContent;
+    const old_box = old_words && words && old_words !== words && line.isConnected ? text.getBoundingClientRect() : null;
     text.textContent = words;
     if (!line.isConnected || !motionOk()) return;
     slideWidth(tooltip, width_before); // the words can make the tooltip wider or narrower
-    // New words fade in instead of popping.
-    if (changed && words) text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
+    // New words flip in like the tooltip's rows (rollLines): the old ones leave through one edge of the row while the new come in
+    // from the other, up for more levels, down for fewer.
+    if (old_box) flipWords(line, text, old_words, words, old_box);
     // The line opens when a result arrives and folds away when there is none, so the tooltip eases to its new height.
     easeHeight(line, before, { duration: 250, easing: "ease-out", fade: true });
+}
+
+function flipWords(line, text, old_words, words, old_box) {
+    const number = value => Number((value.match(/\d+/) || [])[0]);
+    const up = !(number(words) < number(old_words)); // "No valid order" and the like flip up
+    const sign = up ? 1 : -1;
+    const options = { duration: 240, easing: "ease-in-out" };
+    const line_box = line.getBoundingClientRect();
+    const ghost = text.cloneNode(false);
+    ghost.textContent = old_words;
+    ghost.setAttribute("aria-hidden", "true");
+    Object.assign(ghost.style, { position: "absolute", left: old_box.left - line_box.left + "px", top: old_box.top - line_box.top + "px", margin: "0", pointerEvents: "none" });
+    line.style.position = "relative";
+    line.append(ghost);
+    text.animate([{ transform: `translateY(${100 * sign}%)`, clipPath: up ? "inset(0 0 100% 0)" : "inset(100% 0 0 0)" }, { transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }],
+        { ...options, fill: "backwards" });
+    ghost.animate([{ transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }, { transform: `translateY(${-100 * sign}%)`, clipPath: up ? "inset(100% 0 0 0)" : "inset(0 0 100% 0)" }],
+        { ...options, fill: "forwards" }).finished.then(() => { ghost.remove(); line.style.position = ""; }, () => ghost.remove());
 }
 
 export function updateCostMeter() {

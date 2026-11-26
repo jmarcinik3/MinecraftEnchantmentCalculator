@@ -2317,7 +2317,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
    (.idle) it takes no width. fillCostMeter slides the tooltip's width when the words change. */
 .cost-line { display: flex; align-items: center; gap: 5px; margin-top: 4px; white-space: nowrap; transition: opacity 0.2s; }
 .cost-line.idle { width: 0; min-width: 100%; height: 0; margin: 0; overflow: hidden; opacity: 0; }
-.cost-line.stale { opacity: 0.5; }
 .cost-line-orb { width: 14px; height: 14px; image-rendering: pixelated; }
 .cost-line-text { color: var(--mc-green); }
 .cost-line.none .cost-line-orb { filter: grayscale(1); opacity: 0.5; }
