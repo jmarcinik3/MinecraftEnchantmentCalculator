@@ -62,7 +62,7 @@ export async function copyText(target, text, label, button = target) {
     setTimeout(() => { target.textContent = label; button.classList.remove("copied"); }, COPIED_MS);
 }
 
-// Whether animations may run: not when the device asks for reduced motion, nor when "Ignore all animations" (Settings) is on.
+// Whether animations may run: not when the device asks for reduced motion, nor when "Show animations" (Settings) is off.
 // That setting is kept in this browser; <html data-motion="off"> (also set early by index.html) turns the CSS ones off too.
 const MOTION_STORAGE_KEY = "enchantment-calculator-no-motion";
 let motion_ignored = readStorage(MOTION_STORAGE_KEY, false) === true;

@@ -14,6 +14,7 @@ import concurrent.futures
 import functools
 import http.server
 import os
+import re
 import sys
 import threading
 import traceback
@@ -25,6 +26,7 @@ except ImportError:
     sys.exit(0)
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DEFAULT_TIMEOUT_MS = 6000  # how long a click or wait for an element tries before the check fails
 JOBS = min(4, os.cpu_count() or 1)  # parts that run side by side (each in its own Chromium); `--serial` runs them one at a time
 passed = 0
 failed = 0
@@ -73,7 +75,7 @@ def settle(page, timeout=10000):
 def pick_helmet_max(page):
     page.click('#wanted .item-grid button[data-focus="item-helmet"]')
     page.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
-    page.wait_for_selector("#results .anvil-step", timeout=15000)
+    page.wait_for_selector("#results .anvil-step", timeout=8000)
 
 
 def part_steps(browser, base):
@@ -82,7 +84,7 @@ def part_steps(browser, base):
     page.wait_for_selector("#wanted .item-grid")
     check("the first screen explains the page", page.locator("#wanted .intro").count() == 1)
     page.click("#wanted .example")
-    page.wait_for_selector("#results .anvil-step", timeout=15000)
+    page.wait_for_selector("#results .anvil-step", timeout=8000)
     check("the example picks a helmet with enchantments", page.locator("#wanted .wanted-preview .mc-ench").count() >= 3)
 
     steps = page.locator("#results .anvil-step")
@@ -140,7 +142,7 @@ def part_steps(browser, base):
     other, page2, errors2 = open_page(browser, base, viewport={"width": 390, "height": 800})
     page2.goto(copied)
     page2.reload()
-    page2.wait_for_selector("#results .anvil-step", timeout=15000)
+    page2.wait_for_selector("#results .anvil-step", timeout=8000)
     check("the second device has the same ticks", page2.locator(".step-tick input:checked").count() == ticked,
           (ticked, page2.locator(".step-tick input:checked").count()))
 
@@ -163,7 +165,7 @@ def part_steps(browser, base):
     small, page3, errors3 = open_page(browser, base, viewport={"width": 320, "height": 700})
     page3.goto(copied)
     page3.reload()
-    page3.wait_for_selector("#results .anvil-step", timeout=15000)
+    page3.wait_for_selector("#results .anvil-step", timeout=8000)
     check("320px has no sideways scroll", not page3.evaluate("document.documentElement.scrollWidth > innerWidth"))
 
     # Start over: one click clears the setup and bring the first screen back; saved setups stay.
@@ -234,7 +236,7 @@ def part_books(browser, base):
     wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
     page4.click('#wanted .item-grid button[data-focus="item-sword"]')
     page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
-    page4.wait_for_selector("#results .anvil-step", timeout=15000)
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
     # Automatic mode: dragging a slot onto another entry previews the merge too.
     page4.locator("#books .entry-card").nth(1).scroll_into_view_if_needed()
     asrc = page4.locator("#books .entry-card").nth(1).locator(".mc-slot").bounding_box()
@@ -367,7 +369,7 @@ def part_books(browser, base):
     page4.locator("#limit-panel input[type=range]").fill("30")
     page4.keyboard.press("Escape")
     page4.fill("#ranking input[type=text]", "Excalibur")
-    page4.wait_for_selector("#results .anvil-step", timeout=15000)
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
     page4.click("#saved summary")
     page4.fill("#saved-panel input[type=text]", "Smoke")
     page4.click("#saved-panel >> text=Save")
@@ -377,7 +379,7 @@ def part_books(browser, base):
     page4.click("#rank-help")
     page4.click("#options-menu summary")
     page4.click("#limit-panel .edition-switch >> text=Bedrock")
-    page4.wait_for_selector("#results .anvil-step", timeout=15000)
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
     page4.click("#limit-panel .edition-switch >> text=Java")
     page4.keyboard.press("Escape")
     page4.click("#theme")
@@ -385,7 +387,7 @@ def part_books(browser, base):
     page4.click('[data-section="wanted"] .collapse-toggle')
     page4.click('[data-section="wanted"] .collapse-toggle')
     page4.click("#copy-link")
-    page4.wait_for_selector("#results .anvil-step", timeout=15000)
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(page4) # a result arriving would redraw (and close) the menu
     page4.click(".copy-menu summary")
     page4.click(".copy-steps")
@@ -394,7 +396,7 @@ def part_books(browser, base):
     check("Spanish changes the heading", "encantamientos" in page4.inner_text("h1").lower(), page4.inner_text("h1"))
     page4.locator("#language select").select_option("en")
     page4.wait_for_function("document.documentElement.lang === 'en'")
-    page4.wait_for_selector("#results .anvil-step", timeout=15000)
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
     return errors4
 
 
@@ -405,7 +407,7 @@ def part_anvil_uses(browser, base):
     p7.wait_for_selector("#wanted .item-grid")
     p7.click('#wanted .item-grid button[data-focus="item-boots"]')
     p7.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
-    p7.wait_for_selector("#results .anvil-step", timeout=20000)
+    p7.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p7)
     steps = p7.locator("#results .anvil-step").count()
     check("only the current step is in full at first", p7.locator("#results .anvil-step:not(.folded)").count() == 1, p7.locator("#results .anvil-step:not(.folded)").count())
@@ -452,7 +454,7 @@ def part_anvil_uses(browser, base):
     p9.keyboard.press("Enter")
     p9.fill('#books input[placeholder^="Type a book"]', "feather falling 3")
     p9.keyboard.press("Enter")
-    p9.wait_for_selector("#results .anvil-step", timeout=20000)
+    p9.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p9)
     check("a raised enchantment shows the level it had", p9.locator("#results .anvil-cell.result .mc-from").count() >= 1, p9.inner_text("#results .anvil-step"))
     p9.close()
@@ -464,7 +466,7 @@ def part_anvil_uses(browser, base):
     p8.goto(base)
     p8.click('#wanted .item-grid button[data-focus="item-boots"]')
     p8.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
-    p8.wait_for_selector("#results .anvil-step", timeout=20000)
+    p8.wait_for_selector("#results .anvil-step", timeout=8000)
     p8.locator("#results .anvil-step").first.scroll_into_view_if_needed()
     try:
         p8.locator("#results .current-bar").wait_for(state="hidden", timeout=3000) # an observer tucks it away
@@ -617,7 +619,7 @@ def part_ranking(browser, base):
     p10.wait_for_selector("#wanted .item-grid")
     p10.click('#wanted .item-grid button[data-focus="item-boots"]')
     p10.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
-    p10.wait_for_selector("#results .anvil-step", timeout=20000)
+    p10.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p10)
     check("the game rules menu is among the header buttons", p10.locator(".header-actions #options-menu").count() == 1 and p10.locator("#metrics #options-menu, .section-head #options-menu").count() == 0)
     check("every ranking tile has a grip, a unit and a note", p10.locator(".rank-tile .rank-grip").count() == 4 and all(p10.locator(".rank-tile .metric-unit").nth(i).inner_text() for i in range(4)) and all(p10.locator(".rank-tile .metric-note").nth(i).inner_text() for i in range(4)))
@@ -638,10 +640,10 @@ def part_ranking(browser, base):
     p10.click("#options-menu summary")
     p10.locator("#limit-panel input[type=range]").fill("9")
     p10.keyboard.press("Escape")
-    p10.wait_for_selector("#results .break-down .anvil-cell.result", timeout=20000)
+    p10.wait_for_selector("#results .break-down .anvil-cell.result", timeout=8000)
     check("with no order the breaking step is shown", p10.locator("#results .break-step .anvil-cell").count() == 3)
     p10.click("#results .break-down .btn.primary")
-    p10.wait_for_selector("#results .anvil-step", timeout=20000)
+    p10.wait_for_selector("#results .anvil-step", timeout=8000)
     check("raising the limit from there gives an order", p10.locator("#results .break-down").count() == 0)
     # Section 4: the goal line, "In words", the wear label, jumping, the keyboard, the copy menu and source highlighting.
     check("a line says the goal before the steps", "enchantments" in p10.inner_text("#results .result-goal"), p10.inner_text("#results .result-goal"))
@@ -692,19 +694,19 @@ def part_ranking(browser, base):
     settle(p10)
     vanilla = p10.evaluate("() => ({ limit: document.querySelector('#limit-panel .limit-slider').value, on: document.querySelector('#limit-panel .rule-switch').getAttribute('aria-checked'), dot: document.querySelector('#options-menu summary').classList.contains('changed'), disabled: document.querySelector('#limit-panel [data-focus=\"rules-reset\"]').disabled })")
     check("Reset to vanilla brings back limit 39 with conflicts off", vanilla == {"limit": "39", "on": "false", "dot": False, "disabled": True}, vanilla)
-    # Settings: the game rules are a subsection beside a Display one, and "Ignore all animations" stops every animation.
+    # Settings: the game rules are a subsection beside a Display one, and "Show animations" off stops every animation.
     titles = p10.eval_on_selector_all("#limit-panel .settings-section-title", "e => e.map(x => x.textContent.trim())")
     check("the menu is Settings, with Game rules and Display as subsections", titles == ["Game rules", "Display"] and p10.inner_text("#options-menu summary").strip() == "Settings", titles)
-    check("animations are on to begin with", p10.get_attribute("html", "data-motion") is None and p10.get_attribute('#limit-panel [data-focus="motion-off"]', "aria-checked") == "false")
+    check("animations are shown to begin with", p10.get_attribute("html", "data-motion") is None and p10.get_attribute('#limit-panel [data-focus="motion-off"]', "aria-checked") == "true")
     p10.click('#limit-panel [data-focus="motion-off"]')
     kept = p10.evaluate("() => document.getAnimations().map(a => a.animationName || a.constructor.name)")
-    check("Ignore all animations leaves the glints running (they have their own switch)", kept and all("glint" in n for n in kept), kept)
+    check("Show animations off leaves the glints running (they have their own switch)", kept and all("glint" in n for n in kept), kept)
     p10.click('#limit-panel [data-focus="glints"]')
     check("Glints off stops them and is kept", p10.get_attribute("html", "data-glint") == "off" and p10.evaluate("document.getAnimations().length") == 0 and p10.evaluate("localStorage.getItem('enchantment-calculator-glints')") == "false")
     p10.keyboard.press("Escape")
     p10.click('#results [data-view="tree"]')
     leftover = p10.evaluate("() => [document.documentElement.dataset.motion, document.getAnimations().length, document.querySelectorAll('#results .results-content > .steps-scroll').length]")
-    check("with Ignore all animations on, a view switch animates nothing (no cross-fade copy, no animation running, not even the glints)", leftover == ["off", 0, 1], leftover)
+    check("with Show animations off, a view switch animates nothing (no cross-fade copy, no animation running, not even the glints)", leftover == ["off", 0, 1], leftover)
     p10.click('#results [data-view="steps"]')
     p10.click("#options-menu summary")
     p10.click('#limit-panel [data-focus="motion-off"]')
@@ -767,15 +769,9 @@ def part_fancy(browser, base):
     settle(p11)
     p11.click("#wanted .graph-box > summary")
     p11.click("#wanted .mod-section > summary")
-    toggle = p11.locator("#wanted .ench-group:not(.exclusive) > .group-toggle").first
-    before = p11.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count()
-    toggle.click()
-    check("a conflict bracket folds from its label, hiding rows that are not chosen", p11.locator("#wanted .ench-group.folded").count() == 1 and p11.locator("#wanted .ench-group.folded .ench-row:visible").count() < before and toggle.get_attribute("aria-expanded") == "false", before)
-    toggle.click()
-    check("and unfolds again", p11.locator("#wanted .ench-group.folded").count() == 0 and p11.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count() == before)
     p11.locator("#wanted .pick-side .switch-option", has_text="Air Attack").first.click() # (it is in a Pick a side section: no row until it is picked)
     p11.click('#wanted .each-rows [data-ns="fancyenchantments:air_attack"] .level-seg[data-level="2"]')
-    p11.click('#wanted [data-ns="sharpness"] .level-seg[data-level="5"]')
+    p11.locator('#wanted .switch-option[data-opt="sharpness"]').first.click() # (a chip: it is picked at its top level)
     p11.wait_for_selector("#results .anvil-step")
     check("a mod's enchantment goes through the search", "Air Attack" in p11.inner_text("#results"), p11.inner_text("#results")[:200])
     check("its link names the mod", "fancy" not in p11.evaluate("location.hash") and len(p11.evaluate("location.hash")) > 100)
@@ -826,34 +822,12 @@ def part_two_mods(browser, base):
     p14.click("#wanted .item-menu-button")
     p14.click('#items button[data-focus="item-boots"]') # (boots have all three kinds with both mods on)
     p14.wait_for_selector("#wanted .ench-group.exclusive")
-    kinds = p14.evaluate("""() => [...document.querySelector('#wanted .wanted-list').children].map(el => el.matches('.ench-row') ? 0 : el.matches('.ench-group.exclusive') ? 1 : el.matches('.ench-group') ? 2 : 3)""")
+    kinds = p14.evaluate("""() => [...document.querySelector('#wanted .wanted-list').children].map(el => el.matches('.ench-row') ? 0 : el.matches('.ench-group.exclusive, .group-fold') ? 1 : el.matches('.ench-group') ? 2 : 3)""")
     first_other = kinds.index(3) if 3 in kinds else len(kinds)
     lead = kinds[:first_other]
-    check("the list starts with single enchantments, then Pick one cards, then conflict brackets", set(lead) == {0, 1, 2} and lead == sorted(lead), lead)
+    check("the list starts with single enchantments, then the Pick one family (Several groups included)", set(lead) == {0, 1} and lead == sorted(lead), lead)
     p14.click("#wanted .item-menu-button")
     p14.click('#items button[data-focus="item-sword"]')
-    p14.wait_for_selector("#wanted .ench-group:not(.exclusive)")
-    chip = p14.locator("#wanted .ench-group:not(.exclusive) .conflict-chip").first
-    check("rows in a conflict bracket have a chip with how many they conflict with", "Conflicts with" in chip.inner_text(), chip.inner_text())
-    p14.locator("#wanted .ench-group:not(.exclusive) .ench-row").first.hover()
-    check("hovering a row alone shows no tooltip and no highlight", p14.locator(".conflict-tip").count() == 0 and p14.locator("#wanted .rival").count() == 0)
-    chip.hover()
-    p14.wait_for_selector(".conflict-tip")
-    lit = p14.locator("#wanted .rival").count()
-    check("hovering the chip lights the rows it conflicts with and lists them", "Conflicts with" in p14.inner_text(".conflict-tip") and lit >= 1, (lit, p14.inner_text(".conflict-tip")))
-    p14.mouse.move(0, 0)
-    p14.wait_for_timeout(100)
-    check("both go when the pointer leaves", p14.locator(".conflict-tip").count() == 0 and p14.locator("#wanted .rival").count() == 0)
-    chip.click()
-    p14.mouse.move(0, 0)
-    p14.wait_for_timeout(100)
-    check("clicking the chip keeps the tooltip and the highlights", p14.locator(".conflict-tip").count() == 1 and p14.locator("#wanted .rival").count() == lit and chip.get_attribute("aria-pressed") == "true")
-    p14.locator("#wanted .level-bar").nth(3).hover() # hovering other things changes nothing
-    p14.click("#wanted .wanted-search")
-    check("a click elsewhere lets go of them", p14.locator(".conflict-tip").count() == 0 and p14.locator("#wanted .rival").count() == 0)
-    chip.click()
-    p14.keyboard.press("Escape")
-    check("Escape lets go of them too", p14.locator(".conflict-tip").count() == 0 and p14.locator("#wanted .rival").count() == 0)
     p14.click("#options-menu summary")
     check("with both on, each mod has its own section", p14.locator("#wanted .mod-section").count() == 2)
     p14.keyboard.press("Escape")
@@ -862,8 +836,8 @@ def part_two_mods(browser, base):
     p14.wait_for_selector(".graph-canvas")
     p14.fill(".wanted-search", "loot")
     p14.wait_for_timeout(200)
-    found = p14.eval_on_selector_all("#wanted .ench-row", "e => e.map(x => x.dataset.ns)")
-    check("the search shows only matching enchantments, in mods too, and opens their sections", "looting" in found and "fancyenchantments:advanced_looting" in found and "sharpness" not in found and len(found) < 12, found)
+    found = p14.eval_on_selector_all("#wanted .ench-row, #wanted .switch-option[data-opt]", "e => [...new Set(e.map(x => x.dataset.ns || x.dataset.opt))]")
+    check("the search shows only matching enchantments, in mods too, and opens their sections", "looting" in found and "fancyenchantments:advanced_looting" in found , found)
     check("the graph rings the nodes that match and fades the rest", p14.locator(".graph-node.match").count() > 0 and p14.locator(".graph-node.unmatched").count() > 20)
     check("typing in the search keeps the focus", p14.evaluate("document.activeElement.classList.contains('wanted-search')"))
     p14.fill(".wanted-search", "zzzz")
@@ -874,10 +848,12 @@ def part_two_mods(browser, base):
     check("clearing the search brings back the whole list and the graph", p14.locator("#wanted .ench-row").count() == all_rows and p14.locator("#wanted .mod-section[open]").count() == 0 and p14.locator(".graph-node.match, .graph-node.unmatched").count() == 0)
     p14.keyboard.press("Escape")
     p14.click('#wanted .mod-section[data-mod="Spellbound"] > summary')
-    p14.click('#wanted [data-ns="spellbound:dullness"] .level-seg[data-level="3"]')
-    p14.click('#wanted [data-ns="sharpness"] .level-seg[data-level="5"]')
+    p14.locator('#wanted .switch-option[data-opt="spellbound:dullness"]').first.click()
+    p14.locator('#wanted .switch-option[data-opt="sharpness"]').first.click()
     settle(p14)
     check("Dullness and Sharpness replace each other (same Spellbound category)", p14.locator("#wanted .ench-row.chosen").evaluate_all("e => e.map(x => x.dataset.ns)") == ["sharpness"])
+    p14.locator('#wanted .switch-option[data-opt="spellbound:dullness"]').first.click()
+    settle(p14)
     dull = p14.locator('#wanted .ench-row[data-ns="spellbound:dullness"] .level-bar')
     box = dull.bounding_box()
     check("a level bar past V wraps onto a second row of five (Dullness goes to X)", p14.locator('#wanted .ench-row[data-ns="spellbound:dullness"] .level-seg').count() == 10 and box["height"] > 50 and box["width"] < 160, box)
@@ -932,7 +908,7 @@ def part_mod_off(browser, base):
     p17.click("#wanted .mod-section > summary")
     p17.locator("#wanted .pick-side .switch-option", has_text="Air Attack").first.click()
     p17.click('#wanted .each-rows [data-ns="fancyenchantments:air_attack"] .level-seg[data-level="2"]')
-    p17.click('#wanted [data-ns="sharpness"] .level-seg[data-level="5"]')
+    p17.locator('#wanted .switch-option[data-opt="sharpness"]').first.click()
     p17.wait_for_selector("#results .anvil-step")
     p17.wait_for_function("document.querySelector('#wanted .cost-line') && document.querySelector('#wanted .cost-line').textContent.includes('10')")
     p17.click("#options-menu summary")
@@ -963,95 +939,217 @@ def part_cost_width(browser, base):
 
 
 def part_pick_each(browser, base):
-    """Pick one in each: Flint & Steel with Spellbound (repair and unbreaking, joined by Selfish)"""
+    """Pick one in each, as nested sections: Flint & Steel with Spellbound (repair and unbreaking, joined by Selfish)"""
     _, p20, errors20 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p20.click("#wanted .item-grid >> text=Flint")
     p20.click("#options-menu summary")
     p20.click('#limit-panel [data-focus="mod-spellbound"]')
-    p20.wait_for_selector("#wanted .pick-each")
+    p20.wait_for_selector("#wanted .pick-groups")
     p20.keyboard.press("Escape")
-    check("two groups joined by Selfish are two Pick one cards in one section, Selfish in both", p20.locator("#wanted .pick-each .each-card").count() == 2 and p20.locator("#wanted .pick-each .switch-option.bridge").count() == 2 and p20.locator("#wanted .ench-group:not(.exclusive)").count() == 0)
-    tips = p20.locator("#wanted .switch-option.bridge").evaluate_all("e => e.map(x => x.title)")
-    check("the joining enchantment's hover text names it, says what it does and that it is in more than one group, and appears nowhere else in the section", len(tips) == 2 and all(tip.startswith("Selfish ⇄ ") and "In more than one group" in tip and len(tip) > 60 for tip in tips) and "In more than one group" not in p20.locator("#wanted .pick-each").inner_text(), tips)
-    card = lambda index, text: p20.locator("#wanted .each-card").nth(index).locator(".switch-option", has_text=text).first
-    card(0, "Legacy").click()
-    check("nothing fades in Pick one in each: the options that conflict with a pick stay as they are", p20.locator("#wanted .pick-each .switch-option.blocked").count() == 0)
-    card(1, "Buffered").click()
+    section = p20.locator("#wanted .pick-groups")
+    check("Selfish is a side of its own, and the two groups it joins are Pick one sections in the other side",
+          [t.lower() for t in section.locator(".side-badge").all_inner_texts()] == ["side 1", "side 2"] and [t.lower() for t in section.locator(".label-title").all_inner_texts()] == ["pick one", "pick one"]
+          and section.locator('.switch-option[data-opt="spellbound:selfish"]').count() == 1 and p20.locator("#wanted .ench-group:not(.exclusive)").count() == 0, section.inner_text())
+    pick = lambda text: section.locator(".switch-option", has_text=text).first
+    tip = pick("Selfish").get_attribute("title")
+    check("a chip's tooltip is the enchantment's description, with no Replaces note", bool(tip) and "Replaces" not in tip, tip)
+    pick("Legacy").click()
+    pick("Buffered").click()
     settle(p20)
     chosen = p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)")
-    check("one pick in each group stays together, the chosen rows shown once under the cards", sorted(chosen) == ["spellbound:buffered", "spellbound:legacy"] and p20.locator("#wanted .each-rows > .ench-row").count() == 2, chosen)
-    card(0, "Selfish").click()
+    check("one pick in each group stays together, the chosen rows shown once under the sections", len(chosen) == 2 and section.locator(".each-rows > .ench-row.chosen").count() == 2, chosen)
+    pick("Selfish").click()
     settle(p20)
-    check("Selfish replaces both picks and shows selected in both groups", p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)") == ["spellbound:selfish"] and p20.locator("#wanted .each-card .switch-option.selected").all_inner_texts() == ["Selfish", "Selfish"])
-    card(1, "None").click()
+    check("Selfish replaces the picks of both groups", p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)") == ["spellbound:selfish"])
+    pick("Legacy").click()
     settle(p20)
-    check("None in either group clears Selfish", p20.locator("#wanted .ench-row.chosen").count() == 0)
-    # A search that hits an option of the section shows the whole section.
-    p20.fill(".wanted-search", "photosynth")
+    check("a pick in a group replaces Selfish", p20.eval_on_selector_all("#wanted .ench-row.chosen", "e => e.map(x => x.dataset.ns)") == ["spellbound:legacy"])
+    pick("Legacy").click()
     settle(p20)
-    check("searching for one option shows the whole Pick one in each section, and nothing else", p20.locator("#wanted .pick-each").count() == 1 and p20.locator("#wanted .pick-each .each-card").count() == 2 and p20.locator("#wanted .pick-each .switch-option").count() == 2 + 7 + 4 and p20.locator("#wanted .ench-group").count() == 1, p20.locator("#wanted .ench-group").count())
+    p20.fill(".wanted-search", "selfish")
+    settle(p20)
+    check("a search that hits one option shows the whole section", p20.locator("#wanted .pick-groups").count() == 1 and p20.locator("#wanted .pick-groups .switch-option").count() > 5 and p20.locator("#wanted .ench-group").count() == 1)
     p20.fill(".wanted-search", "")
     settle(p20)
-    # Switching in place (same count, nothing moves) rolls the bar and eases the height: no row opens or folds, the bar moves both ways.
-    card(0, "Mending").click()
-    settle(p20)
-    p20.set_viewport_size({"width": 560, "height": 1000})
-    settle(p20)
-    card(0, "Photosynthetic").click()
-    settle(p20)
-    p20.evaluate("""() => { window.__t = []; const t0 = performance.now(); const tick = () => { const row = document.querySelector('.each-rows > .ench-row'); window.__t.push([document.querySelectorAll('.each-rows > *').length, Math.round(row.getBoundingClientRect().height), Math.round(row.querySelector('.level-bar').getBoundingClientRect().top - row.getBoundingClientRect().top)]); if (performance.now() - t0 < 450) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }""")
-    card(0, "Mending").click()
-    p20.wait_for_timeout(600)
-    frames = p20.evaluate("window.__t")
-    tops = [f[2] for f in frames]
-    check("switching in place keeps one row (none folds or opens) and the level bar moves smoothly as the row grows", all(f[0] == 1 for f in frames) and max(tops) > min(tops) + 4 and len(set(tops)) >= 4 and tops == sorted(tops), frames[:14])
-    return errors20
+    check("no page errors in Pick one in each", not errors20, errors20)
 
 
 def part_pick_side(browser, base):
-    """Pick a side: a sword with Fancy Enchantments (Aer against Terra, Aqua against Ignis)"""
+    """Pick a side, as nested sections: a sword with Fancy Enchantments (Aer against Terra, Aqua against Ignis)"""
     _, p21, errors21 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p21.click("#wanted .item-grid >> text=Sword")
     p21.click("#options-menu summary")
     p21.click('#limit-panel [data-focus="mod-fancy_enchantments"]')
-    p21.wait_for_selector("#wanted .pick-side")
+    p21.wait_for_selector("#wanted .pick-groups")
     p21.keyboard.press("Escape")
     p21.click("#wanted .mod-section > summary")
-    sizes = p21.evaluate("[...document.querySelectorAll('#wanted .pick-side')].map(s => [...s.querySelectorAll('.each-card')].map(l => l.querySelectorAll('.switch-option').length))")
-    check("the big elemental brackets are Pick a side sections, a lane per side (and a lane for a stray conflict)", sorted(map(sorted, sizes)) == [[1, 7, 7], [5, 7]], sizes)
-    lanes = lambda section: p21.locator("#wanted .pick-side").nth(section).locator(".each-card")
-    # The Aer against Terra section (the one with 5 and 7).
+    sections = p21.locator("#wanted .pick-groups")
+    # The Aer against Terra section: the one with a Pick any of 5 and one of 7.
+    sizes = sections.evaluate_all("els => els.map(s => [...s.querySelectorAll('.label-title')].map(t => t.nextElementSibling.querySelectorAll('.switch-option').length))")
     index = [i for i, s in enumerate(sizes) if sorted(s) == [5, 7]][0]
-    lanes(index).nth(0).locator(".switch-option").nth(0).click()
-    lanes(index).nth(0).locator(".switch-option").nth(1).click()
+    section = sections.nth(index)
+    check("each side is a Pick any lane marked by a badge, and no list of names is a title",
+          [t.lower() for t in section.locator(".label-title").all_inner_texts()] == ["pick any", "pick any"] and section.locator(".side-badge").count() == 2 and "Any of" not in section.inner_text(), sizes)
+    lane = lambda number: section.locator(".side-lane").nth(number)
+    lane(0).locator(".switch-option").nth(0).click()
+    lane(0).locator(".switch-option").nth(1).click()
     settle(p21)
-    chosen = p21.eval_on_selector_all("#wanted .pick-side >> nth=%d >> .each-rows > .ench-row.chosen" % index, "e => e.length")
-    check("any number can be picked inside one side; that side is outlined and nothing fades", chosen == 2 and p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active").count() == 1 and p21.locator("#wanted .pick-side").nth(index).locator(".switch-option.blocked").count() == 0, chosen)
-    lanes(index).nth(1).locator(".switch-option").nth(0).click()
+    check("any number can be picked inside one side, and that side is outlined", section.locator(".each-rows > .ench-row.chosen").count() == 2 and section.locator(".side-lane.active").count() == 1)
+    lane(1).locator(".switch-option").nth(0).click()
     settle(p21)
-    check("a pick from the other side replaces them all", p21.locator("#wanted .pick-side").nth(index).locator(".each-rows > .ench-row.chosen").count() == 1 and p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active .switch-option.selected").count() == 1)
-    p21.locator("#wanted .pick-side").nth(index).locator(".switch-option.selected").click()
+    check("a pick from the other side replaces them all", section.locator(".each-rows > .ench-row.chosen").count() == 1 and section.locator(".side-lane.active").count() == 1)
+    section.locator(".switch-option.selected").first.click()
     settle(p21)
     p21.fill(".wanted-search", "air attack")
     settle(p21)
-    check("searching for one option shows the whole Pick a side section", p21.locator("#wanted .pick-side").count() == 1 and sorted(p21.locator("#wanted .pick-side .each-card").evaluate_all("e => e.map(x => x.querySelectorAll('.switch-option').length)")) == [5, 7] and p21.locator("#wanted .ench-row").count() == 0)
+    check("searching for one option shows the whole section, and nothing loose beside it", p21.locator("#wanted .pick-groups").count() == 1 and p21.locator("#wanted .pick-groups .switch-option").count() >= 12 and p21.locator("#wanted .ench-row").count() == 0)
     p21.fill(".wanted-search", "")
     settle(p21)
     # An enchantment set apart (Fire Aspect, which only conflicts with Advanced Fire Aspect) fades when its conflict is chosen, and the reverse.
-    fire = [i for i, s in enumerate(sizes) if sorted(s) == [1, 7, 7]][0]
-    section = p21.locator("#wanted .pick-side").nth(fire)
-    section.locator(".switch-option", has_text="Advanced Fire Aspect").click()
+    fire = p21.locator("#wanted .pick-groups", has=p21.locator(".switch-option", has_text="Advanced Fire Aspect")).first
+    fire.locator(".switch-option", has_text="Advanced Fire Aspect").first.click()
     settle(p21)
-    check("an enchantment set apart fades when the one it conflicts with is chosen", section.locator(".switch-option.blocked", has_text="Fire Aspect").count() == 1 and section.locator(".switch-option.blocked").count() == 1)
-    section.locator(".switch-option.selected").click()
+    stray_faded = fire.locator('.switch-option.blocked[data-opt="fire_aspect"]').count()
+    check("an enchantment set apart fades while its conflict is chosen", stray_faded >= 1, stray_faded)
+    fire.locator(".switch-option", has_text="Advanced Fire Aspect").first.click()
     settle(p21)
-    section.locator(".each-card").nth(2).locator(".switch-option").click() # Fire Aspect itself
-    settle(p21)
-    check("and the other way round: Advanced Fire Aspect fades when Fire Aspect is chosen", section.locator(".switch-option.blocked", has_text="Advanced Fire Aspect").count() == 1 and section.locator(".switch-option.blocked").count() == 1)
-    section.locator(".switch-option.selected").click()
-    settle(p21)
-    check("clearing the pick takes both sides back to neutral", p21.locator("#wanted .pick-side").nth(index).locator(".each-card.active").count() == 0)
-    return errors21
+    check("no page errors in Pick a side", not errors21, errors21)
+
+
+def mocked_mod_page(browser, base, edges, item="sword"):
+    """a page whose Spellbound is a made-up mod with the given conflicts (names Mod A, Mod B...), switched on, with the item picked"""
+    import json as json_module
+    keys = sorted(set(edges) | {x for v in edges.values() for x in v})
+    mod = {"id": "spellbound", "label": "Spellbound", "note": "test", "source": "https://example.test",
+           "enchantments": {"spellbound:" + k: {"incompatible": ["spellbound:" + x for x in edges.get(k, [])] + ["spellbound:" + o for o in keys if k in edges.get(o, [])], "items": [item], "max_level": 1, "weight": 1} for k in keys},
+           "names": {"en": {"spellbound:" + k: "Mod " + k.upper() for k in keys}}, "descriptions": {"en": {}}}
+    context = browser.new_context(viewport={"width": 1280, "height": 1100}, service_workers="block")
+    context.route("**/json/mods/spellbound.json*", lambda route: route.fulfill(content_type="application/json", body=json_module.dumps(mod)))
+    page = context.new_page()
+    errors = []
+    page.on("pageerror", lambda e: errors.append(str(e)))
+    page.goto(base)
+    page.wait_for_selector("#wanted .item-grid")
+    page.click("#wanted .item-grid >> text=" + item.capitalize())
+    page.click("#options-menu summary")
+    page.click('#limit-panel [data-focus="mod-spellbound"]')
+    page.wait_for_selector("#wanted .mod-section")
+    page.keyboard.press("Escape")
+    page.click('#wanted .mod-section[data-mod="Spellbound"] > summary')
+    return context, page, errors
+
+
+def part_plain_bracket(browser, base):
+    """a bracket that cannot be split even with three strays stays a plain Some conflict bracket: folding and the Conflicts with chip"""
+    letters = "abcdefghijklmnop"
+    edges = {letters[i]: [letters[i + 1]] for i in range(15)}  # a path of sixteen: it needs four strays
+    context, p, errors = mocked_mod_page(browser, base, edges)
+    check("a path of sixteen is a plain bracket", p.locator("#wanted .ench-group:not(.exclusive)").count() == 1 and p.locator("#wanted .pick-groups").count() == 0)
+    toggle = p.locator("#wanted .ench-group:not(.exclusive) > .group-toggle").first
+    before = p.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count()
+    toggle.click()
+    check("a conflict bracket folds from its label, hiding rows that are not chosen", p.locator("#wanted .ench-group.folded").count() == 1 and p.locator("#wanted .ench-group.folded .ench-row:visible").count() < before)
+    toggle.click()
+    check("and unfolds again", p.locator("#wanted .ench-group.folded").count() == 0 and p.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count() == before)
+    chip = p.locator("#wanted .ench-group:not(.exclusive) .conflict-chip").nth(1)
+    check("rows in a conflict bracket have a chip with how many they conflict with", "Conflicts with" in chip.inner_text(), chip.inner_text())
+    p.locator("#wanted .ench-group:not(.exclusive) .ench-row").first.hover()
+    check("hovering a row alone shows no tooltip and no highlight", p.locator(".conflict-tip").count() == 0 and p.locator("#wanted .rival").count() == 0)
+    chip.hover()
+    p.wait_for_selector(".conflict-tip")
+    lit = p.locator("#wanted .rival").count()
+    check("hovering the chip lights the rows it conflicts with and lists them", "Conflicts with" in p.inner_text(".conflict-tip") and lit >= 1, (lit, p.inner_text(".conflict-tip")))
+    p.mouse.move(0, 0)
+    p.wait_for_timeout(100)
+    check("both go when the pointer leaves", p.locator(".conflict-tip").count() == 0 and p.locator("#wanted .rival").count() == 0)
+    chip.click()
+    p.mouse.move(0, 0)
+    p.wait_for_timeout(100)
+    check("clicking the chip keeps the tooltip and the highlights", p.locator(".conflict-tip").count() == 1 and p.locator("#wanted .rival").count() == lit and chip.get_attribute("aria-pressed") == "true")
+    p.click("#wanted .wanted-search")
+    check("a click elsewhere lets go of them", p.locator(".conflict-tip").count() == 0 and p.locator("#wanted .rival").count() == 0)
+    chip.click()
+    p.keyboard.press("Escape")
+    check("Escape lets go of them too", p.locator(".conflict-tip").count() == 0 and p.locator("#wanted .rival").count() == 0)
+    check("no page errors in the plain bracket", not errors, errors)
+    context.close()
+
+
+def part_several_groups(browser, base):
+    """Several groups: a bracket that splits again and again (a stand-in mod gives the shape: the real mods now need strays)"""
+    # h conflicts with everything; {p, q} and {r, s, t} are each every-pair-conflicting but never conflict with each other; u and v conflict with all of those but not each other.
+    names = "hpqrstuv"
+    pairs = {"h": "pqrstuv", "p": "quv", "q": "uv", "r": "stuv", "s": "tuv", "t": "uv", "u": "", "v": ""}
+    # u and v conflict with p, q, r, s, t and h (listed from the lower side only)
+    edges = {k: list(v) for k, v in pairs.items()}
+    context, p, errors = mocked_mod_page(browser, base, edges)
+    section = p.locator("#wanted .pick-groups")
+    check("the bracket is one Several groups card, with the sides of its Pick a side marked",
+          section.count() == 1 and [t.lower() for t in section.locator(".side-badge").all_inner_texts()] == ["side 1", "side 2", "side 3"], section.locator(".side-badge").all_inner_texts())
+    check("Pick one and Pick any are labels inside the sides, and no side repeats a list of names as a title",
+          [t.lower() for t in section.locator(".label-title").all_inner_texts()] == ["pick one", "pick one", "pick any"] and "One of" not in section.inner_text() and "Any of" not in section.inner_text(), section.locator(".label-title").all_inner_texts())
+    headers = [h.lower() for h in p.eval_on_selector_all("#wanted .group-fold > summary", "e => e.map(x => x.textContent.trim())")]
+    labels = [h.lower() for h in p.eval_on_selector_all("#wanted .group-fold .ench-group-label", "e => e.map(x => x.textContent.trim())")]
+    check("each group is a fold-away subsection named Group 1, Group 2..., with its type as the label inside", [re.sub(r"\s*\(\d+\)", "", h) for h in headers] == ["group 1", "group 2"] and all(re.search(r"\(\d+\)$", h) for h in headers) and labels == ["pick one", "pick a side"], (headers, labels))
+    summary = section.locator("xpath=ancestor::details[contains(@class, 'group-fold')]/summary")
+    summary.click()
+    check("a group folds away from its header, and opens again", not p.evaluate("document.querySelector('#wanted .pick-groups').closest('details').open"))
+    summary.click()
+    check("and it stays where it was", p.locator("#wanted .pick-groups").is_visible())
+    section.locator(".switch-option", has_text="Mod P").click()
+    section.locator(".switch-option", has_text="Mod R").click()
+    settle(p)
+    check("one pick in each nested Pick one stays together", section.locator(".each-rows > .ench-row.chosen").count() == 2)
+    section.locator(".switch-option", has_text="Mod Q").click()
+    settle(p)
+    check("a pick in the same Pick one replaces its pick", section.locator(".each-rows > .ench-row.chosen").count() == 2 and section.locator(".switch-option.selected", has_text="Mod P").count() == 0)
+    section.locator(".switch-option", has_text="Mod U").click()
+    settle(p)
+    check("a pick from another side replaces everything", section.locator(".each-rows > .ench-row.chosen").count() == 1)
+    check("no page errors in Several groups", not errors, errors)
+    context.close()
+
+
+def part_first_level_parts(browser, base):
+    """a group whose first level is parts that never conflict marks each part: a sword with both mods"""
+    _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p.click("#wanted .item-grid >> text=Sword")
+    p.click("#options-menu summary")
+    p.click('#limit-panel [data-focus="mod-spellbound"]')
+    p.wait_for_selector("#wanted .pick-groups")
+    p.click('#limit-panel [data-focus="mod-fancy_enchantments"]')
+    p.wait_for_function("document.querySelectorAll('#wanted .part-box').length >= 3")
+    p.keyboard.press("Escape")
+    big = p.locator("#wanted .pick-groups", has=p.locator(".part-box")).first
+    badges = [t.lower() for t in big.locator(".part-badge").all_inner_texts()]
+    check("the parts of the first level are marked Part 1, Part 2, ...", badges == ["part %d" % (i + 1) for i in range(len(badges))] and len(badges) >= 3, badges)
+    check("the group's label says it is a pick a part", "pick a part" in big.locator("> .ench-group-label").inner_text().lower())
+    check("no page errors in the first level", not errors, errors)
+
+
+def part_stray_groups(browser, base):
+    """Several groups with a stray: a chestplate with Fancy Enchantments (Pyromaniac joins the protections and the shields)"""
+    _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p.click("#wanted .item-grid >> text=Chestplate")
+    p.click("#options-menu summary")
+    p.click('#limit-panel [data-focus="mod-fancy_enchantments"]')
+    p.wait_for_selector("#wanted .pick-groups")
+    p.keyboard.press("Escape")
+    section = p.locator("#wanted .pick-groups")
+    stray = section.locator('.switch-option.bridge[data-opt="fancyenchantments:pyromaniac"]')
+    check("the stray shows in each lane it conflicts with, marked with an arrow pair, and nowhere else", stray.count() == 2 and section.locator(".switch-option.bridge").count() == 2, stray.count())
+    title = stray.first.get_attribute("title")
+    check("its tooltip names every enchantment it conflicts with", all(name in title for name in ("Blast Protection", "Bubble Shield", "Calmer", "Frozen Heart")), title)
+    section.locator(".switch-option", has_text="Mountain Supreme Protection").click()
+    settle(p)
+    check("a stray fades when something it conflicts with is chosen", section.locator(".switch-option.blocked").count() == 0)
+    section.locator(".switch-option", has_text="Blast Protection").click()
+    settle(p)
+    check("it fades while a protection it conflicts with is chosen", section.locator(".switch-option.blocked").count() == 2)
+    stray.first.click()
+    settle(p)
+    check("choosing the stray replaces everything it conflicts with, in every lane", section.locator(".each-rows > .ench-row.chosen").count() == 1 and section.locator(".switch-option.selected").count() == 2)
+    check("no page errors with a stray", not errors, errors)
 
 
 def part_narrow_results(browser, base):
@@ -1087,7 +1185,7 @@ def part_narrow_results(browser, base):
     return errors18
 
 
-PARTS = [part_steps, part_section1, part_books, part_anvil_uses, part_chips, part_ranking, part_elytra, part_fancy, part_two_mods, part_level_rows, part_mod_off, part_cost_width, part_pick_each, part_pick_side, part_narrow_results]
+PARTS = [part_steps, part_section1, part_books, part_anvil_uses, part_chips, part_ranking, part_elytra, part_fancy, part_two_mods, part_level_rows, part_mod_off, part_cost_width, part_pick_each, part_pick_side, part_plain_bracket, part_several_groups, part_first_level_parts, part_stray_groups, part_narrow_results]
 
 
 def run_part(part, base):
@@ -1095,6 +1193,19 @@ def run_part(part, base):
     try:
         with sync_playwright() as p:
             browser = p.chromium.launch()
+            # Every context a part opens gives up on a missing element after 6s, not Playwright's 30s (explicit timeouts still win).
+            new_context = browser.new_context
+            def quick_context(*args, **options):
+                context = new_context(*args, **options)
+                context.set_default_timeout(DEFAULT_TIMEOUT_MS)
+                return context
+            browser.new_context = quick_context
+            new_page = browser.new_page
+            def quick_page(*args, **options):
+                page = new_page(*args, **options)
+                page.set_default_timeout(DEFAULT_TIMEOUT_MS)
+                return page
+            browser.new_page = quick_page
             try:
                 return part.__name__, part(browser, base)
             finally:

@@ -296,59 +296,56 @@ export function createLogic(meta, names = {}) {
         return groups;
     }
 
-    // A conflict bracket that is two or three groups of enchantments, every pair in a group conflicting (a group can be a single
-    // enchantment), joined by enchantments that conflict with all of both (Flint & Steel with Spellbound: repair and unbreaking,
-    // joined by Selfish; a sword with Fancy Enchantments: Sweeping Edge and Duellist's Prerogative, each alone, joined by Feint
-    // Attack) is picked from as "one in each". Returns { cards, bridges }: each card is a group's own enchantments in order, then the
-    // joining ones (which are in every card they join), `bridges` the set of those; null for any other shape.
-    function pickEach(members) {
-        if (members.length < 3 || members.length > 24) return null;
-        const cliques = [];
-        const grow = (clique, candidates, excluded) => {
-            if (!candidates.length && !excluded.length) { if (clique.length > 1) cliques.push(clique); return; }
-            for (const ns of [...candidates]) {
-                grow([...clique, ns], candidates.filter(other => conflicts(ns, other)), excluded.filter(other => conflicts(ns, other)));
-                candidates = candidates.filter(other => other !== ns);
-                excluded = [...excluded, ns];
-            }
-        };
-        grow([], members, []);
-        const inCount = ns => cliques.filter(clique => clique.includes(ns)).length;
-        const bridges = new Set(members.filter(ns => inCount(ns) > 1));
-        if (cliques.length < 2 || cliques.length > 3 || !bridges.size || members.some(ns => inCount(ns) === 0)) return null;
-        if (cliques.some(clique => clique.every(ns => bridges.has(ns)))) return null; // every group needs an enchantment of its own
-        const inOrder = clique => members.filter(ns => clique.includes(ns));
-        const cards = cliques.map(clique => {
-            const ordered = inOrder(clique);
-            return [...ordered.filter(ns => !bridges.has(ns)), ...ordered.filter(ns => bridges.has(ns))];
-        }).sort((a, b) => members.indexOf(a[0]) - members.indexOf(b[0]));
-        return { cards, bridges };
+    // The conflicts of a bracket as a tree, found by splitting it again and again (a cograph): sets that never conflict with each other, or
+    // enchantments that conflict with all the rest of a set. A node is a leaf (one enchantment), "each" (parts that do not conflict with each
+    // other: pick from every part) or "side" (parts that all conflict with each other: pick one part, and inside it whatever that part
+    // allows). A clique is a "side" of leaves (Pick one); Pick one in each is a "side" of the joining enchantment and an "each" of cliques;
+    // Pick a side is a "side" of "each"s of leaves. An enchantment that conflicts with everything else (Selfish) is just a leaf part. When the
+    // bracket cannot be split as it is (a path of four, such as Pyromaniac joining a chestplate's protections to its shields), as few
+    // strays as it takes (up to three, the ones with the fewest conflicts first) are set apart so the rest splits. Returns
+    // { tree, strays }, or null for any bracket that still cannot be split.
+    const tree_cache = new Map();
+    function conflictTree(members) {
+        const key = members.join();
+        if (tree_cache.has(key)) return tree_cache.get(key);
+        const found = members.length > 32 ? null : findTree(members);
+        tree_cache.set(key, found);
+        return found;
     }
-
-    // A conflict bracket that is two or three sides: each side's enchantments are compatible with each other and conflict with every
-    // enchantment of the other sides (Fancy Enchantments' elements: Aer against Terra). Pick any from one side. Up to four
-    // enchantments with at most two conflicts each are set apart (`apart`), so a stray extra conflict (Advanced Fire Aspect also
-    // conflicting with vanilla Fire Aspect) does not spoil the shape. Returns { parts, apart }, or null for any other shape.
-    function pickSide(members) {
-        let core = [...members];
-        const apart = [];
-        for (let attempt = 0; attempt < 5; attempt++) {
-            const parts = [];
-            const left = new Set(core);
-            for (const ns of core) {
-                if (!left.has(ns)) continue;
-                const part = core.filter(other => left.has(other) && (other === ns || !conflicts(ns, other)));
-                part.forEach(other => left.delete(other));
-                parts.push(part);
+    function findTree(members) {
+        const linked = (ids, joined) => {
+            const left = new Set(ids), found = [];
+            for (const start of ids) {
+                if (!left.has(start)) continue;
+                left.delete(start);
+                const part = new Set([start]), todo = [start];
+                while (todo.length) {
+                    const ns = todo.pop();
+                    for (const other of ids) if (left.has(other) && joined(ns, other)) { left.delete(other); part.add(other); todo.push(other); }
+                }
+                found.push(ids.filter(ns => part.has(ns)));
             }
-            const clean = parts.every(part => part.every(a => part.every(b => a === b || !conflicts(a, b)))) &&
-                parts.every((part, i) => parts.every((other, j) => i === j || part.every(a => other.every(b => conflicts(a, b)))));
-            if (clean && parts.length >= 2 && parts.length <= 3 && parts.some(part => part.length > 1) && core.length >= 4) return { parts, apart };
-            const degree = ns => core.filter(other => conflicts(ns, other)).length;
-            const weakest = [...core].sort((a, b) => degree(a) - degree(b))[0];
-            if (!weakest || degree(weakest) > 2 || attempt === 4) return null;
-            core = core.filter(ns => ns !== weakest);
-            apart.push(weakest);
+            return found;
+        };
+        const build = ids => {
+            if (ids.length === 1) return { kind: "leaf", ns: ids[0] };
+            const apart = linked(ids, conflicts);
+            const kind = apart.length > 1 ? "each" : "side";
+            const parts = apart.length > 1 ? apart : linked(ids, (a, b) => !conflicts(a, b));
+            if (parts.length < 2) return null;
+            const children = parts.map(build);
+            return children.every(Boolean) ? { kind, children } : null;
+        };
+        const degree = ns => members.filter(other => conflicts(ns, other)).length;
+        const order = [...members].sort((a, b) => degree(a) - degree(b) || members.indexOf(a) - members.indexOf(b));
+        const choose = (count, from, taken) => (count === 0 ? [taken] : from.flatMap((ns, i) => choose(count - 1, from.slice(i + 1), [...taken, ns])));
+        for (let count = 0; count <= 3; count++) {
+            for (const strays of choose(count, order, [])) {
+                const rest = members.filter(ns => !strays.includes(ns));
+                if (!rest.length) continue;
+                const tree = build(rest);
+                if (tree && tree.kind !== "leaf") return { tree, strays };
+            }
         }
         return null;
     }
@@ -746,7 +743,7 @@ export function createLogic(meta, names = {}) {
 
     return {
         isItem: ns => items.has(ns), enchName, describe, presets, bookCost, maxLevel, isCurse, itemName, conflicts, rarity, displayName, tooltipSort, summary,
-        modOf, conflictsWith, applicable, enchantmentGroups, pickEach, pickSide, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
+        modOf, conflictsWith, applicable, enchantmentGroups, conflictTree, enchantableItems, sanitizeEnchantments, sanitizeBooks, clampPriorWork, clampCopies, maxAll,
         bestLevels, checkBooks, addBook, twinOf, parseBooks,
         currentBooks, buildEntries, missing, extra, collectSteps, stepRounds, tickStep, serialize, deserialize
     };

@@ -98,8 +98,8 @@ export function renderWanted() {
         return;
     }
 
-    const { list, mod_boxes } = wantedList();
-    box.append(...[wantedHead(presetChips()), wantedSearch(), listBox(list), ...mod_boxes, conflictGraph(searchMatcher())].filter(Boolean)); // append(null) would print "null"
+    const { list, mod_boxes, count } = wantedList();
+    box.append(...[wantedHead(presetChips()), wantedSearch(), listBox(list, count), ...mod_boxes, conflictGraph(searchMatcher())].filter(Boolean)); // append(null) would print "null"
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
@@ -188,6 +188,14 @@ export function restoreFocus(box, key) {
 
 // The rows: single enchantments, "Pick one" switches, and brackets around enchantments
 // that only partly conflict; curses last.
+// What a whole group is, by the first level of its conflict tree: "one" (every pair conflicts), "side" (the first level is a Pick a side: its
+// sides are parts that all conflict with each other, whatever is nested inside them) or "any" (the first level is parts that never conflict:
+// pick from any of them; a connected bracket never has this at the top, so it is only here for completeness).
+function groupKind(tree) {
+    if (tree.kind === "each") return "any";
+    return tree.children.every(child => child.kind === "leaf") ? "one" : "side";
+}
+
 function wantedList() {
     // Chosen enchantments the custom books can't reach (none in automatic mode).
     const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
@@ -199,20 +207,23 @@ function wantedList() {
         if (!query) return group;
         const hits = group.members.filter(matches);
         if (!hits.length) return null;
-        if (!state.allow_incompatible && (group.exclusive || logic.pickEach(group.members) || logic.pickSide(group.members))) return group;
+        if (!state.allow_incompatible && (group.exclusive || logic.conflictTree(group.members))) return group;
         return { ...group, members: hits, exclusive: false, reduced: true };
     };
-    // A bracket of two groups joined by an enchantment is "Pick one in each" (not a bracket the search cut down: it may not be that shape).
-    const eachOf = group => (state.allow_incompatible || group.reduced ? null : logic.pickEach(group.members));
-    // ...and one that is two sides (each side compatible inside, conflicting with the other) is "Pick a side".
-    const sideOf = group => (state.allow_incompatible || group.reduced || group.exclusive || eachOf(group) ? null : logic.pickSide(group.members));
+    // Any other bracket that splits again and again (Logic conflictTree, a few strays set apart if it takes them) is drawn as nested sections:
+    // Pick one, Pick a side, Pick any (not a bracket the search cut down: it may not be that shape).
+    const severalOf = group => (state.allow_incompatible || group.reduced || group.exclusive ? null : logic.conflictTree(group.members));
+    let group_no = 0; // each Pick one / nested group is a fold-away subsection named "Group N" (counting in the order the page shows them), its type inside
     const groupRow = group => {
         const members = group.members;
-        if (group.exclusive && !state.allow_incompatible) return groupSwitch(members, short);
-        const each = eachOf(group);
-        if (each) return pickEachSection(members, each, short);
-        const side = sideOf(group);
-        if (side) return pickSideSection(members, side, short);
+        if (group.exclusive && !state.allow_incompatible) {
+            return groupFold(TEXT.wanted.group_n({ n: ++group_no, count: members.length }), members[0], groupSwitch(members, short, TEXT.wanted.group_pick_one));
+        }
+        const several = severalOf(group);
+        if (several) {
+            const label = { one: TEXT.wanted.group_pick_one, side: TEXT.wanted.group_pick_side, any: TEXT.wanted.group_pick_from_any }[groupKind(several.tree)];
+            return groupFold(TEXT.wanted.group_n({ n: ++group_no, count: members.length }), members[0], pickGroupsSection(members, several, short, label));
+        }
         if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
         // The label folds the bracket: the chosen rows stay, the rest hide (kept in `folded_groups` across redraws).
         const key = members[0];
@@ -230,9 +241,19 @@ function wantedList() {
             members.map(ns => wantedRow(ns, short.get(ns), true))
         );
     };
-    // Alone first, then the "Pick one" cards, then the brackets of partial conflicts (each kind keeps its alphabetical order).
-    const kind = group => (group.members.length === 1 ? 0 : (group.exclusive && !state.allow_incompatible) || eachOf(group) || sideOf(group) ? 1 : 2);
-    const byKind = groups => [...groups].sort((a, b) => kind(a) - kind(b));
+    // Sorted by depth (a lone enchantment 0; a Pick one or a Pick any 1; a section made of such sections 2, and so on; a plain bracket last),
+    // then by type (Pick any, Pick one, then the rest), then by how many enchantments the section holds (fewer first), then by its
+    // alphabetically first name.
+    const treeDepth = node => (node.kind === "leaf" ? 0 : 1 + Math.max(...node.children.map(treeDepth)));
+    const sectionOf = group => (group.members.length === 1 || state.allow_incompatible || group.reduced ? null : group.exclusive ? { tree: { kind: "side", children: group.members.map(ns => ({ kind: "leaf", ns })) } } : logic.conflictTree(group.members));
+    const depth = group => (group.members.length === 1 ? 0 : sectionOf(group) ? treeDepth(sectionOf(group).tree) : Infinity);
+    const type = group => {
+        const tree = sectionOf(group)?.tree;
+        if (!tree) return 4;
+        return { one: 1, side: 2, any: 3 }[groupKind(tree)];
+    };
+    const firstName = group => group.members.map(ns => logic.enchName(ns)).sort((x, y) => x.localeCompare(y))[0];
+    const byKind = groups => [...groups].sort((a, b) => (depth(a) === depth(b) ? 0 : depth(a) < depth(b) ? -1 : 1) || type(a) - type(b) || a.members.length - b.members.length || firstName(a).localeCompare(firstName(b)));
     const rows = [];
     const own = [];
     const curses = [];
@@ -266,14 +287,17 @@ function wantedList() {
             byKind(groups).map(groupRow)));
     }
     if (query && !rows.length && !mod_boxes.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
-    return { list: h("div", { class: "wanted-list" }, rows), mod_boxes };
+    // The list's own enchantments (the game's, curses included), counted the way each mod's box counts its.
+    const count = [...own, ...curses].reduce((sum, group) => sum + group.members.length, 0);
+    return { list: h("div", { class: "wanted-list" }, rows), mod_boxes, count };
 }
 
 // The list of enchantments, in a fold-away box like the conflict graph's (the two ways to pick enchantments, one under the other).
 let list_open = true;
-function listBox(list) {
+const listTitle = count => TEXT.wanted.mod_group({ name: TEXT.wanted.list_title, count });
+function listBox(list, count) {
     return h("details", { class: "fold-box list-box", open: list_open, ontoggle: event => { list_open = event.target.open; } },
-        h("summary", {}, TEXT.wanted.list_title),
+        h("summary", {}, listTitle(count)),
         list);
 }
 
@@ -293,8 +317,9 @@ function wantedSearch() {
         type: "search", class: "wanted-search", value: wanted_query, placeholder: TEXT.wanted.search, "aria-label": TEXT.wanted.search, "data-focus": "wanted-search",
         oninput: event => {
             wanted_query = event.target.value;
-            const { list, mod_boxes } = wantedList();
+            const { list, mod_boxes, count } = wantedList();
             document.querySelector("#wanted .wanted-list").replaceWith(list);
+            document.querySelector("#wanted > .list-box > summary").textContent = listTitle(count);
             for (const old of document.querySelectorAll("#wanted > .mod-section")) old.remove();
             document.querySelector("#wanted > .list-box").after(...mod_boxes);
             markSearch(searchMatcher());
@@ -393,6 +418,17 @@ export function setupConflictTips() {
 
 // The conflict brackets the user folded (by their first enchantment), in this visit.
 const folded_groups = new Set();
+// A Pick one or nested group is a subsection under its section (Enchantments, a mod's), folded away by its header (kept across redraws).
+const closed_groups = new Set();
+function groupFold(title, key, content) {
+    return h("details", {
+        class: "group-fold", "data-fold": key, open: !closed_groups.has(key) || Boolean(wanted_query.trim()),
+        ontoggle: event => {
+            if (wanted_query.trim()) return; // opened by the search, not by the user
+            if (event.target.open) closed_groups.delete(key); else closed_groups.add(key);
+        }
+    }, h("summary", {}, title), content);
+}
 
 // The mods whose section the user opened (in this visit).
 const mod_open = new Set();
@@ -581,74 +617,79 @@ function presetChips() {
     );
 }
 
-// "Pick one in each": a conflict bracket of two groups joined by an enchantment (Logic pickEach) as one card holding a "Pick one"
-// switch for each group, then the chosen rows once. The joining enchantment is an option of every group it joins (marked with an
-// arrow pair) and replaces the picks of all of them; any other pick leaves the other groups alone.
-function pickEachSection(members, each, short) {
-    const chosen = ns => Boolean(state.wanted[ns]);
-    const label_id = "pick-each-" + members[0];
-    const names = list => list.map(ns => logic.enchName(ns));
-    const cards = each.cards.map((set, index) => {
-        const own = set.filter(ns => !each.bridges.has(ns));
-        const title = TEXT.wanted.group_one_of({ names: names(own).slice(0, 3).join(", ") + (own.length > 3 ? "\u2026" : "") });
-        const option = (ns, label) => {
-            const selected = ns ? chosen(ns) : !set.some(chosen);
-            return h("button", {
-                type: "button", role: "radio", class: "switch-option" + (ns && each.bridges.has(ns) ? " bridge" : "") + (selected ? " selected" : ""),
-                "aria-checked": String(selected), "data-opt": index + "|" + (ns || "none"),
-                "data-focus": "each-" + members[0] + "-" + index + "-" + (ns || "none"),
-                // The joining enchantment's hover text: its name with the arrow pair, what it does, and that it is in every group it joins.
-                title: ns ? (each.bridges.has(ns) ? [logic.enchName(ns) + " ⇄", logic.describe(ns), TEXT.wanted.group_bridge_help].filter(Boolean).join(" ") : logic.describe(ns)) || null : null,
-                onclick: () => {
-                    if (ns) { if (!chosen(ns)) setWanted(ns, logic.maxLevel(ns)); return; } // (drops the ones it replaces)
-                    const pick = set.find(chosen);
-                    if (pick) setWanted(pick, 0);
-                }
-            }, label);
-        };
-        return h("div", { class: "each-card" },
-            own.length > 1 ? h("div", { class: "each-card-title" }, title) : null, // (a group of one is named by its option)
-            h("div", { class: "group-switch", role: "radiogroup", "aria-label": title },
-                option(null, TEXT.wanted.none), set.map(ns => option(ns, logic.enchName(ns)))));
-    });
-    return h("div", { class: "ench-group exclusive pick-each" + (members.some(chosen) ? " has-chosen" : ""), "data-each": members[0] },
-        h("div", { class: "ench-group-label", id: label_id }, TEXT.wanted.group_pick_each),
-        h("div", { class: "each-cards" }, cards),
-        h("div", { class: "each-rows" }, members.filter(chosen).map(ns => wantedRow(ns, short.get(ns)))));
-}
-
-// "Pick a side": a conflict bracket that is two or three sides (Logic pickSide) as one card with a lane of chips for each side
-// (pick any number inside one lane; a chip of another lane replaces them), a lane for the few that conflict with the sides but
-// are not part of the shape, then the chosen rows once. The side taken is marked, the others dimmed.
-function pickSideSection(members, side, short) {
+// The conflict tree of a bracket (Logic conflictTree) drawn as nested sections: one code for Pick one in each, Pick a side and their mixtures, nested or not. A "side" node is a Pick one
+// (all leaves) or a Pick a side (a lane for each part, holding that part's own groups); an "each" node is its loose enchantments in one
+// lane and its other parts as blocks. A stray (set apart so the rest splits) shows in every lane holding something it conflicts with,
+// marked with an arrow pair; its tooltip names everything it conflicts with, the lane's own first. Then the chosen rows once.
+function pickGroupsSection(members, found, short, label) {
+    const { tree, strays } = found;
     const chosen = ns => Boolean(state.wanted[ns]);
     const names = list => list.map(ns => logic.enchName(ns));
-    const active = side.parts.find(part => part.some(chosen));
-    const lane = (part, apart) => {
-        const chips = part.map(ns => {
-            const rivals = chosen(ns) ? [] : members.filter(other => chosen(other) && logic.conflicts(ns, other));
-            // Only a conflict the sides do not already show fades: one with an enchantment set apart (Fire Aspect, Advanced Fire Aspect).
-            const stray = rivals.some(other => side.apart.includes(other) || side.apart.includes(ns));
-            return h("button", {
-                type: "button", class: "switch-option" + (chosen(ns) ? " selected" : "") + (stray ? " blocked" : ""), "aria-pressed": String(chosen(ns)),
-                "data-opt": ns, "data-focus": "side-" + ns,
-                title: rivals.length ? TEXT.wanted.replaces({ name: names(rivals) }) : logic.describe(ns) || null,
-                onclick: () => setWanted(ns, chosen(ns) ? 0 : logic.maxLevel(ns)) // (a pick from another side drops the ones it replaces)
-            }, logic.enchName(ns));
-        });
-        const title = apart ? TEXT.wanted.group_side_apart : TEXT.wanted.group_any_of({ names: names(part).slice(0, 3).join(", ") + (part.length > 3 ? "…" : "") });
-        // A side is a row of its own, styled like a group of "Pick one in each".
-        return h("div", { class: "each-card" + (!apart && part === active ? " active" : "") },
-            h("div", { class: "each-card-title" }, title),
-            h("div", { class: "group-switch", role: "group", "aria-label": title }, chips));
+    const leavesOf = node => (node.kind === "leaf" ? [node.ns] : node.children.flatMap(leavesOf));
+    const chip = (ns, lane_ids = null) => {
+        const rivals = chosen(ns) ? [] : members.filter(other => chosen(other) && logic.conflicts(ns, other));
+        const stray = lane_ids !== null;
+        const all = members.filter(other => logic.conflicts(ns, other));
+        const here = stray ? lane_ids.filter(other => logic.conflicts(ns, other)) : [];
+        const also = stray ? TEXT.wanted.group_stray_conflicts({ name: names([...here, ...all.filter(other => !here.includes(other))]) }) : null;
+        // The tooltip is what the enchantment does; a stray adds everything it conflicts with. (No "Replaces ..." note.)
+        const title = [logic.describe(ns), also].filter(Boolean).join("\n\n") || null;
+        // A stray fades while something it conflicts with is chosen (and the reverse is shown by that pick's own chip).
+        const faded = strays.includes(ns) && rivals.length > 0;
+        return h("button", {
+            type: "button", class: "switch-option" + (stray ? " bridge" : "") + (chosen(ns) ? " selected" : "") + (faded ? " blocked" : ""), "aria-pressed": String(chosen(ns)),
+            "data-opt": ns, "data-focus": "group-" + (stray ? "stray-" : "") + ns + (stray ? "-" + lane_ids[0] : ""),
+            title,
+            onclick: () => setWanted(ns, chosen(ns) ? 0 : logic.maxLevel(ns)) // (a pick that conflicts drops the ones it replaces)
+        }, logic.enchName(ns));
     };
-    return h("div", { class: "ench-group exclusive pick-side" + (members.some(chosen) ? " has-chosen" : ""), "data-side": members[0] },
-        h("div", { class: "ench-group-label" }, TEXT.wanted.group_pick_side),
-        h("div", { class: "each-cards" }, side.parts.map(part => lane(part, false)), side.apart.length ? lane(side.apart, true) : null),
+    const list = ids => names(ids).slice(0, 3).join(", ") + (ids.length > 3 ? "\u2026" : "");
+    // The chips of a lane, then the strays that conflict with something in it.
+    const chips = (ids, title) => h("div", { class: "group-switch", role: "group", "aria-label": title },
+        ids.map(ns => chip(ns)),
+        strays.filter(ns => !ids.includes(ns) && ids.some(other => logic.conflicts(ns, other))).map(ns => chip(ns, ids)));
+    // `side`: the number of a side of a Pick a side (a badge and an accent bar mark the sides); `label`: the title is the section's own label.
+    const card = (title, children, ids, { side = 0, label = false } = {}) => h("div", { class: "each-card" + (ids.some(chosen) ? " active" : "") + (side ? " side-lane" : "") },
+        title || side ? h("div", { class: "each-card-title" + (label ? " label-title" : "") }, side ? h("span", { class: "side-badge" }, TEXT.wanted.group_side_n({ n: side })) : null, title) : null,
+        children);
+    const block = (label, children) => h("div", { class: "cluster" }, label ? h("div", { class: "cluster-label" }, label) : null, h("div", { class: "each-cards" }, children));
+    // What fills a lane: a leaf is a chip, an "each" its own sections, a "side" a section.
+    const inside = node => (node.kind === "leaf" ? chips([node.ns], logic.enchName(node.ns)) : node.kind === "each" ? eachBlocks(node) : sideBlock(node));
+    // The loose enchantments of an "each" are a section labelled Pick any (as a Pick one is labelled Pick one), its other parts sections too.
+    // `top`: the parts are the group's first level, so each is marked "Part N" (a part is its loose Pick any, or one of its other sections).
+    function eachBlocks(node, top = false) {
+        const loose = node.children.filter(child => child.kind === "leaf").map(child => child.ns);
+        const parts = [
+            loose.length ? h("div", { class: "cluster" }, card(TEXT.wanted.group_pick_any, chips(loose, TEXT.wanted.group_pick_any), loose, { label: true })) : null,
+            ...node.children.filter(child => child.kind !== "leaf").map(part => sideBlock(part))
+        ].filter(Boolean);
+        return h("div", { class: "cluster-list" }, top
+            ? parts.map((part, index) => h("div", { class: "part-box" }, h("div", { class: "part-badge" }, TEXT.wanted.group_part_n({ n: index + 1 })), part))
+            : parts);
+    }
+    // `top`: the section is the whole group, whose header already names it ("Pick a side (Group 2)"), so it has no label of its own.
+    function sideBlock(node, top = false) {
+        const ids = leavesOf(node);
+        if (node.children.every(child => child.kind === "leaf")) {
+            // A Pick one is one lane whose title is its label.
+            return h("div", { class: "cluster" }, card(top ? null : TEXT.wanted.group_pick_one, chips(ids, TEXT.wanted.group_pick_one), ids, { label: !top }));
+        }
+        // The lone enchantments of a side all conflict with each other and the rest: one lane for them, then a lane for each other part.
+        const lone = node.children.filter(child => child.kind === "leaf").map(child => child.ns);
+        // Each side is marked by its badge alone; what is inside says how to pick from it (a Pick one, a Pick any, or a single chip).
+        let side = 0;
+        return block(top ? null : TEXT.wanted.group_pick_side, [
+            lone.length ? card(null, lone.length > 1 ? inside({ kind: "side", children: lone.map(ns => ({ kind: "leaf", ns })) }) : chips(lone, logic.enchName(lone[0])), lone, { side: ++side }) : null,
+            node.children.filter(child => child.kind !== "leaf").map(child => card(null, inside(child), leavesOf(child), { side: ++side }))
+        ]);
+    }
+    return h("div", { class: "ench-group exclusive pick-side pick-groups" + (members.some(chosen) ? " has-chosen" : ""), "data-side": members[0], role: "group", "aria-label": label },
+        h("div", { class: "ench-group-label" }, label),
+        h("div", { class: "cluster-list" }, tree.kind === "each" ? eachBlocks(tree, true) : sideBlock(tree, true)),
         h("div", { class: "each-rows" }, members.filter(chosen).map(ns => wantedRow(ns, short.get(ns)))));
 }
 
-// What a "Pick one in each" section looks like before a redraw, by its first member: its chosen rows in order (a copy to fold
+// What a section of nested groups looks like before a redraw, by its first member: its chosen rows in order (a copy to fold
 // away, the height, the level bar), the options selected, and the border colour.
 function captureEach(box) {
     const old = new Map();
@@ -725,9 +766,9 @@ function animateEach(section, old) {
 
 // A "Pick one" group (every pair conflicts): a switch for which one, or none, then the
 // chosen one's row with its level bar. Switching picks the new one at its max level.
-function groupSwitch(members, short) {
-    const chosen = members.find(ns => state.wanted[ns]) || null;
+function groupSwitch(members, short, label) {
     const label_id = "pick-" + members[0];
+    const chosen = members.find(ns => state.wanted[ns]) || null;
     const option = (ns, label) => h("button", {
         type: "button", role: "radio", class: "switch-option" + (chosen === ns ? " selected" : ""),
         "aria-checked": String(chosen === ns), "data-focus": "switch-" + members[0] + "-" + (ns || "none"),
@@ -739,7 +780,7 @@ function groupSwitch(members, short) {
         }
     }, label);
     return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : ""), "data-group": members[0] },
-        h("div", { class: "ench-group-label", id: label_id }, TEXT.wanted.group_pick_one),
+        h("div", { class: "ench-group-label", id: label_id }, label),
         h("div", { class: "group-switch", role: "radiogroup", "aria-labelledby": label_id },
             option(null, TEXT.wanted.none),
             members.map(ns => option(ns, logic.enchName(ns)))

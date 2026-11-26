@@ -10,7 +10,7 @@
     <link rel="apple-touch-icon" href="img/app_icon_180.png">
     <!-- The saved light/dark choice, before the page draws (App.js setupTheme). -->
     <script>try { const theme = JSON.parse(localStorage.getItem("enchantment-calculator-theme")); if (theme === "light" || theme === "dark") document.documentElement.dataset.theme = theme; } catch {}
-    // "Ignore all animations" (Settings, Dom.js), before the page draws, so nothing moves on load.
+    // "Show animations" (off) (Settings, Dom.js), before the page draws, so nothing moves on load.
     try { if (JSON.parse(localStorage.getItem("enchantment-calculator-no-motion")) === true) document.documentElement.dataset.motion = "off"; } catch {}
     try { if (JSON.parse(localStorage.getItem("enchantment-calculator-glints")) === false) document.documentElement.dataset.glint = "off"; } catch {}</script>
     <link rel="stylesheet" href="css/Style.css">

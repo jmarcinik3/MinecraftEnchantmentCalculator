@@ -128,14 +128,14 @@ function editionControl() {
         }, TEXT.page.editions[edition].label)));
 }
 
-// Ignore all animations: an on/off switch, kept in this browser (Dom.js). On, nothing on the page moves, fades or slides (the glints have their own switch).
+// Show animations: an on/off switch (on by default), kept in this browser (Dom.js). Off, nothing on the page moves, fades or slides (the glints have their own switch).
 function motionSwitch() {
-    const on = motionIgnored();
+    const on = !motionIgnored();
     return h("div", { class: "rule-control" },
         h("button", {
             type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
             "data-focus": "motion-off", "aria-label": TEXT.ranking.no_motion,
-            onclick: () => { setMotionIgnored(!on); renderRanking(); }
+            onclick: () => { setMotionIgnored(on); renderRanking(); }
         }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
             h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
     );

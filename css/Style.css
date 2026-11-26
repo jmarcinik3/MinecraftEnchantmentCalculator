@@ -2473,7 +2473,7 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .settings-section + .settings-section { margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--border); }
 .settings-section-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
 .settings-section-title { font-size: 13px; font-weight: 600; color: var(--text); }
-/* "Ignore all animations": no animation or transition anywhere (JS animations are skipped by motionOk). */
+/* "Show animations" (off): no animation or transition anywhere (JS animations are skipped by motionOk). */
 html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="off"] *::after {
     animation: none !important;
     transition: none !important;
@@ -2486,4 +2486,25 @@ html[data-motion="off"] .ench-row.chosen::after { animation: row-glint 7s linear
 /* Glints off: the slots keep a still band (as with reduced motion), the rows' sheen goes. */
 html[data-glint="off"] .mc-slot.glint::after, html[data-glint="off"] .tree-slot.glint::after { animation: none !important; background-position: 50% 0; }
 html[data-glint="off"] .ench-row.chosen::after { display: none; }
+/* "Several groups": a block for each part (a small label, then its lanes), nested as the conflicts nest. */
+.pick-groups > .ench-group-label { padding-left: 4px; }
+.cluster-list { display: grid; gap: 10px; margin: 6px 0; }
+.cluster-label { padding: 0 4px 2px; font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.cluster .each-cards { margin: 2px 0; }
+.each-card .each-card { background: var(--surface); }
+/* The sides of a Pick a side: an accent bar and a small badge. A Pick one's title is its label. */
+.each-card.side-lane { box-shadow: inset 3px 0 0 var(--accent); }
+.each-card.side-lane.active { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--accent); }
+.side-badge { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.each-card-title.label-title { text-transform: uppercase; letter-spacing: 0.04em; }
+/* A group (Pick one, Pick a side...) is a fold-away subsection under its section, not a card: its header is the summary. */
+.group-fold { margin: 6px 0; }
+.group-fold > summary { cursor: pointer; padding: 4px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
+.group-fold > summary::-webkit-details-marker { display: none; }
+.group-fold > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
+.group-fold[open] > summary::before { transform: rotate(90deg); }
+.group-fold > .ench-group.exclusive { display: flow-root; margin: 2px 0 4px; padding: 2px 0 0; border: none; } /* flow-root: the switch's bottom margin stays inside, so adding or removing the chosen row does not jump */
+/* The parts of a group's first level (parts that never conflict): a small neutral badge over each. */
+.part-box { padding-left: 8px; border-left: 2px solid var(--border-strong); }
+.part-badge { display: inline-block; margin: 2px 0 4px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border-strong); color: var(--text-secondary); font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
 

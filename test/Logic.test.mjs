@@ -621,42 +621,33 @@ test("withMods adds the mods' enchantments after the game's own, tagged with the
     assert.ok(list.indexOf("fancyenchantments:air_attack") > list.indexOf("vanishing_curse"));
 });
 
-test("a bracket of two groups joined by one enchantment is picked from as one in each", () => {
-    const spellbound = MODS.spellbound;
-    const modded = createLogic(withMods(meta, [spellbound]), { ...TEXTS.en.names, ...modNames([spellbound], "en") });
-    const bracket = modded.enchantmentGroups("flint_and_steel").find(group => !group.exclusive && group.members.length > 1);
-    const each = modded.pickEach(bracket.members);
-    assert.strictEqual(each.cards.length, 2);
-    assert.deepStrictEqual([...each.bridges], ["spellbound:selfish"]);
-    assert.ok(each.cards.every(card => card[card.length - 1] === "spellbound:selfish")); // the joining one is in both, last
-    assert.deepStrictEqual(each.cards.map(card => card.length), [7, 4]);
-    // Groups can be a single enchantment: Sweeping Edge and Duellist's Prerogative, joined by Feint Attack.
+test("conflictTree splits a bracket again and again, with as few strays as it takes", () => {
+    const make = edges => {
+        const keys = [...new Set(Object.keys(edges).concat(...Object.values(edges)))];
+        const enchantments = Object.fromEntries(keys.map(ns => [ns, { incompatible: keys.filter(other => edges[ns]?.includes(other) || edges[other]?.includes(ns)), items: ["sword"], max_level: 1, weight: 1 }]));
+        return createLogic({ ...meta, enchantments: { ...meta.enchantments, ...enchantments } });
+    };
+    const show = node => (node.kind === "leaf" ? node.ns : (node.kind === "each" ? "each(" : "side(") + node.children.map(show).sort().join(" ") + ")");
+    // h conflicts with everything; {p, q} and {r, s, t} are each every-pair-conflicting but never conflict with each other; u and v conflict with all of those but not each other.
+    const nested = make({ h: [..."pqrstuv"], p: [..."quv"], q: [..."uv"], r: [..."stuv"], s: [..."tuv"], t: [..."uv"] });
+    const found = nested.conflictTree([..."hpqrstuv"]);
+    assert.strictEqual(show(found.tree), "side(each(side(p q) side(r s t)) each(u v) h)");
+    assert.deepStrictEqual(found.strays, []);
+    // Pick one in each: two cliques joined by an enchantment that conflicts with all of both.
+    assert.strictEqual(show(make({ j: [..."abcd"], a: ["b"], c: ["d"] }).conflictTree([..."jabcd"]).tree), "side(each(side(a b) side(c d)) j)");
+    // A path of four needs a stray (the one with the fewest conflicts first); a path of sixteen would need four.
+    const path4 = make({ a: ["b"], b: ["c"], c: ["d"] });
+    const stray = path4.conflictTree([..."abcd"]);
+    assert.strictEqual(stray.strays.length, 1);
+    const letters = "abcdefghijklmnop";
+    const path16 = make(Object.fromEntries([...letters].slice(0, 15).map((ns, i) => [ns, [letters[i + 1]]])));
+    assert.strictEqual(path16.conflictTree([...letters]), null);
+    // Fancy Enchantments' chestplate: Pyromaniac is the one stray; the protections and the shields split around it.
     const fancy = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
-    const sweeping = fancy.enchantmentGroups("sword").find(group => group.members.includes("sweeping") && !group.exclusive);
-    const single = fancy.pickEach(sweeping.members);
-    assert.deepStrictEqual(single.cards, [["sweeping", "fancyenchantments:feint_attack"], ["fancyenchantments:duellists_prerogative", "fancyenchantments:feint_attack"]]);
-    assert.deepStrictEqual([...single.bridges], ["fancyenchantments:feint_attack"]);
-    // Any other shape is left as it is: the game's own groups, a path of conflicts, and Fancy Enchantments' big elemental brackets.
-    assert.strictEqual(logic.pickEach(["protection", "fire_protection", "blast_protection", "projectile_protection"]), null);
-    const path = createLogic({ ...meta, enchantments: { ...meta.enchantments, a: { incompatible: ["b"], items: ["sword"], max_level: 1, weight: 1 }, b: { incompatible: ["a", "c"], items: ["sword"], max_level: 1, weight: 1 },
-        c: { incompatible: ["b", "d"], items: ["sword"], max_level: 1, weight: 1 }, d: { incompatible: ["c"], items: ["sword"], max_level: 1, weight: 1 } } });
-    assert.strictEqual(path.pickEach(["a", "b", "c", "d"]), null);
-    for (const group of fancy.enchantmentGroups("sword")) if (!group.exclusive && group.members.length > 5) assert.strictEqual(fancy.pickEach(group.members), null);
-});
-
-test("a bracket that is two sides (compatible inside, conflicting across) is picked from as a side", () => {
-    const fancy = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
-    const sided = fancy.enchantmentGroups("sword").filter(group => !group.exclusive).map(group => fancy.pickSide(group.members)).filter(Boolean);
-    assert.deepStrictEqual(sided.map(side => side.parts.map(part => part.length).sort()).sort(), [[5, 7], [7, 7]]); // Aer against Terra; Aqua against Ignis
-    const fire = sided.find(side => side.apart.length);
-    assert.deepStrictEqual(fire.apart, ["fire_aspect"]); // the vanilla enchantment that only conflicts with Advanced Fire Aspect is set apart
-    assert.ok(sided.every(side => side.parts.every(part => part.every(a => part.every(b => a === b || !fancy.conflicts(a, b))))));
-    // Pick one groups, joined groups and the chain are not sides.
-    assert.strictEqual(logic.pickSide(["protection", "fire_protection", "blast_protection", "projectile_protection"]), null);
-    const spellbound = createLogic(withMods(meta, [MODS.spellbound]), { ...TEXTS.en.names, ...modNames([MODS.spellbound], "en") });
-    const joined = spellbound.enchantmentGroups("flint_and_steel").find(group => !group.exclusive && group.members.length > 1);
-    assert.strictEqual(spellbound.pickSide(joined.members), null);
-    assert.ok(spellbound.pickEach(joined.members));
+    const group = fancy.enchantmentGroups("chestplate").find(each => each.members.length > 6 && !each.exclusive);
+    assert.deepStrictEqual(fancy.conflictTree(group.members).strays, ["fancyenchantments:pyromaniac"]);
+    // A clique is a Pick one: a side of leaves.
+    assert.strictEqual(show(logic.conflictTree(["protection", "fire_protection", "blast_protection", "projectile_protection"]).tree), "side(blast_protection fire_protection projectile_protection protection)");
 });
 
 test("Max all and the presets never add a mod's enchantments, but typed books can name them", () => {
