@@ -226,7 +226,7 @@ function cardGhost(card, unit, box, hide_slot) {
     const clone = inertCopy(card);
     const index = [...card.children].indexOf(unit);
     if (hide_slot && index >= 0) clone.children[index].style.visibility = "hidden"; // its room stays, so the rest is laid out as it was
-    if (hide_slot) clone.querySelectorAll(":scope > .stack-edit").forEach(part => part.remove());
+    if (hide_slot) clone.querySelectorAll(":scope > .copies-control").forEach(part => part.remove());
     clone.querySelectorAll(":scope > .slot-tip, :scope > .card-frame, :scope > .card-ghost").forEach(part => part.remove());
     clone.classList.remove("fresh", "flash", "highlight", "popover-open", "dragging", "drop-target", "merge-target", "drag-source", "morphing");
     for (const name of ["data-key", "data-index"]) clone.removeAttribute(name);
@@ -340,7 +340,7 @@ function morphCard(card, old, now, timing, how) {
         const outer = unit.getBoundingClientRect();
         origin = `${inner.left - outer.left}px ${inner.top - outer.top}px`;
     }
-    const fading = [...card.children].filter(child => child !== unit && !child.matches(".slot-tip, .stack-edit") && getComputedStyle(child).opacity === "1" && !(keep && old.parts.has(partName(child))));
+    const fading = [...card.children].filter(child => child !== unit && !child.matches(".slot-tip, .copies-control") && getComputedStyle(child).opacity === "1" && !(keep && old.parts.has(partName(child))));
     const looks = (box, chrome) => ({ width: box.width + "px", height: box.height + "px", backgroundColor: chrome.background, borderColor: chrome.border, borderRadius: chrome.radius });
     const frame = h("div", { class: "card-frame", "aria-hidden": "true" });
     frame.style.left = frame.style.top = -now.chrome.width + "px";

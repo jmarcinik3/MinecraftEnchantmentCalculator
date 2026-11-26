@@ -138,7 +138,7 @@
         "view_label": "How the entries are shown",
         "view_cards": "Cards",
         "view_list": "List",
-        "copies_edit": {"plural": "count", "one": "Copies: {count}. Click to change, or scroll over it", "other": "Copies: {count}. Click to change, or scroll over it"},
+        "copies_edit": {"plural": "count", "one": "Copies: {count}. Use − and +, or scroll over it", "other": "Copies: {count}. Use − and +, or scroll over it"},
         "view_slots": "Slots",
         "merge_levels": {"plural": "levels", "one": "{levels} level to merge", "other": "{levels} levels to merge"},
         "merge_too_expensive": "Too expensive!",

@@ -204,9 +204,9 @@ function entryCard(book, index, count, editable, unwanted) {
     }, slot, h("span", { class: "swap-glyph", "aria-hidden": "true" }, svgIcon("0 0 12 12", [
         ["path", { d: "M1.5 4h8.5M8 2l2 2-2 2" }], ["path", { d: "M10.5 8H2M4 6l-2 2 2 2" }]
     ], { fill: "none", stroke: "currentColor", "stroke-width": "1.3", "stroke-linecap": "round", "stroke-linejoin": "round" }))) : slot;
-    // The corner of the slot edits the number of copies (a click opens a stepper, the wheel changes it).
+    // The corner of the slot edits the number of copies (− and +, the wheel changes it too).
     if (!editable) slot.addEventListener("pointerdown", event => mergeDrag(event, book));
-    const slot_part = editable ? h("div", { class: "entry-slot-wrap" }, slot_button, stackButton(book, key, copies, open)) : slot;
+    const slot_part = editable ? h("div", { class: "entry-slot-wrap" }, slot_button, copiesControl(book, key, copies)) : slot;
 
     // Copies show as the stack count on the slot (its corner edits them); prior work is an
     // anvil badge only when it isn't 0. Without that badge an editable entry has a quiet ⋯
@@ -253,7 +253,7 @@ function entryCard(book, index, count, editable, unwanted) {
             title: TEXT.books.edit_list, "aria-label": name + ": " + (text || TEXT.books.add_enchantment), "aria-expanded": String(open === "enchant"),
             onclick: () => togglePopover(book.id, "enchant", "add-" + key)
         }, content) : h("span", { class: "entry-summary" }, content);
-        return h("div", { class: "entry-card compact" + (open ? " popover-open" : ""), "data-index": index, "data-key": key },
+        return h("div", { class: "entry-card compact" + (open ? " popover-open" : "") + (pointer_in === key ? " pointer-in" : ""), "data-index": index, "data-key": key, ...pointerIn(key) },
             editable ? entryHandle(index, count) : null, slot_part, summary, badges, tools);
     }
 
@@ -296,7 +296,7 @@ function entryCard(book, index, count, editable, unwanted) {
     ) : null;
     // The strip's buttons (grip, prior work, copy, remove) are one tab stop; Left and Right move along them (Up and Down on the grip reorder).
     if (head && editable) roving([...head.querySelectorAll("button")], 0, { prev: ["ArrowLeft"], next: ["ArrowRight"] });
-    return h("div", { class: "entry-card" + (head ? "" : " bare") + (open ? " popover-open" : ""), "data-index": index, "data-key": key },
+    return h("div", { class: "entry-card" + (head ? "" : " bare") + (open ? " popover-open" : "") + (pointer_in === key ? " pointer-in" : ""), "data-index": index, "data-key": key, ...pointerIn(key) },
         slot_part,
         head,
         h("div", { class: "mc-tooltip entry-tooltip" },
@@ -788,7 +788,7 @@ function chipDrag(event, ns, level) {
     });
 }
 
-// The open popover in section 2: { id: the entry's id, kind: "copies" | "work" | "enchant",
+// The open popover in section 2: { id: the entry's id, kind: "work" | "enchant",
 // toggle: the data-focus of the button that opened it, ns: an enchantment to show and
 // highlight in the picker (once) }, or null. `picker_all`: the picker also lists the
 // enchantments not chosen in section 1.
@@ -855,39 +855,13 @@ function placePopover(grid) {
     if (entry_popover.kind !== "enchant") popover.style.left = Math.max(0, Math.min(card.offsetLeft, grid.clientWidth - popover.offsetWidth)) + "px";
 }
 
-// "copies": a stepper (hold − or + to repeat); "work": the anvil track, one icon per use.
-// The slots view has no badges or buttons, so its popover has both.
+// "work": the anvil track, one icon per use.
 function countPopover(book) {
-    const key = book.id;
-    const parts = [];
-    if (entry_popover.kind === "copies" || books_view === "slots") parts.push(copiesRow(book, key));
-    if (entry_popover.kind === "work" || books_view === "slots") parts.push(workRow(book, key));
-    return h("div", { class: "entry-popover count", role: "group", "aria-label": entry_popover.kind === "work" ? TEXT.books.prior_work_help : TEXT.books.copies_help }, parts);
+    return h("div", { class: "entry-popover count", role: "group", "aria-label": TEXT.books.prior_work_help }, workRow(book, book.id));
 }
 
 function setCopies(book, value) {
     book.copies = Math.max(1, Math.min(MAX_COPIES, value));
-}
-
-function copiesRow(book, key) {
-    const copies = book.copies || 1;
-    const button = (delta, label, disabled, focus, text) => h("button", {
-        type: "button", class: "btn tiny", "aria-label": label, "data-focus": focus, disabled,
-        // Holding steps every 70ms after a short wait: the cards redraw on each step, the results once when the button is let go.
-        onpointerdown: event => {
-            if (event.button !== 0) return;
-            event.preventDefault();
-            holdRepeat(event, () => { setCopies(book, (book.copies || 1) + delta); renderBooks(); }, { done: commit });
-        },
-        // A keyboard press (no pointer) steps once.
-        onclick: event => { if (event.detail === 0) { setCopies(book, copies + delta); commit(); } }
-    }, text);
-    return h("span", { class: "stepper", title: TEXT.books.copies_help },
-        h("span", { class: "stepper-label" }, TEXT.books.copies),
-        button(-1, TEXT.books.decrease_label({ label: TEXT.books.copies }), copies <= 1, "pop-copies-" + key + "-minus", "−"),
-        h("span", { class: "stepper-value" }, copies),
-        button(1, TEXT.books.increase_label({ label: TEXT.books.copies }), copies >= MAX_COPIES, "pop-copies-" + key + "-plus", "+")
-    );
 }
 
 // Prior work as anvils, like a level bar: tap the nth for n uses (the last one again takes one
@@ -932,22 +906,44 @@ function workRow(book, key) {
     );
 }
 
-// The button in the corner of an entry's slot: "+" while there is one copy (shown on hover, or
-// always on touch), invisible over the stack count once there are several. A click opens the
-// copies stepper; scrolling over it adds or takes one off.
-function stackButton(book, key, copies, open) {
-    const label = TEXT.books.copies_edit({ count: copies });
-    return h("button", {
-        type: "button", class: "stack-edit popover-toggle" + (copies > 1 ? " has" : "") + (open === "copies" ? " open" : ""),
-        "data-focus": "copies-" + key, title: label, "aria-label": label, "aria-expanded": String(open === "copies"),
-        onclick: () => togglePopover(book.id, "copies", "copies-" + key),
+// The card under the pointer, kept across redraws: a card drawn anew under a still pointer isn't
+// :hover until the pointer moves, so − and + (and the Slots view's tooltip) would vanish after each
+// click. The redrawn card gets .pointer-in, which the CSS treats like :hover.
+let pointer_in = null;
+function pointerIn(key) {
+    return {
+        onpointerenter: event => { if (event.pointerType === "mouse") pointer_in = key; },
+        onpointerleave: event => { if (pointer_in === key) pointer_in = null; event.currentTarget.classList.remove("pointer-in"); }
+    };
+}
+
+// The slot's bottom-right corner: − and + under the stack count (which is inside the slot, as in the game), (shown on hover or
+// focus, always on touch). Holding a button repeats (the cards redraw on each step, the
+// results once when it is let go); scrolling over the corner adds or takes one off.
+function copiesControl(book, key, copies) {
+    const step = (delta, label, disabled, text) => h("button", {
+        type: "button", class: "copies-step", "aria-label": label, "data-focus": "copies-" + key + (delta < 0 ? "-minus" : "-plus"), disabled,
+        onpointerdown: event => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            event.stopPropagation();
+            holdRepeat(event, () => { setCopies(book, (book.copies || 1) + delta); renderBooks(); }, { done: commit });
+        },
+        // A keyboard press (no pointer) steps once.
+        onclick: event => { if (event.detail === 0) { setCopies(book, copies + delta); commit(); } }
+    }, text);
+    return h("span", {
+        class: "copies-control" + (copies > 1 ? " has" : ""), role: "group", title: TEXT.books.copies_edit({ count: copies }),
+        "aria-label": TEXT.books.copies_edit({ count: copies }),
         onwheel: event => { event.preventDefault(); setCopies(book, copies + (event.deltaY < 0 ? 1 : -1)); commit(); }
-    }, copies > 1 ? "" : "+");
+    },
+        step(-1, TEXT.books.decrease_label({ label: TEXT.books.copies }), copies <= 1, "−"),
+        step(1, TEXT.books.increase_label({ label: TEXT.books.copies }), copies >= MAX_COPIES, "+"));
 }
 
 // The slots view: an entry is only its slot (glint, stack count); its tooltip shows on hover
-// or focus and a click opens the picker. Duplicate, Remove and the copies/prior work are in
-// the popovers.
+// or focus and a click opens the picker. Copies are on the slot's corner; Duplicate, Remove and
+// prior work are in the picker.
 function slotCell(book, index, count, editable, unwanted) {
     const key = String(book.id);
     const is_item = book.type === "item";
@@ -975,8 +971,8 @@ function slotCell(book, index, count, editable, unwanted) {
         onclick: () => togglePopover(book.id, "enchant", "add-" + key),
         onpointerdown: event => mergeDrag(event, book)
     }, slot) : h("div", { class: "slot-cell-button", role: "img", "aria-label": label, onpointerdown: event => mergeDrag(event, book) }, slot);
-    return h("div", { class: "entry-card slotcell" + (open ? " popover-open" : ""), "data-index": index, "data-key": key },
-        main, tip, editable ? stackButton(book, key, copies, open) : null,
+    return h("div", { class: "entry-card slotcell" + (open ? " popover-open" : "") + (pointer_in === key ? " pointer-in" : ""), "data-index": index, "data-key": key, ...pointerIn(key) },
+        main, tip, editable ? copiesControl(book, key, copies) : null,
         // The grip in the corner reorders (drag it onto another slot, or use the arrow keys); the slot itself drags to preview a merge.
         editable ? entryHandle(index, count) : null);
 }
@@ -1048,6 +1044,7 @@ function enchantPicker(book) {
             class: "mod-section", open: list.some(ns => book.enchantments[ns]) || picker_mods_open.has(mod),
             ontoggle: event => { if (event.target.open) picker_mods_open.add(mod); else picker_mods_open.delete(mod); }
         }, h("summary", {}, TEXT.wanted.mod_group({ name: mod, count: list.length })), list.map(row))),
+        books_view === "slots" ? workRow(book, key) : null,
         h("div", { class: "popover-foot" }, more, pickerButtons(book, key))
     );
 }

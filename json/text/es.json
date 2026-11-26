@@ -138,7 +138,7 @@
         "view_label": "Cómo se muestran las entradas",
         "view_cards": "Tarjetas",
         "view_list": "Lista",
-        "copies_edit": {"plural": "count", "one": "Copias: {count}. Pulsa para cambiar, o usa la rueda encima", "other": "Copias: {count}. Pulsa para cambiar, o usa la rueda encima"},
+        "copies_edit": {"plural": "count", "one": "Copias: {count}. Usa − y +, o la rueda encima", "other": "Copias: {count}. Usa − y +, o la rueda encima"},
         "view_slots": "Casillas",
         "merge_levels": {"plural": "levels", "one": "{levels} nivel al combinar", "other": "{levels} niveles al combinar"},
         "merge_too_expensive": "¡Demasiado caro!",

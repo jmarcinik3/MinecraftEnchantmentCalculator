@@ -836,9 +836,6 @@ html { scrollbar-gutter: stable; }
         .entry-card.compact :is(.drag-handle, .entry-tool, .entry-remove, .entry-more) { min-width: 24px; }
     }
 }
-.entry-card.compact .mc-slot { width: 36px; height: 36px; }
-.entry-card.compact .mc-slot .item-icon { width: 26px; height: 26px; }
-.entry-card.compact .stack-count { font-size: 12px; text-shadow: 1px 1px 0 var(--mc-text-shadow); }
 .entry-summary {
     flex: 1;
     min-width: 0;
@@ -880,7 +877,7 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
    corner in the game's white with a drop shadow, above the glint. */
 /* A small swap badge in the slot's corner says it flips between book and item (hover or
    focus; always on touch). */
-.swap-glyph, .stack-edit {
+.swap-glyph {
     position: absolute;
     z-index: 2;
     display: flex;
@@ -904,16 +901,21 @@ body.dragging, body.dragging * { cursor: grabbing !important; }
 .swap-glyph svg { display: block; width: 11px; height: 11px; }
 .entry-slot:hover .swap-glyph, .entry-slot:focus-visible .swap-glyph { opacity: 1; }
 @media (hover: none) { .swap-glyph { opacity: 1; } }
+/* The stack count as the game draws it: the game font (digits 7 game pixels tall), white with a
+   #3f3f3f shadow one game pixel down and right; the digits' own pixels end at the item's right and
+   bottom edges, so only the shadow passes them. The item is 16 game pixels, 36px here (6px inside
+   the 48px slot), so a game pixel is 2.25px; the font's line box has spacing to the right of and
+   below the digits, hence the offsets (measured from the rendered pixels). */
 .stack-count {
     position: absolute;
-    right: 2px;
-    bottom: 0;
+    right: 1px;
+    bottom: 2px;
     z-index: 1;
     font-family: "Minecraft", system-ui, sans-serif;
-    font-size: 15px;
-    line-height: 1;
+    font-size: 18px;
+    line-height: 18px;
     color: var(--mc-white);
-    text-shadow: 2px 2px 0 var(--mc-text-shadow);
+    text-shadow: 2.25px 2.25px 0 var(--mc-text-shadow);
     pointer-events: none;
 }
 
@@ -1425,11 +1427,11 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 
 /* Small controls keep their look but get a hit area of at least 24px (40px on touch
    screens), from an invisible ::after around them. */
-:is(.rank-move, .info-tip-button, .stack-edit, .rule-switch) { position: relative; }
-:is(.rank-move, .info-tip-button, .stack-edit, .rule-switch)::after { content: ""; position: absolute; inset: -4px; }
+:is(.rank-move, .info-tip-button, .copies-step, .rule-switch) { position: relative; }
+:is(.rank-move, .info-tip-button, .copies-step, .rule-switch)::after { content: ""; position: absolute; inset: -4px; }
 .rank-move::after { inset: -5px -3px; } /* ‹ and › sit side by side: no overlap */
 @media (pointer: coarse) {
-    :is(.info-tip-button, .stack-edit)::after { inset: -11px; }
+    :is(.info-tip-button, .copies-step)::after { inset: -11px; }
     .rule-switch::after { inset: -10px -4px; }
     .rank-move::after { inset: -12px -3px; }
 }
@@ -2276,20 +2278,35 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 
 /* Section 2: the copies button on a slot, the prior work track, the coverage ring, the slots
    view and the drag previews. */
-.stack-edit {
-    right: -5px;
-    bottom: -5px;
-    min-width: 20px;
-    height: 20px;
+/* − and + on the slot's bottom-right corner, just outside the stack count, shown on hover or focus (always on touch). */
+.copies-control {
+    position: absolute;
+    right: -8px;
+    bottom: -10px;
+    z-index: 31;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+.copies-step {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
     padding: 0;
+    border: 1px solid var(--border-strong);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--accent-text);
     font: 700 13px/1 system-ui, sans-serif;
+    box-shadow: var(--shadow-sm);
     cursor: pointer;
 }
-.stack-edit.has { right: 0; bottom: 0; width: 28px; height: 22px; border: none; border-radius: 0; background: transparent; opacity: 1; }
-.stack-edit.has:hover, .stack-edit.has.open { background: var(--purple-28); }
-.entry-card:hover .stack-edit, .stack-edit:focus-visible, .stack-edit.open { opacity: 1; }
-@media (hover: none) { .stack-edit { opacity: 1; } }
-.stack-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.copies-step:disabled { color: var(--text-muted); cursor: default; opacity: 0.6; }
+.copies-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.entry-card:hover .copies-step, .entry-card.pointer-in .copies-step, .copies-control:focus-within .copies-step { display: inline-flex; }
+@media (hover: none) { .copies-step { display: inline-flex; } }
 .work-row { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; }
 .work-row .popover-note { flex-basis: 100%; }
 .anvil-pips { display: flex; flex-wrap: wrap; gap: 3px; touch-action: pan-y; -webkit-user-select: none; user-select: none; cursor: pointer; }
@@ -2319,7 +2336,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .entry-card.slotcell { display: block; width: 52px; padding: 0; border: none; border-radius: 2px; background: none; }
 .slotcell .slot-cell-button { position: relative; display: block; padding: 0; border: none; border-radius: 2px; background: none; cursor: pointer; }
 div.slot-cell-button { cursor: default; }
-.slotcell:hover .mc-slot, .slotcell.popover-open .mc-slot, .slotcell .slot-cell-button:focus-visible .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
+.slotcell:hover .mc-slot, .slotcell.pointer-in .mc-slot, .slotcell.popover-open .mc-slot, .slotcell .slot-cell-button:focus-visible .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
 .slotcell .slot-cell-button:focus-visible { outline: none; }
 .entry-card.slotcell .slot-tip {
     position: absolute;
@@ -2333,7 +2350,9 @@ div.slot-cell-button { cursor: default; }
     pointer-events: none;
     transition: opacity 0.12s;
 }
-.slotcell:hover .slot-tip, .slotcell:focus-within .slot-tip { opacity: 1; }
+.slotcell:hover .slot-tip, .slotcell.pointer-in .slot-tip, .slotcell:focus-within .slot-tip { opacity: 1; }
+/* A card redrawn under the pointer starts with its tooltip shown, not fading in again. */
+.slotcell.pointer-in .slot-tip { transition: none; }
 @media (hover: none) { .entry-card.slotcell .slot-tip { display: none; } }
 .slot-flag { position: absolute; top: 1px; left: 1px; display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: var(--warning-bg); color: var(--warning-text); font: 700 10px/1 system-ui, sans-serif; }
 .entry-card.slotcell.drag-source { opacity: 0.7; }
