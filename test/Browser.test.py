@@ -555,6 +555,20 @@ def part_typed_lines(browser, base):
     settle(p)
     moved = p.eval_on_selector_all("#books .entry-card", LINES_BY_CARD)
     check("Escape ends a line drag with nothing moved", moved == ["protection", "mending,unbreaking"], moved)
+    # Copies: "x3" in the type box, and the add bar's copies box.
+    stacks = lambda: p.eval_on_selector_all("#books .entry-card .stack-count", "e => e.map(x => x.textContent)")
+    p.fill(box, "respiration 3, x3")
+    p.keyboard.press("Enter")
+    settle(p)
+    check("'x3' in the type box makes the typed book three copies", cards() == 3 and stacks() == ["3"] and p.input_value(box) == "", stacks())
+    p.fill(box, "4x aqua affinity")
+    p.keyboard.press("Enter")
+    settle(p)
+    check("'4x' before a name works too", cards() == 4 and sorted(stacks()) == ["3", "4"], stacks())
+    p.fill(box, "aqua affinity x2")
+    p.keyboard.press("Enter")
+    settle(p)
+    check("a typed book identical to one on the books adds its copies to that one", cards() == 4 and sorted(stacks()) == ["3", "6"], stacks())
 
     return errors
 

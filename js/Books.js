@@ -476,6 +476,11 @@ function viewSwitch() {
 // with a note saying why.
 let typed_text = "";
 let typed_note = "";
+// The copies a field holds: a whole number from 1 to MAX_COPIES (anything else is 1).
+function copiesOf(value) {
+    const number = Math.floor(Number(value));
+    return Number.isFinite(number) ? Math.max(1, Math.min(MAX_COPIES, number)) : 1;
+}
 
 function addCard() {
     const item_name = logic.itemName(state.item);
@@ -505,35 +510,49 @@ function addTyped(text) {
     const kept = [];
     const enchantments = {};
     const taken = state.books.flatMap(book => Object.keys(book.enchantments));
-    for (const piece of text.split(/[,;+]+/).map(part => part.trim()).filter(Boolean)) {
+    // "x3" (or "3x", "×3") beside any piece sets the copies of the whole book.
+    let copies = null;
+    for (const original of text.split(/[,;+]+/).map(part => part.trim()).filter(Boolean)) {
+        let piece = original;
+        const alone = piece.match(/^(?:[x×]\s*(\d+)|(\d+)\s*[x×])$/i);
+        if (alone) {
+            copies = copiesOf(alone[1] || alone[2]);
+            continue;
+        }
+        const times = piece.match(/^(\d+)\s*[x×]\s*(.+)$/i) || piece.match(/^(.+?)(?:\s+|(?<=\d))[x×]\s*(\d+)$/i);
+        if (times) {
+            const prefix = /^\d+$/.test(times[1]);
+            copies = copiesOf(prefix ? times[1] : times[2]);
+            piece = prefix ? times[2] : times[1];
+        }
         const result = logic.parseBooks(piece, state.item);
         if (result.unknown.length || !result.books.length) {
             skipped.push(piece);
-            kept.push(piece);
+            kept.push(original);
             continue;
         }
         for (const [ns, level] of Object.entries(result.books[0])) {
             const other = [...taken, ...Object.keys(enchantments)].find(existing => clashes(existing, ns));
             if (other) {
                 skipped.push(TEXT.books.type_conflict({ name: logic.enchName(ns), other: logic.enchName(other) }));
-                kept.push(piece);
+                kept.push(original);
                 continue;
             }
             enchantments[ns] = Math.max(enchantments[ns] || 0, level);
         }
     }
     if (Object.keys(enchantments).length) {
-        addOrStack({ id: nextBookId(), type: "book", enchantments, prior_work: 0, copies: 1 });
+        addOrStack({ id: nextBookId(), type: "book", enchantments, prior_work: 0, copies: copies || 1 });
     }
     typed_text = kept.join(", ");
     typed_note = skipped.length ? TEXT.books.type_skipped({ names: skipped }) : "";
     commit();
 }
 
-// A new book joins the list, or, when an identical one is there, is one more copy of it; the entry shows.
+// A new book joins the list, or, when an identical one is there, its copies join that one's; the entry shows.
 function addOrStack(book) {
     const twin = logic.twinOf(state.books, book);
-    if (twin) twin.copies = Math.min(MAX_COPIES, (twin.copies || 1) + 1);
+    if (twin) twin.copies = Math.min(MAX_COPIES, (twin.copies || 1) + (book.copies || 1));
     else state.books.push(book);
     markFresh(twin || book);
 }
