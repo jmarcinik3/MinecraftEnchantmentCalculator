@@ -60,7 +60,7 @@
         "group_part_n": "Part {n}",
         "group_pick_any": "Pick any",
         "group_pick_from_any": "Pick a part",
-        "group_n": "Group {n} ({count})",
+        "group_titled": "{label} ({count})",
         "group_stray_conflicts": "Also conflicts with: {name}",
         "group_some_conflict": "Some conflict",
         "group_allowed": "Conflict (allowed)",

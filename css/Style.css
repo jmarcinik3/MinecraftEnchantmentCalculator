@@ -2507,4 +2507,9 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 /* The parts of a group's first level (parts that never conflict): a small neutral badge over each. */
 .part-box { padding-left: 8px; border-left: 2px solid var(--border-strong); }
 .part-badge { display: inline-block; margin: 2px 0 4px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border-strong); color: var(--text-secondary); font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.group-fold > .pick-any-list { padding-top: 2px; }
+/* The search box with Expand all / Collapse all beside it, wrapping below when the card is narrow. */
+.search-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
+.search-row .wanted-search { flex: 1 1 200px; width: auto; margin: 0; }
+.search-row .fold-buttons { margin-left: 0; }
 

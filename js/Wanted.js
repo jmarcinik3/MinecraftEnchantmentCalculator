@@ -213,16 +213,17 @@ function wantedList() {
     // Any other bracket that splits again and again (Logic conflictTree, a few strays set apart if it takes them) is drawn as nested sections:
     // Pick one, Pick a side, Pick any (not a bracket the search cut down: it may not be that shape).
     const severalOf = group => (state.allow_incompatible || group.reduced || group.exclusive ? null : logic.conflictTree(group.members));
-    let group_no = 0; // each Pick one / nested group is a fold-away subsection named "Group N" (counting in the order the page shows them), its type inside
-    const groupRow = group => {
+    // Each Pick one / nested group is a fold-away subsection named by its type and how many enchantments it holds: "Pick a side (25)".
+    const groupRow = (group, bare = false) => {
+        const fold = (title, key, content) => (bare ? content : groupFold(title, key, content)); // bare: the section has this one group only
         const members = group.members;
         if (group.exclusive && !state.allow_incompatible) {
-            return groupFold(TEXT.wanted.group_n({ n: ++group_no, count: members.length }), members[0], groupSwitch(members, short, TEXT.wanted.group_pick_one));
+            return fold(TEXT.wanted.group_titled({ label: TEXT.wanted.group_pick_one, count: members.length }), members[0], groupSwitch(members, short, TEXT.wanted.group_pick_one));
         }
         const several = severalOf(group);
         if (several) {
             const label = { one: TEXT.wanted.group_pick_one, side: TEXT.wanted.group_pick_side, any: TEXT.wanted.group_pick_from_any }[groupKind(several.tree)];
-            return groupFold(TEXT.wanted.group_n({ n: ++group_no, count: members.length }), members[0], pickGroupsSection(members, several, short, label));
+            return fold(TEXT.wanted.group_titled({ label, count: members.length }), members[0], pickGroupsSection(members, several, short, label));
         }
         if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
         // The label folds the bracket: the chosen rows stay, the rest hide (kept in `folded_groups` across redraws).
@@ -269,7 +270,22 @@ function wantedList() {
             (logic.isCurse(group.members[0]) ? curses : own).push(group);
         }
     }
-    rows.push(...byKind(own).map(groupRow));
+    // The enchantments with no conflicts go in one fold-away "Pick any (N)" subsection per section, ahead of its groups.
+    // A section with only one group (Flint & Steel in the game's own list) shows it without a subsection around it.
+    const withPickAny = (groups, key) => {
+        const sorted = byKind(groups);
+        const alone = sorted.filter(group => group.members.length === 1);
+        const others = sorted.filter(group => group.members.length !== 1);
+        const single = (alone.length ? 1 : 0) + others.length === 1;
+        if (single && !alone.length) return [groupRow(others[0], true)];
+        const rest = others.map(group => groupRow(group));
+        if (!alone.length) return rest;
+        const lone = alone.map(group => groupRow(group));
+        if (single) return lone;
+        const title = TEXT.wanted.group_titled({ label: TEXT.wanted.group_pick_any, count: alone.length });
+        return [groupFold(title, key, h("div", { class: "pick-any-list", role: "group", "aria-label": TEXT.wanted.group_pick_any }, lone)), ...rest];
+    };
+    rows.push(...withPickAny(own, "pick-any"));
     if (curses.length) rows.push(h("div", { class: "divider" }, TEXT.wanted.curses), ...byKind(curses).map(groupRow));
     // A mod's own enchantments get a fold-away box of their own, beside the list's and the graph's, folded until opened (or one is chosen).
     const mod_boxes = [];
@@ -284,7 +300,7 @@ function wantedList() {
             }
         },
             h("summary", {}, TEXT.wanted.mod_group({ name: mod, count })),
-            byKind(groups).map(groupRow)));
+            withPickAny(groups, "pick-any-" + mod)));
     }
     if (query && !rows.length && !mod_boxes.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
     // The list's own enchantments (the game's, curses included), counted the way each mod's box counts its.
@@ -312,7 +328,21 @@ function searchMatcher() {
 }
 
 // The search box above the list. Typing redraws only the list (and marks the graph), so the box keeps its focus.
+// Expand all / Collapse all for section 1: every fold-away box and group subsection, and the folds of the plain conflict brackets.
+function foldWanted(open) {
+    for (const details of document.querySelectorAll("#wanted details")) details.open = open;
+    for (const toggle of document.querySelectorAll("#wanted .ench-group > .group-toggle")) if ((toggle.getAttribute("aria-expanded") === "true") !== open) toggle.click();
+}
+
+// The search box with the fold buttons beside it (below it when the card is too narrow for both).
 function wantedSearch() {
+    return h("div", { class: "search-row" }, searchInput(),
+        h("span", { class: "fold-buttons" },
+            h("button", { type: "button", class: "btn small", "data-focus": "wanted-expand", onclick: () => foldWanted(true) }, TEXT.results.expand_all),
+            h("button", { type: "button", class: "btn small", "data-focus": "wanted-collapse", onclick: () => foldWanted(false) }, TEXT.results.collapse_all)));
+}
+
+function searchInput() {
     return h("input", {
         type: "search", class: "wanted-search", value: wanted_query, placeholder: TEXT.wanted.search, "aria-label": TEXT.wanted.search, "data-focus": "wanted-search",
         oninput: event => {
@@ -556,12 +586,12 @@ export function setupItemMenu() {
 // one set of conflicting enchantments, "Best" is named after its pick from that set
 // ("Fortune · Silk Touch", "Channeling + Loyalty · Riptide").
 function presetChips() {
-    const presets = logic.presets(state.item, state.allow_incompatible);
+    const presets = logic.presets(state.item);
     if (!presets.length) return null;
     // Only the game's own enchantments count, so a mod being on never renames "God" (its conflicts add sets and link them).
     const conflict_sets = logic.enchantmentGroups(state.item, true).filter(group => group.members.length > 1);
     const bestName = wanted => {
-        if (state.allow_incompatible || conflict_sets.length !== 1) return TEXT.wanted.preset_best;
+        if (conflict_sets.length !== 1) return TEXT.wanted.preset_best;
         const picks = conflict_sets[0].members.filter(ns => wanted[ns]);
         return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
     };
@@ -684,7 +714,6 @@ function pickGroupsSection(members, found, short, label) {
         ]);
     }
     return h("div", { class: "ench-group exclusive pick-side pick-groups" + (members.some(chosen) ? " has-chosen" : ""), "data-side": members[0], role: "group", "aria-label": label },
-        h("div", { class: "ench-group-label" }, label),
         h("div", { class: "cluster-list" }, tree.kind === "each" ? eachBlocks(tree, true) : sideBlock(tree, true)),
         h("div", { class: "each-rows" }, members.filter(chosen).map(ns => wantedRow(ns, short.get(ns)))));
 }
@@ -767,7 +796,6 @@ function animateEach(section, old) {
 // A "Pick one" group (every pair conflicts): a switch for which one, or none, then the
 // chosen one's row with its level bar. Switching picks the new one at its max level.
 function groupSwitch(members, short, label) {
-    const label_id = "pick-" + members[0];
     const chosen = members.find(ns => state.wanted[ns]) || null;
     const option = (ns, label) => h("button", {
         type: "button", role: "radio", class: "switch-option" + (chosen === ns ? " selected" : ""),
@@ -780,8 +808,7 @@ function groupSwitch(members, short, label) {
         }
     }, label);
     return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : ""), "data-group": members[0] },
-        h("div", { class: "ench-group-label", id: label_id }, label),
-        h("div", { class: "group-switch", role: "radiogroup", "aria-labelledby": label_id },
+        h("div", { class: "group-switch", role: "radiogroup", "aria-label": label },
             option(null, TEXT.wanted.none),
             members.map(ns => option(ns, logic.enchName(ns)))
         ),

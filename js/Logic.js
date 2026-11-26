@@ -405,12 +405,11 @@ export function createLogic(meta, names = {}) {
     // Section 1's presets: "best" (Max all from nothing), then one per swap in
     // PRESET_SWAPS that the item can take and the best set leaves out. Each is
     // { key: "best" | swap namespace, wanted }. None for the plain book (it takes every
-    // enchantment, so a "best" set means little), and only "best" with conflicts allowed.
-    function presets(item, allow_incompatible = false) {
+    // enchantment, so a "best" set means little). The same presets whether or not conflicts are allowed.
+    function presets(item) {
         if (!item || item === "book") return [];
-        const best = maxAll(item, {}, allow_incompatible);
+        const best = maxAll(item, {});
         const list = [{ key: "best", wanted: best }];
-        if (allow_incompatible) return list;
         const options = applicable(item);
         for (const ns of PRESET_SWAPS) {
             if (options.includes(ns) && !(ns in best)) list.push({ key: ns, wanted: maxAll(item, { [ns]: maxLevel(ns) }) });

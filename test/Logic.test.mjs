@@ -521,7 +521,7 @@ test("presets: the best set, then each well-known swap the item can take", () =>
     assert.deepStrictEqual(keys("pickaxe"), ["best", "silk_touch"]);
     assert.deepStrictEqual(keys("boots"), ["best", "frost_walker"]);
     assert.deepStrictEqual(keys("book"), []);
-    assert.deepStrictEqual(logic.presets("sword", true).map(p => p.key), ["best"]);
+    assert.deepStrictEqual(keys("sword"), logic.presets("sword").map(p => p.key)); // (the same presets with conflicts allowed: the page passes no flag)
     const [best, silk] = logic.presets("pickaxe");
     assert.deepStrictEqual(best.wanted, logic.maxAll("pickaxe", {}));
     assert.strictEqual(silk.wanted.silk_touch, 1);

@@ -60,7 +60,7 @@
         "group_part_n": "Parte {n}",
         "group_pick_any": "Elige cualquiera",
         "group_pick_from_any": "Elige una parte",
-        "group_n": "Grupo {n} ({count})",
+        "group_titled": "{label} ({count})",
         "group_stray_conflicts": "También es incompatible con: {name}",
         "group_some_conflict": "Algunos incompatibles",
         "group_allowed": "Incompatibles (permitido)",
