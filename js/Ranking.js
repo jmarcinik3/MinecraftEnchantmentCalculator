@@ -1,8 +1,9 @@
-// Section 3 tiles: the results and the ranking (drag to reorder).
+// The order's tiles: the results and the ranking (drag to reorder), in the panel under Section 4's receipt (setupOrderPanel).
 import { movePriority } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { language, state } from "./Store.js";
-import { $, h } from "./Dom.js";
+import { $, afterAnimation, h, motionOk, readStorage, writeStorage } from "./Dom.js";
+import { FOLD_EASING, FOLD_MS } from "./Motion.js";
 import { running } from "./Calc.js";
 import { resultNode, stepLimit } from "./Options.js";
 import { commit } from "./App.js";
@@ -12,13 +13,44 @@ function setPriority(priority) {
     commit();
 }
 
-// One tap sets what matters most: that tile first, the others in their usual order.
-const RANK_PRESETS = [
-    ["levels", ["levels", "xp", "max_step", "prior_work"]],
-    ["xp", ["xp", "levels", "max_step", "prior_work"]],
-    ["step", ["max_step", "levels", "xp", "prior_work"]],
-    ["prior", ["prior_work", "levels", "xp", "max_step"]]
-];
+// Whether the panel of tiles under the receipt is open (kept in this browser; closed until opened).
+const ORDER_OPEN_STORAGE_KEY = "enchantment-calculator-order-open";
+let order_open = readStorage(ORDER_OPEN_STORAGE_KEY, false) === true;
+
+// The receipt strip is the button for the panel of tiles under it: they are the ranking, so they stay out of the way until wanted.
+export function setupOrderPanel() {
+    $("#order-toggle").addEventListener("click", () => {
+        const panel = $("#order-panel");
+        order_open = !order_open;
+        writeStorage(ORDER_OPEN_STORAGE_KEY, order_open);
+        if (!motionOk()) return showOrderPanel();
+        // The panel's whole box folds, its margin, padding and border with its height, so nothing is left to jump away at the end.
+        const style = getComputedStyle(panel);
+        const shown = ["marginTop", "marginBottom", "paddingTop", "paddingBottom"].reduce((frame, key) => ({ ...frame, [key]: style[key] }), {});
+        const folded = { marginTop: "0px", marginBottom: "0px", paddingTop: "0px", paddingBottom: "0px", height: "0px", opacity: 0 };
+        if (panel.finishFold) panel.finishFold();
+        let frames;
+        if (order_open) {
+            showOrderPanel();
+            frames = [folded, { ...shown, height: panel.getBoundingClientRect().height + "px", opacity: 1 }];
+        } else {
+            $("#order-toggle").setAttribute("aria-expanded", "false");
+            frames = [{ ...shown, height: panel.getBoundingClientRect().height + "px", opacity: 1 }, folded];
+        }
+        Object.assign(panel.style, { overflow: "hidden", boxSizing: "border-box" });
+        const animation = panel.animate(frames, { duration: FOLD_MS, easing: FOLD_EASING });
+        const done = () => { panel.finishFold = null; Object.assign(panel.style, { overflow: "", boxSizing: "" }); showOrderPanel(); };
+        panel.finishFold = () => { animation.cancel(); done(); };
+        afterAnimation(animation, done, FOLD_MS + 150);
+    });
+    showOrderPanel();
+}
+
+function showOrderPanel() {
+    $("#order-panel").hidden = !order_open;
+    $("#order-toggle").setAttribute("aria-expanded", String(order_open));
+    $("#order").classList.toggle("open", order_open);
+}
 
 // Drag to reorder, for the ranking tiles and the custom entries. Pointer events cover
 // mouse, pen and touch alike (the HTML drag-and-drop API does not work on touch screens).
@@ -79,7 +111,7 @@ export function renderMetrics(rebuild = false) {
     const order = state.priority.join(",");
     if (rebuild || box.dataset.order !== order) {
         box.dataset.order = order;
-        box.replaceChildren(rankPresets(), h("ol", { class: "metrics" }, state.priority.map(rankTile)), rankCaption());
+        box.replaceChildren(h("ol", { class: "metrics" }, state.priority.map(rankTile)), rankCaption());
     }
 
     const node = resultNode(); // nothing to show without a step
@@ -104,17 +136,6 @@ export function renderMetrics(rebuild = false) {
     }
     // A new result is on its way: fade the old numbers.
     box.classList.toggle("updating", running);
-}
-
-// "Rank by": four chips that put one criterion first.
-function rankPresets() {
-    const current = state.priority.join();
-    return h("div", { class: "rank-presets" },
-        h("span", { class: "rank-presets-label" }, TEXT.ranking.rank_presets_label),
-        RANK_PRESETS.map(([key, priority]) => h("button", {
-            type: "button", class: "preset" + (current === priority.join() ? " selected" : ""),
-            "aria-pressed": String(current === priority.join()), onclick: () => setPriority([...priority])
-        }, TEXT.ranking.rank_presets[key])));
 }
 
 // Under the tiles: the ranking in words.

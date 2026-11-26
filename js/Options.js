@@ -1,10 +1,10 @@
-// Section 3 settings: level limit, rename and "Your level".
-import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, MOD_IDS, clampStepLimit, cleanName } from "./Logic.js";
+// The Settings menu (game rules, display), "Your level" (the chip in Section 4's progress row and its popover) and the rename box (drawn by the Item card).
+import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, MOD_IDS, applyRename, clampStepLimit, cleanName } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, mod_data, state } from "./Store.js";
-import { $, glintsOn, h, holdRepeat, segmented, motionIgnored, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
+import { $, closeOnOutside, glintsOn, h, holdRepeat, segmented, motionIgnored, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
 import { loadChecklist, orderKey, renderResults } from "./Results.js";
-import { last_result, scheduleCalculation } from "./Calc.js";
+import { keepResult, last_result, running, scheduleCalculation } from "./Calc.js";
 import { saveToUrl } from "./Link.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { closeRow, inertCopy, openRow } from "./Motion.js";
@@ -27,14 +27,12 @@ const MOD_LABELS = { fancy_enchantments: "Fancy Enchantments", spellbound: "Spel
 
 const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
 
-// Under the tiles, one grid so the labels share a column: Rename and Your level (tracking it shows
-// the number, what the order needs and how far it falls short). The game rules (the level limit and
-// Allow conflicts) are in the Settings menu in the page header.
-export function renderRanking() {
-    const box = $("#ranking");
+// The Settings menu in the page header: the game rules (the level limit and Allow conflicts, the edition, the mods) and the display
+// settings, redrawn whenever the setup changes (the menu stays open while they do).
+export function renderSettings() {
     const panel = $("#limit-panel");
     const active = document.activeElement;
-    const focused = active && (box.contains(active) || panel.contains(active)) ? active.dataset.focus : null;
+    const focused = active && panel.contains(active) ? active.dataset.focus : null;
 
     // The settings menu: the game rules (the level limit, whether conflicting enchantments may go together, the edition and the
     // mods: they apply everywhere) as a subsection, then the display settings. The menu stays open while they change.
@@ -68,17 +66,10 @@ export function renderRanking() {
     button.setAttribute("aria-label", summary);
     button.title = summary;
 
-    // Under the tiles: one grid, so the labels share a column.
-    box.replaceChildren(h("div", { class: "options" },
-        optionRow(TEXT.ranking.rename, TEXT.ranking.rename_help, nameField()),
-        optionRow(TEXT.ranking.your_level, TEXT.ranking.your_level_help, levelControl())
-    ));
-
     if (focused) {
-        const again = document.querySelector(`#ranking [data-focus="${focused}"], #limit-panel [data-focus="${focused}"]`);
+        const again = panel.querySelector(`[data-focus="${focused}"]`);
         if (again) again.focus();
     }
-    updateLevelMeter();
 }
 
 // The mods in effect: they are Java only, so in Bedrock the ones chosen are kept for Java but count for nothing.
@@ -115,7 +106,7 @@ function optionsSummary() {
 }
 
 // What a game rule is for, in a "?" tip beside its label (tap on phones). Its bubble
-// floats over the page, like the Best order one.
+// floats over the page, like the other "?" bubbles.
 function helpTip(id, label, text) {
     const tip = infoTip(id, "?", label, text, "option-help");
     floatBubble(tip);
@@ -143,7 +134,7 @@ const onOff = on => (on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off);
 function motionSwitch() {
     const on = !motionIgnored();
     return h("div", { class: "rule-control" },
-        ruleSwitch(on, onOff(on), () => { setMotionIgnored(on); renderRanking(); }, { "data-focus": "motion-on", "aria-label": TEXT.ranking.show_motion }));
+        ruleSwitch(on, onOff(on), () => { setMotionIgnored(on); renderSettings(); }, { "data-focus": "motion-on", "aria-label": TEXT.ranking.show_motion }));
 }
 
 // Glints: an on/off switch, kept in this browser (Dom.js). Off, the slots' and chosen rows' sheen stops (slots keep a still band).
@@ -152,7 +143,7 @@ function glintSwitch() {
     const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
     const on = glintsOn() && !reduced;
     return h("div", { class: "rule-control" },
-        ruleSwitch(on, onOff(on), () => { setGlintsOn(!on); renderRanking(); }, { disabled: reduced, "data-focus": "glints", "aria-label": TEXT.ranking.glints }),
+        ruleSwitch(on, onOff(on), () => { setGlintsOn(!on); renderSettings(); }, { disabled: reduced, "data-focus": "glints", "aria-label": TEXT.ranking.glints }),
         reduced ? h("span", { class: "mod-note" }, TEXT.ranking.glints_reduced) : null
     );
 }
@@ -179,12 +170,11 @@ function modsControl() {
 
 // The panel is position: fixed, placed under the button whenever it opens and as the
 // page or the right column scrolls: inside the right column it would count as the
-// column's content, and stick out of (or add a scrollbar to) a short column, such as
-// with Best order closed. It ends at the button's right edge, kept on screen.
+// column's content, and stick out of (or add a scrollbar to) a short column. It ends at the button's right edge, kept on screen.
 export function setupOptionsMenu() {
     const menu = $("#options-menu");
     const panel = $("#limit-panel");
-    setupMenuClosing(menu); // its title and label come from renderRanking
+    setupMenuClosing(menu); // its title and label come from renderSettings
     const place = () => {
         if (!menu.open) return;
         const button = menu.querySelector("summary").getBoundingClientRect();
@@ -283,7 +273,7 @@ function editLimit(button) {
             state.max_step = clampStepLimit(input.value);
             state.no_step_limit = false;
             afterPress(commit);
-        } else afterPress(renderRanking);
+        } else afterPress(renderSettings);
     };
     const input = h("input", {
         type: "number", class: "limit-edit", min: 1, max: MAX_STEP_LEVELS, inputmode: "numeric",
@@ -299,7 +289,7 @@ function editLimit(button) {
     input.select();
 }
 
-// Your level: a switch for following it through the steps ("Track my level"). On, it opens the
+// Your level, in the popover under the Lv chip: a switch for following it through the steps ("Track my level"). On, it opens the
 // number (− / + around a game-style green number with an XP bar under it, which fills toward the
 // levels the current order needs; holding − or + repeats), a button that sets it to exactly what
 // is needed, and a line saying whether it is enough or how many levels are missing. It only
@@ -347,13 +337,79 @@ function setLevelOn(on) {
         writeStorage(LEVEL_STORAGE_KEY, player_level);
     }
     // The number, the button and the status open or close under the switch.
-    const old_body = document.querySelector("#ranking .level-body");
+    const old_body = document.querySelector("#level-pop .level-body");
     const copy = old_body ? inertCopy(old_body) : null;
-    renderRanking();
-    const body = document.querySelector("#ranking .level-body");
+    renderLevelPop();
+    const body = document.querySelector("#level-pop .level-body");
     if (body) openRow(body);
-    else if (copy) closeRow(document.querySelector("#ranking .level-control"), copy);
+    else if (copy) closeRow(document.querySelector("#level-pop .level-control"), copy);
     renderResults();
+}
+
+// Whether the popover is open (it belongs to the chip in the progress row, so it closes when the chip is gone).
+let level_pop_open = false;
+
+// The chip beside the progress bar: "Lv 30" while tracking (lit), else "Set level". It opens the popover.
+export function levelChip() {
+    const level = activeLevel();
+    return h("button", {
+        type: "button", class: "level-chip" + (level != null ? " on" : ""), title: TEXT.ranking.your_level_help,
+        "aria-haspopup": "dialog", "aria-expanded": String(level_pop_open), "aria-controls": "level-pop",
+        onclick: event => {
+            level_pop_open = !level_pop_open;
+            event.currentTarget.setAttribute("aria-expanded", String(level_pop_open));
+            placeLevelPop();
+            if (level_pop_open) {
+                const first = $("#level-pop").querySelector("button, input");
+                if (first) first.focus({ preventScroll: true });
+            }
+        }
+    }, level != null ? TEXT.ranking.level_chip({ level }) : TEXT.ranking.level_chip_off);
+}
+
+// The popover's contents: a title and the level controls. Redrawn when the setup or the language changes (not while typing a level).
+export function renderLevelPop() {
+    const pop = $("#level-pop");
+    const active = document.activeElement;
+    const focused = active && pop.contains(active) ? active.dataset.focus : null;
+    pop.setAttribute("aria-label", TEXT.ranking.your_level);
+    pop.replaceChildren(h("div", { class: "level-pop-title" }, TEXT.ranking.your_level), levelControl());
+    if (focused) {
+        const again = pop.querySelector(`[data-focus="${focused}"]`);
+        if (again) again.focus({ preventScroll: true });
+    }
+    updateLevelMeter();
+}
+
+// Under the chip (above it near the window's foot), kept on screen; hidden when closed or when the chip is not on the page (no order).
+export function placeLevelPop() {
+    const pop = $("#level-pop");
+    const chip = document.querySelector("#results .level-chip");
+    if (!chip) level_pop_open = false;
+    pop.hidden = !level_pop_open;
+    if (!level_pop_open) return;
+    const anchor = chip.getBoundingClientRect();
+    const room = document.documentElement.clientWidth;
+    const below = anchor.bottom + 6;
+    pop.style.left = Math.max(16, Math.min(anchor.left, room - pop.offsetWidth - 16)) + "px";
+    pop.style.top = (below + pop.offsetHeight > innerHeight - 8 && anchor.top - 6 - pop.offsetHeight > 8 ? anchor.top - 6 - pop.offsetHeight : below) + "px";
+}
+
+// Closes on a click outside it (and its chip) and on Escape, which puts the focus back on the chip; follows the chip as the page scrolls.
+export function setupLevelPop() {
+    const close = () => { level_pop_open = false; placeLevelPop(); for (const chip of document.querySelectorAll("#results .level-chip")) chip.setAttribute("aria-expanded", "false"); };
+    closeOnOutside({
+        open: () => level_pop_open,
+        inside: event => event.composedPath().some(el => el.id === "level-pop" || (el.classList && el.classList.contains("level-chip"))),
+        close,
+        escape() {
+            close();
+            const chip = document.querySelector("#results .level-chip");
+            if (chip) chip.focus();
+        }
+    });
+    document.addEventListener("scroll", placeLevelPop, { capture: true, passive: true });
+    addEventListener("resize", placeLevelPop);
 }
 
 // The level the steps follow, or null when "Your level" is off or blank.
@@ -426,12 +482,12 @@ export function updateLevelMeter() {
     status.className = "level-status" + (!known ? "" : level >= needed ? " enough" : " short");
 }
 
-// Rename: one box drawn like the anvil's name field. Empty means no rename, and shows the
+// Rename (in the Item card, above the item's slot as the anvil has it): one box drawn like the anvil's name field. Empty means no rename, and shows the
 // item's own name in gray as a hint; any typed name (even the item's own) renames the item
 // in the last step (+1 level), in white italics as the game shows renamed items. Inside:
 // the name tag (lit while renaming), the name, a "+1 level" badge while renaming, and a
 // count against the edition's limit.
-function nameField() {
+export function nameField() {
     const limit = MAX_NAME_LENGTH[state.edition];
     const original = state.item ? logic.itemName(state.item) : "";
     const count = h("span", { class: "name-count" });
@@ -443,14 +499,22 @@ function nameField() {
             const renaming = syncRename();
             showState();
             saveToUrl();
-            // Starting or ending a rename changes the cost (+1 level), so search again;
-            // otherwise only the name on the result changes. This box is never redrawn
-            // while typing, which would move the cursor.
-            if (renaming !== was_renaming) { was_renaming = renaming; scheduleCalculation(); }
+            // Starting or ending a rename adds or takes off 1 level on the last step: the order found stays the best, so its costs are
+            // changed in place (Logic applyRename) instead of searching again. A search runs only when that can't be done: a search in
+            // flight (it has the old rename), the last step passing the limit, or no order (ending a rename may make one fit).
+            // Otherwise only the name on the result changes. This box is never redrawn while typing, which would move the cursor.
+            if (renaming !== was_renaming) {
+                was_renaming = renaming;
+                const node = last_result && last_result.status === "ok" ? last_result.node : null;
+                const kept = !running && node && applyRename(node, renaming, stepLimit());
+                const nothing_to_do = !running && last_result && last_result.status === "ok" && !node && renaming; // no order, and renaming only adds
+                if (kept || nothing_to_do) keepResult(); // the result on screen now fits the new rename
+                else scheduleCalculation();
+            }
             renderResults();
         }
     });
-    const box = h("div", { class: "anvil-name" },
+    const box = h("div", { class: "anvil-name", title: TEXT.ranking.rename_help },
         nameTagIcon(),
         input,
         h("span", { class: "rename-cost" }, TEXT.ranking.rename_cost),

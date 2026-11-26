@@ -194,10 +194,36 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .theme-toggle { justify-content: center; padding: 0 9px; }
 .theme-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
+/* The progress stepper (App.js renderStepper): Item, Enchantments, Books, Order. Each chip is a numbered circle (a check once done) and its
+   name, joined by short rails; the first stage not done is the current one. Narrower than 1100px only the current chip keeps its name. */
+.stage-nav { min-width: 0; margin: 0 auto 0 8px; }
+.stage-nav ol { display: flex; align-items: center; margin: 0; padding: 0; list-style: none; }
+.stage-nav li { display: flex; align-items: center; }
+.stage-nav li + li::before { content: ""; width: 12px; height: 2px; margin: 0 2px; background: var(--border-strong); flex: none; }
+.stage-nav li:has(.stage-chip.done) + li::before { background: var(--success-text); }
+.stage-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 3px; border: 1px solid transparent; border-radius: 14px; background: transparent; color: var(--text-muted); font: 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap; cursor: pointer; position: relative; }
+.stage-chip::after { content: ""; position: absolute; inset: -6px -2px; } /* a taller target than the look */
+.stage-chip:hover { background: var(--surface-alt); color: var(--text); }
+.stage-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.stage-mark { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--border-strong); border-radius: 50%; font-size: 11px; flex: none; }
+.stage-chip.current { color: var(--text); border-color: var(--accent); }
+.stage-chip.current .stage-mark { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
+.stage-chip.done { color: var(--success-text); }
+.stage-chip.done .stage-mark { background: var(--success-bg); border-color: var(--success-text); color: var(--success-text); }
+.stage-chip.warn { color: var(--warning-text); border-color: var(--warning-text); background: var(--warning-bg); }
+.stage-chip.warn .stage-mark { background: var(--warning-bg); border-color: var(--warning-text); color: var(--warning-text); }
+.stage-nav li:has(.stage-chip.warn) + li::before { background: var(--warning-text); }
+/* Order while the search runs (or is about to, Calc.js sets <html data-search>): amber like a warning, until the result is in. */
+:root:is([data-search="running"], [data-search="pending"]) .stage-nav li:last-child .stage-chip { color: var(--warning-text); border-color: var(--warning-text); background: var(--warning-bg); }
+:root:is([data-search="running"], [data-search="pending"]) .stage-nav li:last-child .stage-mark { background: var(--warning-bg); border-color: var(--warning-text); color: var(--warning-text); }
+@media (max-width: 1099px) { .stage-chip:not(.current) { padding-right: 3px; } .stage-chip:not(.current) .stage-label { display: none; } }
+@media (pointer: coarse) { .stage-chip::after { inset: -8px -4px; } }
+
 /* Phones: the title on its own line, then the toolbar across the full width. */
 @media (max-width: 600px) {
     /* "header." raises these over the general .site-header rules further down. */
     header.site-header { flex-direction: column; align-items: stretch; gap: 10px; }
+    .stage-nav { margin: 0; }
     header .header-actions { justify-content: flex-start; position: relative; }
     #language { margin-left: auto; }
     /* The Saved menu opens across the whole toolbar, since its button is mid-row. */
@@ -256,6 +282,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
         gap: 16px;
     }
     .results-column > .card { flex: none; }
+    .results-card .section-body > .order { flex: none; }
     .results-column > .results-card:not(.collapsed) { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
     .results-card > * { flex: none; }
     .results-card > .section-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
@@ -395,7 +422,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
    layout the preview has a fixed width, so longer names never push the controls aside. */
 #wanted, #item { container: wanted / inline-size; }
 .wanted-head { position: relative; display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 4px; }
-.wanted-preview { flex: 1 1 100%; margin-bottom: 12px; }
+.wanted-preview { flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
 /* While its height slides (Motion.js growSmoothly), new lines show as the box opens. */
 .resizing { overflow: hidden; transition: height 0.25s ease-out; }
 .wanted-controls { flex: 1 1 100%; min-width: 0; }
@@ -440,6 +467,12 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     .item-dock { grid-column: auto; top: 16px; align-self: start; padding: 0; background: none; }
     #item { border-color: var(--border-strong); box-shadow: var(--shadow-pop); }
     .item-dock .item-menu { width: 440px; }
+    /* The conflict graph sits under the item card, in the column's free space (Wanted.js placeGraph); its drawing fits the column and the window's height. */
+    .item-graph { margin-top: 12px; }
+    .item-graph:empty { display: none; }
+    .item-graph .graph-box { margin: 0; padding: 0 14px 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; }
+    .item-graph .graph-box[open] { padding-bottom: 12px; }
+    .item-graph .graph-canvas { max-height: min(300px, calc(100vh - 560px)); min-height: 160px; }
 }
 
 /* The slot is the item menu's button: a caret in its corner, a purple ring on hover. */
@@ -1166,9 +1199,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .segmented button.selected { background: var(--accent-bg); color: var(--accent-text); }
 
 
-/* Section 3's settings, under the tiles. */
-.settings { margin-bottom: 4px; }
-
 /* The Game rules menu in the header: a header control (label and gear) that opens a panel with the
    level limit and Allow conflicts. A dot says a rule isn't the game's own; under 600px it is the gear alone. */
 .options-menu { position: relative; min-width: 0; flex: none; }
@@ -1319,14 +1349,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
         .options-panel > .settings-section > .options { display: grid; grid-template-columns: subgrid; }
         .options-panel .settings-section + .settings-section { margin-top: 0; }
     }
-}
-
-/* Section 3's settings on a narrow card: each label above its control, so the level limit's slider
-   (with its infinity stop and value) gets the whole width. */
-@media (max-width: 480px) {
-    #ranking .options { grid-template-columns: minmax(0, 1fr); gap: 4px; }
-    #ranking .option-label { line-height: 1.4; }
-    #ranking .option-control + .option-label { margin-top: 8px; }
 }
 
 /* Level limit: 1 ──●── 39 [∞] [value] */
@@ -1496,6 +1518,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     border-radius: 6px;
     background: var(--mc-black);
 }
+.wanted-preview > .anvil-name { max-width: none; margin-bottom: 6px; } /* the anvil's name bar, above the item's slot */
 .anvil-name:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
 .anvil-name-input {
     flex: 1;
@@ -1525,8 +1548,27 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .anvil-name.renaming .rename-cost { display: inline-block; }
 
+/* Section 4's receipt, above the steps: a game tooltip strip (the levels in the cost's green, the anvil uses, then the anvil's wear); it is
+   the button for the panel of tiles under it. */
+.order { margin-bottom: 12px; }
+.order-receipt {
+    display: flex; align-items: center; gap: 8px; padding-right: 10px;
+    background: var(--mc-tooltip-bg); border: 2px solid var(--mc-tooltip-border); border-radius: 4px; box-shadow: inset 0 0 0 1px var(--mc-tooltip-edge);
+}
+.order-toggle {
+    flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 6px 8px 10px;
+    border: none; background: none; font: 14px/1.2 "Minecraft", system-ui, sans-serif; color: var(--mc-gray); text-align: left; cursor: pointer;
+}
+.order-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
+.order-levels { flex: none; color: var(--mc-green); white-space: nowrap; }
+.order-uses { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.order-caret { margin-left: auto; flex: none; color: var(--mc-gray-dim); transition: transform 0.2s; }
+.order-toggle:hover .order-caret, .order-toggle:focus-visible .order-caret { color: var(--mc-white); }
+.order.open .order-caret { transform: rotate(180deg); }
+.order-panel { margin-top: 8px; padding: 11px; border-radius: var(--radius); background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); } /* the outline is a shadow, not a border: a border never folds below 1px, so it would jump away at the end of the close */
+.order-panel-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 12px; color: var(--text-secondary); }
 /* Result tiles, which are also the ranking (drag or use the arrows). */
-.metrics-box { margin-bottom: 14px; container: metrics / inline-size; }
+.metrics-box { container: metrics / inline-size; }
 /* "?" next to the Best order heading, with a bubble shown on hover, focus or tap. */
 .info-tip { position: relative; display: inline-flex; }
 .info-tip-button {
@@ -1593,9 +1635,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .rank-tile.at { box-shadow: inset 0 0 0 2px var(--danger-text); }
 .rank-tile.near .metric-note, .rank-tile.near .metric-unit { color: var(--warning-text); font-weight: 600; opacity: 1; }
 .rank-tile.at .metric-note, .rank-tile.at .metric-unit { color: var(--danger-text); font-weight: 600; opacity: 1; }
-/* Rank by: chips that put one criterion first; the ranking in words under the tiles. */
-.rank-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-bottom: 10px; }
-.rank-presets-label { font-size: 12px; color: var(--text-secondary); }
+/* The ranking in words under the tiles. */
 .rank-caption { margin: 8px 0 0; font-size: 12px; color: var(--text-secondary); }
 .rank-tile.primary .rank-num { color: inherit; }
 .metrics-box.updating .metric-value { opacity: 0.4; }
@@ -1638,10 +1678,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 
 /* Collapsible sections: the heading opens and closes the section. */
 .card.collapsible > h2 { cursor: pointer; user-select: none; min-width: 0; }
-/* Section 3's heading row: the h2, then the settings menu and the arrow beside it. */
-.section-head { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; min-width: 0; }
-.section-head > h2 { flex: 1; min-width: 0; margin: 0; cursor: pointer; user-select: none; }
-.card.collapsed > .section-head { margin-bottom: 0; }
 /* The title may wrap when a long one (Spanish, on a 320px phone) would push the arrow out. */
 .card.collapsible .step-badge { flex: none; }
 .card.collapsible .section-title { flex: 0 1 auto; min-width: 0; overflow-wrap: anywhere; }
@@ -1656,9 +1692,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     font: 13px/1.4 system-ui, sans-serif;
     color: var(--text-secondary);
 }
-.card.collapsed .section-summary, .section-summary.always { display: block; }
-/* "6 steps" is short: it keeps its width, and the title gives way first. */
-.section-summary.always { flex: 0 0 auto; }
+.card.collapsed .section-summary { display: block; }
 .collapse-toggle, .step-fold {
     flex: none;
     width: 26px;
@@ -1956,7 +1990,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     to { background-position: -166.667% 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-    .mc-slot.glint::after { animation: none; background-position: 50% 0; }
+    .mc-slot.glint::after, .hotbar-slot.glint::after, .mini-slot.glint::after { animation: none; background-position: 50% 0; }
 }
 
 /* Tooltip: near-black purple box with a purple inner border */
@@ -2082,6 +2116,23 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 [data-entry-link] { cursor: pointer; }
 [data-entry-link]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
+/* "Your level" in the progress row: a chip ("Lv 30", or "Set level" while not tracking) that opens a popover (Options.js renderLevelPop, placeLevelPop). */
+.level-chip {
+    position: relative; flex: none; height: 22px; padding: 0 9px; border: 1px solid var(--border-strong); border-radius: 11px;
+    background: var(--surface); color: var(--text-secondary); font: 600 12px/1 system-ui, sans-serif; white-space: nowrap; cursor: pointer;
+}
+.level-chip::after { content: ""; position: absolute; inset: -4px -2px; }
+@media (pointer: coarse) { .level-chip::after { inset: -9px -4px; } }
+.level-chip:hover, .level-chip[aria-expanded="true"] { background: var(--accent-bg); color: var(--accent-text); border-color: transparent; }
+.level-chip.on { background: var(--success-bg); color: var(--success-text); border-color: transparent; }
+.level-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.level-pop {
+    position: fixed; z-index: 35; width: 300px; max-width: calc(100vw - 32px); max-height: calc(100vh - 24px); overflow-y: auto; padding: 12px 14px;
+    background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; box-shadow: var(--shadow-menu);
+}
+.level-pop[hidden] { display: none; }
+.level-pop-title { margin-bottom: 8px; font-size: 13px; font-weight: 600; }
+
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* An experience bar: black frame, dark empty segments, bright green filled ones. */
@@ -2111,7 +2162,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .step-progress-main { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
 /* With room (not phones), the text stays on one line: the bar gives way first, then the icons wrap under it. */
-@media (min-width: 600px) { .step-progress-text { white-space: nowrap; } }
+@media (min-width: 600px) { .step-progress-text { flex: none; white-space: nowrap; } }
 .step-reset {
     flex: none;
     width: 24px;
@@ -2152,7 +2203,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .result-tools .btn:disabled:not(.primary) { opacity: 1; }
 /* One row: the progress on the left, then the icons (Steps | Tree, Compact, fold all; Share) on the right. With no room the icons wrap under the progress. */
 .result-tools { flex-wrap: wrap; align-items: center; row-gap: 8px; }
-.result-icons { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.result-icons { display: flex; align-items: center; gap: 6px; margin-left: auto; align-self: flex-start; } /* level with the XP bar's line, the hotbar under them */
 .view-group { display: flex; align-items: center; gap: 2px; }
 /* Phones: the progress takes the first line, the icons the next. */
 @media (max-width: 600px) { .result-tools .step-progress { flex-basis: 100%; } }
@@ -2291,7 +2342,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .print-only { display: block; margin: 0 0 10px; font-weight: 600; }
     body { font-size: 12px; }
     .inputs, .collapse-toggle, .section-summary,
-    .header-actions, #ranking, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
+    .header-actions, .stage-nav, .order, .level-pop, .level-chip, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
     .step-node input, .step-fold, .step-summary, .step-reset,
     .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
     /* On paper each step is its sentence (everything the slots show, in words), not the full-size cards. */
@@ -2446,6 +2497,21 @@ div.slot-cell-button { cursor: default; }
 /* A card redrawn under the pointer starts with its tooltip shown, not fading in again. */
 .slotcell.pointer-in .slot-tip { transition: none; }
 @media (hover: none) { .entry-card.slotcell .slot-tip { display: none; } }
+/* Automatic mode's shelf: a line saying what the books are, then a wrapping row of read-only slots whose tooltips show on hover
+   or focus (display, not opacity, so a hidden tooltip never widens the page), shifted into the section by Books.js placeShelfTip. */
+.jump-order { display: none; }
+/* Phones: one column, in the sections' own order (Item, Enchantments, Books and items, Anvil uses). The jump button at the end of Enchantments goes down
+   past Books to the order. */
+@media (max-width: 600px) {
+    .layout.has-item .jump-order { display: flex; width: 100%; justify-content: center; margin-top: 14px; }
+}
+.shelf-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 2px 0 14px; }
+.shelf-summary { flex: 1 1 auto; min-width: 0; font-size: 13px; color: var(--text-secondary); }
+.entry-grid.shelf .slotcell .slot-tip { display: none; transform: translateX(var(--tip-shift, 0px)); }
+.entry-grid.shelf .slotcell:hover .slot-tip, .entry-grid.shelf .slotcell:focus-within .slot-tip, .entry-grid.shelf .slotcell.pointer-in .slot-tip { display: block; }
+@media (hover: none) { .entry-grid.shelf .slotcell:focus-within .slot-tip { display: block; } }
+.entry-grid.shelf .slotcell .slot-cell-button { cursor: help; }
+.entry-grid.shelf .slotcell .slot-cell-button:focus-visible .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
 .slot-flag { position: absolute; top: 1px; left: 1px; display: flex; align-items: center; justify-content: center; width: 14px; height: 14px; border-radius: 50%; background: var(--warning-bg); color: var(--warning-text); font: 700 10px/1 system-ui, sans-serif; }
 .entry-card.slotcell.drag-source { opacity: 0.7; }
 
@@ -2481,7 +2547,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 /* The Slots view's caption under its row. */
 .step-caption { display: none; }
 .anvil-step.flash { animation: entry-flash 1.4s ease-out; }
-.step-progress-main .level-status { flex-basis: 100%; }
+.step-progress > .level-status { flex-basis: 100%; }
 .level-checkpoint { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 12px; }
 .mc-from { font-size: 11px; color: var(--mc-from); }
 /* Lines this step did not change: a muted colour, not opacity (which falls under 4.5:1 on the tooltip). */
@@ -2523,13 +2589,47 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .final-card.done { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
 .final-card.done .final-title { color: var(--success-text); }
 .final-card.done .mc-slot { box-shadow: 0 0 0 3px var(--mc-green); }
-.current-bar { display: none; }
-@media (max-width: 899px) {
-    .current-bar { position: sticky; bottom: 8px; z-index: 40; display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-menu-deep); transition: opacity 0.15s, transform 0.15s, visibility 0.15s; }
-    .current-bar.tucked { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
-    .current-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: 12px; }
-    .current-bar-text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-secondary); overflow-wrap: anywhere; }
+/* The current step and Done, kept on screen while its own card is scrolled away (Results.js currentBar, watchCurrentStep tucks it while the step shows).
+   Phones: a bar in the flow, sticky at the bottom of the page. Wide windows: a "Next step" card with the step's three slots, laid over the bottom of
+   the steps' box by a zero-high sticky wrapper, so it never changes the scroller's size. */
+.current-bar { position: sticky; bottom: 8px; z-index: 40; transition: opacity 0.15s, transform 0.15s, visibility 0.15s; }
+.current-bar-card { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-menu-deep); }
+.current-bar.tucked { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
+.current-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: 12px; }
+.current-bar-text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-secondary); overflow-wrap: anywhere; }
+.current-bar-eyebrow, .current-bar-slots { display: none; }
+@media (max-width: 899px) { .current-bar { margin-top: 10px; } }
+@media (min-width: 900px) {
+    .current-bar { bottom: 0; height: 0; }
+    .current-bar-card { position: absolute; left: 0; right: 4px; bottom: 8px; padding: 6px 10px; }
+    .current-bar-text span { display: none; }
+    .current-bar-eyebrow { display: block; font-size: 10px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+    .current-bar-slots { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); font-size: 12px; }
+    .current-bar-slots i { font-style: normal; }
 }
+.mini-slot { position: relative; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: var(--mc-slot-bg); border: 2px solid; border-color: var(--mc-slot-dark) var(--mc-white) var(--mc-white) var(--mc-slot-dark); overflow: hidden; box-sizing: border-box; flex: none; }
+.mini-slot .item-icon { width: 22px; height: 22px; }
+
+/* The step hotbar (Results.js stepHotbar): an inventory row, one slot per step, in every view; on phones it takes the XP bar's place. */
+.step-hotbar { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 3px; max-width: 100%; padding: 5px 5px 4px; box-sizing: border-box; }
+@media (max-width: 600px) { .step-progress-track { display: none; } }
+.hotbar-slot { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; box-sizing: border-box; background: var(--mc-slot-bg); border: 2px solid; border-color: var(--mc-slot-dark) var(--mc-white) var(--mc-white) var(--mc-slot-dark); cursor: pointer; overflow: visible; }
+.hotbar-slot .item-icon { width: 24px; height: 24px; }
+.hotbar-slot:hover { background: var(--mc-slot-hover); }
+.hotbar-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.hotbar-slot.glint::after, .mini-slot.glint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, var(--glint-edge) 45%, var(--glint-core) 50%, transparent 65%); background-size: 250% 100%; mix-blend-mode: screen; animation: glint 3s linear infinite; pointer-events: none; }
+/* The selected slot: the game's white frame, with its dark outer edge. */
+.hotbar-slot.current { z-index: 1; box-shadow: 0 0 0 2px var(--mc-black), 0 0 0 4px var(--mc-white), 0 0 0 5px var(--mc-black); }
+.hotbar-slot.done .item-icon { opacity: 0.45; }
+@media (pointer: coarse) { .hotbar-slot::before { content: ""; position: absolute; inset: -4px 0; } }
+.hotbar-number { position: absolute; left: 1px; top: 0; font: 9px/1 "Minecraft", system-ui, sans-serif; color: var(--mc-white); text-shadow: 1px 1px 0 var(--mc-black); pointer-events: none; }
+.hotbar-check { position: absolute; right: 0; bottom: -1px; font-size: 12px; line-height: 1; font-weight: 700; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-black); pointer-events: none; }
+/* A slot's game tooltip (Results.js stepHotbar): fixed to the window and placed by placeHotbarTip (under the slot, centred, inside the window); shown on hover or keyboard focus. */
+.hotbar-tip { display: none; position: fixed; z-index: 60; width: max-content; max-width: min(280px, calc(100vw - 16px)); text-align: left; white-space: nowrap; pointer-events: none; }
+.hotbar-slot:hover .hotbar-tip, .hotbar-slot:focus-visible .hotbar-tip { display: block; }
+.hotbar-slot:hover, .hotbar-slot:focus-visible { z-index: 50; } /* above the round labels and steps below the row while its tooltip shows */
+.hotbar-tip-step { margin-top: 2px; color: var(--mc-gray); }
+@media (hover: none) { .hotbar-slot:hover .hotbar-tip { display: none; } }
 @media print { .current-bar, .density { display: none !important; } }
 /* The Slots view: a step is one line of slots; tooltips show on hover or focus. */
 .slots-mode .anvil-step { padding-bottom: 6px; }
@@ -2711,12 +2811,13 @@ html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="
 @media (prefers-reduced-motion: no-preference) {
     html[data-motion="off"] .mc-slot.glint::after { animation: glint 3s linear infinite !important; }
     html[data-motion="off"] .tree-slot.glint::after { animation: glint 3s linear infinite !important; }
+    html[data-motion="off"] .hotbar-slot.glint::after, html[data-motion="off"] .mini-slot.glint::after { animation: glint 3s linear infinite !important; }
     html[data-motion="off"] .ench-row.chosen::after { animation: row-glint 7s linear infinite !important; }
 }
 /* A glint that is off screen waits (Dom.js keepGlintsInStep) and comes back in step. */
 .glint-paused::after { animation-play-state: paused !important; }
 /* Glints off: the slots keep a still band (as with reduced motion), the rows' sheen goes. */
-html[data-glint="off"] .mc-slot.glint::after, html[data-glint="off"] .tree-slot.glint::after { animation: none !important; background-position: 50% 0; }
+html[data-glint="off"] .mc-slot.glint::after, html[data-glint="off"] .tree-slot.glint::after, html[data-glint="off"] .hotbar-slot.glint::after, html[data-glint="off"] .mini-slot.glint::after { animation: none !important; background-position: 50% 0; }
 html[data-glint="off"] .ench-row.chosen::after { display: none; }
 /* "Several groups": a block for each part (a small label, then its lanes), nested as the conflicts nest. */
 .pick-groups > .ench-group-label { padding-left: 4px; }

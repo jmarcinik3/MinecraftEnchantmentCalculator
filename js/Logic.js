@@ -6,6 +6,30 @@ export const MAX_COPIES = 64;      // copies of one entry (a stack of books)
 // levels, is already far past any limit, and a bigger one would only overflow.
 export const MAX_PRIOR_WORK = 30;
 
+// The experience points a level costs from 0 (must match Engine.js experienceFromLevel).
+export function experienceFromLevel(level) {
+    if (level <= 0) return 0;
+    if (level <= 16) return level * level + 6 * level;
+    if (level <= 31) return 2.5 * level * level - 40.5 * level + 360;
+    return 4.5 * level * level - 162.5 * level + 2220;
+}
+
+// Starting or ending a rename on an order already found: Rename is 1 level on the last step only, so that step's cost, the totals and the
+// biggest step change by it, and the order stays the same. Returns false when the order can't be kept that way and must be searched again:
+// the last step would pass `step_limit`, or (ending a rename) it would cost nothing, which Java refuses unless it renames.
+export function applyRename(node, renaming, step_limit) {
+    if (!node || !node.left) return false;
+    if (Boolean(node.renamed) === renaming) return true;
+    const merge = node.merge_levels + (renaming ? 1 : -1);
+    if (merge > step_limit || merge <= 0) return false;
+    node.merge_levels = merge;
+    node.cumulative_levels = node.left.cumulative_levels + node.right.cumulative_levels + merge;
+    node.cumulative_xp = node.left.cumulative_xp + node.right.cumulative_xp + experienceFromLevel(merge);
+    node.max_step = Math.max(node.left.max_step, node.right.max_step, merge);
+    if (renaming) node.renamed = true; else delete node.renamed;
+    return true;
+}
+
 // Ranking criteria for the best order, in default order (must match Engine.js).
 export const CRITERIA = ["levels", "xp", "max_step", "prior_work"];
 

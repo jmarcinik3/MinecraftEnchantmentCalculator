@@ -10,7 +10,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 // data: URLs too (a data: URL has no folder to resolve "./" against).
 const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path)
     .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
-const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods, linkEdition, roman, MAX_PRIOR_WORK } = await import(moduleUrl("../js/Logic.js"));
+const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods, linkEdition, roman, MAX_PRIOR_WORK, applyRename, experienceFromLevel } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT, LANGUAGES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
 const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
@@ -134,6 +134,25 @@ test("old single-objective links still load", () => {
     const bad = logic.deserialize(encode({ i: "sword", w: {}, a: 1, b: [], p: [2, 2, 9], c: 99 }), () => 0);
     assert.deepStrictEqual(bad.priority, ["max_step", "levels", "xp", "prior_work"]);
     assert.strictEqual(bad.max_step, 39);
+});
+
+test("applyRename adds 1 level to the last step of a found order, as the engine's own rename does", () => {
+    const engine_api = createRequire(import.meta.url)("../js/Engine.js");
+    const engine = engine_api.createEngine(meta);
+    for (let level = 0; level <= 50; level++) assert.strictEqual(experienceFromLevel(level), engine_api.experienceFromLevel(level), "xp " + level);
+    const book = (ns, level) => ["book", [[ns, level]], 0];
+    const entries = [["boots", [], 0], book("protection", 4), book("feather_falling", 4), book("unbreaking", 3), book("mending", 1), book("depth_strider", 3)];
+    const plain = engine.solve(entries, { max_merge_levels: 39 });
+    const renamed = engine.solve(entries, { max_merge_levels: 39, rename: true });
+    const totals = node => [node.merge_levels, node.cumulative_levels, node.cumulative_xp, node.max_step, Boolean(node.renamed)];
+    const on = JSON.parse(JSON.stringify(plain));
+    assert.ok(applyRename(on, true, 39));
+    assert.deepStrictEqual(totals(on), totals(renamed), "the same totals as a search with Rename on");
+    assert.ok(applyRename(on, false, 39));
+    assert.deepStrictEqual(totals(on), totals(plain), "and back");
+    // Past the limit, or a single entry: search again instead.
+    assert.strictEqual(applyRename(JSON.parse(JSON.stringify(plain)), true, plain.merge_levels), false);
+    assert.strictEqual(applyRename({ merge_levels: 0, left: null }, true, 39), false);
 });
 
 test("ranking criteria match the engine's", () => {

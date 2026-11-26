@@ -161,7 +161,7 @@ const glint_watch = typeof IntersectionObserver === "function"
 const watched_glints = new WeakSet();
 function watchGlints() {
     if (!glint_watch) return;
-    for (const el of document.querySelectorAll(".mc-slot.glint, .tree-slot.glint, .ench-row.chosen")) {
+    for (const el of document.querySelectorAll(".mc-slot.glint, .tree-slot.glint, .hotbar-slot.glint, .mini-slot.glint, .ench-row.chosen")) {
         if (watched_glints.has(el)) continue;
         watched_glints.add(el);
         glint_watch.observe(el);

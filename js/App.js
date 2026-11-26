@@ -6,8 +6,8 @@ import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, sc
 import { slideSection } from "./Motion.js";
 import { renderItem, renderWanted, setupConflictTips, setupItemDock, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
-import { renderMetrics } from "./Ranking.js";
-import { renderRanking, resultNode, setupOptionsMenu, syncRename } from "./Options.js";
+import { renderMetrics, setupOrderPanel } from "./Ranking.js";
+import { renderLevelPop, renderSettings, resultNode, setupLevelPop, setupOptionsMenu, syncRename } from "./Options.js";
 import { anvilRisk, renderResults } from "./Results.js";
 import { resetWorkers, runCalculation, scheduleCalculation, startWorker } from "./Calc.js";
 import { currentLink, linkText, loadFromUrl, readLink, saveToUrl, useLink } from "./Link.js";
@@ -181,16 +181,18 @@ function render() {
     renderLanguage();
     renderTheme();
     renderSaved();
+    renderStepper();
     renderItem();
     renderWanted();
     renderBooks();
-    renderRanking();
+    renderSettings();
+    renderLevelPop();
     renderResults();
     if (scrollY !== scroll) scrollTo(scrollX, scroll);
 }
 
 // ---------- Collapsing sections ----------
-// All four sections close from their heading (the arrow, or anywhere on the heading but its
+// All three sections close from their heading (the arrow, or anywhere on the heading but its
 // badge), so the results are easier to reach once things are set. Closed sections are
 // remembered in this browser, and their heading says what is chosen inside.
 
@@ -225,9 +227,6 @@ function setupCollapsing() {
             if (event.target.closest(".info-tip")) return; // the badge and ? have their own bubbles
             toggle();
         });
-        // Section 3's arrow sits beside its heading (with the Options menu between them).
-        const arrow = card.querySelector(".collapse-toggle");
-        if (!card.querySelector("h2").contains(arrow)) arrow.addEventListener("click", toggle);
     }
     applyCollapsed();
 }
@@ -240,34 +239,57 @@ function renderSummaries() {
         ? TEXT.page.summary_item({ item: logic.itemName(state.item), count: chosen.length })
         : TEXT.page.summary_none;
     $("#books-summary").textContent = state.auto_books ? TEXT.page.summary_automatic : TEXT.page.summary_entries({ count: entries });
-    renderOrderSummary();
 }
 
-// Section 4's heading: how many steps the order takes (shown open or closed), with the anvil's
-// break risk beside it (anvilRisk).
+// Section 4's receipt (above the steps, drawn once there is an order): the levels the order costs, its anvil uses and the anvil's
+// break risk (anvilRisk). The heading says the steps too, but only while the section is closed (CSS).
 export function renderStepsSummary() {
     const node = resultNode();
     const uses = node ? logic.collectSteps(node).length : 0;
     $("#steps-summary").textContent = node ? TEXT.page.summary_steps({ count: uses }) : TEXT.ranking.no_value;
+    $("#order").hidden = !node;
+    if (node) {
+        $("#order-levels").textContent = TEXT.wanted.cost_meter({ levels: node.cumulative_levels });
+        $("#order-uses").textContent = TEXT.ranking.order_uses({ uses });
+    }
     $("#anvil-risk").replaceChildren(...(node ? [anvilRisk(uses)] : []));
+    renderStepper();
 }
 
-// Section 3's summary while closed: all four results in ranking order, e.g.
-// "66 levels · 1,246 XP · Max level 16 · Prior work 4".
-export function renderOrderSummary() {
-    const node = resultNode();
-    $("#order-summary").textContent = node ? metricsText(node) : TEXT.ranking.no_value;
-}
+// The header's progress stepper: Item, Enchantments, Books, Order. A chip is done when its stage is (an item is picked, an enchantment chosen,
+// books exist (Automatic counts), an order found) and goes to its section like a skip link; the first one not done is the current stage.
+const BOOKS_STAGE = 2;
+const STEPPER_STAGES = [
+    { name: "stepper_item", done: () => Boolean(state.item), target: () => ($("#item-dock").hidden ? document.querySelector('[data-section="wanted"]') : $("#item-dock")) },
+    { name: "stepper_enchantments", done: () => Object.keys(state.wanted).length > 0, target: () => document.querySelector('[data-section="wanted"]') },
+    { name: "stepper_books", done: () => state.auto_books || state.books.length > 0, target: () => document.querySelector('[data-section="books"]') },
+    { name: "stepper_order", done: () => Boolean(resultNode()), target: () => document.querySelector('[data-section="steps"]') }
+];
 
-// An order's four results in ranking order: "66 levels · 1,246 XP · Max level 16 · …".
-function metricsText(node) {
-    const summaries = {
-        levels: () => TEXT.page.summary_levels({ levels: node.cumulative_levels }),
-        xp: () => TEXT.page.summary_xp({ xp: Math.round(node.cumulative_xp).toLocaleString(language) }),
-        max_step: () => TEXT.page.summary_max_step({ level: node.max_step }),
-        prior_work: () => TEXT.page.summary_prior_work({ count: node.prior_work })
-    };
-    return state.priority.map(criterion => summaries[criterion]()).join(" · ");
+function renderStepper() {
+    const nav = $("#stages");
+    if (!nav.firstElementChild) {
+        nav.append(h("ol", {}, STEPPER_STAGES.map(stage => h("li", {},
+            h("button", { type: "button", class: "stage-chip", onclick: () => goToSection(stage.target()) },
+                h("span", { class: "stage-mark", "aria-hidden": "true" }),
+                h("span", { class: "stage-label" })))
+        )));
+    }
+    const flags = STEPPER_STAGES.map(stage => stage.done());
+    const current = flags.indexOf(false);
+    nav.querySelectorAll(".stage-chip").forEach((chip, index) => {
+        const name = TEXT.page[STEPPER_STAGES[index].name];
+        chip.classList.toggle("done", flags[index]);
+        chip.classList.toggle("current", index === current);
+        if (index === current) chip.setAttribute("aria-current", "step"); else chip.removeAttribute("aria-current");
+        // Books also warns while Section 3's alert badge shows (chosen enchantments the books can't reach): amber, and named so.
+        const warn = index === BOOKS_STAGE && $("#books-alert").childElementCount > 0;
+        chip.classList.toggle("warn", warn);
+        chip.setAttribute("aria-label", warn ? TEXT.page.stepper_problem({ name }) : flags[index] ? TEXT.page.stepper_done({ name }) : name);
+        chip.title = name;
+        chip.querySelector(".stage-mark").textContent = warn ? "!" : flags[index] ? "✓" : String(index + 1);
+        chip.querySelector(".stage-label").textContent = name;
+    });
 }
 
 // ---------- Language ----------
@@ -498,12 +520,21 @@ function fillPageText() {
 function setupSkipLinks() {
     for (const link of document.querySelectorAll(".skip-link[data-skip]")) {
         const section = document.querySelector(`[data-section="${link.dataset.skip}"]`);
-        if (!section) continue;
-        section.tabIndex = -1;
-        link.addEventListener("click", () => {
-            section.focus({ preventScroll: true });
-            scrollToView(section, "start");
-        });
+        if (section) link.addEventListener("click", () => goToSection(section));
+    }
+}
+
+// Focuses a section (it takes focus, so the next Tab enters it) and scrolls to it: the skip links and the header's stepper.
+function goToSection(section) {
+    section.tabIndex = -1;
+    section.focus({ preventScroll: true });
+    scrollToView(section, "start");
+}
+
+// "See the order" at the end of Enchantments (phones): scrolls to Anvil uses, which comes before Books and items there.
+function setupJumpButtons() {
+    for (const button of document.querySelectorAll(".jump-order[data-jump]")) {
+        button.addEventListener("click", () => scrollToView(document.querySelector(`[data-section="${button.dataset.jump}"]`), "start"));
     }
 }
 
@@ -534,12 +565,16 @@ async function init() {
     setupTheme();
     setupInfoTip();
     setupSkipLinks();
+    new MutationObserver(renderStepper).observe($("#books-alert"), { childList: true }); // (Books.js draws and clears the alert badge)
+    setupJumpButtons();
     setupSavedMenu();
     setupItemMenu();
     setupItemDock();
     setupConflictTips();
     setupEntryPopover();
     setupOptionsMenu();
+    setupLevelPop();
+    setupOrderPanel();
     setupCollapsing();
     render();
     runCalculation();

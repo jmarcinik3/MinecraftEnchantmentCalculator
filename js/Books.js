@@ -25,8 +25,8 @@ export function renderBooks() {
     const box = $("#books");
     const focus = focusState(box);
     // Switching Cards/Slots/List morphs each card into its new shape (animateCards).
-    const view_changed = box.dataset.view != null && box.dataset.view !== books_view;
-    box.dataset.view = books_view;
+    const view_changed = box.dataset.view != null && box.dataset.view !== shownView();
+    box.dataset.view = shownView();
     // Switching Automatic/Custom keeps the entries that are still there (matched by what they hold).
     const mode = state.auto_books ? "auto" : "custom";
     const mode_changed = box.dataset.mode != null && box.dataset.mode !== mode;
@@ -55,18 +55,24 @@ export function renderBooks() {
     if (entry_popover && !(custom && state.books.some(book => book.id === entry_popover.id))) entry_popover = null;
 
     book_sigs = new Map(books.map(book => [String(book.id), bookSignature(book)]));
-    const grid = h("div", { class: "entry-grid" + (books_view === "list" ? " list" : books_view === "slots" ? " slots" : "") },
+    const grid = h("div", { class: "entry-grid" + (shownView() === "list" ? " list" : shownView() === "slots" ? " slots" : "") + (custom ? "" : " shelf") },
         books.map((book, index) => entryCard(book, index, books.length, custom, unwanted)),
         custom ? addCard() : null
     );
     box.append(...[
         h("div", { class: "toolbar" },
             modeSwitch(),
-            viewSwitch()
+            custom ? viewSwitch() : null // the view only matters for entries you can edit
         ),
-        custom ? coverageStrip() : null,
+        custom ? coverageStrip() : shelfHead(books),
         grid
     ].filter(Boolean));
+    // The shelf's slots are one tab stop (Left and Right move along them); the tooltips are kept inside the section.
+    if (!custom) {
+        const cells = [...grid.querySelectorAll(".slot-cell-button")];
+        roving(cells, 0, { prev: ["ArrowLeft", "ArrowUp"], next: ["ArrowRight", "ArrowDown"] });
+        for (const cell of cells) for (const type of ["pointerenter", "focus"]) cell.addEventListener(type, () => placeShelfTip(cell));
+    }
     if (entry_popover) placePopover(grid);
     // The same entries in the same order (only their enchantments changed): the tooltips' lines
     // animate in place, as in section 1, and the layout follows them. Otherwise the cards slide.
@@ -180,7 +186,7 @@ function modeSwitch() {
 // view each entry is one row: a small slot, its enchantments (tap: the picker), the
 // badges and the buttons. In the Slots view an entry is only its slot (slotCell).
 function entryCard(book, index, count, editable, unwanted) {
-    if (books_view === "slots") return slotCell(book, index, count, editable, unwanted);
+    if (shownView() === "slots") return slotCell(book, index, count, editable, unwanted);
     const key = String(book.id);
     const is_item = book.type === "item";
     const item_name = logic.itemName(state.item);
@@ -190,7 +196,7 @@ function entryCard(book, index, count, editable, unwanted) {
     const prior_work = book.prior_work || 0;
     const name = is_item ? item_name : enchanted ? TEXT.results.enchanted_book : TEXT.books.book;
     const open = entry_popover && entry_popover.id === book.id ? entry_popover.kind : null;
-    const compact = books_view === "list";
+    const compact = shownView() === "list";
 
     const slot = h("div", { class: "mc-slot" + (enchanted ? " glint" : "") },
         icon(is_item ? state.item : "book"),
@@ -449,6 +455,31 @@ function coverageStrip() {
 // Cards (two to a row where there is room), Slots (only the slot) or List (one row per entry); remembered here.
 const stored_view = readStorage(BOOKS_VIEW_STORAGE_KEY, "cards");
 let books_view = ["list", "slots"].includes(stored_view) ? stored_view : "cards";
+
+// The view the entries are drawn in: Automatic's list is always a shelf of slots (a row of game slots with the tooltip on hover or focus); the Cards | Slots | List
+// choice is for Custom.
+function shownView() {
+    return state.auto_books ? "slots" : books_view;
+}
+
+// Automatic mode's one line above the shelf: what the books are, and the way to change them.
+function shelfHead(books) {
+    const count = books.filter(book => book.type === "book").length;
+    return h("div", { class: "shelf-head" },
+        h("span", { class: "shelf-summary" }, count ? TEXT.books.shelf_summary({ count }) : TEXT.books.shelf_empty));
+}
+
+// A shelf slot's tooltip hangs under it; shifted left (--tip-shift) just far enough to stay inside the section.
+function placeShelfTip(cell) {
+    const tip = cell.parentElement.querySelector(".slot-tip");
+    const area = $("#books").getBoundingClientRect();
+    if (!tip) return;
+    tip.style.setProperty("--tip-shift", "0px");
+    tip.style.display = "block";
+    const box = tip.getBoundingClientRect();
+    tip.style.display = "";
+    tip.style.setProperty("--tip-shift", Math.min(0, area.right - box.right) + "px");
+}
 
 function viewSwitch() {
     const icons = {
@@ -989,7 +1020,7 @@ function slotCell(book, index, count, editable, unwanted) {
         "aria-expanded": String(open === "enchant"),
         onclick: () => togglePopover(book.id, "enchant", "add-" + key),
         onpointerdown: event => mergeDrag(event, book)
-    }, slot) : h("div", { class: "slot-cell-button", role: "img", "aria-label": label, onpointerdown: event => mergeDrag(event, book) }, slot);
+    }, slot) : h("div", { class: "slot-cell-button", role: "img", tabindex: "0", "aria-label": label, onpointerdown: event => mergeDrag(event, book) }, slot);
     return h("div", { class: "entry-card slotcell" + (open ? " popover-open" : "") + (pointer_in === key ? " pointer-in" : ""), "data-index": index, "data-key": key, ...pointerIn(key) },
         main, tip, editable ? copiesControl(book, key, copies) : null,
         // The grip in the corner reorders (drag it onto another slot, or use the arrow keys); the slot itself drags to preview a merge.

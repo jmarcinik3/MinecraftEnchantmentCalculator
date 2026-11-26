@@ -4,8 +4,9 @@ import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
 import { $, closeOnOutside, enchLine, h, icon, motionOk, nameClass, plain, roving, scrollToView, scrubber } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
-import { changeLines, closeRow, easeHeight, foldClick, foldDetails, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
-import { anvilCell } from "./Results.js";
+import { changeLines, closeRow, easeHeight, foldClick, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
+import { anvilCell, foldIcon } from "./Results.js";
+import { nameField } from "./Options.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { conflictGraph, markGraphSearch } from "./Graph.js";
 import { clashes, commit, resetEverything, selectItem, setWanted, tryExample } from "./App.js";
@@ -144,6 +145,11 @@ export function setupItemDock() {
     const narrow = matchMedia("(max-width: 1359px)");
     const sync = () => document.documentElement.style.setProperty("--dock-h", narrow.matches && dock.classList.contains("condensed") && !dock.hidden ? $("#item").offsetHeight + 8 + "px" : "0px");
     narrow.addEventListener("change", sync);
+    WIDE_ITEM.addEventListener("change", () => {
+        const graph = document.querySelector(".graph-box");
+        if (graph) (WIDE_ITEM.matches ? $("#item-graph") : $("#wanted")).append(graph);
+        syncFoldToggle();
+    });
     new IntersectionObserver(([entry]) => {
         const condense = !entry.isIntersecting && Boolean(state.item);
         // Condensing must not change the page's length, or the browser's scroll anchoring moves the scroll position back across the threshold and the bar
@@ -198,13 +204,15 @@ export function renderWanted() {
             // A first look without choosing anything: a fully enchanted helmet.
             h("button", { type: "button", class: "btn small example", onclick: tryExample }, TEXT.wanted.example)
         );
+        $("#item-graph").replaceChildren();
         restoreFocus(box, focus);
         restoreConflicts();
         return;
     }
 
     const { list, mod_boxes, count } = wantedList();
-    box.append(...[wantedSearch(), listBox(list, count), ...mod_boxes, conflictGraph(searchMatcher())].filter(Boolean)); // append(null) would print "null"
+    box.append(...[wantedSearch(), listBox(list, count), ...mod_boxes].filter(Boolean)); // append(null) would print "null"
+    placeGraph(conflictGraph(searchMatcher()));
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
         growSmoothly(group, old_groups.get(group.dataset.group));
@@ -226,7 +234,19 @@ export function renderWanted() {
     }
     restoreFocus(box, focus);
     restoreConflicts();
+    syncFoldToggle();
 }
+
+// The conflict graph's box: in the item column under the item card on wide windows (where the item is a card of its own, with room to spare under it),
+// else the last box of section 2. Redrawn with the section, and moved when the window crosses the breakpoint (setupItemDock).
+const WIDE_ITEM = matchMedia("(min-width: 1360px)");
+function placeGraph(graph) {
+    const host = $("#item-graph");
+    host.replaceChildren();
+    if (!graph) return;
+    (WIDE_ITEM.matches ? host : $("#wanted")).append(graph);
+}
+const FOLDS = "#wanted details, #item-graph details"; // every fold-away box of section 2 (the graph's is in the item column when wide)
 
 // Eases a row's height from `from` to its new one (the box clips while it does). A row laid out as one grid row has that row
 // follow the box meanwhile, so what is in it (the level bar) moves with the box both ways: left to itself, a growing box would
@@ -386,16 +406,17 @@ function wantedList() {
         const count = groups.reduce((sum, group) => sum + group.members.length, 0);
         const chosen = groups.some(group => group.members.some(ns => state.wanted[ns]));
         mod_boxes.push(h("details", {
-            class: "fold-box mod-section", "data-mod": mod, open: chosen || mod_open.has(mod) || Boolean(query),
+            // A box the user closed stays closed through redraws (choosing a curse, say), even while one of its enchantments is chosen; a search opens it.
+            class: "fold-box mod-section", "data-mod": mod, open: (!mod_closed.has(mod) && (chosen || mod_open.has(mod))) || Boolean(query),
             ontoggle: event => {
                 if (wanted_query.trim()) return; // opened by the search, not by the user
-                if (event.target.open) mod_open.add(mod); else mod_open.delete(mod);
+                setModOpen(mod, event.target.open);
             }
         },
             h("summary", {
                 onclick: foldClick(open => {
                     if (wanted_query.trim()) return;
-                    if (open) mod_open.add(mod); else mod_open.delete(mod);
+                    setModOpen(mod, open);
                 })
             }, TEXT.wanted.mod_group({ name: mod, count })),
             withPickAny(groups, "pick-any-" + mod)));
@@ -431,12 +452,39 @@ function setBracket(group, folded) {
     if (folded) folded_groups.add(key); else folded_groups.delete(key);
     group.classList.toggle("folded", folded);
     group.querySelector(":scope > .group-toggle").setAttribute("aria-expanded", String(!folded));
+    syncFoldToggle();
+}
+
+// Expand all / Collapse all is one icon that shows what it would do: fold while anything in the section is open (a box, a group, a plain
+// bracket; a box mid-slide counts where it is heading), and unfold once everything is folded. So it starts as Collapse, as the list opens open.
+// It follows each fold by hand too (a `toggle` of any box, setBracket).
+function allFolded() {
+    const open = [...document.querySelectorAll(FOLDS)].some(details => foldTarget(details))
+        || [...document.querySelectorAll("#wanted .ench-group[data-group]")].some(group => !group.classList.contains("folded") && group.querySelector(":scope > .group-toggle"));
+    return !open;
+}
+function syncFoldToggle() {
+    const button = document.querySelector("#wanted .fold-toggle");
+    if (!button) return;
+    const expand = allFolded();
+    const label = expand ? TEXT.wanted.expand_groups_label : TEXT.wanted.collapse_groups_label;
+    button.dataset.action = expand ? "expand" : "collapse";
+    button.title = label;
+    button.setAttribute("aria-label", label);
+    button.replaceChildren(foldIcon(expand));
+}
+let fold_sync_ready = false;
+function watchFolds() {
+    if (fold_sync_ready) return;
+    fold_sync_ready = true;
+    // `toggle` doesn't bubble, so the listener captures it on its way to each box.
+    for (const root of ["#wanted", "#item-graph"]) document.querySelector(root).addEventListener("toggle", syncFoldToggle, true);
 }
 
 // Expand all / Collapse all for section 1: every fold-away box and group subsection, and the folds of the plain conflict brackets.
 // Each box that changes eases like a section does (foldDetails, easeHeight); ones inside another that changes just follow it.
 function foldWanted(open) {
-    const changing = new Set([...document.querySelectorAll("#wanted details")].filter(details => details.open !== open));
+    const changing = new Set([...document.querySelectorAll(FOLDS)].filter(details => details.open !== open));
     const outer = node => { let up = node.parentElement.closest("details"); while (up && !changing.has(up)) up = up.parentElement.closest("details"); return up; };
     const tops = [...changing].filter(details => !outer(details));
     const brackets = [...document.querySelectorAll("#wanted .ench-group[data-group]")].filter(group => group.classList.contains("folded") === open && group.querySelector(":scope > .group-toggle"));
@@ -452,6 +500,7 @@ function foldWanted(open) {
         for (const group of brackets) setBracket(group, true);
         run();
     }
+    syncFoldToggle();
 }
 
 // The "?" beside the fold buttons: what each kind of group means (a bubble that floats over the page, like the other tips).
@@ -470,13 +519,12 @@ function groupLegend() {
     return tip;
 }
 
-// The search box with the fold buttons beside it (below it when the card is too narrow for both).
+// The search box with the fold toggle and the groups "?" beside it (below it when the card is too narrow for both).
 function wantedSearch() {
+    watchFolds();
+    const toggle = h("button", { type: "button", class: "icon-btn fold-toggle", "data-focus": "wanted-fold", onclick: () => foldWanted(allFolded()) });
     return h("div", { class: "search-row" }, searchInput(),
-        h("span", { class: "fold-buttons" },
-            h("button", { type: "button", class: "btn small", "data-focus": "wanted-expand", "aria-label": TEXT.wanted.expand_groups_label, onclick: () => foldWanted(true) }, TEXT.wanted.expand_groups),
-            h("button", { type: "button", class: "btn small", "data-focus": "wanted-collapse", "aria-label": TEXT.wanted.collapse_groups_label, onclick: () => foldWanted(false) }, TEXT.wanted.collapse_groups),
-            groupLegend()));
+        h("span", { class: "fold-buttons" }, toggle, groupLegend()));
 }
 
 function searchInput() {
@@ -601,6 +649,10 @@ function groupFold(title, key, content) {
 
 // The mods whose section the user opened (in this visit).
 const mod_open = new Set();
+const mod_closed = new Set(); // the mod boxes the user closed (they stay closed while one of their enchantments is chosen)
+function setModOpen(mod, open) {
+    if (open) { mod_open.add(mod); mod_closed.delete(mod); } else { mod_open.delete(mod); mod_closed.add(mod); }
+}
 
 // The top of section 1: the preview, with `controls` (the presets) beside it
 // where the card is wide enough, else under it.
@@ -639,7 +691,8 @@ function wantedPreview() {
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
     cell.querySelector(".mc-tooltip").append(costLine());
-    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
+    // The anvil's name bar sits above the slot (Rename: Options.js nameField); the condensed bar hides it with the rest of the head.
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, nameField(), cell);
 }
 
 // The last line of the preview's tooltip: an XP orb and the anvil levels of the best order for the books
@@ -698,7 +751,22 @@ function flipWords(line, text, old_words, words, old_box) {
         { ...options, fill: "forwards" }).finished.then(() => { ghost.remove(); line.style.position = ""; }, () => ghost.remove());
 }
 
+// The preview's name follows Rename as the results' tooltips do (renderResults calls updateCostMeter): typing a name redraws the results, not the item card.
+function updatePreviewName() {
+    const name = document.querySelector("#item .wanted-preview .mc-tooltip > :first-child");
+    if (!name || !state.item) return;
+    const renamed = Boolean(state.rename_to.trim());
+    const text = renamed ? state.rename_to : logic.itemName(state.item);
+    if (name.textContent === text && name.classList.contains("renamed") === renamed) return;
+    const tooltip = name.parentElement;
+    const width_before = tooltip.getBoundingClientRect().width;
+    name.textContent = text;
+    name.classList.toggle("renamed", renamed);
+    slideWidth(tooltip, width_before);
+}
+
 export function updateCostMeter() {
+    updatePreviewName();
     const ok = last_result && last_result.status === "ok";
     if (ok && last_result.node) { meter_levels = last_result.node.cumulative_levels; meter_none = false; }
     else if (!running) { meter_levels = null; meter_none = Boolean(ok); }

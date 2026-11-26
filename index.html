@@ -21,11 +21,12 @@
     <div id="live" class="sr-only" role="status" aria-live="polite"></div>
     <!-- Skip links (App.js setupSkipLinks): the first stops on the page, visible only while focused. Buttons, not #links, since the address's hash holds the setup. -->
     <div class="skip-links">
-        <button type="button" class="skip-link" data-skip="order" data-text="page.skip_best"></button>
         <button type="button" class="skip-link" data-skip="steps" data-text="page.skip_steps"></button>
     </div>
     <header class="site-header">
         <h1 data-text="page.heading"></h1>
+        <!-- The four stages (App.js renderStepper): each says whether it is done and goes to its section. -->
+        <nav id="stages" class="stage-nav" data-text-label="page.stepper_label"></nav>
         <!-- One toolbar: every control the same height (.header-control). On phones it is a
              full-width row under the title, and Copy link shrinks to its icon. -->
         <div class="header-actions">
@@ -52,14 +53,17 @@
     <main class="layout">
         <!-- The item: a floating card beside the sections on wide windows, a sticky bar over them (condensed to one line once scrolled) on narrow ones.
              Not a section (no number, no collapse); Wanted.js renderItem fills it, and it is hidden until an item is picked. -->
-        <div id="item-dock" class="item-dock" hidden><div id="item"></div></div>
+        <div id="item-dock" class="item-dock" hidden><div id="item"></div><div id="item-graph" class="item-graph"></div></div>
         <div class="inputs">
             <!-- Each section can collapse from its heading (App.js setupCollapsing); the
                  summary says what is chosen while it is closed. -->
-            <!-- 1: the item (a grid until one is picked, then a menu on its slot) and its enchantments. -->
+            <!-- 2: the enchantments (the item grid, numbered 1, until an item is picked; then the item has its own card). -->
             <section class="card collapsible" data-section="wanted">
                 <h2 aria-labelledby="wanted-title"><span class="step-badge" aria-hidden="true">2</span><span class="section-title" id="wanted-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
-                <div id="wanted-body" class="section-body"><div id="wanted"></div></div>
+                <div id="wanted-body" class="section-body"><div id="wanted"></div>
+                    <!-- Phones only (the sections stack there, and Anvil uses comes before Books and items): the way down to the order. -->
+                    <button type="button" class="btn jump-order" data-jump="steps" data-text="page.see_order"></button>
+                </div>
             </section>
 
             <section class="card collapsible" data-section="books">
@@ -69,36 +73,41 @@
 
         </div>
 
-        <!-- The result: section 3 (the totals and settings), then section 4 (the steps, with
-             anvil wear and the Steps | Slots | Tree row above them). Both collapse from their heading. -->
+        <!-- The result: section 4 (the steps). Above them, when there is an order, the receipt (what it costs, the anvil wear) and,
+             behind it, the four tiles that rank the orders (Ranking.js). -->
         <aside class="results-column">
-            <!-- 3: the result. The ? in the heading says how the tiles rank. The heading row is a
-                 .section-head: the h2 and the collapse arrow (the game rules are in the header). -->
-            <section class="card collapsible" data-section="order">
-                <div class="section-head">
-                    <h2 aria-labelledby="order-title"><span class="step-badge" aria-hidden="true">4</span><span class="section-title" id="order-title" data-text="page.results_heading"></span>
-                        <span class="info-tip">
-                            <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
-                                aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
-                            <span id="rank-help-text" class="info-tip-bubble" role="tooltip" data-text="ranking.rank_by"></span>
-                        </span>
-                        <span class="section-summary" id="order-summary"></span>
-                    </h2>
-                    <button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="order-body"></button>
-                </div>
-                <!-- The tiles (the totals, and the ranking), then the settings: rename (it changes
-                     which order wins) and your level (only what the steps show). -->
-                <div id="order-body" class="section-body">
-                    <div id="metrics" class="metrics-box"></div>
-                    <div id="ranking" class="settings"></div>
-                </div>
-            </section>
-
             <section class="card collapsible results-card" data-section="steps">
-                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">5</span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary always" id="steps-summary"></span><span id="anvil-risk"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
-                <div id="steps-body" class="section-body"><div id="results"></div></div>
+                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">4</span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary" id="steps-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
+                <div id="steps-body" class="section-body">
+                    <!-- The receipt (renderStepsSummary fills it): the levels, the anvil uses and the wear; the strip opens the ranking tiles under it. Hidden until there is an order. -->
+                    <div id="order" class="order" hidden>
+                        <div class="order-receipt">
+                            <button id="order-toggle" class="order-toggle" type="button" aria-expanded="false" aria-controls="order-panel">
+                                <img class="cost-line-orb" src="img/experience_orb.svg" alt="">
+                                <span id="order-levels" class="order-levels"></span>
+                                <span id="order-uses" class="order-uses"></span>
+                                <span class="order-caret" aria-hidden="true">&#9662;</span>
+                            </button>
+                            <span id="anvil-risk"></span>
+                        </div>
+                        <div id="order-panel" class="order-panel" hidden>
+                            <div class="order-panel-head">
+                                <span class="order-panel-title" data-text="ranking.order_title"></span>
+                                <span class="info-tip">
+                                    <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
+                                        aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
+                                    <span id="rank-help-text" class="info-tip-bubble" role="tooltip" data-text="ranking.rank_by"></span>
+                                </span>
+                            </div>
+                            <div id="metrics" class="metrics-box"></div>
+                        </div>
+                    </div>
+                    <div id="results"></div>
+                </div>
             </section>
         </aside>
     </main>
+    <!-- "Your level" (Options.js renderLevelPop): a popover under the Lv chip in the progress row, placed by Options.js placeLevelPop. -->
+    <div id="level-pop" class="level-pop" role="dialog" hidden></div>
 </body>
 </html>

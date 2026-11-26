@@ -3,14 +3,14 @@ import { updateCostMeter } from "./Wanted.js";
 import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searchSize } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
-import { $, closeOnOutside, copyText, flash, h, icon, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
+import { $, closeOnOutside, copyText, enchLine, flash, h, icon, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
 import { svgIcon } from "./Books.js";
 import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
-import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
+import { activeLevel, levelChip, placeLevelPop, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
 import { floatBubble, infoTip } from "./Tips.js";
-import { commit, renderOrderSummary, renderStepsSummary } from "./App.js";
+import { commit, renderStepsSummary } from "./App.js";
 import { currentLink } from "./Link.js";
 
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
@@ -100,19 +100,25 @@ function viewIcon(view) {
 }
 
 export function renderResults() {
+    drawResults();
+    placeLevelPop(); // (the Your level popover follows the chip in the progress row, and goes when it is gone)
+}
+
+function drawResults() {
     const change = view_change;
     const folding = fold_change;
     view_change = null;
     fold_change = null;
     updateCostMeter();
     renderMetrics();
-    renderOrderSummary();
     renderStepsSummary();
     updateLevelMeter();
     const box = $("#results");
     const old_scroll = box.querySelector(".steps-scroll");
     if (old_scroll) steps_scroll.top = old_scroll.scrollTop;
     box.replaceChildren();
+    // The slots that lit a card in Books and items are gone (a removed element never gets its blur or mouseleave), so the card goes dark.
+    for (const card of document.querySelectorAll("#books .entry-card.highlight")) card.classList.remove("highlight");
     const entries = logic.buildEntries(state);
 
     // Only while it runs: once the result is in, the wait is over.
@@ -188,7 +194,7 @@ export function renderResults() {
     // Ticked steps are already paid for, so the level follows only the ones left.
     const remaining = remainingLevels(steps);
     const track = activeLevel() == null ? null : levelTrack(remaining.costs, activeLevel());
-    // Only on paper: the anvil wear (on screen it is in the heading, which isn't printed).
+    // Only on paper: the anvil wear (on screen it is in the receipt above the toolbar, which isn't printed).
     content.append(h("p", { class: "print-only" }, TEXT.results.anvil_uses({ uses: steps.length }) + " · " + anvilRiskText(steps.length)));
 
     const order_key = orderKey(steps);
@@ -289,7 +295,7 @@ export function renderResults() {
         scroller.append(h("section", { class: "final-card" + (current == null ? " done" : "") },
             h("div", { class: "final-title" }, current == null ? TEXT.results.final_done : TEXT.results.final_title),
             anvilCell(node, null, "final", null, entryHover(node))));
-        // Phones: the current step and a Done button stay at the bottom while scrolling.
+        // The current step and a Done button stay at the bottom while scrolling (a bar on phones, a "Next step" card on wide windows).
         if (current != null) scroller.append(currentBar(steps, done, order_key, current));
         watchCurrentStep();
     }
@@ -319,7 +325,7 @@ function roundTip(index) {
 const ANVIL_RISK_MEDIUM = 0.1;
 const ANVIL_RISK_HIGH = 0.5;
 
-// The break risk in section 4's heading: the anvil and the chance ("4%"), colored by risk
+// The break risk in section 4's receipt: the anvil and the chance ("4%"), colored by risk
 // (green unlikely or impossible, amber possible, red likely). Tap or hover for the
 // sentence and how wear works; its bubble floats over the page, like the other tips.
 export function anvilRisk(uses) {
@@ -710,23 +716,28 @@ function markStepDone(steps, done, order_key, number) {
     if (motionOk()) setTimeout(show, FOLD_MS + 40); else show();
 }
 
-// Phones: the current step's line and a Done button, kept at the bottom of the screen while
-// the steps scroll (CSS shows it under 900px).
+// The current step and a Done button, kept at the bottom of the screen while the steps scroll: on phones a bar with the step's line
+// (in flow, sticky), on wide windows a "Next step" card with its three slots over the bottom of the steps column (a zero-high sticky
+// wrapper, so it adds nothing to the scroller's size). Either way it is tucked while its step shows (watchCurrentStep).
 function currentBar(steps, done, order_key, current) {
     const step = steps.find(entry => entry.number === current);
     const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
-    return h("div", { class: "current-bar" },
+    const mini = node => h("span", { class: "mini-slot" + (node.enchantments.length ? " glint" : ""), title: nodeName(node) }, icon(node.item_namespace));
+    return h("div", { class: "current-bar" }, h("div", { class: "current-bar-card" },
         h("div", { class: "current-bar-text" },
+            h("small", { class: "current-bar-eyebrow" }, TEXT.results.bar_next),
             h("strong", {}, TEXT.results.bar_step({ number: current, total: steps.length })),
             h("span", {}, stepLine(step))),
+        // Wide windows show the step as its three slots instead of the sentence (CSS).
+        h("span", { class: "current-bar-slots", "aria-hidden": "true" }, mini(step.left.node), h("i", {}, "+"), mini(step.right.node), h("i", {}, "➔"), mini(step.node)),
         h("button", {
-            type: "button", class: "btn small", title: TEXT.results.bar_show,
+            type: "button", class: "btn small", title: TEXT.results.bar_show, "aria-label": TEXT.results.bar_show,
             onclick: () => { const el = card(); if (el) scrollToView(el, "center"); }
         }, "↑"),
         h("button", {
             type: "button", class: "btn small primary",
             onclick: () => markStepDone(steps, done, order_key, current)
-        }, TEXT.results.bar_done));
+        }, TEXT.results.bar_done)));
 }
 
 // "Lv 30 → 28" with a small XP-style bar of what is left after the step. (A step you
@@ -872,11 +883,11 @@ function shareMenu(node, steps, done) {
 }
 
 // The toolbar's icons: Compact (list density), fold all (chevrons apart or together) and Share.
-const ICON_STROKE = { fill: "none", stroke: "currentColor", "stroke-width": "1.5", "stroke-linecap": "round", "stroke-linejoin": "round" };
+export const ICON_STROKE = { fill: "none", stroke: "currentColor", "stroke-width": "1.5", "stroke-linecap": "round", "stroke-linejoin": "round" };
 function densityIcon() {
     return svgIcon("0 0 16 16", [["path", { d: "M2.5 3.5h11M2.5 6.5h11M2.5 9.5h11M2.5 12.5h11" }]], ICON_STROKE);
 }
-function foldIcon(expand) {
+export function foldIcon(expand) {
     return svgIcon("0 0 16 16", expand ? [["path", { d: "M5 5.5 8 2.5l3 3M5 10.5l3 3 3-3" }]] : [["path", { d: "M5 2.5l3 3 3-3M5 13.5l3-3 3 3" }]], ICON_STROKE);
 }
 function shareIcon() {
@@ -939,8 +950,8 @@ function stepProgress(steps, done, levels, order_key) {
                     onclick: () => jumpToStep(order_key, step.number)
                 })), Math.min(count, total - 1), { prev: ["ArrowLeft"], next: ["ArrowRight"] }),
                 level_up && motionOk() ? orbBurst() : null),
+            levelChip(),
             h("span", { class: "step-progress-text" }, summary),
-            level_status,
             count ? h("button", {
                 type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
                 onclick: () => {
@@ -949,8 +960,57 @@ function stepProgress(steps, done, levels, order_key) {
                     renderResults();
                     undoToast(TEXT.results.unticked({ count: before.size }), () => { saveChecklist(order_key, before); renderResults(); });
                 }
-            }, "↺") : null)
+            }, "↺") : null),
+        stepHotbar(steps, done, order_key),
+        level_status // (on its own row under the bar when there is a level to compare)
     );
+}
+
+// The inventory hotbar: one game slot per step showing its result (a glint when enchanted), the current step in the selection frame, done steps
+// dimmed with a check; a click goes to the step. One tab stop (the current step's slot), Left and Right move along. It shows in every view (Steps, Compact,
+// Tree), and on phones in place of the XP bar (CSS, the 600px rule). Its slots are not `.mc-slot`s, so the view morphs never take them.
+function stepHotbar(steps, done, order_key) {
+    const current = steps.findIndex(step => !done.has(step.number));
+    const slots = steps.map((step, index) => {
+        const is_done = done.has(step.number);
+        const label = (is_done ? TEXT.results.hotbar_slot_done : TEXT.results.hotbar_slot)({ number: step.number, name: nodeName(step.node) });
+        // The game's tooltip on hover or focus: the result's name (rarity colour, italic once renamed), its enchantments, then which step makes it.
+        const enchanted = step.node.enchantments.length > 0;
+        const renamed = Boolean(step.node.renamed && state.rename_to.trim());
+        const tip = h("div", { class: "hotbar-tip mc-tooltip", "aria-hidden": "true" },
+            h("div", { class: nameClass(logic.rarity(step.node.item_namespace, enchanted), renamed ? " renamed" : "") }, nodeName(step.node)),
+            logic.tooltipSort(step.node.enchantments).map(e => enchLine(logic.displayName(e.namespace, e.level), logic.isCurse(e.namespace))),
+            h("div", { class: "hotbar-tip-step" }, TEXT.results.step_title({ number: step.number }) + (is_done ? " ✓" : "")));
+        return h("button", {
+            type: "button", "aria-label": label, "aria-current": index === current ? "step" : null,
+            class: "hotbar-slot" + (enchanted ? " glint" : "") + (is_done ? " done" : "") + (index === current ? " current" : ""),
+            onclick: () => jumpToStep(order_key, step.number),
+            onpointerenter: event => placeHotbarTip(event.currentTarget), onfocus: event => placeHotbarTip(event.currentTarget),
+            // Hovering or focusing it lights the Section 3 cards that went into this step's result, as a merged item does in Steps and Tree.
+            ...sourcesHover(step.node)
+        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, "✓") : null, tip);
+    });
+    return h("div", { class: "step-hotbar", role: "group", "aria-label": TEXT.results.hotbar_label },
+        roving(slots, Math.max(0, current), { prev: ["ArrowLeft"], next: ["ArrowRight"] }));
+}
+
+// Places a hotbar slot's tooltip: fixed to the window (so no box around the hotbar, such as the card, can cut it off), under the slot and centred on it,
+// moved left or right to stay inside the window, and above the slot when there is no room below.
+function placeHotbarTip(slot) {
+    const tip = slot.querySelector(".hotbar-tip");
+    if (!tip) return;
+    const place = () => {
+        const at = slot.getBoundingClientRect();
+        const box = tip.getBoundingClientRect();
+        const margin = 8;
+        const left = Math.max(margin, Math.min(at.left + at.width / 2 - box.width / 2, innerWidth - margin - box.width));
+        const below = at.bottom + 8;
+        const top = below + box.height > innerHeight - margin && at.top - 8 - box.height >= margin ? at.top - 8 - box.height : below;
+        tip.style.left = left + "px";
+        tip.style.top = top + "px";
+    };
+    place();
+    requestAnimationFrame(place); // (once the :hover / :focus rule has shown it, its size is known)
 }
 
 // An inventory slot with a game-style tooltip underneath. The name is colored by rarity.

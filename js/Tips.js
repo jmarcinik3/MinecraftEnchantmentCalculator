@@ -1,7 +1,7 @@
 // The "?" bubbles.
 import { $, closeOnOutside, h } from "./Dom.js";
 
-// The "?" next to "Best order": shows how the tiles rank on hover or keyboard focus (CSS),
+// The "?" in the ranking panel under Section 4's receipt: shows how the tiles rank on hover or keyboard focus (CSS),
 // and on tap for touch screens, where hover tooltips never appear. Tapping elsewhere or
 // pressing Escape closes it.
 export function setupInfoTip() {

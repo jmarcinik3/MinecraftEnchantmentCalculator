@@ -23,6 +23,10 @@ let progress_clock = null;
 const ESTIMATE_AFTER_S = 5;      // say the time once a search has run this long
 const ESTIMATE_FROM_SHARE = 0.005; // and guess what is left once this much is done
 export let last_result = null; // { status: "ok" | "empty" | "cancelled" | "error", node?, error? }
+// What the search was given for the result on screen (searchKey), and for the search on its way. A setup change that gives the search the same
+// inputs (Automatic -> Custom, which turns the same books into editable cards; reordering cards; a change undone) keeps the result instead of searching again.
+let result_key = null;
+let running_key = null;
 // When the search found no order within the level limit: a second search with no limit, for the order
 // whose biggest step is smallest, to show which step breaks the limit. { status: "running" | "done" | "failed", node? }
 export let last_break = null;
@@ -98,8 +102,29 @@ function showProgress() {
     if (text) text.textContent = progressLabel();
 }
 
+// Everything a search depends on, as one string: the entries (sorted: their order changes nothing but which of two equal orders is shown), the ranking,
+// the level limit, the edition, the rename and the mods (their data changes the costs).
+export function searchKey() {
+    const entries = logic.buildEntries(state).map(entry => JSON.stringify(entry)).sort();
+    return JSON.stringify([entries, state.priority, stepLimit(), state.edition, state.rename, [...(state.mods || [])].sort()]);
+}
+
+// The result on screen was changed to fit the setup as it is now (Options.js: a rename added in place), so it counts as this setup's result.
+export function keepResult() {
+    if (last_result && last_result.status === "ok") result_key = searchKey();
+}
+
 export function scheduleCalculation() {
     clearTimeout(calc_timer);
+    // The same inputs as the result on screen: keep it (and stop a search for another setup that is on its way).
+    if (result_key !== null && last_result && last_result.status === "ok" && searchKey() === result_key) {
+        const was_running = running;
+        if (running) { restartWorker(); stopRunning(); }
+        request_id++;
+        markSearch("idle");
+        if (was_running) renderResults(); // no longer waiting on a search
+        return;
+    }
     // The setup changed: a result still on its way is for the old one, so it must not be shown.
     request_id++;
     markSearch("pending");
@@ -160,6 +185,7 @@ export function runCalculation() {
 
     request_id++;
     running = true;
+    running_key = searchKey();
     markSearch("running");
     started_at = performance.now();
     progress_share = 0;
@@ -222,6 +248,7 @@ function handleWorkerMessage(event) {
     } else if (data.message === "optimal_searched") {
         stopRunning();
         last_result = { status: "ok", node: data.result };
+        result_key = running_key;
         if (!data.result && !state.no_step_limit) findBreak();
         applyCarriedProgress(data.result);
         renderResults();
