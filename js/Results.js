@@ -19,9 +19,9 @@ const COMPACT_STORAGE_KEY = "enchantment-calculator-compact";
 const stored_result_view = readStorage(VIEW_STORAGE_KEY, "steps");
 let result_view = stored_result_view === "tree" ? "tree" : "steps";
 // Compact mode, one setting for both views: Steps shows one line of slots per step (what the Slots view was) and the Tree a slot and a caption per entry, the
-// details on hover. Until it is chosen (null) the Tree is compact on a phone (full tooltips are too wide there) and Steps is not.
+// details on hover. Until it is chosen (null) a phone starts compact (full tooltips are too wide there) and anything wider does not, in both views alike.
 let compact_choice = readStorage(COMPACT_STORAGE_KEY, stored_result_view === "slots" ? true : null);
-const isCompact = () => compact_choice ?? (result_view === "tree" && matchMedia("(max-width: 600px)").matches);
+const isCompact = () => compact_choice ?? matchMedia("(max-width: 600px)").matches;
 // Whether the "In words" lines under the steps are open (they all follow the last one toggled).
 let words_open = false;
 // Each redraw (a tick, a new name, a new level) rebuilds the steps; their scroll position
@@ -254,7 +254,7 @@ export function renderResults() {
         // A timeline: one group per round (its steps don't depend on each other, so any
         // order works), a node per step on the rail. The first step not done is the one
         // "you are here" (highlighted, and open); the others fold to one line unless unfolded by
-        // hand (Expand all / Collapse all). The Slots view shows each step as one line of slots.
+        // hand (Expand all / Collapse all). Compact shows each step as one line of slots.
         const slots = isCompact();
         const rounds = logic.stepRounds(steps);
         const timeline = h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
@@ -619,7 +619,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
             ),
             anvilCell(step.node, changed, "result", h("span", { class: "cell-meta" }, TEXT.results.result_work({ count: step.node.prior_work })), entryHover(step.node), TEXT.results.slot_result)
         ),
-        // The Slots view's one-line caption, since the slots alone look alike.
+        // Compact Steps' one-line caption, since the slots alone look alike.
         h("p", { class: "step-caption" }, stepLine(step))
     );
 }

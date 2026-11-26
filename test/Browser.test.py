@@ -806,8 +806,7 @@ def part_anvil_uses(browser, base):
     settle(p8)
     stuck = p8.evaluate("[...document.querySelectorAll('#results .merge-tree .tree-tooltip')].filter(t => getComputedStyle(t).display !== 'none').length")
     check("a tap in the compact tree leaves no tooltip open", stuck == 0 and p8.locator("#results .tree-line.path-self").count() == 0, stuck)
-    p8.click('#results [data-view="steps"]')
-    p8.click("#results .density")
+    p8.click('#results [data-view="steps"]') # (a phone starts Compact in both views, so Steps is compact already)
     p8.locator("#results .slots-mode .anvil-step:not(.folded) .anvil-cell").first.click()
     check("a tap on a slot shows its tooltip", p8.locator("#results .slots-mode .anvil-cell.tip-open").count() == 1)
     p8.locator("#results .slots-mode .anvil-step:not(.folded) .anvil-cell").nth(1).click()
@@ -1762,6 +1761,8 @@ def part_layout(browser, base):
     _, ph, errs = open_page(browser, base, viewport={"width": 320, "height": 800})
     errors += errs
     pick_boots(ph)
+    ph.click("#results .density") # (a phone starts Compact in both views; this is the full Steps)
+    settle(ph)
     cells = ph.evaluate("""() => { const step = document.querySelector('#results .anvil-step.current'); return [...step.querySelectorAll('.anvil-cell')].map(c => { const r = c.getBoundingClientRect(), t = c.querySelector('.mc-tooltip').getBoundingClientRect(); return [Math.round(r.top), Math.round(t.width)]; }); }""")
     check("on a phone the three slots stack with wide tooltips", len(cells) == 3 and cells[0][0] < cells[1][0] < cells[2][0] and min(w for _, w in cells) >= 120, cells)
     broken = ph.evaluate("""() => [...document.querySelectorAll('#results .anvil-step.current .mc-name')].filter(n => { const range = document.createRange(); range.selectNodeContents(n); return range.getClientRects().length > 1; }).map(n => n.textContent)""")
