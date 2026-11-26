@@ -1794,9 +1794,10 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .step-head:hover .step-fold, .step-fold:focus-visible { background: var(--surface); color: var(--text); }
 .step-head:hover .step-summary { color: var(--text); }
 /* Folded steps (done ones by default) show only their head; a done one opened again is faded. */
-.anvil-step.folded { padding-top: 6px; padding-bottom: 6px; }
+/* The head sits at the same place folded or open (same top padding, same node), so it never shifts when a step folds; the bottom padding is what the folded step loses. */
+.anvil-step.folded { padding-bottom: 4px; }
+.slots-mode .anvil-step.folded { padding-bottom: 4px; }
 .anvil-step.folded .step-head { margin-bottom: 0; }
-.anvil-step.folded .step-node { top: 7px; }
 .anvil-step.folded .anvil-row { display: none; }
 .anvil-step.done .anvil-row { opacity: 0.55; }
 
@@ -2146,6 +2147,12 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     border-left: 3px solid var(--surface);
 }
 .tree-node.folded > .tree-children { display: none; }
+.tree-node.folded.folding > .tree-children { display: block; }
+.timeline .anvil-step.folded.folding > .anvil-row { display: grid; } /* a step folding keeps its slots on show while its box shrinks */
+.timeline:not(.slots-mode) .anvil-step.folded.folding > .step-words { display: block; }
+.timeline .anvil-step.folded.folding > .step-head { margin-bottom: 8px; } /* and the gap under the head stays while it folds, so nothing inside moves up at the start */
+.slots-mode .anvil-step.folded.folding > .step-head { margin-bottom: 6px; }
+.slots-mode .anvil-step.folded.folding > .step-caption { display: block; } /* while it folds away (Results.js renderResults) */
 .tree-line { display: flex; align-items: center; gap: 8px; padding: 3px 0; min-width: 0; }
 /* A merge's line folds what went into it, like a step's head. */
 .tree-line.merge { cursor: pointer; }
@@ -2480,6 +2487,16 @@ body.dragging { -webkit-user-select: none; user-select: none; }
    shrinks), a copy of its old contents fading out, and the real card with no box of its own meanwhile. */
 .entry-card.morphing { isolation: isolate; background: transparent; border-color: transparent; box-shadow: none; }
 .card-frame { position: absolute; z-index: -1; box-sizing: border-box; border: 1px solid transparent; pointer-events: none; }
+/* Section 4 switching Steps, Slots and Tree (Motion.js morphView): a step's box is the frame while it travels; the rail and the tree's branches fade in. */
+.rounds.timeline.no-rail::before { display: none; } /* the copy of the old view, when the new one has the same rail */
+.steps-scroll.morphing-view { position: relative; isolation: isolate; }
+.anvil-step.morphing, .anvil-step.morphing.current, .tree-line.morphing { position: relative; background: transparent; border-color: transparent; box-shadow: none; outline-color: transparent; }
+.anvil-row.morphing { position: relative; background: transparent; border-color: transparent; }
+/* Layers inside the scroller while it morphs (Motion.js): the cards' boxes (frames, -3), the old view's copy (-2), the anvil panels (frames, -1), then everything else. */
+.rounds.timeline::before, .tree-children > .tree-node::before { transition: opacity 0.3s ease-out 0.1s; }
+.tree-children { transition: border-color 0.3s ease-out 0.1s; }
+.view-morph .rounds.timeline::before, .view-morph .tree-children > .tree-node::before { opacity: 0; }
+.view-morph .tree-children { border-left-color: transparent; }
 .card-ghost { position: absolute; z-index: 1; overflow: hidden; pointer-events: none; }
 .card-ghost > .entry-card { position: absolute; left: 0; top: 0; margin: 0; background: transparent; border-color: transparent; box-shadow: none; outline: none; }
 /* Automatic <-> Custom, the coverage chips and the segmented switches (Motion.js). */

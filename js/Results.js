@@ -4,7 +4,7 @@ import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searc
 import { TEXT } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
 import { $, closeOnOutside, copyText, flash, h, icon, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
-import { crossfadeView, easeHeight, FOLD_MS, inertCopy, keepInPlace, revealBelow } from "./Motion.js";
+import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
@@ -53,17 +53,10 @@ function saveTicks(order_key, steps, done, next) {
 let view_change = null;
 let fold_change = null;
 
-// The steps and tree as they are, before the view changes: a copy to fade out and where it was.
+// The steps and tree as they are, before the view changes: what the steps will travel from (Motion.js viewSnapshot).
 function rememberView() {
     const scroller = document.querySelector("#results .steps-scroll");
-    if (!scroller || !motionOk()) { view_change = null; return; }
-    const copy = inertCopy(scroller);
-    // Nothing in the copy may be found as a step, a tick box or a link to a card (the real ones are what the page and the tests look up).
-    for (const part of copy.querySelectorAll("[data-step], [data-step-card], [data-entry-link], [data-view]")) {
-        for (const name of ["data-step", "data-step-card", "data-entry-link", "data-view"]) part.removeAttribute(name);
-    }
-    for (const tip of copy.querySelectorAll(".info-tip")) tip.classList.remove("floating");
-    view_change = { copy, rect: scroller.getBoundingClientRect(), top: scroller.scrollTop };
+    view_change = scroller && motionOk() ? viewSnapshot(scroller) : null;
 }
 
 // The box of each step (its card, or its tree node), by step number.
@@ -263,10 +256,12 @@ export function renderResults() {
     if (steps_scroll.key === scroll_key) scroller.scrollTop = steps_scroll.top;
     steps_scroll = { key: scroll_key, top: scroller.scrollTop };
 
-    if (change) crossfadeView(scroller, content, change);
+    if (change) morphView(scroller, content, change);
     // Expand all / Collapse all: each step that opens or folds eases its height, so what is below moves with it.
     if (folding) {
-        for (const [number, el] of stepBoxes()) if (folding.has(number)) easeHeight(el, folding.get(number));
+        // A tree merge or step that folds keeps its contents on show while its box shrinks, so it is unfolding played backwards (the box clips them); then it hides them.
+        const keepBranch = el => el.matches("li.tree-node.folded, li.anvil-step.folded") ? () => { el.classList.add("folding"); return () => el.classList.remove("folding"); } : undefined;
+        for (const [number, el] of stepBoxes()) if (folding.has(number)) easeHeight(el, folding.get(number), { during: keepBranch(el) });
     }
 }
 
@@ -567,7 +562,15 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         // With "Your level" filled in and too low: how many levels to gain before this step.
         level && level.short ? h("div", { class: "level-checkpoint" }, TEXT.results.checkpoint({ count: level.short, level: cost })) : null,
         h("details", { class: "step-words", open: words_open, ontoggle: event => { words_open = event.target.open; } },
-            h("summary", {}, TEXT.results.step_words),
+            // Opens and closes with the same slide as Section 1's boxes (Motion.js foldDetails), not the browser's jump.
+            h("summary", {
+                onclick: event => {
+                    event.preventDefault();
+                    const details = event.currentTarget.parentElement;
+                    words_open = !foldTarget(details);
+                    foldDetails(details, words_open);
+                }
+            }, TEXT.results.step_words),
             h("p", { class: "step-instruction" }, stepInstruction(step))),
         h("p", { class: "print-only step-print" }, stepInstruction(step)),
         h("div", { class: "anvil-row" },

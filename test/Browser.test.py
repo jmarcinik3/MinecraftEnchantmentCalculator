@@ -1051,7 +1051,7 @@ def part_settings_motion(browser, base):
     check("Glints off stops them and is kept", p10.get_attribute("html", "data-glint") == "off" and p10.evaluate("document.getAnimations().length") == 0 and p10.evaluate("localStorage.getItem('enchantment-calculator-glints')") == "false")
     p10.keyboard.press("Escape")
     p10.click('#results [data-view="tree"]')
-    leftover = p10.evaluate("() => [document.documentElement.dataset.motion, document.getAnimations().length, document.querySelectorAll('#results .results-content > .steps-scroll').length]")
+    leftover = p10.evaluate("() => [document.documentElement.dataset.motion, document.getAnimations().length, document.querySelectorAll('#results .steps-scroll').length]")
     check("with Show animations off, a view switch animates nothing (no cross-fade copy, no animation running, not even the glints)", leftover == ["off", 0, 1], leftover)
     p10.click('#results [data-view="steps"]')
     p10.click("#options-menu summary")
@@ -1620,9 +1620,16 @@ def part_narrow_results(browser, base):
     p18.click('#results [data-view="steps"]')
     p18.wait_for_selector("#results .rounds")
     settle(p18)
-    result = scrub(p18, "document.querySelector('#results [data-view=\"slots\"]').click();", "document.querySelectorAll('#results .results-content > .steps-scroll').length")
+    result = scrub(p18, "document.querySelector('#results [data-view=\"slots\"]').click();", "document.querySelectorAll('#results .steps-scroll, #results .card-frame').length")
     copies = result["values"]
-    check("switching view cross-fades (a copy of the old view fades out) and leaves nothing behind", max(copies) == 2 and result["after"] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies)
+    check("switching Steps and Slots morphs the cards (frames and a copy of the old view during it) and leaves nothing behind", max(copies) >= 3 and result["after"] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies)
+    travel = p18.evaluate("""async () => {
+        document.querySelector('#results [data-view="tree"]').click();
+        const during = document.querySelectorAll('#results .steps-scroll > .card-frame').length;
+        for (let waited = 0; waited < 6000 && document.querySelector('#results .morphing'); waited += 50) await new Promise(done => setTimeout(done, 50));
+        return [during, document.querySelectorAll('#results .card-frame, #results .morphing').length];
+    }""")
+    check("each step is a travelling box while the view switches, and none is left once it has", travel[0] >= 1 and travel[1] == 0, travel)
     p18.click('#results [data-view="steps"]')
     settle(p18)
     heights = "[...document.querySelectorAll('#results .anvil-step')].map(e => Math.round(e.getBoundingClientRect().height))"
