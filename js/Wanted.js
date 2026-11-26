@@ -643,15 +643,20 @@ export function setupItemMenu() {
 // "Presets: Best · Silk Touch": each sets the chosen enchantments to a whole set (Logic.js
 // presets); the one matching the current choice is highlighted. When the item has only
 // one set of conflicting enchantments, "Best" is named after its pick from that set
-// ("Fortune · Silk Touch", "Channeling + Loyalty · Riptide").
+// ("Fortune · Silk Touch", "Channeling + Loyalty · Riptide"); with several, from the one the other presets swap a member of ("Depth Strider · Frost Walker").
 function presetChips() {
     const presets = logic.presets(state.item);
     if (!presets.length) return null;
     // Only the game's own enchantments count, so a mod being on never renames "God" (its conflicts add sets and link them).
     const conflict_sets = logic.enchantmentGroups(state.item, true).filter(group => group.members.length > 1);
+    // "Best" is named after its pick from the one set of conflicting enchantments the presets are about: the only set the item has, or else the one the other
+    // presets swap a member of (boots: Depth Strider, whose swap is Frost Walker). With several such sets, or none, it stays "God".
+    const swapped = presets.filter(preset => preset.key !== "best").map(preset => preset.key);
+    const swap_sets = conflict_sets.filter(group => group.members.some(ns => swapped.includes(ns)));
+    const named_set = conflict_sets.length === 1 ? conflict_sets[0] : swap_sets.length === 1 ? swap_sets[0] : null;
     const bestName = wanted => {
-        if (conflict_sets.length !== 1) return TEXT.wanted.preset_best;
-        const picks = conflict_sets[0].members.filter(ns => wanted[ns]);
+        if (!named_set) return TEXT.wanted.preset_best;
+        const picks = named_set.members.filter(ns => wanted[ns]);
         return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
     };
     const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);

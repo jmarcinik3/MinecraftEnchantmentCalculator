@@ -12,7 +12,7 @@ import { infoTip, open_tips } from "./Tips.js";
 import { addBook, clashes, commit, customizeBooks } from "./App.js";
 
 // A small inline SVG (the page has no icon font); it takes its color from the text.
-function svgIcon(view_box, shapes, attrs = {}) {
+export function svgIcon(view_box, shapes, attrs = {}) {
     return svg("svg", { viewBox: view_box, ...attrs }, shapes.map(([tag, shape]) => svg(tag, shape)));
 }
 

@@ -176,7 +176,7 @@ def part_steps(browser, base):
     check("ticking a step is announced", "done" in page.inner_text("#live"), page.inner_text("#live"))
 
     # Tree: merges fold and unfold; hovering a starting item lights its card.
-    page.click(".segmented >> text=Tree")
+    page.click('#results [data-view="tree"]')
     nodes_open = page.locator(".tree-node:visible").count()
     page.locator('.tree-line[data-step-card="3"] .step-fold').click()
     check("folding a merge hides its inputs", page.locator(".tree-node:visible").count() < nodes_open)
@@ -188,7 +188,7 @@ def part_steps(browser, base):
     page.emulate_media(media="print")
     check("print shows a folded merge's inputs", page.locator(".tree-node:visible").count() == page.locator(".tree-node").count())
     page.emulate_media(media="screen")
-    page.click(".segmented >> text=Steps")
+    page.click('#results [data-view="steps"]')
 
     # The link with progress: another device (new context) continues from the same ticks.
     ticked = page.locator(".step-tick input:checked").count()
@@ -735,11 +735,11 @@ def part_anvil_uses(browser, base):
     p7.mouse.move(0, 0)
     check("the progress sits on its own row", p7.evaluate("document.querySelector('.step-progress').getBoundingClientRect().top > document.querySelector('.result-tools .copy-menu').getBoundingClientRect().bottom - 2"))
     check("the heading counts steps, not uses twice", "step" in p7.inner_text("#steps-summary"), p7.inner_text("#steps-summary"))
-    p7.click('#results [data-view="slots"]')
-    check("the Slots view hides the tooltips until hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell .mc-tooltip')).display") == "none")
+    p7.click("#results .density")
+    check("Compact Steps hides the tooltips until hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell .mc-tooltip')).display") == "none")
     p7.locator("#results .anvil-step:not(.folded) .anvil-cell.result").first.hover() # (ticked steps are folded here too)
-    check("the Slots view's result slot shows its tooltip on hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell.result .mc-tooltip')).display") != "none")
-    p7.click('#results [data-view="steps"]')
+    check("Compact Steps' result slot shows its tooltip on hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell.result .mc-tooltip')).display") != "none")
+    p7.click("#results .density")
     settle(p7) # the old view is laid over the new one while they cross-fade
     check("the finished item shows after the steps", p7.locator("#results .final-card").count() == 1 and "done" not in (p7.get_attribute("#results .final-card", "class") or ""))
     p7.locator('#results input[data-step="7"]').check(force=True)
@@ -802,7 +802,8 @@ def part_anvil_uses(browser, base):
     settle(p8)
     stuck = p8.evaluate("[...document.querySelectorAll('#results .merge-tree .tree-tooltip')].filter(t => getComputedStyle(t).display !== 'none').length")
     check("a tap in the compact tree leaves no tooltip open", stuck == 0 and p8.locator("#results .tree-line.path-self").count() == 0, stuck)
-    p8.click('#results [data-view="slots"]')
+    p8.click('#results [data-view="steps"]')
+    p8.click("#results .density")
     p8.locator("#results .slots-mode .anvil-step:not(.folded) .anvil-cell").first.click()
     check("a tap on a slot shows its tooltip", p8.locator("#results .slots-mode .anvil-cell.tip-open").count() == 1)
     p8.locator("#results .slots-mode .anvil-step:not(.folded) .anvil-cell").nth(1).click()
@@ -1004,10 +1005,10 @@ def part_ranking(browser, base):
     check("hovering a merged item lights every entry that went into it", sources >= 5, sources)
     p10.mouse.move(0, 0)
     check("moving away clears them", p10.locator("#books .entry-card.highlight").count() == 0)
-    # The Slots view folds like Steps: every step starts open, Collapse all folds each to its head, Expand all opens them again.
+    # Compact Steps folds like Steps: every step starts open, Collapse all folds each to its head, Expand all opens them again.
     folded_steps = lambda: p10.eval_on_selector_all("#results .anvil-step", "e => e.map(x => x.classList.contains('folded'))")
     in_steps = folded_steps()
-    p10.click('#results [data-view="slots"]')
+    p10.click("#results .density")
     settle(p10)
     steps_n = p10.locator("#results .anvil-step").count()
     check("the Slots view's steps have a fold arrow and start with the same steps open as Steps", p10.locator("#results .step-fold").count() == steps_n and folded_steps() == in_steps and p10.locator("#results .fold-buttons").count() == 1, (in_steps, folded_steps()))
@@ -1018,15 +1019,15 @@ def part_ranking(browser, base):
     settle(p10)
     check("a click on a folded Slots step's head opens it", p10.locator("#results .anvil-step.folded").count() == steps_n - 1 and p10.locator("#results .anvil-row:visible").count() == 1)
     in_slots = folded_steps()
-    p10.click('#results [data-view="steps"]')
+    p10.click("#results .density")
     settle(p10)
-    check("the steps folded or opened in Slots are the same in Steps (one fold state for both views)", folded_steps() == in_slots, (in_slots, folded_steps()))
-    p10.click('#results [data-view="slots"]')
+    check("the steps folded or opened in Compact are the same in the full Steps (one fold state for both views)", folded_steps() == in_slots, (in_slots, folded_steps()))
+    p10.click("#results .density")
     settle(p10)
     fold_all(p10, "Expand steps")
     settle(p10)
-    check("Expand all opens every Slots step", p10.locator("#results .anvil-step.folded").count() == 0 and p10.locator("#results .anvil-row:visible").count() == steps_n)
-    p10.click('#results [data-view="steps"]')
+    check("Expand all opens every Compact step", p10.locator("#results .anvil-step.folded").count() == 0 and p10.locator("#results .anvil-row:visible").count() == steps_n)
+    p10.click("#results .density")
     # Game rules reset to the game's own.
     p10.click("#options-menu summary")
     p10.locator("#limit-panel input[type=range]").fill("12")
@@ -1628,9 +1629,22 @@ def part_narrow_results(browser, base):
     p18.click('#results [data-view="steps"]')
     p18.wait_for_selector("#results .rounds")
     settle(p18)
-    result = scrub(p18, "document.querySelector('#results [data-view=\"slots\"]').click();", "document.querySelectorAll('#results .steps-scroll, #results .card-frame').length")
+    result = scrub(p18, "document.querySelector('#results .density').click();", "document.querySelectorAll('#results .steps-scroll, #results .card-frame').length")
     copies = result["values"]
-    check("switching Steps and Slots morphs the cards (frames and a copy of the old view during it) and leaves nothing behind", max(copies) >= 3 and result["after"] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies)
+    check("switching Steps to Compact morphs the cards (frames and a copy of the old view during it) and leaves nothing behind", max(copies) >= 3 and result["after"] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies)
+    p18.click("#results .density")
+    settle(p18)
+    # Compact is one setting for both views: turned on in Steps it is on in the Tree, and the other way round.
+    p18.click("#results .density")
+    settle(p18)
+    p18.click('#results [data-view="tree"]')
+    settle(p18)
+    in_tree = p18.get_attribute("#results .density", "aria-pressed") == "true" and "compact" in (p18.get_attribute("#results .merge-tree", "class") or "")
+    p18.click("#results .density")
+    settle(p18)
+    p18.click('#results [data-view="steps"]')
+    settle(p18)
+    check("Compact is one setting for Steps and Tree (on in Steps, on in the Tree; off in the Tree, off in Steps)", in_tree and p18.get_attribute("#results .density", "aria-pressed") == "false" and p18.locator("#results .slots-mode").count() == 0)
     travel = p18.evaluate("""async () => {
         document.querySelector('#results [data-view="tree"]').click();
         const during = document.querySelectorAll('#results .steps-scroll > .view-overlay:not(.steps-scroll) > .card-frame').length;

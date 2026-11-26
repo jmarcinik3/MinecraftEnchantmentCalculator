@@ -4,6 +4,7 @@ import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searc
 import { TEXT } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
 import { $, closeOnOutside, copyText, flash, h, icon, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
+import { svgIcon } from "./Books.js";
 import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
@@ -13,12 +14,14 @@ import { commit, renderOrderSummary, renderStepsSummary } from "./App.js";
 
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
 const VIEW_STORAGE_KEY = "enchantment-calculator-view";
-const COMPACT_STORAGE_KEY = "enchantment-calculator-tree-compact";
-// "steps": a card per step; "slots": one line of slots per step; "tree".
-let result_view = ["tree", "slots"].includes(readStorage(VIEW_STORAGE_KEY, "steps")) ? readStorage(VIEW_STORAGE_KEY, "steps") : "steps";
-// Tree view: only the slots, with the details on hover.
-// Phones start with the compact tree (a slot and a caption per entry): full tooltips are too wide there.
-let tree_compact = readStorage(COMPACT_STORAGE_KEY, matchMedia("(max-width: 600px)").matches) === true;
+const COMPACT_STORAGE_KEY = "enchantment-calculator-compact";
+// "steps": a card per step; "tree". (The old "slots" view is Steps in Compact mode.)
+const stored_result_view = readStorage(VIEW_STORAGE_KEY, "steps");
+let result_view = stored_result_view === "tree" ? "tree" : "steps";
+// Compact mode, one setting for both views: Steps shows one line of slots per step (what the Slots view was) and the Tree a slot and a caption per entry, the
+// details on hover. Until it is chosen (null) the Tree is compact on a phone (full tooltips are too wide there) and Steps is not.
+let compact_choice = readStorage(COMPACT_STORAGE_KEY, stored_result_view === "slots" ? true : null);
+const isCompact = () => compact_choice ?? (result_view === "tree" && matchMedia("(max-width: 600px)").matches);
 // Whether the "In words" lines under the steps are open (they all follow the last one toggled).
 let words_open = false;
 // Each redraw (a tick, a new name, a new level) rebuilds the steps; their scroll position
@@ -83,6 +86,16 @@ let next_node_id = 1;
 function nodeId(node) {
     if (!node_ids.has(node)) node_ids.set(node, next_node_id++);
     return node_ids.get(node);
+}
+
+// The icon of a view in the switch (the words are its title and name), drawn like Section 2's: Steps a list of numbered boxes, Tree a trunk with branches.
+function viewIcon(view) {
+    if (view === "steps") {
+        return svgIcon("0 0 16 16", [2, 6.5, 11].flatMap(y => [["rect", { x: "2", y: String(y), width: "3.5", height: "3.5", rx: "0.8" }], ["rect", { x: "7.5", y: String(y + 0.75), width: "6.5", height: "2", rx: "1" }]]), { fill: "currentColor" });
+    }
+    return svgIcon("0 0 16 16", [["rect", { x: "2", y: "2", width: "5", height: "3", rx: "0.8" }], ["rect", { x: "3.6", y: "5", width: "1.2", height: "7.2", rx: "0.6" }],
+        ["rect", { x: "4.6", y: "7.4", width: "3", height: "1.2", rx: "0.6" }], ["rect", { x: "4.6", y: "11", width: "3", height: "1.2", rx: "0.6" }],
+        ["rect", { x: "8.5", y: "6.2", width: "5.5", height: "3", rx: "0.8" }], ["rect", { x: "8.5", y: "9.8", width: "5.5", height: "3", rx: "0.8" }]], { fill: "currentColor" });
 }
 
 export function renderResults() {
@@ -190,11 +203,16 @@ export function renderResults() {
         writeStorage(VIEW_STORAGE_KEY, view);
         renderResults();
     };
-    // Tree: a button for showing only the slots. Expand all / Collapse all are with the progress.
-    const compact = result_view === "tree" ? h("button", {
-        type: "button", class: "btn small density", "aria-pressed": String(tree_compact), title: TEXT.results.compact_help,
-        onclick: () => { rememberView(); tree_compact = !tree_compact; writeStorage(COMPACT_STORAGE_KEY, tree_compact); renderResults(); }
-    }, TEXT.results.compact) : null;
+    // Compact (one setting for Steps and Tree): only the slots, with the details on hover. Expand all / Collapse all are with the progress.
+    const compact = h("button", {
+        type: "button", class: "btn small density", "aria-pressed": String(isCompact()), title: TEXT.results.compact_help,
+        onclick: () => {
+            rememberView();
+            compact_choice = !isCompact();
+            writeStorage(COMPACT_STORAGE_KEY, compact_choice);
+            renderResults();
+        }
+    }, TEXT.results.compact);
     const foldAll = fold => {
         const was = new Map([...stepBoxes()].map(([number, el]) => [number, el.getBoundingClientRect().height]));
         for (const step of steps) foldsFor(order_key).set(step.number, fold);
@@ -213,8 +231,8 @@ export function renderResults() {
         steps: TEXT.page.summary_steps({ count: steps.length })
     })));
     content.append(h("div", { class: "toolbar result-tools" },
-        segmented("", TEXT.results.view_label, [["steps", TEXT.results.view_steps], ["slots", TEXT.results.view_slots], ["tree", TEXT.results.view_tree]].map(([view, label]) => ({
-            selected: result_view === view, content: label, onclick: () => setView(view), attrs: { "data-view": view }
+        segmented("view-icons", TEXT.results.view_label, [["steps", TEXT.results.view_steps], ["tree", TEXT.results.view_tree]].map(([view, label]) => ({
+            selected: result_view === view, content: viewIcon(view), onclick: () => setView(view), attrs: { "data-view": view, title: label, "aria-label": label }
         }))),
         stepProgress(steps, done, remaining.needed, order_key, [compact, fold_buttons]),
         // Copy steps and Print go to the next row together, never one without the other.
@@ -237,7 +255,7 @@ export function renderResults() {
         // order works), a node per step on the rail. The first step not done is the one
         // "you are here" (highlighted, and open); the others fold to one line unless unfolded by
         // hand (Expand all / Collapse all). The Slots view shows each step as one line of slots.
-        const slots = result_view === "slots";
+        const slots = isCompact();
         const rounds = logic.stepRounds(steps);
         const timeline = h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
             h("div", { class: "round-label" },
@@ -268,7 +286,7 @@ export function renderResults() {
         watchCurrentStep();
     }
 
-    const scroll_key = result_view + "|" + order_key;
+    const scroll_key = (result_view === "steps" && isCompact() ? "slots" : result_view) + "|" + order_key;
     if (steps_scroll.key === scroll_key) scroller.scrollTop = steps_scroll.top;
     steps_scroll = { key: scroll_key, top: scroller.scrollTop };
 
@@ -407,7 +425,7 @@ function mergeTree(root, steps, done, order_key) {
             node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
         );
     };
-    const tree = h("ul", { class: "merge-tree" + (tree_compact ? " compact" : "") }, branch(root));
+    const tree = h("ul", { class: "merge-tree" + (isCompact() ? " compact" : "") }, branch(root));
     // Hovering or focusing an entry lights the path it takes: the merges it goes into (up to the
     // finished item) and what went into it.
     const light = line => {

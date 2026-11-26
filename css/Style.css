@@ -711,8 +711,8 @@ html { scrollbar-gutter: stable; }
 #books > .toolbar { margin-bottom: 10px; }
 /* The view is a preference, so it sits at the right end. */
 .toolbar .view-switch { margin-left: auto; }
-.view-switch button { display: inline-flex; align-items: center; padding: 4px 9px; }
-.view-switch svg { display: block; width: 16px; height: 16px; }
+.view-switch button, .view-icons button { display: inline-flex; align-items: center; padding: 4px 9px; }
+.view-switch svg, .view-icons svg { display: block; width: 16px; height: 16px; }
 .entry-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; }
 @container books (min-width: 440px) {
     .entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
