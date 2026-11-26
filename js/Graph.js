@@ -2,8 +2,8 @@
 // another, one line per conflict, so a large conflict pattern shows as a shape instead of a long list.
 import { TEXT } from "./Text.js";
 import { logic, state } from "./Store.js";
-import { h } from "./Dom.js";
-import { setWanted } from "./App.js";
+import { h, svg } from "./Dom.js";
+import { clashes, setWanted } from "./App.js";
 
 const WIDTH = 640;
 const HEIGHT = 420;
@@ -12,17 +12,6 @@ const ITERATIONS = 300;
 let graph_open = false;
 // The last layout, kept while the same enchantments and conflicts are drawn (a pick redraws section 1 but moves nothing).
 let layout = { key: "", points: new Map() };
-
-function svg(tag, attrs = {}, ...children) {
-    const el = document.createElementNS("http://www.w3.org/2000/svg", tag);
-    for (const [key, value] of Object.entries(attrs)) {
-        if (value == null || value === false) continue;
-        if (key.startsWith("on")) el.addEventListener(key.slice(2).toLowerCase(), value);
-        else el.setAttribute(key, value === true ? "" : value);
-    }
-    for (const child of children.flat(Infinity)) if (child != null) el.append(child);
-    return el;
-}
 
 // Fruchterman-Reingold: every node pushes the others away, every conflict pulls its two nodes together, and a
 // little gravity keeps separate clusters on the page. Starts from a circle in a fixed order, so it is repeatable.
@@ -78,7 +67,7 @@ function computeLayout(nodes, edges) {
 // enchantment, or null with no search. Drawn at once, and again whenever the search changes.
 let drawn = null;
 let matcher = null;
-export function markSearch(matches) {
+export function markGraphSearch(matches) {
     matcher = matches;
     if (!drawn) return;
     for (const node of drawn.querySelectorAll(".graph-node")) {
@@ -126,7 +115,7 @@ export function conflictGraph(matches = null) {
         const dots = nodes.map(ns => {
             const [cx, cy] = layout.points.get(ns);
             const chosen = Boolean(state.wanted[ns]);
-            const blocked = !chosen && Object.keys(state.wanted).some(other => logic.conflicts(other, ns));
+            const blocked = !chosen && Object.keys(state.wanted).some(other => clashes(other, ns));
             const rivals = neighbours(ns);
             const text = TEXT.wanted.graph_node({ name: logic.enchName(ns), names: rivals.map(logic.enchName) });
             const toggle = () => setWanted(ns, chosen ? 0 : logic.maxLevel(ns));
@@ -142,7 +131,7 @@ export function conflictGraph(matches = null) {
         canvas = svg("svg", { class: "graph-canvas", viewBox: `0 0 ${WIDTH} ${HEIGHT}`, role: "group", "aria-label": TEXT.wanted.graph_title }, lines, dots);
         box.insertBefore(canvas, caption);
         drawn = canvas;
-        markSearch(matcher);
+        markGraphSearch(matcher);
     }
 
     // Hovering or focusing a node lights its conflicts and dims the rest.

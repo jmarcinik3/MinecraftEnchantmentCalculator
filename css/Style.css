@@ -29,6 +29,70 @@
     --gui-dark: #555555;
     --gui-text: #404040;
     --radius: 8px;
+    /* Minecraft palette: the game's own colours for slots, tooltips, the cost text and the XP bar. */
+    --mc-white: #ffffff;
+    --mc-black: #000000;
+    --mc-ink: #1e1e1e;               /* text on the slot gray (4.9:1) */
+    --mc-ink-dim: #3c3c3c;           /* numerals of levels not chosen: 3.3:1 on the slot gray (UI minimum 3:1), a step under --mc-ink */
+    --mc-slot-bg: #8b8b8b;           /* inventory slot: gray, dark top-left bevel, light bottom-right */
+    --mc-slot-dark: #373737;
+    --mc-slot-hover: #9c9c9c;
+    --mc-panel: #3b3b3b;             /* the dark chips the green cost text sits on */
+    --mc-text-shadow: #3f3f3f;       /* the game's drop shadow behind white text */
+    --mc-green: #80ff20;             /* the anvil's cost text, a full XP bar */
+    --mc-green-shadow: #203f08;
+    --mc-green-light: #b2ff4d;
+    --mc-green-deep: #3d9b0a;
+    --mc-aqua: #55ffff;
+    --mc-aqua-shadow: #153f3f;
+    --mc-yellow: #ffff55;
+    --mc-yellow-shadow: #3f3f15;
+    --mc-magenta: #ff55ff;
+    --mc-magenta-shadow: #3f153f;
+    --mc-red: #ff5555;               /* curses */
+    --mc-red-shadow: #3f1515;
+    --mc-red-light: #ff8080;
+    --mc-lime: #55ff55;              /* the "+" before a raised enchantment */
+    --mc-lime-shadow: #153f15;
+    --mc-gray: #aaaaaa;              /* enchantment lines */
+    --mc-gray-dim: #7d7d7d;
+    --mc-count: #a0a0a0;
+    --mc-from: #8a8a8a;
+    --mc-ench-dim: #8f8f8f;          /* lines a step did not change: 5.8:1 on the tooltip */
+    --mc-curse-dim: #d95a5a;         /* a curse among them: 4.9:1 */
+    --mc-tip-text: #f4f4f4;
+    --mc-purple: #7a3fd6;            /* a chosen level's slot, the prior-work colour */
+    --mc-purple-dark: #2a0f5e;
+    --mc-purple-light: #c9a6ff;
+    --mc-violet: #b58cff;
+    --mc-chip-purple: #d4c6fb;
+    --mc-done: #3c8d3f;              /* a ticked step's node */
+    --mc-bar-empty: #2a2a2a;         /* the experience bar */
+    --mc-bar-edge: #3d3d3d;
+    --mc-xp-track: #1b1b1b;
+    --mc-xp-amber: #e0a23a;
+    --mc-cost-amber: #e0a030;
+    --mc-graph-node: #7b8794;
+    --mc-tooltip-bg: rgba(16, 0, 16, 0.94);
+    --mc-tooltip-edge: #2d0a63;
+    --mc-tooltip-border: #100010;
+    --bevel-light: rgba(255, 255, 255, 0.35);
+    --glint-edge: rgba(170, 90, 255, 0.45);
+    --glint-core: rgba(210, 160, 255, 0.55);
+    --purple-28: rgba(122, 63, 214, 0.28);
+    --purple-16: rgba(122, 63, 214, 0.16);
+    --ink-14: rgba(0, 0, 0, 0.14);
+    --ink-15: rgba(0, 0, 0, 0.15);
+    --ink-18: rgba(0, 0, 0, 0.18);
+    --ink-25: rgba(0, 0, 0, 0.25);
+    --ink-30: rgba(0, 0, 0, 0.3);
+    --shadow-sm: 0 1px 3px var(--ink-25);
+    --shadow-chip: 0 1px 3px var(--ink-30);
+    --shadow-menu: 0 4px 14px var(--ink-18);
+    --shadow-menu-deep: 0 4px 14px var(--ink-25);
+    --shadow-pop: 0 6px 18px var(--ink-25);
+    --shadow-pop-deep: 0 6px 18px var(--ink-30);
+    --shadow-drag: 0 6px 16px var(--ink-35);
     color-scheme: light;
 }
 
@@ -249,10 +313,12 @@ html { scrollbar-gutter: stable; }
     cursor: pointer;
 }
 /* A slight game-button bevel: light along the top, dark along the bottom, pressed in on click. */
-.btn:not(:disabled) { box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 -2px 0 rgba(0, 0, 0, 0.14); }
-.btn:not(:disabled):active { box-shadow: inset 0 2px 0 rgba(0, 0, 0, 0.18); transform: translateY(1px); }
+.btn:not(:disabled) { box-shadow: inset 0 1px 0 var(--bevel-light), inset 0 -2px 0 var(--ink-14); }
+.btn:not(:disabled):active { box-shadow: inset 0 2px 0 var(--ink-18); transform: translateY(1px); }
 .btn:hover { background: var(--surface-alt); }
 .btn:disabled { opacity: 0.45; cursor: default; background: transparent; }
+/* A disabled plain button stays legible (3:1 or better): muted text and a dashed faint border instead of fading it. */
+.btn:disabled:not(.primary) { opacity: 1; color: var(--text-muted); border-color: var(--border-strong); border-style: dashed; }
 .btn.small { font-size: 13px; padding: 4px 10px; }
 .btn.tiny { font-size: 13px; padding: 0 8px; line-height: 24px; }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
@@ -305,15 +371,16 @@ html { scrollbar-gutter: stable; }
     z-index: 30;
     width: auto;
     padding: 3px 6px;
-    transform: translateX(-50%);
+    /* --tip-shift: Wanted.js placeTip keeps the tooltip inside the window near its edges. */
+    transform: translateX(calc(-50% + var(--tip-shift, 0px)));
     text-align: left;
     white-space: nowrap;
-    opacity: 0;
+    /* Not laid out until shown: even invisible, it would widen the page past its edge. */
+    display: none;
     pointer-events: none;
-    transition: opacity 0.12s;
 }
 .item-tip > span { display: block; }
-.item-button:hover .item-tip, .item-button:focus-visible .item-tip { opacity: 1; }
+.item-button:hover .item-tip, .item-button:focus-visible .item-tip { display: block; }
 @media (hover: none) { .item-tip { display: none; } }
 .item-button.selected { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
 
@@ -337,7 +404,7 @@ html { scrollbar-gutter: stable; }
 #wanted > .hint { margin: 0 0 10px; }
 
 /* The slot is the item menu's button: a caret in its corner, a purple ring on hover. */
-.item-menu-button {
+.item-menu-button, .entry-slot {
     position: relative;
     flex: none;
     padding: 0;
@@ -346,8 +413,8 @@ html { scrollbar-gutter: stable; }
     cursor: pointer;
     border-radius: 2px;
 }
-.item-menu-button:hover .mc-slot, .menu-open .item-menu-button .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
-.item-menu-button:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.item-menu-button:hover .mc-slot, .menu-open .item-menu-button .mc-slot, .entry-slot:hover .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
+.item-menu-button:focus-visible, .entry-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 .item-menu-caret {
     position: absolute;
     right: -5px;
@@ -362,20 +429,22 @@ html { scrollbar-gutter: stable; }
     color: var(--on-accent);
     font-size: 11px;
     line-height: 1;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-chip);
 }
 .menu-open .item-menu-caret { transform: rotate(180deg); }
-.item-menu {
+.item-menu, .entry-popover {
     position: absolute;
-    top: 62px; /* under the slot */
     left: 0;
     z-index: 20;
-    width: min(440px, 100%);
-    padding: 10px;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     background: var(--surface);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-pop);
+}
+.item-menu {
+    top: 62px; /* under the slot */
+    width: min(440px, 100%);
+    padding: 10px;
 }
 /* On phones the grid opens in the card's flow, full width, so its buttons stay big. */
 @media (max-width: 600px) {
@@ -552,16 +621,16 @@ html { scrollbar-gutter: stable; }
     align-items: center;
     justify-content: center;
     border: 2px solid;
-    border-color: #373737 #ffffff #ffffff #373737;
-    background: #8b8b8b;
-    color: #1e1e1e; /* 4.9:1 on the slot gray */
+    border-color: var(--mc-slot-dark) var(--mc-white) var(--mc-white) var(--mc-slot-dark);
+    background: var(--mc-slot-bg);
+    color: var(--mc-ink-dim); /* not chosen: quieter than a lit level (3.3:1 on the slot gray; 3.8:1 on the hover gray) */
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 12px;
     transition: background-color 0.08s, color 0.08s;
 }
-.level-bar:hover .level-seg:not(.filled) { background: #9c9c9c; }
-.level-seg.filled { background: #7a3fd6; border-color: #2a0f5e #c9a6ff #c9a6ff #2a0f5e; color: #ffffff; text-shadow: 1px 1px 0 #2a0f5e; }
-@media (prefers-reduced-motion: reduce) { .level-seg { transition: none; } }
+.level-bar:hover .level-seg:not(.filled) { background: var(--mc-slot-hover); color: var(--mc-ink); } /* the preview under the pointer or focus reads in full */
+.level-bar:focus-visible .level-seg:not(.filled) { color: var(--mc-ink); }
+.level-seg.filled { background: var(--mc-purple); border-color: var(--mc-purple-dark) var(--mc-purple-light) var(--mc-purple-light) var(--mc-purple-dark); color: var(--mc-white); text-shadow: 1px 1px 0 var(--mc-purple-dark); }
 
 /* Conflicting enchantments are bracketed together; the label says how they conflict.
    The bracket sits out in the card's padding by its width (2px line + 7px gap), so the
@@ -614,10 +683,18 @@ html { scrollbar-gutter: stable; }
     color: var(--text-secondary);
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 13px;
+    text-align: left;
     cursor: pointer;
 }
 .switch-option:hover { color: var(--text); background: var(--border); }
-.switch-option.selected { background: var(--surface); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent), 0 1px 3px rgba(0, 0, 0, 0.15); }
+.switch-option.selected { background: var(--surface); color: var(--accent-text); box-shadow: inset 0 0 0 1px var(--accent), 0 1px 3px var(--ink-15); }
+.group-legend { margin-left: 2px; }
+.legend-item { display: block; margin: 2px 0; }
+.legend-item strong { font-weight: 600; }
+.skip-links { position: absolute; top: 0; left: 0; z-index: 100; }
+.skip-link { position: absolute; left: 8px; top: -100px; padding: 8px 12px; border-radius: var(--radius); background: var(--accent); color: var(--on-accent); font-weight: 600; text-decoration: none; }
+.skip-link:focus { top: 8px; }
+.card[tabindex="-1"]:focus { outline: none; }
 
 .divider {
     margin-top: 10px;
@@ -761,7 +838,7 @@ html { scrollbar-gutter: stable; }
 }
 .entry-card.compact .mc-slot { width: 36px; height: 36px; }
 .entry-card.compact .mc-slot .item-icon { width: 26px; height: 26px; }
-.entry-card.compact .stack-count { font-size: 12px; text-shadow: 1px 1px 0 #3f3f3f; }
+.entry-card.compact .stack-count { font-size: 12px; text-shadow: 1px 1px 0 var(--mc-text-shadow); }
 .entry-summary {
     flex: 1;
     min-width: 0;
@@ -793,36 +870,35 @@ button.entry-summary:hover, .entry-summary.open { background: var(--surface-alt)
 
 /* Dragging an enchantment line to another card. */
 .entry-line { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
-.mc-tooltip.line-ghost { position: fixed; z-index: 60; width: auto; padding: 3px 7px; pointer-events: none; box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35); }
+.mc-tooltip.line-ghost { position: fixed; z-index: 60; width: auto; padding: 3px 7px; pointer-events: none; box-shadow: var(--shadow-drag); }
 .entry-card.drag-source { opacity: 0.7; }
 .entry-card.drop-ok { outline: 2px solid var(--accent); outline-offset: 2px; }
 .entry-card.drop-no { outline: 2px dashed var(--danger-text); outline-offset: 2px; }
-body.dragging-line, body.dragging-line * { cursor: grabbing !important; }
+body.dragging, body.dragging * { cursor: grabbing !important; }
 
 /* The slot is the book/item switch: a purple ring on hover. The stack count sits in its
    corner in the game's white with a drop shadow, above the glint. */
-.entry-slot { position: relative; flex: none; padding: 0; border: none; border-radius: 2px; background: none; cursor: pointer; }
-.entry-slot:hover .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
-.entry-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
 /* A small swap badge in the slot's corner says it flips between book and item (hover or
    focus; always on touch). */
-.swap-glyph {
+.swap-glyph, .stack-edit {
     position: absolute;
-    top: -6px;
-    right: -6px;
     z-index: 2;
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 17px;
-    height: 17px;
     border: 1px solid var(--border-strong);
     border-radius: 50%;
     background: var(--surface);
     color: var(--accent-text);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
     opacity: 0;
     transition: opacity 0.12s;
+}
+.swap-glyph {
+    top: -6px;
+    right: -6px;
+    width: 17px;
+    height: 17px;
+    box-shadow: var(--shadow-sm);
     pointer-events: none;
 }
 .swap-glyph svg { display: block; width: 11px; height: 11px; }
@@ -836,8 +912,8 @@ body.dragging-line, body.dragging-line * { cursor: grabbing !important; }
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 15px;
     line-height: 1;
-    color: #fff;
-    text-shadow: 2px 2px 0 #3f3f3f;
+    color: var(--mc-white);
+    text-shadow: 2px 2px 0 var(--mc-text-shadow);
     pointer-events: none;
 }
 
@@ -875,17 +951,18 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     padding: 0;
     border: none;
     background: none;
-    color: #7d7d7d;
+    color: var(--mc-gray-dim);
     font: inherit;
     text-shadow: inherit;
     line-height: 24px;
     text-align: center;
     cursor: pointer;
 }
-.entry-add-plus:hover, .entry-add-plus.open, .entry-add-plus:focus-visible { color: #55ffff; }
-.entry-add-plus:focus-visible { outline: 1px solid #55ffff; outline-offset: -2px; }
+.entry-add-plus:hover, .entry-add-plus.open, .entry-add-plus:focus-visible { color: var(--mc-aqua); }
+.entry-add-plus:focus-visible { outline: 1px solid var(--mc-aqua); outline-offset: -2px; }
 @media (pointer: coarse) { .entry-add-plus { min-width: 32px; height: 32px; margin: -8px -4px -8px 0; line-height: 32px; } }
 .entry-line, .entry-add {
+    position: relative; /* for the larger hit area below */
     display: flex;
     align-items: center;
     gap: 4px;
@@ -898,11 +975,13 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     text-shadow: inherit;
     cursor: pointer;
 }
-.entry-line:hover, .entry-line:focus-visible { color: #ffffff; }
-.entry-line.curse:hover { color: #ff8080; }
-.entry-add { color: #7d7d7d; margin-top: 2px; }
-.entry-add:hover, .entry-add.open, .entry-add:focus-visible { color: #55ffff; }
-.entry-line:focus-visible, .entry-add:focus-visible { outline: 1px solid #55ffff; outline-offset: 1px; }
+.entry-line::after, .entry-add::after { content: ""; position: absolute; inset: -4px 0; }
+@media (pointer: coarse) { .entry-line::after, .entry-add::after { inset: -8px 0; } }
+.entry-line:hover, .entry-line:focus-visible { color: var(--mc-white); }
+.entry-line.curse:hover { color: var(--mc-red-light); }
+.entry-add { color: var(--mc-gray-dim); margin-top: 2px; }
+.entry-add:hover, .entry-add.open, .entry-add:focus-visible { color: var(--mc-aqua); }
+.entry-line:focus-visible, .entry-add:focus-visible { outline: 1px solid var(--mc-aqua); outline-offset: 1px; }
 .mc-ench .tag-flag { flex: none; text-shadow: none; }
 
 /* The add area, a dashed bar under the entries: the two add buttons and the type box. */
@@ -938,15 +1017,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* A popover under its card: the copies/prior work steppers, or the enchantment picker
    (the grid's full width). Books.js placePopover sets its top (and left for the steppers). */
 .entry-popover {
-    position: absolute;
-    left: 0;
     right: 0;
-    z-index: 20;
     padding: 10px 12px;
-    border: 1px solid var(--border-strong);
-    border-radius: var(--radius);
-    background: var(--surface);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 /* A fixed width and two lines for the note, so the popover keeps its size while the
    note changes with the prior work. */
@@ -1062,7 +1134,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .options-button { position: relative; list-style: none; user-select: none; }
 .options-button::-webkit-details-marker { display: none; }
 .options-menu[open] > .options-button { background: var(--surface-alt); }
-.options-summary { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.options-summary { min-width: 0; line-height: 1.3; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .gear-icon { flex: none; width: 16px; height: 16px; transition: transform 0.25s; }
 .options-menu[open] .gear-icon { transform: rotate(45deg); }
 .options-button.changed::after {
@@ -1121,8 +1193,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     width: 16px;
     height: 16px;
     border-radius: 50%;
-    background: #fff;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+    background: var(--mc-white);
+    box-shadow: 0 1px 2px var(--ink-30);
     transition: transform 0.15s;
 }
 .rule-switch.on { color: var(--accent-text); }
@@ -1133,22 +1205,22 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* The "?" beside an option's label. */
 .option-label .info-tip.option-help { margin-left: 6px; vertical-align: middle; }
 .option-label .info-tip-bubble { line-height: 1.4; font-weight: normal; }
-@media (prefers-reduced-motion: reduce) { .rule-switch-track, .rule-switch-thumb { transition: none; } }
 /* Fixed, placed by Options.js setupOptionsMenu (so it never counts as the right column's
    content). */
 .options-panel {
     position: fixed;
     z-index: 25;
-    /* 48px: the page's 16px gutters plus the card's padding, so on a phone the panel
-       stays inside the page's margins. */
-    width: min(360px, calc(100vw - 48px));
+    /* 32px: the page's 16px gutters, so on a phone the panel keeps even margins. */
+    width: min(360px, calc(100vw - 32px));
+    /* Never taller than the window (a phone on its side): Options.js setupOptionsMenu sets max-height; it scrolls inside. */
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 12px;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     background: var(--surface);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
+    box-shadow: var(--shadow-pop);
 }
-@media (prefers-reduced-motion: reduce) { .gear-icon { transition: none; } }
 
 
 /* The ranking arrows and the saved-setup name box. */
@@ -1196,6 +1268,18 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .options-panel .option-control + .option-label { margin-top: 8px; }
 }
 
+/* The Game rules and Display sections share one label column (subgrid), so every control starts at the same x. */
+@media (min-width: 421px) {
+    @supports (grid-template-columns: subgrid) {
+        .options-panel { display: grid; grid-template-columns: max-content minmax(0, 1fr); column-gap: 14px; align-content: start; }
+        .options-panel > * { grid-column: 1 / -1; }
+        .options-panel > .settings-section { display: grid; grid-template-columns: subgrid; }
+        .options-panel > .settings-section > * { grid-column: 1 / -1; }
+        .options-panel > .settings-section > .options { display: grid; grid-template-columns: subgrid; }
+        .options-panel .settings-section + .settings-section { margin-top: 0; }
+    }
+}
+
 /* Section 3's settings on a narrow card: each label above its control, so the level limit's slider
    (with its infinity stop and value) gets the whole width. */
 @media (max-width: 480px) {
@@ -1238,7 +1322,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     border-radius: 50%;
     border: 2px solid var(--accent);
     background: var(--surface);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-chip);
 }
 .limit-slider::-moz-range-thumb {
     width: 14px;
@@ -1277,13 +1361,13 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .limit-value {
     border: 1px solid transparent;
-    background: #3b3b3b;
-    color: #80ff20;
-    text-shadow: 1px 1px 0 #203f08;
+    background: var(--mc-panel);
+    color: var(--mc-green);
+    text-shadow: 1px 1px 0 var(--mc-green-shadow);
     cursor: text;
 }
 .limit-value:hover { border-color: var(--border-strong); }
-.limit-value.unlimited { color: #d4c6fb; text-shadow: none; font-family: system-ui, sans-serif; font-size: 18px; }
+.limit-value.unlimited { color: var(--mc-chip-purple); text-shadow: none; font-family: system-ui, sans-serif; font-size: 18px; }
 .limit-edit { border: 1px solid var(--accent); background: var(--surface); color: var(--text); padding: 0 4px; }
 
 /* Your level: a switch, then (while it is on) the number with its XP bar and a button, and a status line. */
@@ -1315,28 +1399,28 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     user-select: none;
 }
 .xp-step:hover { background: var(--surface-alt); color: var(--text); }
-.xp-field { position: relative; width: 56px; background: #3b3b3b; }
+.xp-field { position: relative; width: 56px; background: var(--mc-panel); }
 .xp-value {
     width: 100%;
     height: 100%;
     padding: 0 0 6px;
     border: none;
     background: transparent;
-    color: #80ff20;
-    text-shadow: 1px 1px 0 #203f08;
+    color: var(--mc-green);
+    text-shadow: 1px 1px 0 var(--mc-green-shadow);
     font: 15px/1 "Minecraft", system-ui, sans-serif;
     text-align: center;
     appearance: textfield;
     -moz-appearance: textfield;
 }
 .xp-value::-webkit-outer-spin-button, .xp-value::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.xp-value::placeholder { color: #8b8b8b; text-shadow: none; }
+.xp-value::placeholder { color: var(--mc-slot-bg); text-shadow: none; }
 .xp-value:focus { outline: none; }
 .xp-field:focus-within { box-shadow: inset 0 0 0 2px var(--accent); }
 /* The game's XP bar: dark track, green fill toward what the order needs. */
-.xp-bar { position: absolute; left: 5px; right: 5px; bottom: 4px; height: 4px; background: #1b1b1b; border: 1px solid #000; }
-.xp-fill { height: 100%; width: 0; background: #e0a23a; transition: width 0.15s; }
-.xp-bar.enough .xp-fill { background: #80ff20; }
+.xp-bar { position: absolute; left: 5px; right: 5px; bottom: 4px; height: 4px; background: var(--mc-xp-track); border: 1px solid var(--mc-black); }
+.xp-fill { height: 100%; width: 0; background: var(--mc-xp-amber); transition: width 0.15s; }
+.xp-bar.enough .xp-fill { background: var(--mc-green); }
 .level-set { flex: none; white-space: nowrap; }
 
 /* Small controls keep their look but get a hit area of at least 24px (40px on touch
@@ -1349,6 +1433,16 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .rule-switch::after { inset: -10px -4px; }
     .rank-move::after { inset: -12px -3px; }
 }
+/* More hit area for the small controls whose look stays (see also the progress segments and .entry-line below). */
+:is(.ench-clear, .anvil-cost.has-breakdown) { position: relative; }
+:is(.ench-clear, .anvil-cost.has-breakdown)::after { content: ""; position: absolute; inset: -4px; }
+.anvil-cost.has-breakdown::after { inset: -4px -2px; }
+:is(.collapse-toggle, .step-fold, .step-reset) { position: relative; }
+@media (pointer: coarse) {
+    :is(.collapse-toggle, .step-fold, .step-reset)::after { content: ""; position: absolute; inset: -8px; }
+    .ench-clear::after { inset: -9px -5px; }
+    .anvil-cost.has-breakdown::after { inset: -10px -4px; }
+}
 /* Rename: one anvil-style name box. The name tag and "+1 level" light up while a name is typed. */
 .anvil-name {
     display: flex;
@@ -1357,25 +1451,25 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     height: 32px;
     max-width: 320px;
     padding: 0 8px 0 6px;
-    border: 1px solid #373737;
+    border: 1px solid var(--mc-slot-dark);
     border-radius: 6px;
-    background: #000;
+    background: var(--mc-black);
 }
-.anvil-name:focus-within { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.anvil-name:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
 .anvil-name-input {
     flex: 1;
     min-width: 0;
     border: none;
     background: transparent;
-    color: #fff;
+    color: var(--mc-white);
     font: italic 13px/1 "Minecraft", system-ui, sans-serif;
-    text-shadow: 1px 1px 0 #3f3f3f;
+    text-shadow: 1px 1px 0 var(--mc-text-shadow);
 }
-.anvil-name-input::placeholder { color: #8b8b8b; font-style: normal; text-shadow: none; }
+.anvil-name-input::placeholder { color: var(--mc-slot-bg); font-style: normal; text-shadow: none; }
 /* Empty: the item's name shows as a gray hint (the placeholder above); a typed name is
    white italics. */
 .anvil-name-input:focus { outline: none; }
-.name-count { flex: none; font-size: 11px; color: #a0a0a0; font-family: system-ui, sans-serif; }
+.name-count { flex: none; font-size: 11px; color: var(--mc-count); font-family: system-ui, sans-serif; }
 .anvil-name .name-tag-icon { flex: none; width: 18px; height: 18px; image-rendering: pixelated; filter: grayscale(1) opacity(0.5); }
 .anvil-name.renaming .name-tag-icon { filter: none; }
 .rename-cost {
@@ -1383,13 +1477,12 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     flex: none;
     padding: 1px 5px;
     border-radius: 2px;
-    background: #3b3b3b;
-    color: #80ff20;
-    text-shadow: 1px 1px 0 #203f08;
+    background: var(--mc-panel);
+    color: var(--mc-green);
+    text-shadow: 1px 1px 0 var(--mc-green-shadow);
     font: 11px/1.3 "Minecraft", system-ui, sans-serif;
 }
 .anvil-name.renaming .rename-cost { display: inline-block; }
-@media (prefers-reduced-motion: reduce) { .xp-fill { transition: none; } }
 
 /* Result tiles, which are also the ranking (drag or use the arrows). */
 .metrics-box { margin-bottom: 14px; container: metrics / inline-size; }
@@ -1420,7 +1513,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     border-radius: var(--radius);
     background: var(--surface);
     color: var(--text);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--shadow-menu);
     font: 13px/1.4 system-ui, sans-serif;
 }
 .info-tip:hover .info-tip-bubble,
@@ -1445,8 +1538,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .rank-tile-head { display: flex; align-items: baseline; gap: 5px; }
 /* The grip: two columns of dots, so the tile looks draggable. */
 .rank-grip { flex: none; align-self: center; width: 8px; height: 12px; opacity: 0.4; background: radial-gradient(circle, currentColor 1.1px, transparent 1.5px) 0 0 / 4px 4px; }
-/* One line: the narrowest tile (120px) fits "Trabajo anterior"; longer names end in "…". */
-.rank-tile-head .metric-label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The narrowest tile fits "Trabajo anterior" on one line or, on a small phone, two. */
+.rank-tile-head .metric-label { flex: 1; min-width: 0; overflow-wrap: break-word; }
 .rank-num { flex: none; font-size: 11px; font-weight: 600; color: var(--text-muted); }
 .rank-tile-body { display: flex; align-items: center; gap: 2px; }
 .metric-figure { flex: 1; min-width: 0; display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; }
@@ -1525,17 +1618,19 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .card.collapsed .section-summary, .section-summary.always { display: block; }
 /* "6 steps" is short: it keeps its width, and the title gives way first. */
 .section-summary.always { flex: 0 0 auto; }
-.collapse-toggle {
-    margin-left: auto;
+.collapse-toggle, .step-fold {
     flex: none;
     width: 26px;
     height: 26px;
     padding: 0;
     border: none;
-    border-radius: var(--radius);
     background: none;
-    color: var(--text-secondary);
     cursor: pointer;
+}
+.collapse-toggle {
+    margin-left: auto;
+    border-radius: var(--radius);
+    color: var(--text-secondary);
 }
 .collapse-toggle::before {
     content: "";
@@ -1550,7 +1645,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .card.collapsed .collapse-toggle::before, .card.closing .collapse-toggle::before { transform: translateY(-2px) rotate(45deg); }
 .collapse-toggle:hover, .collapse-toggle:focus-visible { background: var(--surface-alt); color: var(--text); }
-@media (prefers-reduced-motion: reduce) { .collapse-toggle::before { transition: none; } }
 .info-tip.alert { position: static; }
 .info-tip.alert .info-tip-bubble { max-width: min(320px, 100%); }
 .info-tip.alert:hover .info-tip-bubble, .info-tip.alert.open .info-tip-bubble { display: grid; gap: 10px; }
@@ -1656,7 +1750,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     color: var(--text-secondary);
     font: 600 11px/1 system-ui, sans-serif;
 }
-.anvil-step.done .step-node { border-color: #3c8d3f; background: #3c8d3f; color: #fff; }
+.anvil-step.done .step-node { border-color: var(--mc-done); background: var(--mc-done); color: var(--mc-white); }
 .anvil-step.current .step-node { border-color: var(--accent); color: var(--accent-text); box-shadow: 0 0 0 4px var(--accent-bg); }
 
 .anvil-step {
@@ -1670,7 +1764,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* The step's head: the tick (the whole "☐ Step 3" is the target) and a folded step's line. */
 .anvil-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .anvil-step.current { border-color: var(--accent); }
-.step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; }
+.step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; cursor: pointer; }
 .step-tick {
     display: inline-flex;
     align-items: center;
@@ -1686,20 +1780,14 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .step-tick:hover { background: var(--surface); }
 .step-tick input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+/* The whole label ticks, so on touch screens it is the tall target (its extra height is taken back by the margin). */
+@media (pointer: coarse) { .step-tick { min-height: 40px; margin: -6px 0; } }
 /* The whole head (but the tick) folds and unfolds the step; ▾/▴ says which it will do. */
-.step-head { cursor: pointer; }
 .step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-fold {
-    flex: none;
-    width: 26px;
-    height: 26px;
-    padding: 0;
-    border: none;
     border-radius: 6px;
-    background: none;
     color: var(--text-muted);
     font-size: 12px;
-    cursor: pointer;
 }
 .step-head:hover .step-fold, .step-fold:focus-visible { background: var(--surface); color: var(--text); }
 .step-head:hover .step-summary { color: var(--text); }
@@ -1727,8 +1815,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .anvil-cell.left { grid-area: left; }
 .anvil-cell.right { grid-area: right; }
 .anvil-cell.result { grid-area: result; }
-.anvil-op { grid-area: plus; }
-.anvil-arrow { grid-area: arrow; }
 
 /* Narrow (a laptop-width or phone column): three tooltips side by side would wrap most
    names, so the inputs go on top and the result sits centered below them. Chosen by the
@@ -1749,6 +1835,31 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .anvil-cell.result { justify-self: center; width: max-content; min-width: calc(50% - 6px); max-width: 100%; }
 }
 
+/* A phone-width step list: Left, Right, Result one under another, each a slot with a full-width tooltip beside it, so no name
+   is squeezed into a 100px cell and broken mid-word. (The Slots view keeps its line of slots.) */
+@container steps (max-width: 360px) {
+    .timeline:not(.slots-mode) .anvil-row {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas: "left" "plus" "right" "arrow" "result";
+        row-gap: 4px;
+    }
+    .timeline:not(.slots-mode) .anvil-op { height: 16px; }
+    .timeline:not(.slots-mode) .anvil-cell {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr);
+        grid-template-areas: "label label" "slot tip" "meta meta";
+        column-gap: 8px;
+        row-gap: 4px;
+        align-items: start;
+        justify-items: stretch;
+    }
+    .timeline:not(.slots-mode) .anvil-cell > .cell-label { grid-area: label; }
+    .timeline:not(.slots-mode) .anvil-cell > .mc-slot { grid-area: slot; }
+    .timeline:not(.slots-mode) .anvil-cell > .mc-tooltip { grid-area: tip; width: auto; }
+    .timeline:not(.slots-mode) .anvil-cell > .cell-meta { grid-area: meta; text-align: left; }
+    .timeline:not(.slots-mode) .anvil-cell.result { justify-self: stretch; width: auto; min-width: 0; max-width: none; }
+}
+
 .anvil-cell { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 0; }
 
 .anvil-op, .anvil-arrow {
@@ -1759,8 +1870,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     font-family: "Minecraft", system-ui, sans-serif;
     color: var(--gui-text);
 }
-.anvil-op { font-size: 18px; }
-.anvil-arrow { flex-direction: column; gap: 2px; }
+.anvil-op { grid-area: plus; font-size: 18px; }
+.anvil-arrow { grid-area: arrow; flex-direction: column; gap: 2px; }
 .arrow-glyph { font-size: 22px; line-height: 1; }
 
 /* Green cost text with the game's drop shadow, on a dark chip so it reads in light mode */
@@ -1768,34 +1879,33 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 12px;
     white-space: nowrap;
-    color: #80ff20;
-    text-shadow: 1px 1px 0 #203f08;
-    background: #3b3b3b;
+    color: var(--mc-green);
+    text-shadow: 1px 1px 0 var(--mc-green-shadow);
+    background: var(--mc-panel);
     padding: 1px 5px;
     border-radius: 2px;
 }
 
 /* Inventory slot: gray fill, dark top-left edge, light bottom-right edge */
-.mc-slot {
+.mc-slot, .tree-slot {
     position: relative;
-    width: 48px;
-    height: 48px;
     display: flex;
     align-items: center;
     justify-content: center;
-    background: #8b8b8b;
+    background: var(--mc-slot-bg);
     border: 2px solid;
-    border-color: #373737 #ffffff #ffffff #373737;
+    border-color: var(--mc-slot-dark) var(--mc-white) var(--mc-white) var(--mc-slot-dark);
     overflow: hidden;
 }
+.mc-slot { width: 48px; height: 48px; }
 .mc-slot .item-icon { width: 36px; height: 36px; }
 
 /* Enchantment glint: a purple sheen sweeping across the icon */
-.mc-slot.glint::after {
+.mc-slot.glint::after, .tree-slot.glint::after {
     content: "";
     position: absolute;
     inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(170, 90, 255, 0.45) 45%, rgba(210, 160, 255, 0.55) 50%, transparent 65%);
+    background: linear-gradient(115deg, transparent 30%, var(--glint-edge) 45%, var(--glint-core) 50%, transparent 65%);
     background-size: 250% 100%;
     mix-blend-mode: screen;
     animation: glint 3s linear infinite;
@@ -1817,27 +1927,27 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     position: relative; /* a line closing in place is laid over it (Motion.js closeLines) */
     width: 100%;
     padding: 4px 5px;
-    background: rgba(16, 0, 16, 0.94);
-    outline: 2px solid #2d0a63;
+    background: var(--mc-tooltip-bg);
+    outline: 2px solid var(--mc-tooltip-edge);
     outline-offset: -3px;
-    border: 1px solid #100010;
+    border: 1px solid var(--mc-tooltip-border);
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 12px;
     line-height: 1.35;
-    text-shadow: 1px 1px 0 #3f3f3f;
+    text-shadow: 1px 1px 0 var(--mc-text-shadow);
     /* Wrap only between words (a single word too long for the box is the one exception). */
     overflow-wrap: break-word;
 }
 .mc-name.renamed { font-style: italic; } /* renamed items show their name in italics */
-.mc-name.rarity-common { color: #ffffff; }
-.mc-name.rarity-uncommon { color: #ffff55; text-shadow: 1px 1px 0 #3f3f15; }
-.mc-name.rarity-rare { color: #55ffff; text-shadow: 1px 1px 0 #153f3f; }
-.mc-name.rarity-epic { color: #ff55ff; text-shadow: 1px 1px 0 #3f153f; }
-.mc-ench { color: #aaaaaa; }
-.mc-ench.curse { color: #ff5555; text-shadow: 1px 1px 0 #3f1515; }
+.mc-name.rarity-common { color: var(--mc-white); }
+.mc-name.rarity-uncommon { color: var(--mc-yellow); text-shadow: 1px 1px 0 var(--mc-yellow-shadow); }
+.mc-name.rarity-rare { color: var(--mc-aqua); text-shadow: 1px 1px 0 var(--mc-aqua-shadow); }
+.mc-name.rarity-epic { color: var(--mc-magenta); text-shadow: 1px 1px 0 var(--mc-magenta-shadow); }
+.mc-ench { color: var(--mc-gray); }
+.mc-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 /* Enchantments added or raised by this step */
-.mc-ench.changed { color: #ffffff; }
-.mc-ench.changed::before { content: "+ "; color: #55ff55; text-shadow: 1px 1px 0 #153f15; }
+.mc-ench.changed { color: var(--mc-white); }
+.mc-ench.changed::before { content: "+ "; color: var(--mc-lime); text-shadow: 1px 1px 0 var(--mc-lime-shadow); }
 
 @media (max-width: 420px) {
     .mc-slot { width: 40px; height: 40px; }
@@ -1856,17 +1966,19 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .saved-menu > summary { list-style: none; }
 .saved-menu > summary::-webkit-details-marker { display: none; }
 .saved-menu > summary::after { content: "▾"; font-size: 10px; color: var(--text-secondary); }
-.saved-panel {
+.saved-panel, .copy-panel {
     position: absolute;
-    top: calc(100% + 6px);
     right: 0;
     z-index: 20;
-    width: min(300px, calc(100vw - 32px));
-    padding: 10px;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius);
     background: var(--surface);
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--shadow-menu);
+}
+.saved-panel {
+    top: calc(100% + 6px);
+    width: min(300px, calc(100vw - 32px));
+    padding: 10px;
     font-size: 13px;
 }
 .saved-form { display: flex; gap: 6px; }
@@ -1918,8 +2030,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     align-items: center;
     gap: 2px;
 }
-.level-meter { display: block; width: 56px; height: 4px; overflow: hidden; border-radius: 2px; background: rgba(0, 0, 0, 0.25); }
-.level-meter-fill { display: block; height: 100%; background: #80ff20; }
+.level-meter { display: block; width: 56px; height: 4px; overflow: hidden; border-radius: 2px; background: var(--ink-25); }
+.level-meter-fill { display: block; height: 100%; background: var(--mc-green); }
 /* Under a slot's tooltip: the step that made it, or the result's
    prior work. */
 .cell-meta { font: 11px/1.3 system-ui, sans-serif; color: var(--gui-text); text-align: center; }
@@ -1929,7 +2041,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     from { box-shadow: 0 0 0 6px var(--accent-bg); }
     to { box-shadow: 0 0 0 0 transparent; }
 }
-@media (prefers-reduced-motion: reduce) { .entry-card.flash { animation: none; } }
 /* A starting slot in Steps or Tree: click to find its card in Books and items. */
 [data-entry-link] { cursor: pointer; }
 [data-entry-link]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
@@ -1938,9 +2049,14 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* Takes the row's width and wraps its extra buttons under it (see .result-tools .step-progress). */
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* An experience bar: black frame, dark empty segments, bright green filled ones. */
-.step-progress-track { display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 9px; padding: 1px; background: #000; }
-.step-progress-cell { flex: 1; padding: 0; border: none; cursor: pointer; background: #2a2a2a; box-shadow: inset 0 1px 0 #3d3d3d; transition: background-color 0.25s ease-out; }
-.step-progress-cell.filled { background: linear-gradient(#b2ff4d, #80ff20 40%, #3d9b0a); box-shadow: none; }
+.step-progress-track { position: relative; display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 24px; margin: -8px 0; padding: 0 1px; }
+/* The black frame: 9px, centred in the taller track. The segments are tall (a bigger hit area) and draw their bar in ::before. */
+.step-progress-track::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 9px; transform: translateY(-50%); background: var(--mc-black); }
+.step-progress-cell { position: relative; flex: 1; padding: 0; border: none; cursor: pointer; background: transparent; }
+.step-progress-cell::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 7px; transform: translateY(-50%); background: var(--mc-bar-empty); box-shadow: inset 0 1px 0 var(--mc-bar-edge); transition: background-color 0.25s ease-out; }
+.step-progress-cell.filled::before { background: linear-gradient(var(--mc-green-light), var(--mc-green) 40%, var(--mc-green-deep)); box-shadow: none; }
+.step-progress-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
+@media (pointer: coarse) { .step-progress-track { height: 40px; margin: -16px 0; } }
 /* Level up: the bar flashes bright and a glow rises once, as when the XP bar fills in the game. */
 .step-progress-track.level-up { animation: level-up 0.9s ease-out; }
 @keyframes level-up {
@@ -1948,7 +2064,14 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     25% { filter: brightness(2.2) saturate(1.4); }
     100% { filter: brightness(1); }
 }
-@media (prefers-reduced-motion: reduce) { .step-progress-track.level-up { animation: none; } }
+/* The experience orbs that pop out of the bar on the last tick (Results.js orbBurst): they stay invisible until their animation runs (never, with motion off). */
+.orb-burst { position: absolute; left: 0; right: 0; top: 50%; height: 0; pointer-events: none; }
+.pop-orb { position: absolute; top: -7px; width: 14px; height: 14px; margin-left: -7px; image-rendering: pixelated; opacity: 0; animation: orb-pop 0.9s ease-out both; }
+@keyframes orb-pop {
+    0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
+    15% { opacity: 1; }
+    100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1); }
+}
 .step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .step-progress-main { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
 /* With room (not phones), the text stays on one line: the bar gives way first, then the
@@ -1971,7 +2094,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .step-reset:hover:not(:disabled) { background: var(--surface-alt); color: var(--text); }
 .step-reset:disabled { opacity: 0.35; cursor: default; }
-@media (prefers-reduced-motion: reduce) { .step-progress-cell { transition: none; } }
 
 /* The break risk in section 4's heading: [anvil] 4%, a pill colored by risk. */
 .info-tip.anvil-risk { flex: none; }
@@ -1996,7 +2118,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .info-tip.anvil-risk .info-tip-bubble { font-weight: normal; }
 
 .result-actions { display: flex; gap: 8px; margin-left: auto; }
-.result-tools .btn:disabled { opacity: 0.4; cursor: default; background: transparent; }
+.result-tools .btn:disabled:not(.primary) { opacity: 1; }
 /* Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
 .result-tools .step-progress { order: 1; flex-basis: 100%; }
 
@@ -2027,30 +2149,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .tree-line.merge { cursor: pointer; }
 .tree-line.merge > .step-fold { margin-left: -4px; }
 .tree-line.merge:hover > .step-fold { background: var(--surface); color: var(--text); }
-.tree-slot {
-    position: relative;
-    flex: none;
-    width: 30px;
-    height: 30px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #8b8b8b;
-    border: 2px solid;
-    border-color: #373737 #ffffff #ffffff #373737;
-    overflow: hidden;
-}
+.tree-slot { flex: none; width: 30px; height: 30px; }
 .tree-slot .item-icon.small { width: 22px; height: 22px; }
-.tree-slot.glint::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(115deg, transparent 30%, rgba(170, 90, 255, 0.45) 45%, rgba(210, 160, 255, 0.55) 50%, transparent 65%);
-    background-size: 250% 100%;
-    mix-blend-mode: screen;
-    animation: glint 3s linear infinite;
-    pointer-events: none;
-}
 /* The game's tooltip, sized to its text rather than the row. */
 .tree-tooltip {
     display: flex;
@@ -2128,14 +2228,14 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 /* The bar's ends round off in pixel steps, as in the game: the frame loses 2-pixel stair
    corners, and the end segments 1-pixel ones, so the frame still shows all the way round. */
-.step-progress-track {
+.step-progress-track::before {
     clip-path: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px,
         100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px),
         calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px),
         0 2px, 1px 2px, 1px 1px, 2px 1px);
 }
-.step-progress-cell:first-child { clip-path: polygon(1px 0, 100% 0, 100% 100%, 1px 100%, 1px calc(100% - 1px), 0 calc(100% - 1px), 0 1px, 1px 1px); }
-.step-progress-cell:last-child { clip-path: polygon(0 0, calc(100% - 1px) 0, calc(100% - 1px) 1px, 100% 1px, 100% calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 100%, 0 100%); }
+.step-progress-cell:first-of-type::before { clip-path: polygon(1px 0, 100% 0, 100% 100%, 1px 100%, 1px calc(100% - 1px), 0 calc(100% - 1px), 0 1px, 1px 1px); }
+.step-progress-cell:last-of-type::before { clip-path: polygon(0 0, calc(100% - 1px) 0, calc(100% - 1px) 1px, 100% 1px, 100% calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 100%, 0 100%); }
 
 /* Very small phones (320px): a little tighter, so the header controls stay on one row and
    the enchantment names keep room beside their level bars. */
@@ -2145,6 +2245,11 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .language-select { padding: 0 2px; }
     .ench-row { column-gap: 6px; }
     .level-bar { --seg: 25px; }
+}
+
+/* Small phones: headings a little smaller, so "Usos del yunque" with its pill and arrow stays on two lines at most. */
+@media (max-width: 440px) {
+    .card.collapsible h2 { font-size: 14px; gap: 6px; }
 }
 
 /* Start over, at the foot of the page. */
@@ -2161,38 +2266,27 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .cost-line.idle { width: 0; min-width: 100%; height: 0; margin: 0; overflow: hidden; opacity: 0; }
 .cost-line.stale { opacity: 0.5; }
 .cost-line-orb { width: 14px; height: 14px; image-rendering: pixelated; }
-.cost-line-text { color: #80ff20; }
+.cost-line-text { color: var(--mc-green); }
 .cost-line.none .cost-line-orb { filter: grayscale(1); opacity: 0.5; }
-.cost-line.none .cost-line-text { color: #aaaaaa; }
+.cost-line.none .cost-line-text { color: var(--mc-gray); }
 .presets { position: relative; }
 .compare-tip { position: absolute; z-index: 30; width: auto; min-width: 120px; padding: 4px 8px; white-space: nowrap; pointer-events: none; }
-.mc-ench.removed { color: #ff5555; text-decoration: line-through; text-shadow: 1px 1px 0 #3f1515; }
+.mc-ench.removed { color: var(--mc-red); text-decoration: line-through; text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 .mc-ench.removed::before { content: "- "; text-decoration: none; display: inline-block; }
 
 /* Section 2: the copies button on a slot, the prior work track, the coverage ring, the slots
    view and the drag previews. */
 .stack-edit {
-    position: absolute;
     right: -5px;
     bottom: -5px;
-    z-index: 2;
-    display: flex;
-    align-items: center;
-    justify-content: center;
     min-width: 20px;
     height: 20px;
     padding: 0;
-    border: 1px solid var(--border-strong);
-    border-radius: 50%;
-    background: var(--surface);
-    color: var(--accent-text);
     font: 700 13px/1 system-ui, sans-serif;
     cursor: pointer;
-    opacity: 0;
-    transition: opacity 0.12s;
 }
 .stack-edit.has { right: 0; bottom: 0; width: 28px; height: 22px; border: none; border-radius: 0; background: transparent; opacity: 1; }
-.stack-edit.has:hover, .stack-edit.has.open { background: rgba(122, 63, 214, 0.28); }
+.stack-edit.has:hover, .stack-edit.has.open { background: var(--purple-28); }
 .entry-card:hover .stack-edit, .stack-edit:focus-visible, .stack-edit.open { opacity: 1; }
 @media (hover: none) { .stack-edit { opacity: 1; } }
 .stack-edit:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
@@ -2213,7 +2307,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 #books .entry-add-card.drop-ok { outline: 2px solid var(--accent); outline-offset: 2px; }
 #books .entry-add-card.drop-no { outline: 2px dashed var(--danger-text); outline-offset: 2px; }
 .entry-card.merge-target { outline: 2px solid var(--accent); outline-offset: 2px; }
-.merge-ghost { position: fixed; z-index: 70; display: flex; align-items: flex-start; gap: 8px; pointer-events: none; filter: drop-shadow(0 6px 12px rgba(0, 0, 0, 0.35)); }
+.merge-ghost { position: fixed; z-index: 70; display: flex; align-items: flex-start; gap: 8px; pointer-events: none; filter: drop-shadow(0 6px 12px var(--ink-35)); }
 .merge-ghost.done { opacity: 0; transition: opacity 0.4s ease 1.1s; }
 .merge-chip { min-width: 80px; max-width: 230px; padding: 5px 9px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text); font: 12px/1.35 system-ui, sans-serif; }
 .merge-chip:empty { display: none; }
@@ -2247,7 +2341,7 @@ div.slot-cell-button { cursor: default; }
 .item-icon { -webkit-user-drag: none; user-select: none; }
 .entry-slot .item-icon, .slot-cell-button .item-icon { pointer-events: none; }
 
-body.dragging-line { -webkit-user-select: none; user-select: none; }
+body.dragging { -webkit-user-select: none; user-select: none; }
 
 .entry-card.slotcell > .drag-handle { position: absolute; top: -9px; left: -6px; z-index: 3; min-width: 18px; height: 17px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 12px; }
 /* Reordering slots: the slot being dragged and the one it would go to (dashed outline) show their tooltips. */
@@ -2267,11 +2361,12 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .anvil-step.folded .step-words { display: none; }
 /* "In words": the sentence behind a small disclosure, so the three slots lead. */
 .step-words { margin: 0 0 8px; }
-.step-words > summary { display: inline-block; cursor: pointer; font-size: 12px; color: var(--text-secondary); list-style: none; }
+.step-words > summary { display: inline-flex; align-items: center; min-height: 24px; cursor: pointer; font-size: 12px; color: var(--text-secondary); list-style: none; }
 .step-words > summary::-webkit-details-marker { display: none; }
 .step-words > summary::before { content: "\25b8"; display: inline-block; margin-right: 4px; transition: transform 0.15s; }
 .step-words[open] > summary::before { transform: rotate(90deg); }
 .step-words > summary:hover { color: var(--text); }
+@media (pointer: coarse) { .step-words > summary { min-height: 40px; margin: -8px 0; } }
 .step-words > .step-instruction { margin: 4px 0 0; }
 /* The Slots view's caption under its row. */
 .step-caption { display: none; }
@@ -2279,8 +2374,10 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .result-goal { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .step-progress-main .level-status { flex-basis: 100%; }
 .level-checkpoint { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 12px; }
-.mc-from { font-size: 11px; color: #8a8a8a; }
-.anvil-cell.result .mc-ench:not(.changed) { opacity: 0.6; }
+.mc-from { font-size: 11px; color: var(--mc-from); }
+/* Lines this step did not change: a muted colour, not opacity (which falls under 4.5:1 on the tooltip). */
+.anvil-cell.result .mc-ench:not(.changed) { color: var(--mc-ench-dim); }
+.anvil-cell.result .mc-ench.curse:not(.changed) { color: var(--mc-curse-dim); }
 .anvil-cost.has-breakdown { position: relative; cursor: help; }
 .anvil-cost.has-breakdown:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .cost-breakdown {
@@ -2294,7 +2391,7 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
     border: 1px solid var(--border-strong);
     border-radius: 8px;
     background: var(--surface);
-    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.3);
+    box-shadow: var(--shadow-pop-deep);
     color: var(--text);
     font: 12px/1.35 system-ui, sans-serif;
     text-shadow: none;
@@ -2303,10 +2400,10 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 }
 .has-breakdown.open .cost-breakdown { display: flex; }
 .cost-bar { display: flex; gap: 1px; height: 6px; overflow: hidden; border-radius: 3px; }
-.cost-seg, .cost-dot { background: #3d9b0a; }
-.cost-seg.work, .cost-dot.work { background: #7a3fd6; }
-.cost-seg.work2, .cost-dot.work2 { background: #b58cff; }
-.cost-seg.rename, .cost-dot.rename { background: #e0a030; }
+.cost-seg, .cost-dot { background: var(--mc-green-deep); }
+.cost-seg.work, .cost-dot.work { background: var(--mc-purple); }
+.cost-seg.work2, .cost-dot.work2 { background: var(--mc-violet); }
+.cost-seg.rename, .cost-dot.rename { background: var(--mc-cost-amber); }
 .cost-row { display: flex; align-items: center; gap: 6px; }
 .cost-row b { margin-left: auto; font-weight: 600; }
 .cost-dot { flex: none; width: 8px; height: 8px; border-radius: 2px; }
@@ -2316,16 +2413,14 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .final-card .mc-slot { flex: none; } /* a wide tooltip must not squeeze the slot narrower than it is tall */
 .final-card.done { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
 .final-card.done .final-title { color: var(--success-text); }
-.final-card.done .mc-slot { box-shadow: 0 0 0 3px #80ff20; }
+.final-card.done .mc-slot { box-shadow: 0 0 0 3px var(--mc-green); }
 .current-bar { display: none; }
 @media (max-width: 899px) {
-    .current-bar { position: sticky; bottom: 8px; z-index: 40; display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25); }
-    .current-bar { transition: opacity 0.15s, transform 0.15s, visibility 0.15s; }
+    .current-bar { position: sticky; bottom: 8px; z-index: 40; display: flex; align-items: center; gap: 8px; margin-top: 10px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-menu-deep); transition: opacity 0.15s, transform 0.15s, visibility 0.15s; }
     .current-bar.tucked { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
     .current-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: 12px; }
-    .current-bar-text span { overflow: hidden; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+    .current-bar-text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-secondary); overflow-wrap: anywhere; }
 }
-@media (prefers-reduced-motion: reduce) { .current-bar { transition: none; } }
 @media print { .current-bar, .density { display: none !important; } }
 /* The Slots view: a step is one line of slots; tooltips show on hover or focus. */
 .slots-mode .anvil-step { padding-bottom: 6px; }
@@ -2385,9 +2480,28 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .break-op { font-size: 18px; color: var(--text-secondary); }
 /* Section 4's tree on a phone: a narrower indent, and a tree too wide for the card scrolls sideways instead of squeezing its tooltips. */
 @media (max-width: 600px) {
-    .tree-children { margin-left: 8px; padding-left: 8px; }
+    .tree-children { margin-left: 5px; padding-left: 7px; }
+    .tree-children > .tree-node::before { left: -7px; width: 6px; }
+    .tree-children > .tree-node:last-child::after { left: -8px; }
+    .tree-line { gap: 6px; }
+    /* The one-line caption may take two lines, so a deep entry keeps its words ("Sweeping Edge III", not "Swe..."). */
+    .merge-tree.compact .tree-caption { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: break-word; }
+    /* A merge's step badge goes on a line under its caption, so a deep entry's caption keeps the whole width left of its slot. */
+    .merge-tree.compact .tree-line { flex-wrap: wrap; row-gap: 2px; }
+    .merge-tree.compact .tree-caption { flex: 1 1 calc(100% - 40px); }
+    .merge-tree.compact .tree-step { margin-left: 36px; }
+    .merge-tree.compact .tree-line > .step-fold { margin-left: auto; }
     .merge-tree:not(.compact) { overflow-x: auto; padding-bottom: 6px; }
     .merge-tree:not(.compact) .tree-tooltip { flex: 0 0 auto; min-width: 9em; max-width: 16em; }
+}
+/* Phones: Copy, Print and Expand / Collapse all are one "⋯" menu (the copy menu's panel); wide screens keep the buttons. */
+.more-menu { display: none; }
+.more-menu > summary { min-width: 36px; height: 30px; justify-content: center; font-size: 16px; line-height: 1; }
+@media (pointer: coarse) { .more-menu > summary { min-width: 44px; height: 40px; } }
+.copy-menu.more-menu > summary::after { content: none; }
+@media (max-width: 600px) {
+    .more-menu { display: block; margin-left: auto; }
+    .result-actions, .step-progress-tools .fold-buttons { display: none; }
 }
 /* Copy: a small menu of the ways to copy the steps. */
 .copy-menu { position: relative; }
@@ -2395,7 +2509,7 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .copy-menu > summary::-webkit-details-marker { display: none; }
 .copy-menu > summary::after { content: "\25be"; margin-left: 5px; font-size: 10px; }
 .copy-menu[open] > summary { background: var(--surface-alt); }
-.copy-panel { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; display: grid; gap: 4px; padding: 6px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18); }
+.copy-panel { top: calc(100% + 4px); display: grid; gap: 4px; padding: 6px; }
 .copy-panel .btn { white-space: nowrap; }
 /* The edition switch in the Game rules panel. */
 .edition-switch button { height: 32px; padding: 0 12px; }
@@ -2406,21 +2520,20 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .rule-switch:disabled { opacity: 0.5; cursor: not-allowed; }
 /* A mod's enchantments: folded under its name in section 1 and in the picker. */
 .mod-section { margin-top: 8px; border-top: 1px solid var(--border); }
-.mod-section > summary { cursor: pointer; padding: 8px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
-.mod-section > summary::-webkit-details-marker { display: none; }
-.mod-section > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
-.mod-section[open] > summary::before { transform: rotate(90deg); }
+/* The fold-away boxes and group subsections of section 1: a small uppercase label with a turning arrow. */
+:is(.mod-section, .fold-box, .group-fold) > summary { cursor: pointer; padding: 8px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
+:is(.mod-section, .fold-box, .group-fold) > summary::-webkit-details-marker { display: none; }
+:is(.mod-section, .fold-box, .group-fold) > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
+:is(.mod-section, .fold-box, .group-fold)[open] > summary::before { transform: rotate(90deg); }
+.group-fold > summary { padding: 4px 2px; font-size: 11px; }
 .mod-section > summary:hover { color: var(--text); }
 .picker-search, .wanted-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
-/* The conflict graph (prototype): a node per enchantment with a conflict, a line per conflict. */
+/* A fold-away box in section 1. */
 .fold-box { margin: 8px 0; border-top: 1px solid var(--border); }
-.fold-box > summary { cursor: pointer; padding: 8px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
-.fold-box > summary::-webkit-details-marker { display: none; }
-.fold-box > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
-.fold-box[open] > summary::before { transform: rotate(90deg); }
+/* The conflict graph (prototype): a node per enchantment with a conflict, a line per conflict. */
 .graph-canvas { display: block; width: 100%; height: auto; max-height: 420px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-alt); }
 .graph-edge { stroke: var(--border-strong); stroke-width: 1; opacity: 0.45; }
-.graph-node circle { fill: #7b8794; stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
+.graph-node circle { fill: var(--mc-graph-node); stroke: var(--surface); stroke-width: 1.5; cursor: pointer; }
 .graph-node.chosen circle { fill: var(--accent); stroke: var(--text); stroke-width: 2; }
 .graph-node.blocked { opacity: 0.4; }
 .graph-node:focus { outline: none; }
@@ -2442,13 +2555,13 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 .graph-node.unmatched { opacity: 0.18; }
 .graph-node.match circle { stroke: var(--text); stroke-width: 3.5; }
 /* The conflict-bracket tooltip: a game tooltip placed by Wanted.js (fixed, so no row or card clips it). */
-.conflict-tip { position: fixed; z-index: 60; width: max-content; max-width: 300px; padding: 4px 8px; color: #f4f4f4; pointer-events: none; }
+.conflict-tip { position: fixed; z-index: 60; width: max-content; max-width: 300px; padding: 4px 8px; color: var(--mc-tip-text); pointer-events: none; }
 /* The "Conflicts with N" chip: hover or focus it to light the rows it conflicts with and list them; click it to keep them. */
 .conflict-chip { margin-left: 8px; padding: 1px 7px; border: 1px solid var(--border-strong); border-radius: 9px; background: var(--surface-alt); color: var(--text-secondary); font: 11px/1.5 system-ui, sans-serif; white-space: nowrap; cursor: pointer; vertical-align: middle; }
 .conflict-chip:hover, .conflict-chip:focus-visible, .conflict-chip.pinned { color: var(--text); border-color: var(--accent); }
 .conflict-chip.pinned { background: var(--accent-bg); }
-.ench-row.rival { background: rgba(122, 63, 214, 0.16); box-shadow: inset 0 0 0 1px var(--accent); }
-.ench-row.rival-self { background: rgba(122, 63, 214, 0.28); }
+.ench-row.rival { background: var(--purple-16); box-shadow: inset 0 0 0 1px var(--accent); }
+.ench-row.rival-self { background: var(--purple-28); }
 /* The full tree on a small window or a touch screen: each enchantment on its own line in a tooltip, no commas. */
 @media (max-width: 600px), (hover: none) {
     .merge-tree:not(.compact) .tree-tooltip .mc-ench > .mc-ench { display: block; }
@@ -2456,15 +2569,16 @@ body.dragging-line { -webkit-user-select: none; user-select: none; }
 }
 /* Section 4's redraw copies the old view over the new one while the views cross-fade. */
 .results-content { position: relative; }
-/* "Pick one in each": a Pick one card holding a switch for each group, then the chosen rows once. */
-.pick-each > .ench-group-label { padding-left: 4px; }
+/* Nested groups: a card with a switch per group, then the chosen rows once. */
 .each-cards { display: grid; gap: 8px; margin: 6px 0; }
 .each-card { padding: 4px 4px 2px; border-radius: 8px; background: var(--surface-alt); }
 .each-card-title { padding: 2px 4px 4px; font-size: 11px; color: var(--text-muted); }
 .each-card .group-switch { margin: 0 0 4px; }
-.switch-option.bridge::after { content: " \21c4"; font-size: 11px; opacity: 0.75; }
+.bridge-mark { margin-left: 4px; font-size: 11px; opacity: 0.75; }
+/* The radios of a lane that also holds strays are one group; the buttons stay the flex items of the lane. */
+.group-switch > .radios { display: contents; }
 .each-rows > .ench-row:first-child { border-top: none; }
-/* "Pick a side" reuses the cards, switches and rows of "Pick one in each"; the side taken is outlined. */
+/* "Pick a side" reuses the nested group cards, switches and rows; the side taken is outlined. */
 .pick-side > .ench-group-label { padding-left: 4px; }
 .each-card.active { box-shadow: inset 0 0 0 1px var(--accent); }
 /* In "Pick a side", an option whose conflict the sides do not show (one with an enchantment set apart) fades. */
@@ -2479,10 +2593,22 @@ html[data-motion="off"] *, html[data-motion="off"] *::before, html[data-motion="
     transition: none !important;
     scroll-behavior: auto !important;
 }
-/* ...except the glints, which have their own setting. */
-html[data-motion="off"] .mc-slot.glint::after { animation: glint 3s linear infinite !important; }
-html[data-motion="off"] .tree-slot.glint::after { animation: glint 3s linear infinite !important; }
-html[data-motion="off"] .ench-row.chosen::after { animation: row-glint 7s linear infinite !important; }
+/* The device's own "reduce motion": the same, everywhere (the glints below are stopped too, as a still band). */
+@media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+        animation: none !important;
+        transition: none !important;
+        scroll-behavior: auto !important;
+    }
+}
+/* ...except the glints, which have their own setting (but not when the device asks for reduced motion). */
+@media (prefers-reduced-motion: no-preference) {
+    html[data-motion="off"] .mc-slot.glint::after { animation: glint 3s linear infinite !important; }
+    html[data-motion="off"] .tree-slot.glint::after { animation: glint 3s linear infinite !important; }
+    html[data-motion="off"] .ench-row.chosen::after { animation: row-glint 7s linear infinite !important; }
+}
+/* A glint that is off screen waits (Dom.js keepGlintsInStep) and comes back in step. */
+.glint-paused::after { animation-play-state: paused !important; }
 /* Glints off: the slots keep a still band (as with reduced motion), the rows' sheen goes. */
 html[data-glint="off"] .mc-slot.glint::after, html[data-glint="off"] .tree-slot.glint::after { animation: none !important; background-position: 50% 0; }
 html[data-glint="off"] .ench-row.chosen::after { display: none; }
@@ -2495,18 +2621,15 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 /* The sides of a Pick a side: an accent bar and a small badge. A Pick one's title is its label. */
 .each-card.side-lane { box-shadow: inset 3px 0 0 var(--accent); }
 .each-card.side-lane.active { box-shadow: inset 3px 0 0 var(--accent), inset 0 0 0 1px var(--accent); }
-.side-badge { display: inline-block; margin-right: 6px; padding: 0 6px; border-radius: 8px; background: var(--accent); color: #fff; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.side-badge, .part-badge { display: inline-block; padding: 0 6px; border-radius: 8px; font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.side-badge { margin-right: 6px; background: var(--accent); color: var(--on-accent); }
 .each-card-title.label-title { text-transform: uppercase; letter-spacing: 0.04em; }
 /* A group (Pick one, Pick a side...) is a fold-away subsection under its section, not a card: its header is the summary. */
 .group-fold { margin: 6px 0; }
-.group-fold > summary { cursor: pointer; padding: 4px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
-.group-fold > summary::-webkit-details-marker { display: none; }
-.group-fold > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
-.group-fold[open] > summary::before { transform: rotate(90deg); }
 .group-fold > .ench-group.exclusive { display: flow-root; margin: 2px 0 4px; padding: 2px 0 0; border: none; } /* flow-root: the switch's bottom margin stays inside, so adding or removing the chosen row does not jump */
 /* The parts of a group's first level (parts that never conflict): a small neutral badge over each. */
 .part-box { padding-left: 8px; border-left: 2px solid var(--border-strong); }
-.part-badge { display: inline-block; margin: 2px 0 4px; padding: 0 6px; border-radius: 8px; border: 1px solid var(--border-strong); color: var(--text-secondary); font-size: 10px; font-weight: 600; letter-spacing: 0.03em; text-transform: uppercase; }
+.part-badge { margin: 2px 0 4px; border: 1px solid var(--border-strong); color: var(--text-secondary); }
 .group-fold > .pick-any-list { padding-top: 2px; }
 /* The search box with Expand all / Collapse all beside it, wrapping below when the card is narrow. */
 .search-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }

@@ -1,5 +1,5 @@
 // The "?" bubbles.
-import { $, h } from "./Dom.js";
+import { $, closeOnOutside, h } from "./Dom.js";
 
 // The "?" next to "Best order": shows how the tiles rank on hover or keyboard focus (CSS),
 // and on tap for touch screens, where hover tooltips never appear. Tapping elsewhere or
@@ -9,11 +9,9 @@ export function setupInfoTip() {
     button.addEventListener("click", event => toggleTip(event, button.closest(".info-tip")));
     floatBubble(button.closest(".info-tip"));
     // Any open tip closes on a click elsewhere or on Escape.
-    document.addEventListener("click", event => {
-        for (const tip of document.querySelectorAll(".info-tip.open")) if (!tip.contains(event.target)) setTipOpen(tip, false);
-    });
-    document.addEventListener("keydown", event => {
-        if (event.key === "Escape") for (const tip of document.querySelectorAll(".info-tip.open")) setTipOpen(tip, false);
+    closeOnOutside({
+        open: () => document.querySelector(".info-tip.open"),
+        close(event) { for (const tip of document.querySelectorAll(".info-tip.open")) if (!event || !tip.contains(event.target)) setTipOpen(tip, false); }
     });
 }
 
@@ -27,7 +25,10 @@ export function floatBubble(tip) {
     const place = () => {
         if (!bubble.offsetWidth) return;
         const anchor = tip.querySelector("button").getBoundingClientRect();
-        bubble.style.top = anchor.bottom + 6 + "px";
+        // Under the "?"; above it when it would run off the bottom of the window and there is more room above.
+        const below = anchor.bottom + 6;
+        const above = anchor.top - 6 - bubble.offsetHeight;
+        bubble.style.top = (below + bubble.offsetHeight > innerHeight - 8 && above > 8 ? above : below) + "px";
         bubble.style.left = Math.max(8, Math.min(anchor.left, innerWidth - bubble.offsetWidth - 8)) + "px";
     };
     tip.classList.add("floating");

@@ -19,6 +19,11 @@
 <body>
     <!-- Spoken updates (Results.js announce): progress while ticking steps. -->
     <div id="live" class="sr-only" role="status" aria-live="polite"></div>
+    <!-- Skip links (App.js setupSkipLinks): the first stops on the page, visible only while focused. Buttons, not #links, since the address's hash holds the setup. -->
+    <div class="skip-links">
+        <button type="button" class="skip-link" data-skip="order" data-text="page.skip_best"></button>
+        <button type="button" class="skip-link" data-skip="steps" data-text="page.skip_steps"></button>
+    </div>
     <header class="site-header">
         <h1 data-text="page.heading"></h1>
         <!-- One toolbar: every control the same height (.header-control). On phones it is a
@@ -50,12 +55,12 @@
                  summary says what is chosen while it is closed. -->
             <!-- 1: the item (a grid until one is picked, then a menu on its slot) and its enchantments. -->
             <section class="card collapsible" data-section="wanted">
-                <h2><span class="step-badge">1</span><span class="section-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
+                <h2 aria-labelledby="wanted-title"><span class="step-badge" aria-hidden="true">1</span><span class="section-title" id="wanted-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
                 <div id="wanted-body" class="section-body"><div id="wanted"></div></div>
             </section>
 
             <section class="card collapsible" data-section="books">
-                <h2><span class="step-badge">2</span><span class="section-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
+                <h2 aria-labelledby="books-title"><span class="step-badge" aria-hidden="true">2</span><span class="section-title" id="books-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
                 <div id="books-body" class="section-body"><div id="books"></div></div>
             </section>
 
@@ -68,7 +73,7 @@
                  .section-head: the h2 and the collapse arrow (the game rules are in the header). -->
             <section class="card collapsible" data-section="order">
                 <div class="section-head">
-                    <h2><span class="step-badge">3</span><span class="section-title" data-text="page.results_heading"></span>
+                    <h2 aria-labelledby="order-title"><span class="step-badge" aria-hidden="true">3</span><span class="section-title" id="order-title" data-text="page.results_heading"></span>
                         <span class="info-tip">
                             <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
                                 aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
@@ -87,7 +92,7 @@
             </section>
 
             <section class="card collapsible results-card" data-section="steps">
-                <h2><span class="step-badge">4</span><span class="section-title" data-text="page.steps_heading"></span><span class="section-summary always" id="steps-summary"></span><span id="anvil-risk"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
+                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">4</span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary always" id="steps-summary"></span><span id="anvil-risk"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
                 <div id="steps-body" class="section-body"><div id="results"></div></div>
             </section>
         </aside>

@@ -2,6 +2,9 @@
 
 export const MAX_STEP_LEVELS = 39; // a step costing 40+ levels is "Too Expensive!"
 export const MAX_COPIES = 64;      // copies of one entry (a stack of books)
+// Highest prior work an entry may have (a link with more is cut to it): its penalty, 2^30 - 1
+// levels, is already far past any limit, and a bigger one would only overflow.
+export const MAX_PRIOR_WORK = 30;
 
 // Ranking criteria for the best order, in default order (must match Engine.js).
 export const CRITERIA = ["levels", "xp", "max_step", "prior_work"];
@@ -41,6 +44,11 @@ export function clampStepLimit(value) {
 
 // Game editions with their own anvil rules (must match Engine.js).
 export const EDITIONS = ["java", "bedrock"];
+
+// A share link's edition field (`e`, an index into EDITIONS) as an edition; Java for anything else.
+function linkEditionOf(index) {
+    return Number.isInteger(index) && EDITIONS[index] ? EDITIONS[index] : EDITIONS[0];
+}
 
 // Longest name the anvil accepts, per edition (Minecraft Wiki, "Anvil mechanics").
 export const MAX_NAME_LENGTH = { java: 50, bedrock: 30 };
@@ -115,6 +123,16 @@ export function linkMods(text) {
     }
 }
 
+// The edition a share link names (so it can be read with that edition's helpers: Bedrock
+// offers enchantments Java does not, such as Curse of Vanishing on a recovery compass).
+export function linkEdition(text) {
+    try {
+        return linkEditionOf(JSON.parse(fromLinkText(text)).e);
+    } catch {
+        return EDITIONS[0];
+    }
+}
+
 // Share-link text: URL-safe base64 of the UTF-8 bytes, so names with any characters
 // work (plain btoa only takes Latin-1). ASCII-only text encodes exactly as before, so
 // older links still load.
@@ -132,8 +150,8 @@ function fromLinkText(link) {
 
 // Each anvil use has a 12% chance to damage the anvil (Java and Bedrock alike), and a
 // new anvil breaks on its 3rd damage (anvil -> chipped -> damaged -> gone).
-export const ANVIL_DAMAGE_CHANCE = 0.12;
-export const ANVIL_DAMAGE_STAGES = 3;
+const ANVIL_DAMAGE_CHANCE = 0.12;
+const ANVIL_DAMAGE_STAGES = 3;
 
 // The chance that a new anvil breaks somewhere in `uses` uses: 3 or more damages.
 export function anvilBreakChance(uses) {
@@ -197,7 +215,7 @@ const PREFERRED = ["sharpness", "density", "protection", "fortune", "mending", "
 const PRESET_SWAPS = ["silk_touch", "frost_walker", "smite", "bane_of_arthropods", "breach", "infinity", "piercing", "riptide"];
 
 export function roman(number) {
-    const numerals = [[10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
+    const numerals = [[100, "C"], [90, "XC"], [50, "L"], [40, "XL"], [10, "X"], [9, "IX"], [5, "V"], [4, "IV"], [1, "I"]];
     let out = "";
     for (const [value, symbol] of numerals) {
         while (number >= value) {
@@ -299,7 +317,7 @@ export function createLogic(meta, names = {}) {
     // The conflicts of a bracket as a tree, found by splitting it again and again (a cograph): sets that never conflict with each other, or
     // enchantments that conflict with all the rest of a set. A node is a leaf (one enchantment), "each" (parts that do not conflict with each
     // other: pick from every part) or "side" (parts that all conflict with each other: pick one part, and inside it whatever that part
-    // allows). A clique is a "side" of leaves (Pick one); Pick one in each is a "side" of the joining enchantment and an "each" of cliques;
+    // allows). A clique is a "side" of leaves (Pick one); an "each" node is cliques that never conflict (Pick any);
     // Pick a side is a "side" of "each"s of leaves. An enchantment that conflicts with everything else (Selfish) is just a leaf part. When the
     // bracket cannot be split as it is (a path of four, such as Pyromaniac joining a chestplate's protections to its shields), as few
     // strays as it takes (up to three, the ones with the fewest conflicts first) are set apart so the rest splits. Returns
@@ -388,7 +406,7 @@ export function createLogic(meta, names = {}) {
 
     function clampPriorWork(value) {
         const n = Number(value);
-        return Number.isInteger(n) && n >= 0 ? n : 0;
+        return Number.isInteger(n) && n >= 0 ? Math.min(MAX_PRIOR_WORK, n) : 0;
     }
 
     function maxAll(item, wanted, allow_incompatible = false) {
@@ -495,12 +513,29 @@ export function createLogic(meta, names = {}) {
     //    still reaches the chosen level (Protection IV replaces a Protection I and II).
     //    Entries with other enchantments stay, and so does the last item entry, since
     //    without it there is nothing to enchant.
+    // Unless conflicts are allowed, the enchantments on other entries that conflict with `ns`
+    // are taken off them (as the picker does), and a book left with none is dropped:
+    // `dropped` lists them, [{ ns, level }].
     // A new book takes the place of the first entry it replaces (at the end if it
     // replaces none). New entries have id null; the page gives them one.
     function addBook(state, ns, level) {
         const plain = book => book.type === "book" && book.prior_work === 0;
         const only = (book, name) => Object.keys(book.enchantments).length === 1 && name in book.enchantments;
-        let books = state.books.map(book => ({ ...book }));
+        let books = state.books.map(book => ({ ...book, enchantments: { ...book.enchantments } }));
+        const dropped = [];
+        const removed = [];
+        if (!state.allow_incompatible) {
+            const emptied = new Set();
+            for (const book of books) {
+                for (const [other, other_level] of Object.entries(book.enchantments)) {
+                    if (!conflicts(other, ns)) continue;
+                    delete book.enchantments[other];
+                    dropped.push({ ns: other, level: other_level });
+                    if (book.type === "book" && !Object.keys(book.enchantments).length) emptied.add(book);
+                }
+            }
+            books = books.filter(book => !emptied.has(book));
+        }
         const position = new Map(books.map((book, index) => [book, index]));
         const same = books.find(book => plain(book) && only(book, ns) && book.enchantments[ns] === level);
         const added = same ? null : { id: null, type: "book", enchantments: { [ns]: level }, prior_work: 0, copies: 1 };
@@ -509,7 +544,6 @@ export function createLogic(meta, names = {}) {
 
         const wanted = state.wanted[ns] || level;
         const reaches = list => (bestLevels({ ...state, auto_books: false, books: list })[ns] || 0) >= wanted;
-        const removed = [];
         const lower = books
             .filter(book => only(book, ns) && book.enchantments[ns] < level)
             .sort((a, b) => a.enchantments[ns] - b.enchantments[ns]);
@@ -526,7 +560,7 @@ export function createLogic(meta, names = {}) {
             books = books.filter(book => book !== added);
             books.splice(books.filter(book => position.get(book) < first).length, 0, added);
         }
-        return { books, removed, merged: Boolean(same) };
+        return { books, removed, dropped, merged: Boolean(same) };
     }
 
     // Books typed in a box, e.g. "prot 4, mending, unb 3 + thorns": commas (or new lines)
@@ -538,7 +572,18 @@ export function createLogic(meta, names = {}) {
     function parseBooks(text, item) {
         const options = applicable(item);
         const key = value => value.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase().replace(/[\s_]+/g, " ").trim();
-        const ROMAN = { i: 1, ii: 2, iii: 3, iv: 4, v: 5 };
+        // A Roman numeral as the game writes it (any level: Spellbound's Dullness goes to X), or null.
+        const ROMAN_VALUES = { i: 1, v: 5, x: 10, l: 50, c: 100 };
+        const fromRoman = word => {
+            if (!/^[ivxlc]+$/.test(word)) return null;
+            let value = 0;
+            for (let index = 0; index < word.length; index++) {
+                const here = ROMAN_VALUES[word[index]];
+                const next = ROMAN_VALUES[word[index + 1]] || 0;
+                value += here < next ? -here : here;
+            }
+            return roman(value).toLowerCase() === word ? value : null;
+        };
         const names = options.map(ns => ({ ns, names: [key(enchName(ns)), key(ns)] }));
         const find = query => {
             const exact = names.find(entry => entry.names.includes(query));
@@ -559,17 +604,18 @@ export function createLogic(meta, names = {}) {
                 if (!words.length) continue;
                 let level = null;
                 const last = words[words.length - 1];
-                if (words.length > 1 && (/^\d+$/.test(last) || last in ROMAN)) {
-                    level = /^\d+$/.test(last) ? Number(last) : ROMAN[last];
+                if (words.length > 1 && (/^\d+$/.test(last) || fromRoman(last))) {
+                    level = /^\d+$/.test(last) ? Number(last) : fromRoman(last);
                     words.pop();
                 }
-                const ns = find(words.join(" "));
+                // Level 0 is no level at all: the part can't be read.
+                const ns = level === 0 ? null : find(words.join(" "));
                 if (!ns) {
                     unknown.push(part.trim());
                     readable = false;
                     continue;
                 }
-                enchantments[ns] = Math.max(1, Math.min(maxLevel(ns), level || maxLevel(ns)));
+                enchantments[ns] = Math.min(maxLevel(ns), level || maxLevel(ns));
             }
             if (readable && Object.keys(enchantments).length) books.push(enchantments);
         }
@@ -706,9 +752,10 @@ export function createLogic(meta, names = {}) {
         const data = JSON.parse(fromLinkText(text));
         const item = typeof data.i === "string" && items.has(data.i) && data.i !== "book" ? data.i : null;
         if (!item) return null;
-        const books = Array.isArray(data.b) ? data.b : [];
+        // Entries that are not [enchantments, prior work, type, copies] are skipped.
+        const books = Array.isArray(data.b) ? data.b.filter(Array.isArray) : [];
         const allow_incompatible = data.x === 1;
-        const edition = EDITIONS[data.e] || EDITIONS[0];
+        const edition = linkEditionOf(data.e);
         return {
             item,
             edition,

@@ -2,8 +2,9 @@
 
 Finds the cheapest order to combine enchanted books and items on a Minecraft
 (Java or Bedrock Edition) anvil. Pick an item, choose the enchantments you want, and it
-lists the anvil steps one by one. In Java, Game rules > Mods can add the enchantments of
-Fancy Enchantments or Spellbound (data in `json/mods/`).
+lists the anvil steps one by one. Settings > Game rules switches between Java and Bedrock rules,
+lowers or removes the level limit, allows conflicting enchantments (for mods), and, in Java, adds the
+enchantments of the Fancy Enchantments or Spellbound mods (data in `json/mods/`).
 
 ## Running it
 
@@ -20,9 +21,10 @@ Then open http://localhost:8080.
 
 - `js/Engine.js`: the search. It tries every way to split the items into
   left/right groups, memoized on the subset of items, and keeps the cheapest
-  result per (prior work, resulting enchantments). Follows Java anvil rules:
-  book vs. item multipliers, prior-work penalty `2^n - 1`, level caps,
-  incompatible enchantments dropped for 1 level, and the 39-level limit.
+  result per (prior work, resulting enchantments). Follows the anvil rules
+  of both editions: book vs. item multipliers, prior-work penalty `2^n - 1`, level caps, and the
+  39-level limit (adjustable). It never checks conflicts: the page keeps the chosen enchantments
+  and books conflict-free unless Allow conflicts is on.
 - `js/Calculator.js`: Web Worker wrapper so the page stays responsive.
 - `js/Logic.js`: UI helpers (automatic books, presets, shareable links).
 - `js/App.js` and the modules beside it (`Wanted.js`, `Books.js`, `Ranking.js`,

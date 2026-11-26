@@ -1,8 +1,8 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
 import { cleanName, createLogic, editionMetadata, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
 import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
-import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, setState, state } from "./Store.js";
-import { $, copyText, h, icon, keepGlintsInStep, motionOk, readStorage, writeStorage } from "./Dom.js";
+import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
+import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
 import { renderWanted, setupConflictTips, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
@@ -10,7 +10,7 @@ import { renderMetrics } from "./Ranking.js";
 import { renderRanking, resultNode, setupOptionsMenu, syncRename } from "./Options.js";
 import { anvilRisk, renderResults } from "./Results.js";
 import { resetWorkers, runCalculation, scheduleCalculation, startWorker } from "./Calc.js";
-import { currentLink, loadFromUrl, readLink, saveToUrl } from "./Link.js";
+import { currentLink, linkText, loadFromUrl, readLink, saveToUrl, useLink } from "./Link.js";
 import { setupInfoTip } from "./Tips.js";
 
 const META_URL = "json/metadata.json";
@@ -38,7 +38,7 @@ export function tryExample() {
     state.wanted = logic.maxAll(state.item, {}, state.allow_incompatible);
     commit();
     const section = document.querySelector('[data-section="wanted"]');
-    if (section.getBoundingClientRect().top < 0) section.scrollIntoView({ block: "start", behavior: motionOk() ? "smooth" : "auto" });
+    if (section.getBoundingClientRect().top < 0) scrollToView(section, "start");
 }
 
 // Switching item drops the enchantments the new one can't take.
@@ -91,7 +91,7 @@ export function useEdition(edition, mods = state.mods) {
 }
 
 // Loads the data file of each mod in `ids` not loaded yet. Resolves to the ids that are available.
-export async function loadMods(ids) {
+async function loadMods(ids) {
     await Promise.all(ids.filter(id => !mod_data[id]).map(async id => {
         try {
             const response = await fetch(MODS_URL + id + ".json" + MODS_VERSION);
@@ -190,7 +190,9 @@ function render() {
 // badge), so the results are easier to reach once things are set. Closed sections are
 // remembered in this browser, and their heading says what is chosen inside.
 
-let collapsed = new Set(readStorage(COLLAPSED_STORAGE_KEY, []));
+// Only a list of section names counts (anything else stored there is ignored).
+const stored_collapsed = readStorage(COLLAPSED_STORAGE_KEY, []);
+let collapsed = new Set(Array.isArray(stored_collapsed) ? stored_collapsed.filter(section => typeof section === "string") : []);
 
 function setCollapsed(section, closed) {
     closed ? collapsed.add(section) : collapsed.delete(section);
@@ -282,9 +284,9 @@ function renderLanguage() {
 // The saved choice, else the browser's language if there is text for it, else English.
 function startingLanguage() {
     const saved = readStorage(LANGUAGE_STORAGE_KEY, null);
-    if (LANGUAGES[saved]) return saved;
+    if (typeof saved === "string" && Object.hasOwn(LANGUAGES, saved)) return saved;
     const browser = (navigator.language || "en").slice(0, 2).toLowerCase();
-    return LANGUAGES[browser] ? browser : "en";
+    return Object.hasOwn(LANGUAGES, browser) ? browser : "en";
 }
 
 // Loads a language's text (json/text/<code>.json), falling back to English if it
@@ -375,24 +377,40 @@ function deleteSetup(index) {
 }
 
 async function loadSetup(link) {
-    await loadMods(linkMods(link));
-    const loaded = readLink(link);
-    if (!loaded) return;
-    setState(loaded);
-    syncRename();
-    useEdition(state.edition);
-    if (state.item) sanitizeAll();
-    $("#saved").open = false;
-    commit();
+    if (await openLink(link)) $("#saved").open = false;
 }
 
-// A <details> menu (Saved, Game rules) closes on a click outside it or on Escape.
-export function setupMenuClosing(menu) {
-    document.addEventListener("click", event => {
-        // The path, not contains(): a click on a button the menu then redraws is still inside.
-        if (menu.open && !event.composedPath().includes(menu)) menu.open = false;
+// Puts a link's setup on screen in place of the current one (a saved setup, or a link pasted
+// into the address bar of the open page): its mods load first, and the workers restart with
+// their data. Resolves to whether the link could be read.
+async function openLink(link) {
+    await loadMods(linkMods(link));
+    const loaded = readLink(link);
+    if (!loaded) return false;
+    useLink(loaded);
+    applyMods();
+    commit();
+    return true;
+}
+
+// A different link pasted into the address bar of the open page (the page itself only ever
+// replaces the address, which fires no hashchange, but the check keeps it from reloading its own).
+function setupHashChange() {
+    addEventListener("hashchange", () => {
+        const hash = location.hash.slice(1);
+        if (!hash || !meta || (state.item && hash === linkText())) return;
+        openLink(hash);
     });
-    document.addEventListener("keydown", event => { if (event.key === "Escape") menu.open = false; });
+}
+
+// A <details> menu (Saved, Settings) closes on a click outside it or on Escape.
+export function setupMenuClosing(menu) {
+    closeOnOutside({
+        open: () => menu.open,
+        // The path, not contains(): a click on a button the menu then redraws is still inside.
+        inside: event => event.composedPath().includes(menu),
+        close: () => { menu.open = false; }
+    });
 }
 
 function setupSavedMenu() {
@@ -476,6 +494,19 @@ function fillPageText() {
     }
 }
 
+// The skip links at the top of the page: focus the section named by `data-skip` (the section takes focus, so the next Tab enters it) and scroll to it.
+function setupSkipLinks() {
+    for (const link of document.querySelectorAll(".skip-link[data-skip]")) {
+        const section = document.querySelector(`[data-section="${link.dataset.skip}"]`);
+        if (!section) continue;
+        section.tabIndex = -1;
+        link.addEventListener("click", () => {
+            section.focus({ preventScroll: true });
+            scrollToView(section, "start");
+        });
+    }
+}
+
 async function init() {
     keepGlintsInStep();
     try {
@@ -498,10 +529,12 @@ async function init() {
     useEdition(state.edition);
     if (state.edition !== "java" && state.item) sanitizeAll();
     startWorker();
+    setupHashChange();
     setupCopyLink();
     setupReset();
     setupTheme();
     setupInfoTip();
+    setupSkipLinks();
     setupSavedMenu();
     setupItemMenu();
     setupConflictTips();

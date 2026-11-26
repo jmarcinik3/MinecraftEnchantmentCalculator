@@ -1,9 +1,9 @@
 // Section 2: books and items to start from (automatic or custom entries, cards and list, pickers, dragging).
-import { MAX_COPIES, MAX_STEP_LEVELS, maxPriorWork, movePriority, roman } from "./Logic.js";
+import { MAX_COPIES, maxPriorWork, movePriority, roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, nextBookId, state } from "./Store.js";
-import { $, h, icon, motionOk, readStorage, writeStorage } from "./Dom.js";
-import { animateCards, animateChips, barSnapshot, chipSnapshot, cardRects, closeLines, leaveBar, openLines, pillRects, revealBar, rollChipsIn, rollChipsOut, rollLines, slidePills } from "./Motion.js";
+import { $, afterAnimation, closeOnOutside, enchLine, flash, h, icon, holdRepeat, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, segmented, svg, writeStorage } from "./Dom.js";
+import { animateCards, animateChips, barSnapshot, chipSnapshot, cardRects, changeLines, leaveBar, pillRects, revealBar, rollChipsIn, rollChipsOut, slidePills, snapshotLines } from "./Motion.js";
 import { focusState, levelBar, restoreFocus } from "./Wanted.js";
 import { dragToReorder } from "./Ranking.js";
 import { stepLimit } from "./Options.js";
@@ -13,22 +13,13 @@ import { addBook, clashes, commit, customizeBooks } from "./App.js";
 
 // A small inline SVG (the page has no icon font); it takes its color from the text.
 function svgIcon(view_box, shapes, attrs = {}) {
-    const NS = "http://www.w3.org/2000/svg";
-    const svg = document.createElementNS(NS, "svg");
-    svg.setAttribute("viewBox", view_box);
-    for (const [key, value] of Object.entries(attrs)) svg.setAttribute(key, value);
-    for (const [tag, shape] of shapes) {
-        const node = document.createElementNS(NS, tag);
-        for (const [key, value] of Object.entries(shape)) node.setAttribute(key, value);
-        svg.append(node);
-    }
-    return svg;
+    return svg("svg", { viewBox: view_box, ...attrs }, shapes.map(([tag, shape]) => svg(tag, shape)));
 }
 
 const BOOKS_VIEW_STORAGE_KEY = "enchantment-calculator-books-view";
 // Section 2: an Automatic | Custom switch, then one card per entry, drawn like the game
 // (an inventory slot and a tooltip), two to a row where the section is wide enough. In
-// Custom mode the cards are editable (see entryCard) and the last cell adds an entry.
+// Custom mode the cards are editable (see entryCard) and the add bar under the cards adds an entry.
 // Cards slide to their new places when the list changes (animateCards).
 export function renderBooks() {
     const box = $("#books");
@@ -121,9 +112,7 @@ export function markFresh(book) {
 function revealEntry(id) {
     const card = document.querySelector(`#books .entry-card[data-key="${id}"]`);
     if (!card) return;
-    card.classList.remove("flash");
-    void card.offsetWidth; // restart the flash
-    card.classList.add("flash");
+    flash(card);
     const picker = document.querySelector("#books .entry-popover.enchant");
     const top = card.getBoundingClientRect().top;
     const bottom = (picker || card).getBoundingClientRect().bottom;
@@ -169,22 +158,16 @@ function useAutomatic() {
 // Automatic (one book per chosen enchantment) or Custom (your own list). Custom starts
 // from the automatic list; going back to Automatic drops the custom one.
 function modeSwitch() {
-    const option = (auto, label, help) => h("button", {
-        type: "button", class: state.auto_books === auto ? "selected" : "", "aria-pressed": String(state.auto_books === auto),
-        "data-focus": "mode-" + (auto ? "auto" : "custom"), title: help,
+    const option = (auto, label, help) => ({
+        selected: state.auto_books === auto, content: label,
+        attrs: { "data-focus": "mode-" + (auto ? "auto" : "custom"), title: help },
         onclick: () => {
             if (state.auto_books === auto) return;
-            if (auto) {
-                useAutomatic();
-            } else {
-                customizeBooks();
-            }
+            if (auto) useAutomatic();
+            else customizeBooks();
         }
-    }, label);
-    return h("div", { class: "segmented mode-switch", role: "group", "aria-label": TEXT.books.mode_label },
-        option(true, TEXT.books.automatic, TEXT.books.automatic_help),
-        option(false, TEXT.books.custom, TEXT.books.custom_help)
-    );
+    });
+    return segmented("mode-switch", TEXT.books.mode_label, [option(true, TEXT.books.automatic, TEXT.books.automatic_help), option(false, TEXT.books.custom, TEXT.books.custom_help)]);
 }
 
 // One entry as the game draws it: a slot (with the stack count when there are several
@@ -311,12 +294,14 @@ function entryCard(book, index, count, editable, unwanted) {
         badges,
         editable ? h("div", { class: "entry-tools" }, tools) : null
     ) : null;
+    // The strip's buttons (grip, prior work, copy, remove) are one tab stop; Left and Right move along them (Up and Down on the grip reorder).
+    if (head && editable) roving([...head.querySelectorAll("button")], 0, { prev: ["ArrowLeft"], next: ["ArrowRight"] });
     return h("div", { class: "entry-card" + (head ? "" : " bare") + (open ? " popover-open" : ""), "data-index": index, "data-key": key },
         slot_part,
         head,
         h("div", { class: "mc-tooltip entry-tooltip" },
             h("div", { class: "entry-title" },
-                h("div", { class: "mc-name rarity-" + logic.rarity(is_item ? state.item : "book", enchanted) }, name),
+                h("div", { class: nameClass(logic.rarity(is_item ? state.item : "book", enchanted)) }, name),
                 plus),
             lines
         )
@@ -340,12 +325,8 @@ function removeEntry(book, card) {
     };
     if (!card || !motionOk()) return remove();
     card.style.pointerEvents = "none";
-    // The timer covers a fade that never ends (a hidden tab), so the entry still goes.
-    let done = false;
-    const once = () => { if (!done) { done = true; remove(); } };
-    card.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.94)" }],
-        { duration: 160, easing: "ease-in", fill: "forwards" }).finished.then(once, once);
-    setTimeout(once, 250);
+    afterAnimation(card.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.94)" }],
+        { duration: 160, easing: "ease-in", fill: "forwards" }), remove, 250);
 }
 
 // ⧉ adds a copy right after the entry, with its picker open, to change it from there.
@@ -373,16 +354,7 @@ function oldTooltips(box) {
     for (const card of box.querySelectorAll(".entry-card[data-key]:not(.compact):not(.slotcell)")) {
         const tip = card.querySelector(".mc-tooltip");
         if (!tip) continue;
-        const rect = tip.getBoundingClientRect();
-        const lines = [...tip.querySelectorAll(".mc-ench[data-ns]")].map(line => {
-            const box = line.getBoundingClientRect();
-            const copy = line.cloneNode(true);
-            // A copy that is only for show: nothing in it may take focus or be found by data-focus.
-            copy.removeAttribute("data-focus");
-            copy.setAttribute("tabindex", "-1");
-            copy.classList.remove("popover-toggle");
-            return { ns: line.dataset.ns, node: copy, box: { left: box.left - rect.left - tip.clientLeft, top: box.top - rect.top - tip.clientTop, width: box.width, height: box.height } };
-        });
+        const { rect, lines } = snapshotLines(tip);
         cards.set(card.dataset.key, { height: rect.height, lines });
     }
     return cards;
@@ -401,13 +373,8 @@ function animateLines(box, old_cards) {
         const lines = [...tip.querySelectorAll(".mc-ench[data-ns]")];
         const same = lines.map(line => line.dataset.ns + ":" + line.dataset.level).join() === old.lines.map(line => line.ns + ":" + line.node.dataset.level).join();
         if (same) continue;
-        if (Math.abs(tip.getBoundingClientRect().height - old.height) < 1) {
-            rollLines(card, old.lines);
-        } else {
-            const before = new Set(old.lines.map(line => line.ns));
-            openLines(lines.filter(line => !before.has(line.dataset.ns)));
-            closeLines(card, old.lines);
-        }
+        const before = new Set(old.lines.map(line => line.ns));
+        changeLines(card, old.lines, lines.filter(line => !before.has(line.dataset.ns)), Math.abs(tip.getBoundingClientRect().height - old.height) < 1);
     }
 }
 
@@ -491,18 +458,17 @@ function viewSwitch() {
         list: () => svgIcon("0 0 16 16", [["rect", { x: "2", y: "3", width: "12", height: "2", rx: "1" }], ["rect", { x: "2", y: "7", width: "12", height: "2", rx: "1" }],
             ["rect", { x: "2", y: "11", width: "12", height: "2", rx: "1" }]], { fill: "currentColor" })
     };
-    const option = (view, label) => h("button", {
-        type: "button", class: books_view === view ? "selected" : "", "aria-pressed": String(books_view === view),
-        "data-focus": "view-" + view, title: label, "aria-label": label,
+    const option = (view, label) => ({
+        selected: books_view === view, content: icons[view](),
+        attrs: { "data-focus": "view-" + view, title: label, "aria-label": label },
         onclick: () => {
             if (books_view === view) return;
             books_view = view;
             writeStorage(BOOKS_VIEW_STORAGE_KEY, view);
             renderBooks();
         }
-    }, icons[view]());
-    return h("div", { class: "segmented view-switch", role: "group", "aria-label": TEXT.books.view_label },
-        option("cards", TEXT.books.view_cards), option("slots", TEXT.books.view_slots), option("list", TEXT.books.view_list));
+    });
+    return segmented("view-switch", TEXT.books.view_label, [option("cards", TEXT.books.view_cards), option("slots", TEXT.books.view_slots), option("list", TEXT.books.view_list)]);
 }
 
 // The grid's last cell in Custom mode: add a book or another copy of the item, or type
@@ -577,7 +543,7 @@ function addOrStack(book) {
 // outline and won't take it. Mouse: drag once it has moved a few pixels. Touch: press
 // and hold first, so a swipe over a card still scrolls the page. A plain tap opens the
 // picker as usual.
-let line_dragging = false;
+let dragging_any = false;
 let line_drag_ended = 0; // when the last drag ended: the click that follows it isn't a tap
 
 function lineDragStart(event, book, ns) {
@@ -638,7 +604,29 @@ function swallowClick(done) {
 // The little tooltip that follows the pointer while an enchantment is dragged.
 function enchantGhost(ns, level) {
     return h("div", { class: "mc-tooltip line-ghost", "aria-hidden": "true" },
-        h("div", { class: "mc-ench" + (logic.isCurse(ns) ? " curse" : "") }, logic.displayName(ns, level)));
+        enchLine(logic.displayName(ns, level), logic.isCurse(ns)));
+}
+
+// Where a drag's ghost goes: beside the pointer (below right of it; above, or to its left, when that would cover `keep`, the title row
+// of the card under the pointer), always inside the window.
+function ghostSpot(ghost, x, y, keep) {
+    const width = ghost.offsetWidth;
+    const height = ghost.offsetHeight;
+    const margin = 8;
+    const clamp = (value, size, limit) => Math.max(margin, Math.min(value, limit - size - margin));
+    const covered = (left, top) => {
+        if (!keep) return 0;
+        const across = Math.min(left + width, keep.right) - Math.max(left, keep.left);
+        const down = Math.min(top + height, keep.bottom) - Math.max(top, keep.top);
+        return across > 0 && down > 0 ? across * down : 0;
+    };
+    const spots = [[x + 14, y + 10], [x + 14, y - height - 10], [x - width - 14, y + 10], [x - width - 14, y - height - 10]]
+        .map(([left, top]) => ({ left: clamp(left, width, innerWidth), top: clamp(top, height, innerHeight) }));
+    let best = spots[0];
+    for (const spot of spots) {
+        if (covered(spot.left, spot.top) < covered(best.left, best.top)) best = spot;
+    }
+    return best;
 }
 
 // A drag that starts on `event`'s target: with a mouse once it has moved a few pixels, on touch
@@ -652,22 +640,26 @@ function dragGesture(event, { make, over, end }) {
     let ghost = null;
     let hold = null;
     const place = (x, y) => {
-        ghost.style.left = x + 14 + "px";
-        ghost.style.top = y + 10 + "px";
-        over(document.elementFromPoint(x, y));
+        const under = document.elementFromPoint(x, y);
+        over(under); // (it may change what the ghost shows, so its size is read after)
+        const card = under && under.closest(".entry-card");
+        const title = card && card.querySelector(".entry-title, .entry-summary, .mc-name");
+        const spot = ghostSpot(ghost, x, y, title ? title.getBoundingClientRect() : null);
+        ghost.style.left = spot.left + "px";
+        ghost.style.top = spot.top + "px";
     };
     const begin = () => {
-        line_dragging = true;
+        dragging_any = true;
         getSelection().removeAllRanges();
         ghost = make();
         document.body.append(ghost);
-        document.body.classList.add("dragging-line");
+        document.body.classList.add("dragging");
         place(start.x, start.y);
     };
     const move = moved => {
         if (moved.pointerId !== event.pointerId) return;
         const far = Math.hypot(moved.clientX - start.x, moved.clientY - start.y) > 6;
-        if (!line_dragging) {
+        if (!dragging_any) {
             if (!far) return;
             if (touch) return finish(); // a swipe: let the page scroll
             begin();
@@ -680,17 +672,17 @@ function dragGesture(event, { make, over, end }) {
         removeEventListener("pointerup", finish);
         removeEventListener("pointercancel", finish);
         removeEventListener("keydown", escape, true);
-        if (!line_dragging) return;
-        line_dragging = false;
+        if (!dragging_any) return;
+        dragging_any = false;
         line_drag_ended = Date.now();
-        document.body.classList.remove("dragging-line");
+        document.body.classList.remove("dragging");
         swallowClick(done);
         end(Boolean(done && done.type === "pointerup"), ghost);
     };
     if (touch) hold = setTimeout(begin, 350);
     // Escape drops the drag where it is: nothing moves.
     const escape = key => {
-        if (key.key !== "Escape" || !line_dragging) return;
+        if (key.key !== "Escape" || !dragging_any) return;
         key.stopPropagation();
         finish({ type: "cancel" });
     };
@@ -716,7 +708,7 @@ function mergeDrag(event, book) {
             chip.replaceChildren(TEXT.books.merge_impossible);
             return;
         }
-        const too_much = result.levels >= MAX_STEP_LEVELS;
+        const too_much = result.levels > stepLimit(); // the game allows 39, "Too Expensive!" from 40
         chip.className = "merge-chip " + (too_much ? "bad" : "ok");
         chip.replaceChildren(
             h("div", {}, too_much ? TEXT.books.merge_too_expensive + " " : "", TEXT.books.merge_levels({ levels: result.levels })),
@@ -741,7 +733,6 @@ function mergeDrag(event, book) {
             const other = next && logic.currentBooks(state).find(entry => String(entry.id) === next.dataset.key);
             if (!other) return;
             next.classList.add("merge-target");
-            chip.className = "merge-chip";
             chip.replaceChildren("…");
             // A book with no enchantments is a plain book: the anvil does nothing with it.
             if (isPlainBook(other) || isPlainBook(book)) { show({ ok: false }); return; }
@@ -848,7 +839,7 @@ export function focusPicker(ns = null) {
     const row = ns && picker.querySelector(`.picker-row[data-ns="${ns}"]`);
     const bar = (row || picker).querySelector(".level-bar");
     if (bar) bar.focus({ preventScroll: true });
-    (row || picker).scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" });
+    scrollToView(row || picker);
 }
 
 // The popover goes in the grid (so it can be as wide as the grid) just under its card.
@@ -878,35 +869,16 @@ function setCopies(book, value) {
     book.copies = Math.max(1, Math.min(MAX_COPIES, value));
 }
 
-// Holding − or + steps every 70ms after a short wait. The cards redraw on each step, the
-// results once when the button is let go.
-let hold_timer = null;
-let hold_repeat = null;
-function stopHold() {
-    clearTimeout(hold_timer);
-    clearInterval(hold_repeat);
-    hold_timer = hold_repeat = null;
-}
-function startHold(book, delta) {
-    stopHold();
-    const step = () => { setCopies(book, (book.copies || 1) + delta); renderBooks(); };
-    step();
-    hold_timer = setTimeout(() => { hold_repeat = setInterval(step, 70); }, 400);
-    const end = () => {
-        removeEventListener("pointerup", end);
-        removeEventListener("pointercancel", end);
-        stopHold();
-        commit();
-    };
-    addEventListener("pointerup", end);
-    addEventListener("pointercancel", end);
-}
-
 function copiesRow(book, key) {
     const copies = book.copies || 1;
     const button = (delta, label, disabled, focus, text) => h("button", {
         type: "button", class: "btn tiny", "aria-label": label, "data-focus": focus, disabled,
-        onpointerdown: event => { if (event.button === 0) { event.preventDefault(); startHold(book, delta); } },
+        // Holding steps every 70ms after a short wait: the cards redraw on each step, the results once when the button is let go.
+        onpointerdown: event => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            holdRepeat(event, () => { setCopies(book, (book.copies || 1) + delta); renderBooks(); }, { done: commit });
+        },
         // A keyboard press (no pointer) steps once.
         onclick: event => { if (event.detail === 0) { setCopies(book, copies + delta); commit(); } }
     }, text);
@@ -948,27 +920,11 @@ function workRow(book, key) {
         return value;
     };
     const track = h("div", { class: "anvil-pips" }, pips);
-    let drag = null;
-    track.addEventListener("pointerdown", event => {
-        if (event.button !== 0) return;
-        event.preventDefault();
-        const value = at(event.clientX);
-        drag = { id: event.pointerId, start: value, value, moved: false };
-        try { track.setPointerCapture(event.pointerId); } catch { /* moves over the track still work */ }
-        show(value);
+    scrubber(track, {
+        at: event => at(event.clientX), show, prevent: true,
+        done: (start, value, moved) => set(moved ? value : start > 0 && start === prior_work ? start - 1 : start),
+        cancel: () => show(prior_work)
     });
-    track.addEventListener("pointermove", event => {
-        if (!drag || event.pointerId !== drag.id) return;
-        const value = at(event.clientX);
-        if (value !== drag.value) { drag.value = value; drag.moved = true; show(value); }
-    });
-    track.addEventListener("pointerup", event => {
-        if (!drag || event.pointerId !== drag.id) return;
-        const { start, value, moved } = drag;
-        drag = null;
-        set(moved ? value : start > 0 && start === prior_work ? start - 1 : start);
-    });
-    track.addEventListener("pointercancel", () => { drag = null; show(prior_work); });
     return h("div", { class: "work-row" },
         h("span", { class: "stepper-label", title: TEXT.books.prior_work_help }, TEXT.books.prior_work),
         track,
@@ -1009,8 +965,8 @@ function slotCell(book, index, count, editable, unwanted) {
         flagged ? h("span", { class: "slot-flag", "aria-hidden": "true" }, "!") : null
     );
     const tip = h("div", { class: "slot-tip mc-tooltip", "aria-hidden": "true" },
-        h("div", { class: "mc-name rarity-" + logic.rarity(is_item ? state.item : "book", enchanted) }, name),
-        logic.tooltipSort(list).map(e => h("div", { class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") }, logic.displayName(e.namespace, e.level))),
+        h("div", { class: nameClass(logic.rarity(is_item ? state.item : "book", enchanted)) }, name),
+        logic.tooltipSort(list).map(e => enchLine(logic.displayName(e.namespace, e.level), logic.isCurse(e.namespace))),
         prior_work ? h("div", { class: "mc-ench" }, TEXT.books.work_badge({ count: prior_work })) : null
     );
     const main = editable ? h("button", {
@@ -1038,7 +994,6 @@ function enchantPicker(book) {
     // A mod's enchantments (the ones not chosen in section 1) are with the others behind "Show all", folded under its name.
     const modded = options.filter(ns => logic.modOf(ns) && !(ns in state.wanted));
     const rest = options.filter(ns => !(ns in state.wanted) && !logic.modOf(ns));
-    const plain = text => text.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
     const query = plain(picker_query);
     const rest_shown = picker_all || !wanted.length ? rest : rest.filter(ns => book.enchantments[ns]);
     const modded_shown = picker_all || !wanted.length ? modded : modded.filter(ns => book.enchantments[ns]);
@@ -1055,7 +1010,7 @@ function enchantPicker(book) {
         },
             h("span", { class: "picker-name" }, logic.enchName(ns),
                 elsewhere ? h("span", { class: "note" }, TEXT.books.on_other_entry({ name: logic.enchName(elsewhere) })) : null),
-            elsewhere ? null : levelBar(ns, level, here, value => setEntryLevel(book, ns, value), "pick-" + key + "-")
+            elsewhere ? null : levelBar(ns, level, here ? [here] : [], value => setEntryLevel(book, ns, value), "pick-" + key + "-")
         );
     };
     const more = wanted.length && (rest.length || modded.length) && (picker_all || hidden) ? h("button", {
@@ -1073,7 +1028,7 @@ function enchantPicker(book) {
         }
     });
     if (query) {
-        const found = options.filter(ns => plain(logic.enchName(ns)).includes(query));
+        const found = options.filter(ns => plain(logic.enchName(ns) + " " + logic.describe(ns)).includes(query));
         return h("div", { class: "entry-popover enchant", role: "group", "aria-label": TEXT.books.picker_label },
             search, found.length ? found.map(row) : h("p", { class: "hint" }, TEXT.books.picker_no_match),
             h("div", { class: "popover-foot" }, h("span"), pickerButtons(book, key)));
@@ -1157,17 +1112,14 @@ function isPlainBook(book) {
 
 // The popover closes on a click outside it (and the buttons that open one) or on Escape.
 export function setupEntryPopover() {
-    document.addEventListener("click", event => {
-        if (!entry_popover) return;
-        const path = event.composedPath();
-        if (path.some(el => el.classList && (el.classList.contains("entry-popover") || el.classList.contains("popover-toggle")))) return;
-        closePopover(false);
-    });
-    document.addEventListener("keydown", event => {
-        if (event.key === "Escape" && entry_popover) closePopover(true);
+    closeOnOutside({
+        open: () => entry_popover,
+        inside: event => event.composedPath().some(el => el.classList && (el.classList.contains("entry-popover") || el.classList.contains("popover-toggle"))),
+        close: () => closePopover(false),
+        escape: () => closePopover(true)
     });
     // While a line is dragged by touch, the page must not scroll under it.
-    document.addEventListener("touchmove", event => { if (line_dragging) event.preventDefault(); }, { passive: false });
+    document.addEventListener("touchmove", event => { if (dragging_any) event.preventDefault(); }, { passive: false });
 }
 
 // "⚠ 1" next to the section heading when chosen enchantments can't be reached; it
@@ -1198,7 +1150,7 @@ function fixSuggestion({ ns, wanted, best }) {
         const name = logic.displayName(ns, book.enchantments[ns]);
         const entry = book.type === "item" ? TEXT.books.replaced_item({ item: logic.itemName(state.item), enchantment: name }) : name;
         return book.copies > 1 ? TEXT.books.copies_of({ count: book.copies, name: entry }) : entry;
-    });
+    }).concat(adding.dropped.map(other => logic.displayName(other.ns, other.level)));
     const fix = h("button", {
         type: "button", class: "fix-option",
         onclick: event => {

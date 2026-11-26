@@ -29,6 +29,10 @@ jobs:
         run: node test/Engine.test.js
       - name: Logic tests
         run: node test/Logic.test.mjs
+      # The deploy job's version stamping, run on a temporary copy of the site, so a renamed file
+      # or a new import it would miss fails here instead of only when main is deployed.
+      - name: Version stamping dry run
+        run: bash test/Stamp.test.sh
 
   # The page in a real browser (test/Browser.test.py). Separate from `test`, so a browser
   # hiccup shows up as its own red check without holding back a deploy.

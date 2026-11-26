@@ -6,18 +6,20 @@ Needs:  pip install playwright   and   playwright install chromium
 It serves the site on a free local port and checks the flows that unit tests can't see:
 results, ticking and folding steps, links, hover/keyboard links, the Tree view, animations,
 mods. The checks are split into independent `part_...` functions, each in its own Chromium, run
-JOBS at a time (`--serial` runs them one by one, for debugging). Waits use `settle(page)` (the
+JOBS at a time, each thread keeping one Chromium (`--serial` runs them one by one, for debugging). Parts run with animations
+off unless they are in MOTION_PARTS. Waits use `settle(page)` (the
 search is idle and no finite animation is running) rather than fixed sleeps.
 Skips (exit 0) when Playwright isn't installed, so it never blocks the other tests.
 """
-import concurrent.futures
 import functools
 import http.server
 import os
 import re
 import sys
 import threading
+import time
 import traceback
+from queue import Queue
 
 try:
     from playwright.sync_api import sync_playwright
@@ -27,7 +29,10 @@ except ImportError:
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DEFAULT_TIMEOUT_MS = 6000  # how long a click or wait for an element tries before the check fails
-JOBS = min(6, os.cpu_count() or 1)  # parts that run side by side (each in its own Chromium); `--serial` runs them one at a time
+JOBS = int(os.environ.get("TEST_JOBS", 0)) or min(6, os.cpu_count() or 1)  # parts that run side by side (each in its own Chromium); `--serial` runs them one at a time
+# Parts that run with "Show animations" off (the app's own setting, kept in localStorage), so no check waits for an easing it does not test.
+# Parts in MOTION_PARTS (below PARTS) keep animations on, because they check them.
+NO_MOTION_SCRIPT = "try { if (localStorage.getItem('enchantment-calculator-no-motion') === null) localStorage.setItem('enchantment-calculator-no-motion', 'true'); } catch (e) {}"
 passed = 0
 failed = 0
 output_lock = threading.Lock()
@@ -49,9 +54,14 @@ class Quiet(http.server.SimpleHTTPRequestHandler):
         pass
 
 
+class QuietServer(http.server.ThreadingHTTPServer):
+    def handle_error(self, request, client_address):
+        pass  # a page closed mid-download is not an error here
+
+
 def serve():
     handler = functools.partial(Quiet, directory=ROOT)
-    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    server = QuietServer(("127.0.0.1", 0), handler)
     threading.Thread(target=server.serve_forever, daemon=True).start()
     return server
 
@@ -70,6 +80,52 @@ def settle(page, timeout=10000):
     """Waits until the search is idle and no finite animation or transition is still running (instead of sleeping)."""
     page.wait_for_function("""() => document.documentElement.dataset.search !== "pending" && document.documentElement.dataset.search !== "running" &&
         document.getAnimations().every(a => a.playState !== "running" || a.effect.getComputedTiming().iterations === Infinity)""", timeout=timeout)
+
+
+def frames(page, count=2):
+    """Waits for `count` rendered frames (for what the page does in the next paint, such as an observer's callback)."""
+    page.evaluate("count => new Promise(done => { const tick = () => --count > 0 ? requestAnimationFrame(tick) : done(); requestAnimationFrame(tick); })", count)
+
+
+# Runs `action` (JS source) in the page, then scrubs every finite animation it started: all are paused and stepped through their whole
+# length, reading `sample` (a JS expression) at each of `steps` + 1 points, so a check sees the same frames however slow the machine is.
+# Returns the readings (`values`), what the action returned, how many animations ran and a last reading once they are finished and gone.
+SCRUB = """async ([action, sample, steps]) => {
+    const read = new Function("return (" + sample + ")");
+    const acted = await new Function("return (async () => { " + action + " })()")();
+    await new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+    const finite = a => a.effect && a.effect.getComputedTiming().iterations !== Infinity && !/glint/.test(a.animationName || "");
+    const running = document.getAnimations().filter(finite);
+    running.forEach(a => a.pause());
+    const end = Math.max(0, ...running.map(a => a.effect.getComputedTiming().endTime));
+    const values = [];
+    for (let i = 0; i <= steps; i++) {
+        running.forEach(a => { a.currentTime = Math.min(end * i / steps, a.effect.getComputedTiming().endTime); });
+        values.push(read());
+    }
+    running.forEach(a => a.finish());
+    await new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done)));
+    return { values, acted, animations: running.length, after: read() };
+}"""
+
+
+def scrub(page, action, sample, steps=20):
+    return page.evaluate(SCRUB, [action, sample, steps])
+
+
+def fold_all(page, label):
+    """Clicks Expand all / Collapse all in section 4: its buttons, or on a phone the "more" menu that holds them."""
+    menu = page.locator("#results .more-menu")
+    if menu.is_visible():
+        menu.locator("summary").click()
+        menu.locator(".copy-panel button", has_text=label).click()
+    else:
+        page.click("#results .fold-buttons >> text=" + label)
+
+
+def link_data(page):
+    """the setup the address holds (the share link's JSON)"""
+    return page.evaluate("JSON.parse(new TextDecoder().decode(Uint8Array.from(atob(location.hash.slice(1).replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0))))")
 
 
 def pick_helmet_max(page):
@@ -145,6 +201,14 @@ def part_steps(browser, base):
     page2.wait_for_selector("#results .anvil-step", timeout=8000)
     check("the second device has the same ticks", page2.locator(".step-tick input:checked").count() == ticked,
           (ticked, page2.locator(".step-tick input:checked").count()))
+    settle(page2)
+    check("once used, the link's progress leaves the address", "t" not in link_data(page2) and "k" not in link_data(page2), link_data(page2))
+    page2.locator(".step-tick input:checked").last.click()  # the last one: no ticked step needs it
+    settle(page2)
+    page2.reload()
+    page2.wait_for_selector("#results .anvil-step", timeout=8000)
+    check("a reload keeps the newer ticks, not the link's", page2.locator(".step-tick input:checked").count() == ticked - 1,
+          (ticked, page2.locator(".step-tick input:checked").count()))
 
     # Ticking the last step flashes the bar once ("level up").
     for number in range(1, total + 1):
@@ -153,10 +217,10 @@ def part_steps(browser, base):
             box.check()
     check("all steps ticked flashes the bar", page.locator(".step-progress-track.level-up").count() == 1)
 
-    # Phones: Steps/Tree, Copy steps and Print share a row.
+    # Phones: Steps/Tree and the "more" menu (Copy, Print, Expand all) share a row.
     tops = page2.evaluate("""[...document.querySelector('.result-tools').children]
-        .filter(el => !el.classList.contains('step-progress')).map(el => Math.round(el.getBoundingClientRect().top))""")
-    check("on a phone the tools share one row", len(set(tops)) == 1, tops)
+        .filter(el => !el.classList.contains('step-progress') && el.offsetParent !== null).map(el => { const box = el.getBoundingClientRect(); return Math.round(box.top + box.height / 2); })""")
+    check("on a phone the tools share one row", len(tops) == 2 and max(tops) - min(tops) <= 2, tops)
     overflow = page2.evaluate("document.documentElement.scrollWidth > innerWidth")
     check("a phone has no sideways scroll", not overflow)
 
@@ -231,7 +295,7 @@ def part_section1(browser, base):
 
 
 def part_books(browser, base):
-    """section 2: copies, prior work, merges, the three views, ordering, saved setups and language"""
+    """section 2: automatic and Custom cards, coverage chips, copies, prior work, the merge preview"""
     # Everything else once, so a broken import or typo anywhere shows up as a page error.
     wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
     page4.click('#wanted .item-grid button[data-focus="item-sword"]')
@@ -309,25 +373,30 @@ def part_books(browser, base):
     page4.mouse.up()
     settle(page4)
     check("the merge preview changes nothing", page4.locator("#books .entry-card").count() == cards)
+    return errors4
+
+
+def part_books_views(browser, base):
+    """section 2's three views: the switch animation, the slots view, reordering slots (motion on)"""
+    wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900})
+    page4.click('#wanted .item-grid button[data-focus="item-sword"]')
+    page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
+    page4.click('#books >> text=Custom')
+    settle(page4)
+    cards = page4.locator("#books .entry-card").count()
     # Switching views: tooltips that rest hidden never flash, every slot travels on its own, and nothing is left behind.
     page4.mouse.move(0, 0)
-    flash = page4.evaluate("""() => new Promise(resolve => {
-        let worst = 0, moving = 0;
-        document.querySelector('#books [data-focus="view-slots"]').click();
-        moving = [...document.querySelectorAll('#books .slotcell .slot-cell-button')].filter(unit => unit.getAnimations().some(a => a.effect.getKeyframes().some(k => k.transform && k.transform !== 'none'))).length;
-        const start = performance.now();
-        const sample = () => {
-            for (const tip of document.querySelectorAll('#books .slot-tip')) worst = Math.max(worst, +getComputedStyle(tip).opacity);
-            performance.now() - start < 600 ? requestAnimationFrame(sample) : resolve({ worst, moving });
-        };
-        sample();
-    })""")
+    result = scrub(page4, """document.querySelector('#books [data-focus="view-slots"]').click();
+        return [...document.querySelectorAll('#books .slotcell .slot-cell-button')].filter(unit => unit.getAnimations().some(a => a.effect.getKeyframes().some(k => k.transform && k.transform !== 'none'))).length;""",
+                "Math.max(0, ...[...document.querySelectorAll('#books .slot-tip')].map(tip => +getComputedStyle(tip).opacity))", 30)
+    flash = {"worst": max(result["values"]), "moving": result["acted"]}
     check("switching to Slots never flashes the tooltips", flash["worst"] == 0, flash)
     check("each slot travels to its new place", flash["moving"] >= cards - 1, flash)
     check("a view switch leaves no frames or copies behind", page4.locator("#books .card-frame, #books .card-ghost, #books .morphing").count() == 0)
     for view in ("list", "cards", "list", "slots", "cards"):
         page4.click('#books [data-focus="view-%s"]' % view)
-        page4.wait_for_timeout(120)
+        page4.wait_for_timeout(120)  # (on purpose: the next click lands while the last switch is still sliding)
     settle(page4)
     check("switching views quickly lands on the last one cleanly", page4.locator("#books .entry-card:not(.compact):not(.slotcell)").count() >= cards and page4.locator("#books .card-frame, #books .card-ghost").count() == 0)
     # The slots view.
@@ -357,11 +426,21 @@ def part_books(browser, base):
     page4.keyboard.press("Escape")
     page4.click('#books [data-focus="view-cards"]')
     settle(page4)
-    page4.click('#books >> text=Add book')
-    page4.keyboard.press("Escape")
     page4.click('#books [data-focus="view-list"]')
     check("the list view keeps one row per entry", page4.locator("#books .entry-card.compact").count() >= cards)
-    page4.click('#books [data-focus="view-cards"]')
+    return errors4
+
+
+def part_books_tail(browser, base):
+    """section 2's add area and the page's menus: Add book, a typed book, the limit, a saved setup, Bedrock, theme, collapsing, copy, language"""
+    wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
+    page4.click('#wanted .item-grid button[data-focus="item-sword"]')
+    page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page4.wait_for_selector("#results .anvil-step", timeout=8000)
+    page4.click('#books >> text=Custom')
+    settle(page4)
+    page4.click('#books >> text=Add book')
+    page4.keyboard.press("Escape")
     page4.fill('#books input[placeholder^="Type a book"]', "unbreaking 3")
     page4.keyboard.press("Enter")
     page4.click('#books button[aria-label^="Remove entry 1"]')
@@ -401,6 +480,224 @@ def part_books(browser, base):
     return errors4
 
 
+def drag_to(page, source, target, grab=(0.5, 0.5), drop=(0.5, 0.5), release=True):
+    """A mouse drag from one box (a Playwright bounding box) to another's `drop` point; the first move past 6px starts the drag.
+    With release=False the button stays down (so the target's look can be checked), and the caller ends it with page.mouse.up()."""
+    start = (source["x"] + source["width"] * grab[0], source["y"] + source["height"] * grab[1])
+    page.mouse.move(*start)
+    page.mouse.down()
+    page.mouse.move(start[0] + 14, start[1] + 14, steps=4)
+    page.mouse.move(target["x"] + target["width"] * drop[0], target["y"] + target["height"] * drop[1], steps=8)
+    if release:
+        page.mouse.up()
+        settle(page)
+
+
+def empty_custom_helmet(page, picks):
+    """A Helmet with nothing chosen but `picks` (namespace -> level), Custom books, and every entry removed, so the coverage chips are all amber."""
+    page.click('#wanted .item-grid button[data-focus="item-helmet"]')
+    page.click("#wanted .preset >> text=Plain")
+    settle(page)
+    for ns, level in picks.items():
+        if ns == "protection":  # (one of a Pick one group: its switch chooses it at its top level)
+            page.click('#wanted button[data-focus$="-protection"]')
+        else:
+            page.locator('[data-focus="bar-%s"] .level-seg' % ns).nth(level - 1).click()
+    page.click('[data-focus="mode-custom"]')
+    settle(page)
+    while page.locator("#books .entry-card").count():
+        page.click('#books button[aria-label^="Remove entry 1"]')
+        settle(page)
+
+
+LINES_BY_CARD = "cards => cards.map(c => [...c.querySelectorAll('.entry-line')].map(x => x.dataset.ns).sort().join())"
+
+
+def part_typed_lines(browser, base):
+    """section 2's type box (typed books, what it skips) and dragging a tooltip line between cards"""
+    _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    empty_custom_helmet(p, {"mending": 1, "unbreaking": 3, "protection": 4})
+    box = '#books input[placeholder^="Type a book"]'
+    cards = lambda: p.locator("#books .entry-card").count()
+    # The type box: one book of every typed enchantment; what it can't use stays in the box with a note.
+    p.fill(box, "prot 4, mending")
+    p.keyboard.press("Enter")
+    settle(p)
+    lines = p.eval_on_selector_all("#books .entry-card .entry-line", "e => e.map(x => x.dataset.ns + ' ' + x.dataset.level)")
+    check("a typed 'prot 4, mending' is one book with both enchantments", cards() == 1 and sorted(lines) == ["mending 1", "protection 4"], lines)
+    check("and the box is empty again", p.input_value(box) == "" and p.locator("#books .type-note").count() == 0)
+    p.fill(box, "zzzz")
+    p.keyboard.press("Enter")
+    settle(p)
+    check("a word that is no enchantment adds nothing, stays in the box and says so", cards() == 1 and p.input_value(box) == "zzzz" and p.locator("#books .type-note").count() == 1, p.locator("#books .type-note").all_inner_texts())
+    p.fill(box, "fire protection 4")
+    p.keyboard.press("Enter")
+    settle(p)
+    check("an enchantment that conflicts with one already on the books is refused with a note", cards() == 1 and p.input_value(box) == "fire protection 4" and "Fire Protection" in p.inner_text("#books .type-note"), p.locator("#books .type-note").all_inner_texts())
+    p.fill(box, "unbreaking 3")
+    p.keyboard.press("Enter")
+    settle(p)
+    check("a second typed book is a second card", cards() == 2)
+    # Dragging a tooltip line onto another card moves the enchantment.
+    line = p.locator("#books .entry-card").nth(0).locator('.entry-line[data-ns="mending"]')
+    drag_to(p, line.bounding_box(), p.locator("#books .entry-card").nth(1).bounding_box(), release=False)
+    check("dragging a line over a card that can take it outlines the card", p.locator("#books .entry-card.drop-ok").count() == 1 and p.locator("body > .line-ghost").count() == 1)
+    p.mouse.up()
+    settle(p)
+    moved = p.eval_on_selector_all("#books .entry-card", LINES_BY_CARD)
+    check("dropping it moves the enchantment and leaves the other card as it was", moved == ["protection", "mending,unbreaking"], moved)
+    check("a drag leaves no ghost or outline behind", p.locator(".line-ghost, #books .drop-ok, #books .drop-no, #books .drag-source").count() == 0)
+    # Escape in the middle of a drag moves nothing.
+    line = p.locator("#books .entry-card").nth(1).locator('.entry-line[data-ns="mending"]')
+    drag_to(p, line.bounding_box(), p.locator("#books .entry-card").nth(0).bounding_box(), release=False)
+    p.keyboard.press("Escape")
+    p.mouse.up()
+    settle(p)
+    moved = p.eval_on_selector_all("#books .entry-card", LINES_BY_CARD)
+    check("Escape ends a line drag with nothing moved", moved == ["protection", "mending,unbreaking"], moved)
+
+    return errors
+
+
+def part_chip_drag(browser, base):
+    """dragging a coverage chip onto a card, a card that conflicts, and the add bar"""
+    _, q, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    box = '#books input[placeholder^="Type a book"]'
+    empty_custom_helmet(q, {"mending": 1, "unbreaking": 3, "protection": 4})
+    for text in ("fire protection 4", "thorns 1"):
+        q.fill(box, text)
+        q.keyboard.press("Enter")
+        settle(q)
+    chip = lambda ns: q.locator('#books .cover-chip.short[data-ns="%s"]' % ns)
+    card_with = lambda ns: q.locator("#books .entry-card", has=q.locator('.entry-line[data-ns="%s"]' % ns))
+    lines_of = lambda ns: q.eval_on_selector_all('#books .entry-card:has(.entry-line[data-ns="%s"]) .entry-line' % ns, "e => e.map(x => x.dataset.ns + ' ' + x.dataset.level).sort()")
+    check("with a fire protection and a thorns book, Mending, Unbreaking and Protection are amber chips", chip("mending").count() == 1 and chip("unbreaking").count() == 1 and chip("protection").count() == 1)
+    drag_to(q, chip("protection").bounding_box(), card_with("thorns").bounding_box(), release=False)
+    check("a chip over a card is outlined as refused when another card holds a conflict", q.locator("#books .entry-card.drop-no").count() == 1 and q.locator("#books .entry-card.drop-ok").count() == 0)
+    q.mouse.up()
+    settle(q)
+    check("and dropping it there adds nothing", lines_of("thorns") == ["thorns 1"] and chip("protection").count() == 1)
+    drag_to(q, chip("protection").bounding_box(), card_with("fire_protection").bounding_box(), release=False)
+    check("over the card that holds the conflict it is outlined as fine", q.locator("#books .entry-card.drop-ok").count() == 1)
+    q.mouse.up()
+    settle(q)
+    check("and dropping it there replaces the conflicting enchantment", lines_of("protection") == ["protection 4"] and chip("protection").count() == 0)
+    drag_to(q, chip("mending").bounding_box(), q.locator("#books .entry-add-card").bounding_box(), release=False)
+    check("a chip over the add bar outlines it", q.locator("#books .entry-add-card.drop-ok").count() == 1)
+    q.mouse.up()
+    settle(q)
+    check("dropping it there makes a new book with that enchantment", q.locator("#books .entry-card").count() == 3 and lines_of("mending") == ["mending 1"] and chip("mending").count() == 0)
+    drag_to(q, chip("unbreaking").bounding_box(), card_with("thorns").bounding_box())
+    check("dropping a chip on a card puts that enchantment on it, at the chosen level", q.locator("#books .entry-card").count() == 3 and lines_of("thorns") == ["thorns 1", "unbreaking 3"] and chip("unbreaking").count() == 0, lines_of("thorns"))
+    return errors
+
+
+def part_controls(browser, base):
+    """the preset compare tooltip, the rename field (badge, count, cut length per edition), the typed level limit and the infinity button"""
+    _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p.click('#wanted .item-grid button[data-focus="item-helmet"]')
+    p.click("#wanted .preset >> text=Plain")
+    settle(p)
+    preset = p.locator('#wanted .preset:not([data-focus="preset-plain"])').first
+    preset.hover()
+    added = p.locator("#wanted .compare-tip .mc-ench.changed").count()
+    check("hovering a preset shows what it adds, as a tooltip", p.locator("#wanted .compare-tip").count() == 1 and added >= 3 and p.locator("#wanted .compare-tip .mc-ench.removed").count() == 0, added)
+    p.mouse.move(0, 0)
+    check("it goes when the pointer leaves", p.locator("#wanted .compare-tip").count() == 0)
+    preset.focus()
+    check("focusing a preset shows it too", p.locator("#wanted .compare-tip").count() == 1)
+    p.keyboard.press("Enter")
+    settle(p)
+    p.mouse.move(0, 0)
+    preset.hover()
+    check("a preset that is already chosen says so", "Already chosen" in p.inner_text("#wanted .compare-tip"), p.inner_text("#wanted .compare-tip"))
+    p.locator("#wanted .preset >> text=Plain").hover()
+    check("Plain shows everything it takes away", p.locator("#wanted .compare-tip .mc-ench.removed").count() >= 3)
+    p.mouse.move(0, 0)
+    p.wait_for_selector("#results .anvil-step", timeout=8000)
+
+    # Rename: the name box, the +1 level badge, the count and the edition's cut length (Java 50, Bedrock 30, counted in UTF-16 units).
+    name = "#ranking .anvil-name-input"
+    check("the name box shows the item's name as a hint and no badge", bool(p.get_attribute(name, "placeholder")) and p.locator("#ranking .anvil-name.renaming").count() == 0 and not p.locator("#ranking .rename-cost").is_visible())
+    p.locator(name).press_sequentially("x" * 55, delay=0)
+    settle(p)
+    check("a Java name is cut at 50 characters", len(p.input_value(name)) == 50 and p.get_attribute(name, "maxlength") == "50", len(p.input_value(name)))
+    check("typing a name shows the +1 level badge and the count", p.locator("#ranking .anvil-name.renaming").count() == 1 and p.locator("#ranking .rename-cost").is_visible() and p.inner_text("#ranking .name-count") == "50 / 50", p.inner_text("#ranking .name-count"))
+    check("the finished item carries the name", "x" * 50 in p.inner_text("#results"))
+    p.click("#options-menu summary")
+    p.click('#limit-panel [data-focus="edition-bedrock"]')
+    settle(p)
+    p.keyboard.press("Escape")
+    check("on Bedrock the name is cut at 30", len(p.input_value(name)) == 30 and p.get_attribute(name, "maxlength") == "30" and p.inner_text("#ranking .name-count") == "30 / 30", (len(p.input_value(name)), p.get_attribute(name, "maxlength")))
+    p.click("#options-menu summary")
+    p.click('#limit-panel [data-focus="edition-java"]')
+    settle(p)
+    p.keyboard.press("Escape")
+    check("and back on Java the uncut name returns", len(p.input_value(name)) == 50)
+    p.fill(name, "\U0001F600\U0001F600\U0001F600")
+    settle(p)
+    check("an emoji counts as two characters, as the game does", p.inner_text("#ranking .name-count") == "6 / 50", p.inner_text("#ranking .name-count"))
+    p.fill(name, "")
+    settle(p)
+    check("an empty name is no rename again", p.locator("#ranking .anvil-name.renaming").count() == 0 and not p.locator("#ranking .rename-cost").is_visible())
+
+    # The level limit: type it in, and the infinity button.
+    def open_rules():
+        if not p.evaluate("document.querySelector('#options-menu').open"):
+            p.click("#options-menu summary")
+
+    def type_limit(text, key="Enter"):
+        open_rules()
+        p.click("#limit-panel .limit-value")
+        p.fill("#limit-panel .limit-edit", text)
+        p.keyboard.press(key)
+        settle(p)
+        open_rules()
+        return p.input_value("#limit-panel .limit-slider"), p.inner_text("#limit-panel .limit-value")
+    check("a typed limit moves the slider", type_limit("20") == ("20", "20"))
+    check("a typed limit past the game's is cut to 39", type_limit("99") == ("39", "39"))
+    check("Escape puts the old limit back", type_limit("5", "Escape") == ("39", "39"))
+    open_rules()
+    p.click('#limit-panel [data-focus="limit-infinity"]')
+    settle(p)
+    open_rules()
+    check("the infinity button removes the limit, and the number says so", p.get_attribute('#limit-panel [data-focus="limit-infinity"]', "aria-pressed") == "true" and p.inner_text("#limit-panel .limit-value") == "∞")
+    p.click('#limit-panel [data-focus="limit-infinity"]')
+    settle(p)
+    open_rules()
+    check("and pressing it again brings the limit back", p.get_attribute('#limit-panel [data-focus="limit-infinity"]', "aria-pressed") == "false" and p.inner_text("#limit-panel .limit-value") == "39")
+    return errors
+
+
+def part_offline(browser, base):
+    """the service worker: registers, saves the site on the first visit, and the page then opens and calculates with no connection"""
+    context = browser.new_context(viewport={"width": 1280, "height": 900})
+    page = context.new_page()
+    errors = []
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(base)
+    page.wait_for_selector("#wanted .item-grid")
+    ready = page.evaluate("navigator.serviceWorker.ready.then(registration => Boolean(registration.active))")
+    check("the service worker registers and activates", ready)
+    page.evaluate("() => new Promise(done => { const look = () => navigator.serviceWorker.controller ? done() : setTimeout(look, 50); look(); })")  # (it claims the page when it activates)
+    cached = page.evaluate("caches.keys().then(async names => { const cache = await caches.open(names[0]); return (await cache.keys()).map(r => new URL(r.url).pathname); })")
+    wanted = {"/js/App.js", "/js/Engine.js", "/json/metadata.json", "/json/text/en.json", "/css/Style.css", "/font/minecraft.woff"}
+    check("the first visit saves the site's files", wanted <= set(cached), sorted(wanted - set(cached)))
+    page.reload()
+    page.wait_for_selector("#wanted .item-grid")
+    context.set_offline(True)
+    page.reload()
+    page.wait_for_selector("#wanted .item-grid")
+    check("with no connection the page still opens", page.locator("#wanted .item-grid .item-button").count() > 5)
+    page.click('#wanted .item-grid button[data-focus="item-boots"]')
+    page.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    page.wait_for_selector("#results .anvil-step", timeout=8000)
+    check("and it calculates an order with no connection (the worker and the data come from the copy)", page.locator("#results .anvil-step").count() >= 3)
+    context.set_offline(False)
+    context.close()
+    return errors
+
+
 def part_anvil_uses(browser, base):
     """section 4: slots, cost, planner, final card, tree, phones"""
     # Anvil uses: focus, slot labels and instruction, cost breakdown, Slots view, planner, final card, tree.
@@ -414,9 +711,9 @@ def part_anvil_uses(browser, base):
     check("only the current step is in full at first", p7.locator("#results .anvil-step:not(.folded)").count() == 1, p7.locator("#results .anvil-step:not(.folded)").count())
     check("a step says which slot is which", p7.locator("#results .anvil-step.current .cell-label").count() == 3)
     check("a step says what to do in words", "left slot" in p7.text_content("#results .anvil-step.current .step-instruction"))
-    p7.click("#results .fold-buttons >> text=Expand all")
+    fold_all(p7, "Expand steps")
     check("Expand all shows every step in full", p7.locator("#results .anvil-step.folded").count() == 0)
-    p7.click("#results .fold-buttons >> text=Collapse all")
+    fold_all(p7, "Collapse steps")
     check("Collapse all folds every step", p7.locator("#results .anvil-step:not(.folded)").count() == 0)
     p7.locator("#results .anvil-step").nth(2).locator(".step-head").click()
     p7.locator("#results .anvil-step").nth(2).locator(".anvil-cost").hover()
@@ -519,27 +816,17 @@ def part_chips(browser, base):
     p9.click('[data-focus="mode-custom"]')
     settle(p9)
     p9.mouse.move(0, 0)
-    p9.evaluate("""() => { window.__gap = new Promise(resolve => {
-        const heights = new Set(); let gaps = [];
-        const start = performance.now();
-        const tick = () => {
-            const strip = document.querySelector('#books .coverage'), grid = document.querySelector('#books .entry-grid');
-            const a = strip.getBoundingClientRect(), b = grid.getBoundingClientRect();
-            heights.add(Math.round(a.height)); gaps.push(Math.round((b.top - a.bottom) * 10) / 10);
-            performance.now() - start < 800 ? requestAnimationFrame(tick) : resolve({ heights: heights.size, spread: Math.max(...gaps) - Math.min(...gaps) });
-        };
-        tick();
-    }); }""")
-    p9.click('#books [data-focus="cover-summary"]')
-    gap = p9.evaluate("window.__gap")
+    gap = scrub(p9, "document.querySelector('#books [data-focus=\"cover-summary\"]').click();",
+                "(() => { const a = document.querySelector('#books .coverage').getBoundingClientRect(), b = document.querySelector('#books .entry-grid').getBoundingClientRect(); return [Math.round(a.height), Math.round((b.top - a.bottom) * 10) / 10]; })()")
+    gaps = [g for _, g in gap["values"]]
+    gap = {"heights": len({h for h, _ in gap["values"]}), "spread": max(gaps) - min(gaps)}
     check("the entries below follow the opening menu at its own rate", gap["heights"] >= 6 and gap["spread"] < 1, gap)
     settle(p9)
     check("the reached chips roll out of the summary chip", p9.locator("#books .cover-chip.ok:not(.summary)").count() >= 3 and p9.get_attribute('#books [data-focus="cover-summary"]', "aria-expanded") == "true")
-    p9.evaluate("""() => { window.__ghosts = new Promise(resolve => { let most = 0; const start = performance.now();
-        const tick = () => { most = Math.max(most, document.querySelectorAll('#books .chip-leaving').length); performance.now() - start < 1000 ? requestAnimationFrame(tick) : resolve(most); }; tick(); }); }""")
-    p9.click('#books [data-focus="cover-summary"]')
-    p9.wait_for_timeout(900)
-    check("closing the menu does not replay the chips fading out", p9.evaluate("window.__ghosts") == 0)
+    ghosts = scrub(p9, "document.querySelector('#books [data-focus=\"cover-summary\"]').click();", "document.querySelectorAll('#books .chip-leaving').length")
+    check("closing the menu does not replay the chips fading out", max(ghosts["values"]) == 0, ghosts["values"])
+    settle(p9)
+    p9.wait_for_function("!document.querySelector('#books .cover-chip.ok:not(.summary)')", timeout=3000)
     check("and roll back in", p9.locator("#books .cover-chip.ok:not(.summary)").count() == 0 and p9.get_attribute('#books [data-focus="cover-summary"]', "aria-expanded") == "false")
     # A chip that changes state (amber to green) fades between the looks.
     p9.click('#books [data-focus="cover-summary"]')
@@ -553,6 +840,18 @@ def part_chips(browser, base):
         return { crosses: keys.some(k => k.opacity !== undefined && k.opacity !== '1') && document.querySelectorAll('#books .chip-leaving').length >= 1, widths: keys.some(k => k.width !== undefined) }; }""")
     check("a chip that turns green crosses over from the amber one", fades["crosses"], fades)
     check("and never animates its width (that would push the other chips off their paths)", not fades["widths"], fades)
+    settle(p9)
+    return errors9
+
+
+def part_pick_none(browser, base):
+    """the warning badge's menu, and a Pick one going to None and back (Boots with the first preset, Custom)"""
+    _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p9.click('#wanted .item-grid button[data-focus="item-boots"]')
+    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.wait_for_selector("#books .entry-card")
+    settle(p9)
+    p9.click('[data-focus="mode-custom"]')
     settle(p9)
     # The warning badge's menu can switch to Automatic.
     p9.click('#books button[aria-label^="Remove entry 2"]')
@@ -588,26 +887,33 @@ def part_section1_motion(browser, base):
     settle(p9)
     key = p9.locator("#wanted .ench-group.exclusive").first.get_attribute("data-group")
     # Section 1 changes ease to a stop: the last change in #wanted's height, frame to frame, is small (a jump at the end is a snap).
-    def last_step(act):
-        p9.evaluate("""() => { window.__j = new Promise(resolve => {
-            const el = document.querySelector('#wanted'); let last = el.getBoundingClientRect().height, final = 0; const start = performance.now();
-            const tick = () => { const now = el.getBoundingClientRect().height; if (Math.abs(now - last) > 0.05) final = Math.abs(now - last); last = now; performance.now() - start < 900 ? requestAnimationFrame(tick) : resolve(final); };
-            tick();
-        }); }""")
-        act()
-        return p9.evaluate("window.__j")
+    def last_step(action):
+        """the size of the last change in #wanted's height as its animations are scrubbed: a jump at the end is a snap"""
+        heights = scrub(p9, action, "document.querySelector('#wanted').getBoundingClientRect().height", 40)["values"]
+        changes = [abs(b - a) for a, b in zip(heights, heights[1:]) if abs(b - a) > 0.05]
+        return changes[-1] if changes else 0
     p9.click("#wanted .preset >> text=Plain")
     settle(p9)
-    jump = last_step(lambda: p9.locator('[data-focus="bar-feather_falling"] .level-seg').nth(3).click())
+    jump = last_step("document.querySelector('[data-focus=\"bar-feather_falling\"] .level-seg').dispatchEvent(new KeyboardEvent('keydown', { key: '4', bubbles: true, cancelable: true }));")  # (the bar takes digits; its pointer drag is not a click)
     check("adding an enchantment does not jump in height", jump < 4, jump)
     settle(p9)
-    jump = last_step(lambda: p9.click('[data-focus="clear-feather_falling"]'))
+    jump = last_step("document.querySelector('[data-focus=\"clear-feather_falling\"]').click();")
     check("removing an enchantment does not jump in height", jump < 4, jump)
     settle(p9)
     p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     settle(p9)
-    jump = last_step(lambda: p9.click('#wanted [data-focus="switch-%s-none"]' % key))
+    jump = last_step("document.querySelector('#wanted [data-focus=\"switch-%s-none\"]').click();" % key)
     check("picking None in a group does not jump in height", jump < 4, jump)
+    return errors9
+
+
+def part_sections_motion(browser, base):
+    """sections sliding shut and open, glints keeping in step (split from part_section1_motion so the two run side by side)"""
+    _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
+    p9.click('#wanted .item-grid button[data-focus="item-boots"]')
+    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.wait_for_selector("#books .entry-card")
+    settle(p9)
     # A section slides shut and open, and leaves nothing fixed behind.
     for section in ("wanted", "books", "order", "steps"):
         toggle = '.card.collapsible[data-section="%s"] .collapse-toggle' % section
@@ -619,7 +925,7 @@ def part_section1_motion(browser, base):
         opened = p9.evaluate("(s) => { const c = document.querySelector('.card[data-section=' + s + ']'); const b = c.querySelector(':scope > .section-body'); return !c.classList.contains('collapsed') && !b.hidden && c.style.flex === '' && b.style.flex === '' && b.style.overflow === ''; }", section)
         check("the %s section slides shut and open cleanly" % section, closed and opened, (closed, opened))
     # The glints share the page's clock: a redraw does not start a sheen over.
-    phase = lambda: p9.evaluate("[...document.getAnimations()].filter(a => a.animationName === 'glint' || a.animationName === 'row-glint').map(a => a.startTime)")
+    phase = lambda: p9.evaluate("[...document.getAnimations()].filter(a => (a.animationName === 'glint' || a.animationName === 'row-glint') && a.playState !== 'paused').map(a => a.startTime)")
     check("every glint starts at the timeline's zero", len(phase()) > 0 and set(phase()) == {0}, phase())
     p9.click('#wanted .level-bar:visible .level-seg >> nth=0')
     settle(p9)
@@ -669,11 +975,11 @@ def part_ranking(browser, base):
     p10.click("#results .anvil-step.current .step-words summary")
     p10.locator("#results .step-progress-cell").nth(4).click()
     settle(p10)
-    check("a progress segment jumps to its step", p10.evaluate("document.activeElement.dataset.stepCard") == "5", p10.evaluate("document.activeElement.dataset.stepCard"))
+    check("a progress segment jumps to its step", p10.evaluate("document.activeElement.dataset.step") == "5", p10.evaluate("document.activeElement.dataset.step"))
     p10.keyboard.press("ArrowDown")
-    check("Down moves to the next step", p10.evaluate("document.activeElement.dataset.stepCard") == "6")
+    check("Down moves to the next step", p10.evaluate("document.activeElement.dataset.step") == "6")
     p10.keyboard.press("ArrowUp")
-    check("Up moves back", p10.evaluate("document.activeElement.dataset.stepCard") == "5")
+    check("Up moves back", p10.evaluate("document.activeElement.dataset.step") == "5")
     p10.click(".copy-menu summary")
     check("Copy is a menu of steps and checklist", p10.locator(".copy-panel .copy-steps").is_visible() and p10.locator(".copy-panel .copy-checklist").is_visible())
     p10.keyboard.press("Escape")
@@ -689,13 +995,13 @@ def part_ranking(browser, base):
     settle(p10)
     steps_n = p10.locator("#results .anvil-step").count()
     check("the Slots view's steps have a fold arrow and all start open", p10.locator("#results .step-fold").count() == steps_n and p10.locator("#results .anvil-step.folded").count() == 0 and p10.locator("#results .fold-buttons").count() == 1)
-    p10.click("#results >> text=Collapse all")
+    fold_all(p10, "Collapse steps")
     settle(p10)
     check("Collapse all folds every Slots step to its head (the row and caption go, the one-line summary shows)", p10.locator("#results .anvil-step.folded").count() == steps_n and p10.locator("#results .anvil-row:visible").count() == 0 and p10.locator("#results .step-caption:visible").count() == 0 and "+" in p10.locator("#results .anvil-step.folded .step-summary").first.inner_text())
     p10.locator("#results .anvil-step").nth(1).locator(".step-head").click(position={"x": 200, "y": 8})
     settle(p10)
     check("a click on a folded Slots step's head opens it", p10.locator("#results .anvil-step.folded").count() == steps_n - 1 and p10.locator("#results .anvil-row:visible").count() == 1)
-    p10.click("#results >> text=Expand all")
+    fold_all(p10, "Expand steps")
     settle(p10)
     check("Expand all opens every Slots step", p10.locator("#results .anvil-step.folded").count() == 0 and p10.locator("#results .anvil-row:visible").count() == steps_n)
     p10.click('#results [data-view="steps"]')
@@ -709,11 +1015,22 @@ def part_ranking(browser, base):
     settle(p10)
     vanilla = p10.evaluate("() => ({ limit: document.querySelector('#limit-panel .limit-slider').value, on: document.querySelector('#limit-panel .rule-switch').getAttribute('aria-checked'), dot: document.querySelector('#options-menu summary').classList.contains('changed'), disabled: document.querySelector('#limit-panel [data-focus=\"rules-reset\"]').disabled })")
     check("Reset to vanilla brings back limit 39 with conflicts off", vanilla == {"limit": "39", "on": "false", "dot": False, "disabled": True}, vanilla)
+    return errors10
+
+
+def part_settings_motion(browser, base):
+    """Settings: its sections, Show animations and Show glints (motion on, since the switches are what is tested)"""
+    _, p10, errors10 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
+    p10.click('#wanted .item-grid button[data-focus="item-boots"]')
+    p10.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p10.wait_for_selector("#results .anvil-step", timeout=8000)
+    settle(p10)
+    p10.click("#options-menu summary")
     # Settings: the game rules are a subsection beside a Display one, and "Show animations" off stops every animation.
     titles = p10.eval_on_selector_all("#limit-panel .settings-section-title", "e => e.map(x => x.textContent.trim())")
     check("the menu is Settings, with Game rules and Display as subsections", titles == ["Game rules", "Display"] and p10.inner_text("#options-menu summary").strip() == "Settings", titles)
-    check("animations are shown to begin with", p10.get_attribute("html", "data-motion") is None and p10.get_attribute('#limit-panel [data-focus="motion-off"]', "aria-checked") == "true")
-    p10.click('#limit-panel [data-focus="motion-off"]')
+    check("animations are shown to begin with", p10.get_attribute("html", "data-motion") is None and p10.get_attribute('#limit-panel [data-focus="motion-on"]', "aria-checked") == "true")
+    p10.click('#limit-panel [data-focus="motion-on"]')
     kept = p10.evaluate("() => document.getAnimations().map(a => a.animationName || a.constructor.name)")
     check("Show animations off leaves the glints running (they have their own switch)", kept and all("glint" in n for n in kept), kept)
     p10.click('#limit-panel [data-focus="glints"]')
@@ -724,7 +1041,7 @@ def part_ranking(browser, base):
     check("with Show animations off, a view switch animates nothing (no cross-fade copy, no animation running, not even the glints)", leftover == ["off", 0, 1], leftover)
     p10.click('#results [data-view="steps"]')
     p10.click("#options-menu summary")
-    p10.click('#limit-panel [data-focus="motion-off"]')
+    p10.click('#limit-panel [data-focus="motion-on"]')
     p10.click('#limit-panel [data-focus="glints"]')
     check("and turning it off brings them back", p10.get_attribute("html", "data-motion") is None and p10.evaluate("localStorage.getItem('enchantment-calculator-no-motion')") == "false")
     p10.keyboard.press("Escape")
@@ -736,7 +1053,7 @@ def part_elytra(browser, base):
     # An item whose enchantments never conflict (Elytra) has no conflict graph, and no stray text where it would be.
     _, p13, errors13 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
     p13.wait_for_selector("#wanted .item-grid")
-    p13.click("#wanted .item-grid >> text=Elytra")
+    p13.click('#wanted .item-button:has-text("Elytra")')
     p13.wait_for_selector("#wanted .wanted-preview")
     check("an item with no conflicts has no conflict graph and no stray text", p13.locator("#wanted .graph-box").count() == 0 and "null" not in p13.inner_text("#wanted"), p13.inner_text("#wanted")[:200])
     p13.click("#books >> text=Custom")
@@ -765,7 +1082,7 @@ def part_fancy(browser, base):
     p11.on("pageerror", lambda e: errors11.append(str(e)))
     p11.goto(base)
     p11.wait_for_selector("#wanted .item-grid")
-    p11.click("#wanted .item-grid >> text=Sword")
+    p11.click('#wanted .item-button:has-text("Sword")')
     p11.wait_for_selector("#wanted .wanted-preview")
     vanilla_rows = p11.locator("#wanted .ench-row").count()
     p11.click("#options-menu summary")
@@ -797,6 +1114,8 @@ def part_fancy(browser, base):
     settle(p11)
     check("clearing the search brings back the whole list", p11.locator("#wanted .ench-row").count() >= vanilla_rows)
     p11.keyboard.press("Escape")
+    if not p11.evaluate("document.querySelector('#wanted .mod-section').open"):  # (whether the box stays open after a search is not what this checks)
+        p11.click("#wanted .mod-section > summary")
     p11.click('#wanted .ench-row[data-ns="spellbound:c"] .level-seg[data-level="2"]')
     p11.click("#wanted .group-switch >> text=Sharpness")
     p11.wait_for_selector("#results .anvil-step")
@@ -821,6 +1140,8 @@ def part_fancy(browser, base):
     p12.click('#limit-panel [data-focus="edition-bedrock"]')
     settle(p12)
     check("on Bedrock the mod is off and its switch disabled", p12.is_disabled('#limit-panel [data-focus="mod-spellbound"]') and p12.locator("#wanted .mod-section").count() == 0)
+    check("on Bedrock a Java mod is not a changed rule", p12.is_disabled('#limit-panel [data-focus="rules-reset"]') and "changed" not in p12.get_attribute("#options-menu summary", "class")
+          and "Spellbound" not in p12.get_attribute("#options-menu summary", "title"))
     p12.click('#limit-panel [data-focus="edition-java"]')
     p12.click('#limit-panel [data-focus="rules-reset"]')
     settle(p12)
@@ -834,7 +1155,7 @@ def part_two_mods(browser, base):
     """both real mods together: the Mods row, a section each, the presets, a link (one end-to-end check of the real data)"""
     _, p14, errors14 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
     p14.wait_for_selector("#wanted .item-grid")
-    p14.click("#wanted .item-grid >> text=Sword")
+    p14.click('#wanted .item-button:has-text("Sword")')
     p14.wait_for_selector("#wanted .wanted-preview")
     preset_names = lambda: p14.eval_on_selector_all("#wanted .preset-chips button, #wanted .presets button, #wanted .chip", "e => e.map(x => x.textContent.trim())")
     names_off = preset_names()
@@ -865,11 +1186,9 @@ def part_level_rows(browser, base):
     p16.click("#wanted .group-switch >> text=Sharpness")
     settle(p16)
     check("a Pick one with a ten-level pick replaces the other (same category)", p16.locator("#wanted .ench-row.chosen").count() == 1)
-    p16.evaluate("""() => { window.__h = []; const t0 = performance.now(); const tick = () => { const bar = document.querySelector('#wanted .ench-group.exclusive .ench-row .level-bar'); if (bar) window.__h.push(Math.round(bar.getBoundingClientRect().height)); performance.now() - t0 < 900 && requestAnimationFrame(tick); }; tick(); }""")
-    p16.click("#wanted .group-switch >> text=Mod D")
-    p16.wait_for_timeout(900)
-    heights = p16.evaluate("window.__h")
-    check("a bar gaining a second row grows smoothly", 28 <= heights[0] < 40 and heights[-1] == 56 and any(40 <= x <= 52 for x in heights), heights[:12])
+    bar_height = "Math.round(document.querySelector('#wanted .ench-group.exclusive .ench-row .level-bar').getBoundingClientRect().height)"
+    heights = scrub(p16, "[...document.querySelectorAll('#wanted .group-switch button')].find(b => b.textContent.includes('Mod D')).click();", bar_height)["values"]
+    check("a bar gaining a second row grows smoothly", 28 <= heights[0] < 40 and heights[-1] == 56 and any(40 <= x <= 52 for x in heights), heights)
     dull = p16.locator('#wanted .ench-row[data-ns="spellbound:d"] .level-bar')
     box = dull.bounding_box()
     check("a level bar past V wraps onto a second row of five (to X)", p16.locator('#wanted .ench-row[data-ns="spellbound:d"] .level-seg').count() == 10 and box["height"] > 50 and box["width"] < 160, box)
@@ -877,12 +1196,17 @@ def part_level_rows(browser, base):
     settle(p16)
     check("a level in the second row can be chosen", p16.locator('#wanted .ench-row[data-ns="spellbound:d"] .level-bar').get_attribute("aria-valuetext") == "Mod D VIII")
     # And back: the ten-level bar's extra row leaves with the height, not after it (one animation, not two).
-    p16.evaluate("""() => { window.__g = []; const t0 = performance.now(); const tick = () => { const bar = document.querySelector('#wanted .ench-group.exclusive .ench-row .level-bar'); if (bar) window.__g.push([Math.round(bar.getBoundingClientRect().height), bar.querySelectorAll('.level-seg').length]); performance.now() - t0 < 900 && requestAnimationFrame(tick); }; tick(); }""")
-    p16.click("#wanted .group-switch >> text=Sharpness")
-    p16.wait_for_timeout(900)
-    frames = p16.evaluate("window.__g")
-    settled = next(i for i, f in enumerate(frames) if f[0] == 28)
-    check("losing a row: the extra levels are gone by the time the height has settled", all(f[1] == 5 for f in frames[settled + 2:]), frames[settled - 1:settled + 3])
+    # One animation, not two: the lost segments' copies roll away over the same time as the bar's height shrinks, and they are gone once it has.
+    result = scrub(p16, """document.querySelectorAll('#wanted .group-switch button').forEach(b => { if (b.textContent.includes('Sharpness')) b.click(); });
+        await new Promise(done => requestAnimationFrame(done));
+        const timing = a => a.effect.getComputedTiming().endTime;
+        const bar = [...document.getAnimations()].filter(a => a.effect.target && a.effect.target.classList.contains('level-bar') && a.effect.getKeyframes().some(k => k.height));
+        const lost = [...document.getAnimations()].filter(a => a.effect.target && a.effect.target.classList.contains('level-seg') && a.effect.target.style.position === 'absolute');
+        return { bar: bar.map(timing), lost: lost.map(timing) };""",
+                "[Math.round(document.querySelector('#wanted .ench-group.exclusive .ench-row .level-bar').getBoundingClientRect().height), document.querySelectorAll('#wanted .ench-group.exclusive .ench-row .level-bar .level-seg').length]", 30)
+    timing = result["acted"]
+    check("losing a row: the extra levels roll away over the same time as the height shrinks, and are gone after",
+          len(timing["bar"]) == 1 and len(timing["lost"]) >= 5 and max(timing["lost"]) <= timing["bar"][0] + 1 and result["values"][0][0] == 56 and result["after"] == [28, 5], (timing, result["values"][0], result["after"]))
     context.close()
     return errors16
 
@@ -910,7 +1234,7 @@ def part_mod_off(browser, base):
 def part_cost_width(browser, base):
     """the tooltip is wide enough for its cost line when the enchantment's name is shorter (vanilla Lure on a fishing rod)"""
     _, p19, errors19 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
-    p19.click("#wanted .item-grid >> text=Fishing Rod")
+    p19.click('#wanted .item-button:has-text("Fishing Rod")')
     p19.click('#wanted .ench-row[data-ns="lure"] .level-seg[data-level="1"]')
     p19.wait_for_selector("#results .anvil-step")
     p19.wait_for_function("document.querySelector('#wanted .cost-line:not(.idle) .cost-line-text') && document.querySelector('#wanted .cost-line-text').textContent.includes('Levels')")
@@ -1016,7 +1340,7 @@ def mocked_mod_page(browser, base, edges=None, item="sword", open_section=True, 
     page.on("pageerror", lambda e: errors.append(str(e)))
     page.goto(base)
     page.wait_for_selector("#wanted .item-grid")
-    page.click("#wanted .item-grid >> text=" + item.replace("_", " ").title())
+    page.click('#wanted .item-button:has-text("' + item.replace("_", " ").title() + '")')
     page.click("#options-menu summary")
     page.click('#limit-panel [data-focus="mod-spellbound"]')
     page.wait_for_selector('#limit-panel [data-focus="mod-spellbound"][aria-checked="true"]')
@@ -1037,6 +1361,11 @@ def part_plain_bracket(browser, base):
     before = p.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count()
     toggle.click()
     check("a conflict bracket folds from its label, hiding rows that are not chosen", p.locator("#wanted .ench-group.folded").count() == 1 and p.locator("#wanted .ench-group.folded .ench-row:visible").count() < before)
+    settle(p)
+    above = p.evaluate("""() => { const bars = [...document.querySelectorAll('#wanted .level-bar')]; const i = bars.findIndex(b => !b.checkVisibility());
+        if (i < 1) return false; bars[i - 1].focus(); return true; }""")
+    p.keyboard.press("ArrowDown")
+    check("Down skips the level bars of a folded group", above and p.evaluate("document.activeElement.classList.contains('level-bar') && document.activeElement.checkVisibility()"))
     toggle.click()
     check("and unfolds again", p.locator("#wanted .ench-group.folded").count() == 0 and p.locator("#wanted .ench-group:not(.exclusive) >> nth=0 >> .ench-row:visible").count() == before)
     chip = p.locator("#wanted .ench-group:not(.exclusive) .conflict-chip").nth(1)
@@ -1077,12 +1406,14 @@ def part_several_groups(browser, base):
     check("Pick one and Pick any are labels inside the sides, and no side repeats a list of names as a title",
           [t.lower() for t in section.locator(".label-title").all_inner_texts()] == ["pick one", "pick one", "pick any"] and "One of" not in section.inner_text() and "Any of" not in section.inner_text(), section.locator(".label-title").all_inner_texts())
     headers = [h.lower() for h in p.eval_on_selector_all("#wanted .group-fold > summary", "e => e.map(x => x.textContent.trim())")]
-    check("the game's list has a Pick any (lone enchantments) and a Pick one subsection, named by type and size", len(headers) == 2 and headers[0].startswith("pick any (") and headers[1].startswith("pick one ("), headers)
+    check("the game's list has a No conflicts (lone enchantments) and a Pick one subsection, named by type and size", len(headers) == 2 and headers[0].startswith("no conflicts (") and headers[1].startswith("pick one ("), headers)
     check("a section with a single group (the mod's) shows it without a subsection or a second header", section.locator("xpath=ancestor::details[contains(@class, 'group-fold')]").count() == 0 and p.locator("#wanted .ench-group-label").count() == 0)
     first = p.locator("#wanted .group-fold > summary").nth(1)
     first.click()
+    settle(p)
     check("a group folds away from its header, and opens again", not p.evaluate("document.querySelectorAll('#wanted .group-fold')[1].open"))
     first.click()
+    settle(p)
     check("and it opens again", p.evaluate("document.querySelectorAll('#wanted .group-fold')[1].open"))
     section.locator(".switch-option", has_text="Mod P").click()
     section.locator(".switch-option", has_text="Mod R").click()
@@ -1101,11 +1432,11 @@ def part_several_groups(browser, base):
 def part_fold_all(browser, base):
     """Expand all / Collapse all, the list's order and folding, the conflict graph (vanilla boots and sword: no mod needed)"""
     _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
-    p.click("#wanted .item-grid >> text=Boots")
+    p.click('#wanted .item-button:has-text("Boots")')
     p.wait_for_selector("#wanted .ench-group.exclusive")
     heads = p.evaluate("""() => [...document.querySelectorAll('#wanted .wanted-list > .group-fold > summary')].map(el => el.textContent.trim().toLowerCase())""")
-    check("the list starts with the lone enchantments in a Pick any subsection, then the groups", heads and heads[0].startswith("pick any (") and len(heads) > 1 and not any(h.startswith("pick any") for h in heads[1:]), heads)
-    check("the Pick any subsection holds plain rows", p.locator("#wanted .wanted-list > .group-fold >> nth=0 >> .ench-row").count() == int(heads[0].split("(")[1].rstrip(")")))
+    check("the list starts with the lone enchantments in a No conflicts subsection, then the groups", heads and heads[0].startswith("no conflicts (") and len(heads) > 1 and not any(h.startswith("no conflicts") for h in heads[1:]), heads)
+    check("the No conflicts subsection holds plain rows", p.locator("#wanted .wanted-list > .group-fold >> nth=0 >> .ench-row").count() == int(heads[0].split("(")[1].rstrip(")")))
     check("the fold buttons sit to the right of the search box", p.evaluate("""() => { const input = document.querySelector('#wanted .wanted-search').getBoundingClientRect(), buttons = document.querySelector('#wanted .search-row .fold-buttons').getBoundingClientRect(); return buttons.left >= input.right - 1 && Math.abs(buttons.top - input.top) < 40; }"""))
     # The presets are the same whether or not conflicts are allowed.
     preset_row = lambda: p.eval_on_selector_all("#wanted .presets button, #wanted .preset-chips button", "e => e.map(x => x.textContent.trim())")
@@ -1122,22 +1453,30 @@ def part_fold_all(browser, base):
     p.click("#wanted .graph-box > summary")
     p.wait_for_selector(".graph-canvas")
     p.click('#wanted [data-focus="wanted-expand"]')
+    settle(p)
     open_count = lambda: p.evaluate("[...document.querySelectorAll('#wanted details')].filter(d => d.open).length")
     total = p.evaluate("document.querySelectorAll('#wanted details').length")
     check("Expand all opens every fold-away box and group", open_count() == total and total >= 4, (open_count(), total))
+    settle(p)
     p.click('#wanted [data-focus="wanted-collapse"]')
+    settle(p)
     check("Collapse all closes them all", open_count() == 0)
     p.click('#wanted [data-focus="wanted-expand"]')
+    settle(p)
     check("and Expand all opens them again", open_count() == total)
     # The list folds away from its heading, and a group from its own.
     p.click("#wanted .list-box > summary")
+    settle(p)
     check("the list folds away", not p.locator("#wanted .list-box .wanted-list").is_visible())
     p.click("#wanted .list-box > summary")
+    settle(p)
     check("and opens again", p.locator("#wanted .list-box .wanted-list").is_visible())
     first = p.locator("#wanted .group-fold > summary").nth(1)
     first.click()
+    settle(p)
     check("a group folds away from its header", not p.evaluate("document.querySelectorAll('#wanted .group-fold')[1].open"))
     first.click()
+    settle(p)
     check("and opens again", p.evaluate("document.querySelectorAll('#wanted .group-fold')[1].open"))
     # The conflict graph: a node per conflicting enchantment, a line per conflict, hover and click.
     check("the conflict graph draws a node per conflicting enchantment and a line per conflict", p.locator(".graph-node").count() >= 6 and p.locator(".graph-edge").count() >= 6)
@@ -1186,6 +1525,72 @@ def part_stray_groups(browser, base):
     return errors
 
 
+def part_links(browser, base):
+    """loading setups: a saved setup and a pasted link with a mod (the workers learn its data), a Bedrock link, corrupt storage"""
+    import base64
+    import json as json_module
+    mod = mock_mod(singles=["c"], levels={"c": 2})
+    context = mocked_context(browser, mod)
+    errors = []
+    def new_page():
+        page = context.new_page()
+        page.on("pageerror", lambda e: errors.append(str(e)))
+        return page
+    p1 = new_page()
+    p1.goto(base)
+    p1.wait_for_selector("#wanted .item-grid")
+    p1.click('#wanted .item-button:has-text("Sword")')
+    p1.click("#options-menu summary")
+    p1.click('#limit-panel [data-focus="mod-spellbound"]')
+    p1.wait_for_selector('#limit-panel [data-focus="mod-spellbound"][aria-checked="true"]')
+    p1.keyboard.press("Escape")
+    p1.click('#wanted .mod-section[data-mod="Spellbound"] > summary')
+    p1.click('#wanted .ench-row[data-ns="spellbound:c"] .level-seg[data-level="2"]')
+    p1.wait_for_selector("#results .anvil-step")
+    settle(p1)
+    link = p1.evaluate("location.hash")
+    p1.click("#saved summary")
+    p1.fill("#saved-panel input[type=text]", "Modded")
+    p1.click("#saved-panel >> text=Save")
+
+    # A link pasted into the open page loads, mod and all, and the search knows the mod's enchantments.
+    p2 = new_page()
+    p2.goto(base)
+    p2.click("#wanted .example")
+    p2.wait_for_selector("#results .anvil-step", timeout=8000)
+    settle(p2)
+    p2.evaluate("hash => { location.hash = hash; }", link)
+    p2.wait_for_selector('#wanted .ench-row.chosen[data-ns="spellbound:c"]')
+    p2.wait_for_function("document.querySelector('#results').textContent.includes('Mod C')", timeout=8000)
+    check("a link pasted into the open page loads, with its mod", link_data(p2)["i"] == "sword" and "nknown" not in p2.inner_text("#results"), p2.inner_text("#results")[:200])
+
+    # A saved setup with a mod, loaded in a page that started without it.
+    p3 = new_page()
+    p3.goto(base)
+    p3.wait_for_selector("#wanted .item-grid")
+    p3.click("#saved summary")
+    p3.click("#saved-panel .saved-load")
+    p3.wait_for_selector('#wanted .ench-row.chosen[data-ns="spellbound:c"]')
+    p3.wait_for_function("document.querySelector('#results').textContent.includes('Mod C')", timeout=8000)
+    check("a saved setup with a mod gets a result", "nknown" not in p3.inner_text("#results"), p3.inner_text("#results")[:200])
+
+    # A Bedrock link keeps what only Bedrock offers (Curse of Vanishing on a recovery compass).
+    bedrock = base64.urlsafe_b64encode(json_module.dumps({"i": "recovery_compass", "w": {"vanishing_curse": 1}, "a": 1, "b": [], "e": 1}).encode()).decode().rstrip("=")
+    p4 = new_page()
+    p4.goto(base + "#" + bedrock)
+    p4.wait_for_selector("#wanted .wanted-preview")
+    check("a Bedrock link keeps Bedrock's own enchantments", p4.locator('#wanted .ench-row.chosen[data-ns="vanishing_curse"]').count() == 1)
+
+    # Corrupt values in storage are ignored.
+    p4.evaluate("""() => { localStorage.setItem('enchantment-calculator-collapsed', '5'); localStorage.setItem('enchantment-calculator-level', '"x"');
+        localStorage.setItem('enchantment-calculator-language', '{"a": 1}'); localStorage.setItem('enchantment-calculator-checklist', '{"key": "k", "done": 5}'); }""")
+    p4.goto(base)
+    p4.wait_for_selector("#wanted .item-grid")
+    check("corrupt values in storage don't stop the page", p4.locator(".card.collapsible.collapsed").count() == 0)
+    context.close()
+    return errors
+
+
 def part_narrow_results(browser, base):
     """section 4 on a narrow window: tree lines, view cross-fade, Expand all"""
     # Section 4 on a narrow window: the full tree lists each enchantment on its own line; views cross-fade; Expand/Collapse all ease.
@@ -1201,61 +1606,329 @@ def part_narrow_results(browser, base):
     p18.click('#results [data-view="steps"]')
     p18.wait_for_selector("#results .rounds")
     settle(p18)
-    p18.evaluate("""() => { window.__copies = []; const t0 = performance.now(); const tick = () => { window.__copies.push(document.querySelectorAll('#results .results-content > .steps-scroll').length); if (performance.now() - t0 < 500) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }""")
-    p18.click('#results [data-view="slots"]')
-    p18.wait_for_timeout(700)
-    copies = p18.evaluate("window.__copies")
-    check("switching view cross-fades (a copy of the old view fades out) and leaves nothing behind", max(copies) == 2 and copies[-1] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies[:12])
+    result = scrub(p18, "document.querySelector('#results [data-view=\"slots\"]').click();", "document.querySelectorAll('#results .results-content > .steps-scroll').length")
+    copies = result["values"]
+    check("switching view cross-fades (a copy of the old view fades out) and leaves nothing behind", max(copies) == 2 and result["after"] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies)
     p18.click('#results [data-view="steps"]')
     settle(p18)
-    p18.evaluate("""() => { window.__h = []; const t0 = performance.now(); const tick = () => { window.__h.push([...document.querySelectorAll('#results .anvil-step')].map(e => Math.round(e.getBoundingClientRect().height))); if (performance.now() - t0 < 500) requestAnimationFrame(tick); }; requestAnimationFrame(tick); }""")
-    p18.click("#results >> text=Expand all")
-    p18.wait_for_timeout(700)
-    frames = p18.evaluate("window.__h")
-    first, last = frames[0], frames[-1]
+    heights = "[...document.querySelectorAll('#results .anvil-step')].map(e => Math.round(e.getBoundingClientRect().height))"
+    result = scrub(p18, "[...document.querySelectorAll('#results .fold-buttons button, #results .more-menu .copy-panel button')].find(b => b.textContent.includes('Expand steps')).click();", heights)
+    frames_seen = result["values"]
+    first, last = frames_seen[0], result["after"]
     grown = [i for i in range(len(first)) if last[i] > first[i] + 20]
-    mid = [f for f in frames if any(first[i] + 10 < f[i] < last[i] - 10 for i in grown)]
+    mid = [f for f in frames_seen if any(first[i] + 10 < f[i] < last[i] - 10 for i in grown)]
     check("Expand all eases each step open instead of jumping", len(grown) > 0 and len(mid) >= 2, (first, last))
     return errors18
 
 
-PARTS = [part_chips, part_books, part_anvil_uses, part_section1_motion, part_ranking, part_fancy, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
+def pick_boots(page):
+    """Boots with the first preset, until the steps show."""
+    page.click('#wanted .item-grid button[data-focus="item-boots"]')
+    page.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    page.wait_for_selector("#results .anvil-step", timeout=8000)
+    settle(page)
 
 
-def run_part(part, base):
-    """One part in its own Chromium (and Playwright driver), so parts can run side by side."""
-    try:
-        with sync_playwright() as p:
-            browser = p.chromium.launch()
-            # Every context a part opens gives up on a missing element after 6s, not Playwright's 30s (explicit timeouts still win).
-            new_context = browser.new_context
-            def quick_context(*args, **options):
-                context = new_context(*args, **options)
-                context.set_default_timeout(DEFAULT_TIMEOUT_MS)
-                return context
-            browser.new_context = quick_context
-            new_page = browser.new_page
-            def quick_page(*args, **options):
-                page = new_page(*args, **options)
-                page.set_default_timeout(DEFAULT_TIMEOUT_MS)
-                return page
-            browser.new_page = quick_page
+def part_layout(browser, base):
+    """no sideways scroll on the first screen with a mouse, tooltips kept in the window, phone steps, the More menu, the settings panel"""
+    errors = []
+    # The first screen (the item grid) with a mouse: no sideways scroll, and a tooltip near the edge stays inside the window.
+    for width in (320, 390, 768):
+        _, page, errs = open_page(browser, base, viewport={"width": width, "height": 800})
+        errors += errs
+        over = page.evaluate("document.documentElement.scrollWidth - document.documentElement.clientWidth")
+        check("the first screen has no sideways scroll at %dpx" % width, over <= 0, over)
+        page.locator("#wanted .item-button").last.hover()
+        box = page.evaluate("""() => { const b = document.querySelector('#wanted .item-button:hover .item-tip'); const r = b && b.getBoundingClientRect(); return r && [Math.round(r.left), Math.round(r.right), document.documentElement.clientWidth]; }""")
+        check("a tooltip at the grid's edge stays inside the window at %dpx" % width, box is not None and box[0] >= 0 and box[1] <= box[2], box)
+        check("a hidden tooltip takes no room", page.evaluate("getComputedStyle(document.querySelector('#wanted .item-button:not(:hover) .item-tip')).display") == "none")
+    # A phone: Left, Right and Result one under another, full-width tooltips, no word broken.
+    _, ph, errs = open_page(browser, base, viewport={"width": 320, "height": 800})
+    errors += errs
+    pick_boots(ph)
+    cells = ph.evaluate("""() => { const step = document.querySelector('#results .anvil-step.current'); return [...step.querySelectorAll('.anvil-cell')].map(c => { const r = c.getBoundingClientRect(), t = c.querySelector('.mc-tooltip').getBoundingClientRect(); return [Math.round(r.top), Math.round(t.width)]; }); }""")
+    check("on a phone the three slots stack with wide tooltips", len(cells) == 3 and cells[0][0] < cells[1][0] < cells[2][0] and min(w for _, w in cells) >= 120, cells)
+    broken = ph.evaluate("""() => [...document.querySelectorAll('#results .anvil-step.current .mc-name')].filter(n => { const range = document.createRange(); range.selectNodeContents(n); return range.getClientRects().length > 1; }).map(n => n.textContent)""")
+    check("no name in a step is split over lines", not broken, broken)
+    menu = ph.locator("#results .more-menu")
+    check("on a phone Copy, Print and Expand all are one menu", menu.is_visible() and not ph.locator("#results .result-actions").is_visible() and not ph.locator("#results .fold-buttons").is_visible())
+    menu.locator("summary").click()
+    check("the menu holds the five actions", menu.locator(".copy-panel button").count() == 5)
+    ph.keyboard.press("Escape")
+    check("Escape closes the menu", not menu.evaluate("e => e.open"))
+    # The current-step bar never sits over the step it stands for: with the step peeking in at the bottom edge it is tucked.
+    ph.evaluate("""() => { const step = document.querySelector('#results .anvil-step.current'); window.scrollBy(0, step.getBoundingClientRect().top - (innerHeight - 40)); }""")
+    frames(ph, 3)  # (the observer that tucks the bar away reports after a paint)
+    covered = ph.evaluate("""() => { const bar = document.querySelector('#results .current-bar'); const head = document.querySelector('#results .anvil-step.current .step-head').getBoundingClientRect(); const b = getComputedStyle(bar).visibility === 'hidden' ? null : bar.getBoundingClientRect(); return Boolean(b && b.top < head.bottom && b.bottom > head.top && head.top < innerHeight); }""")
+    check("the current-step bar does not cover its step's head", not covered)
+    # A wide window keeps the buttons and has no menu.
+    _, wide, errs = open_page(browser, base, viewport={"width": 1280, "height": 900})
+    errors += errs
+    pick_boots(wide)
+    check("on a wide screen Copy, Print and Expand all stay buttons", wide.locator("#results .result-actions").is_visible() and wide.locator("#results .fold-buttons").is_visible() and not wide.locator("#results .more-menu").is_visible())
+    # The settings panel: one label column for both sections, inside a short window (a phone on its side).
+    _, land, errs = open_page(browser, base, viewport={"width": 740, "height": 360})
+    errors += errs
+    land.click("#options-menu summary")
+    land.wait_for_selector("#limit-panel", state="visible")
+    settle(land)
+    frames(land)
+    info = land.evaluate("""() => { const p = document.querySelector('#limit-panel'); return { bottom: p.getBoundingClientRect().bottom, height: innerHeight, scrolls: p.scrollHeight > p.clientHeight, xs: [...p.querySelectorAll('.option-control')].map(e => Math.round(e.getBoundingClientRect().left)) }; }""")
+    check("the settings panel fits a short window and scrolls inside", info["bottom"] <= info["height"] and info["scrolls"], info)
+    check("every control of the settings panel starts at the same x", len(set(info["xs"])) == 1, info["xs"])
+    return errors
+
+
+def part_motion_access(browser, base):
+    """reduced motion stops every transition and the glint switch says so, headings and groups have proper names, bigger hit areas"""
+    errors = []
+    context = browser.new_context(viewport={"width": 1000, "height": 900}, reduced_motion="reduce")
+    page = context.new_page()
+    page.on("pageerror", lambda error: errors.append(str(error)))
+    page.goto(base)
+    page.wait_for_selector("#wanted .item-grid")
+    pick_boots(page)
+    running = page.evaluate("""() => ['.cost-line', '.collapse-toggle', '.ench-book', '.step-progress-cell', '.current-bar', '.level-seg', '.rule-switch-track'].map(sel => { const el = document.querySelector(sel); return el ? [sel, getComputedStyle(el).transitionDuration, getComputedStyle(el, '::before').transitionDuration] : null; }).filter(Boolean).filter(([, a, b]) => a.split(', ').some(d => d !== '0s') || b.split(', ').some(d => d !== '0s'))""")
+    check("with reduced motion no transition runs", not running, running)
+    page.click("#options-menu summary")
+    glint = page.locator('[data-focus="glints"]')
+    check("with reduced motion the glint switch is off, disabled, and says why", glint.is_disabled() and glint.get_attribute("aria-checked") == "false" and "reduced motion" in page.inner_text("#limit-panel"))
+    context.close()
+    # Names: a heading is its title, not the badge digit and the summaries; aria-controls only while the item menu is open.
+    _, p2, errs = open_page(browser, base, viewport={"width": 1000, "height": 900})
+    errors += errs
+    pick_boots(p2)
+    names = p2.evaluate("""() => [...document.querySelectorAll('main h2')].map(h => [h.getAttribute('aria-labelledby') && document.getElementById(h.getAttribute('aria-labelledby')).textContent, h.querySelector('.step-badge').getAttribute('aria-hidden')])""")
+    check("each section's heading is named by its title alone", len(names) == 4 and all(t and a == "true" for t, a in names), names)
+    check("the item menu button has no aria-controls while closed", p2.get_attribute(".item-menu-button", "aria-controls") is None)
+    p2.click(".item-menu-button")
+    check("and points at the menu while it is open", p2.get_attribute(".item-menu-button", "aria-controls") == "item-menu" and p2.locator("#item-menu").count() == 1)
+    p2.keyboard.press("Escape")
+    focus = p2.evaluate("""() => { const box = document.querySelector('.anvil-name'); box.querySelector('input').focus(); const s = getComputedStyle(box); return [s.outlineStyle, s.outlineWidth]; }""")
+    check("the rename box has a 2px focus outline", focus == ["solid", "2px"], focus)
+    # Sides, parts and Pick one groups: grouped and named, radios where exactly one can be taken.
+    _, p3, errs = open_page(browser, base, viewport={"width": 1000, "height": 900})
+    errors += errs
+    p3.click('#wanted .item-grid button[data-focus="item-helmet"]')
+    p3.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    p3.wait_for_selector("#wanted .wanted-list")
+    sides = p3.evaluate("""() => [...document.querySelectorAll('#wanted [role=group][aria-label^="Side "]')].map(e => e.getAttribute('aria-label'))""")
+    radios = p3.evaluate("""() => [...document.querySelectorAll('#wanted [role=radiogroup]')].every(g => g.querySelectorAll('[role=radio]').length > 0)""")
+    check("every radiogroup in section 1 holds radios", radios)
+    check("sides, when there are any, are named 'Side n of m'", all(re.match(r"Side \d+ of \d+$", n) for n in sides), sides)
+    # Touch screens: a tall hit area for the progress segments; and with a mouse still 24px.
+    _, p4, errs = open_page(browser, base, viewport={"width": 390, "height": 800}, is_mobile=True, has_touch=True)
+    errors += errs
+    pick_boots(p4)
+    cell = p4.evaluate("(() => { const r = document.querySelector('.step-progress-cell').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; })()")
+    check("on touch the progress segments are 40px tall", cell[1] >= 40, cell)
+    _, p5, errs = open_page(browser, base, viewport={"width": 1000, "height": 800})
+    errors += errs
+    pick_boots(p5)
+    cell = p5.evaluate("(() => { const r = document.querySelector('.step-progress-cell').getBoundingClientRect(); return [Math.round(r.width), Math.round(r.height)]; })()")
+    check("with a mouse the progress segments are at least 24px tall", cell[1] >= 24, cell)
+    return errors
+
+def eases(page, selector, click, prop="height"):
+    """Clicks `click` and scrubs the animations it starts, reading `selector`'s height (or `prop`): how many distinct values it passed through (more than the two ends means it eased)."""
+    result = scrub(page, "document.querySelector(%s).click();" % repr(click), "Math.round(document.querySelector(%s).getBoundingClientRect().%s * 10) / 10" % (repr(selector), prop))
+    return len(set(result["values"])), result["values"]
+
+
+def part_keys(browser, base):
+    """skip links, one tab stop per group, the groups legend and shapes, distinct fold labels, the drag chip"""
+    errors = []
+    _, p, errs = open_page(browser, base, viewport={"width": 1280, "height": 900})
+    errors += errs
+    # Skip links: the first Tab stops, visible only while focused, and move the focus into the section.
+    p.keyboard.press("Tab")
+    first = p.evaluate("(() => { const a = document.activeElement; const r = a.getBoundingClientRect(); return [a.textContent, r.top >= 0 && r.bottom > 0]; })()")
+    check("the first Tab stop is the 'Skip to Best order' link, on screen while focused", first == ["Skip to Best order", True], first)
+    p.keyboard.press("Tab")
+    check("the second is 'Skip to Anvil uses'", p.evaluate("document.activeElement.textContent") == "Skip to Anvil uses")
+    p.keyboard.press("Shift+Tab")
+    p.keyboard.press("Enter")
+    check("a skip link moves the focus into its section", p.evaluate("document.activeElement.dataset.section") == "order")
+    check("a skip link that has no focus is out of sight", p.evaluate("document.querySelector('.skip-link').getBoundingClientRect().bottom") < 0)
+    pick_helmet_max(p)
+    settle(p)
+    p.click('#wanted [data-focus="wanted-expand"]')
+    settle(p)
+    # The two fold pairs are named apart.
+    labels = [t.strip() for t in p.eval_on_selector_all("#wanted .fold-buttons .btn, #results .fold-buttons .btn", "e => e.map(x => x.textContent)")]
+    check("Section 1's buttons say groups, Section 4's say steps", labels == ["Expand groups", "Collapse groups", "Expand steps", "Collapse steps"], labels)
+    check("and their aria-labels differ", p.get_attribute('#wanted [data-focus="wanted-expand"]', "aria-label") != p.get_attribute("#results .fold-buttons button", "aria-label"))
+    # One tab stop per group, step, and progress bar.
+    stops = p.evaluate("""() => [...document.querySelectorAll('#wanted [role=radiogroup]')].map(g => [...g.querySelectorAll('[role=radio]')].filter(r => r.tabIndex === 0).length)""")
+    check("each Pick one radiogroup is one tab stop", stops and all(n == 1 for n in stops), stops)
+    check("steps are not tab stops themselves (only their tick and fold button)", p.locator("#results .anvil-step[tabindex]").count() == 0)
+    check("the progress segments are one tab stop", p.evaluate("[...document.querySelectorAll('.step-progress-cell')].filter(c => c.tabIndex === 0).length") == 1)
+    p.evaluate("document.querySelector('.step-progress-cell[tabindex=\"0\"]').focus()")
+    p.keyboard.press("ArrowRight")
+    check("Right moves along the progress segments", p.evaluate("document.activeElement.classList.contains('step-progress-cell') && document.activeElement.tabIndex") == 0)
+    p.evaluate("document.querySelector('#wanted [role=radiogroup] [role=radio][tabindex=\"0\"]').focus()")
+    before = p.evaluate("document.activeElement.dataset.focus")
+    p.keyboard.press("ArrowRight")
+    after = p.evaluate("document.activeElement.dataset.focus")
+    check("an arrow key moves between a group's radios", after and after != before, (before, after))
+    # The legend.
+    p.hover("#wanted .group-legend button")
+    bubble = p.inner_text("#wanted .group-legend .info-tip-bubble")
+    check("the groups '?' explains Pick one, a side, a part, any, the arrows and the badges", all(word in bubble for word in ("Pick one", "Pick a side", "Pick a part", "Pick any", "⇄", "Side 1")), bubble[:200])
+    # The drag chip stays off the target's title.
+    _, q, errs = open_page(browser, base, viewport={"width": 1280, "height": 900})
+    errors += errs
+    q.click('#wanted .item-grid button[data-focus="item-sword"]')
+    q.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    q.wait_for_selector("#results .anvil-step", timeout=8000)
+    q.click("#books >> text=Custom")
+    settle(q)
+    q.locator("#books .entry-card").nth(2).scroll_into_view_if_needed()
+    src = q.locator("#books .entry-card").nth(1).locator(".entry-slot").bounding_box()
+    dst = q.locator("#books .entry-card").nth(2)
+    q.mouse.move(src["x"] + 10, src["y"] + 10)
+    q.mouse.down()
+    q.mouse.move(src["x"] + 30, src["y"] + 30, steps=4)
+    clear = True
+    box = dst.bounding_box()
+    title = dst.locator(".entry-title").bounding_box()
+    for fx, fy in ((0.5, 0.15), (0.3, 0.5), (0.5, 0.5), (0.7, 0.85)):
+        q.mouse.move(box["x"] + box["width"] * fx, box["y"] + box["height"] * fy, steps=4)
+        q.wait_for_selector(".merge-ghost")
+        ghost = q.locator(".merge-ghost").bounding_box()
+        overlap = min(ghost["x"] + ghost["width"], title["x"] + title["width"]) - max(ghost["x"], title["x"]) > 0 and min(ghost["y"] + ghost["height"], title["y"] + title["height"]) - max(ghost["y"], title["y"]) > 0
+        inside = ghost["x"] >= 0 and ghost["y"] >= 0 and ghost["x"] + ghost["width"] <= 1280 and ghost["y"] + ghost["height"] <= 900
+        clear = clear and not overlap and inside
+    q.mouse.up()
+    check("the drag chip never covers the target's title and stays in the window", clear)
+    return errors
+
+
+def part_folds_motion(browser, base):
+    """shared fold easing (steps, groups, sections) and the XP orbs (motion on)"""
+    errors = []
+    _, p, errs = open_page(browser, base, viewport={"width": 1280, "height": 900})
+    errors += errs
+    pick_helmet_max(p)
+    settle(p)
+    p.click('#wanted [data-focus="wanted-expand"]')
+    settle(p)
+    # Folds ease, all with the same duration and curve as a section.
+    count, values = eases(p, '#results .anvil-step[data-step-card="3"]', '.anvil-step[data-step-card="3"] .step-fold')
+    check("a single step folding or unfolding eases its height", count >= 5, (count, values[:12]))
+    count, values = eases(p, '#results .anvil-step[data-step-card="1"]', 'input[data-step="1"]')
+    check("ticking a step eases the fold too", count >= 5, (count, values[:12]))
+    count, values = eases(p, "#wanted .group-fold", "#wanted .group-fold > summary")
+    check("a Section 1 group folding eases", count >= 5, (count, values[:12]))
+    settle(p)
+    count, values = eases(p, '[data-section="books"]', '#wanted [data-focus="wanted-collapse"]', "top")
+    check("Collapse groups slides what is below it", count >= 5, (count, values[:12]))
+    settle(p)
+    count, values = eases(p, '[data-section="books"]', '#wanted [data-focus="wanted-expand"]', "top")
+    check("and so does Expand groups", count >= 5, (count, values[:12]))
+    settle(p)
+    count_steps = p.locator("input[data-step]").count()
+    # The last tick: XP orbs pop out of the bar, only with motion on.
+    for number in range(2, count_steps):
+        p.locator(f'input[data-step="{number}"]').check()
+    settle(p)
+    p.locator(f'input[data-step="{count_steps}"]').check()
+    p.wait_for_selector(".step-progress-track .pop-orb")
+    check("the last tick pops a few orbs out of the bar", p.locator(".step-progress-track .pop-orb").count() >= 5)
+    p.wait_for_function("document.querySelectorAll('.pop-orb').length === 0", timeout=4000)
+    check("and they clear themselves away", p.locator(".pop-orb").count() == 0)
+    p.click("#results .step-reset")
+    p.click("#options-menu summary")
+    p.click('#limit-panel [data-focus="motion-on"]')
+    p.keyboard.press("Escape")
+    for number in range(1, count_steps + 1):
+        p.locator(f'input[data-step="{number}"]').check()
+    check("with animations off there are no orbs", p.locator(".pop-orb").count() == 0)
+    return errors
+
+
+PARTS = [part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
+
+
+class PartBrowser:
+    """A part's view of the worker's shared Chromium: every context it opens gets the quick default timeout, animations off
+    unless the part is in MOTION_PARTS, and is closed when the part ends (so parts never see each other's pages)."""
+
+    def __init__(self, browser, motion):
+        self.browser, self.motion, self.contexts = browser, motion, []
+
+    def new_context(self, *args, **options):
+        context = self.browser.new_context(*args, **options)
+        context.set_default_timeout(DEFAULT_TIMEOUT_MS)
+        if not self.motion:
+            context.add_init_script(NO_MOTION_SCRIPT)
+        self.contexts.append(context)
+        return context
+
+    def new_page(self, *args, **options):
+        return self.new_context(*args, **options).new_page()
+
+    def close_contexts(self):
+        for context in self.contexts:
             try:
-                return part.__name__, part(browser, base)
-            finally:
-                browser.close()
+                context.close()
+            except Exception:
+                pass
+
+
+# The parts that check animations (they keep "Show animations" on); the rest run with it off, which is faster and steadier.
+MOTION_PARTS = {part_folds_motion, part_chips, part_sections_motion, part_books_views, part_section1_motion, part_settings_motion, part_section1, part_narrow_results, part_motion_access, part_level_rows}
+
+
+def run_part(part, base, browser):
+    """One part, in a fresh set of contexts of the worker's Chromium."""
+    mine = PartBrowser(browser, part in MOTION_PARTS)
+    started = time.time()
+    try:
+        return part.__name__, part(mine, base)
     except Exception:
         check(part.__name__ + " ran to the end", False, traceback.format_exc())
         return part.__name__, []
+    finally:
+        mine.close_contexts()
+        with output_lock:
+            print("  (%s took %.1fs)" % (part.__name__, time.time() - started), flush=True)
+
+
+def worker(queue, base, results):
+    """One thread: one Playwright driver and one Chromium, for every part it takes from the queue."""
+    try:
+        with sync_playwright() as p:
+            browser = p.chromium.launch()
+            try:
+                while True:
+                    try:
+                        index, part = queue.get_nowait()
+                    except Exception:
+                        return
+                    results[index] = run_part(part, base, browser)
+            finally:
+                browser.close()
+    except Exception:
+        check("a worker ran to the end", False, traceback.format_exc())
 
 
 def main():
     server = serve()
     base = f"http://127.0.0.1:{server.server_address[1]}/"
     serial = "--serial" in sys.argv
-    with concurrent.futures.ThreadPoolExecutor(1 if serial else min(JOBS, len(PARTS))) as pool:
-        results = list(pool.map(lambda part: run_part(part, base), PARTS))
-    for name, errors in results:
+    queue = Queue()
+    only = [arg for arg in sys.argv[1:] if arg.startswith("part_")]  # `part_name ...` runs just those parts, for debugging
+    for item in enumerate([part for part in PARTS if not only or part.__name__ in only]):
+        queue.put(item)
+    results = {}
+    threads = [threading.Thread(target=worker, args=(queue, base, results)) for _ in range(1 if serial else min(JOBS, len(PARTS)))]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join()
+    for index in sorted(results):
+        name, errors = results[index]
         check(f"no page errors ({name})", not errors, errors)
     server.shutdown()
     print(f"{passed} passed" + (f", {failed} failed" if failed else ""))

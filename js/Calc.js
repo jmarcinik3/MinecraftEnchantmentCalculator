@@ -10,6 +10,7 @@ const WORKER_URL = "js/Calculator.js";
 const CALC_DELAY_MS = 250;      // wait for the user to stop clicking
 const PROGRESS_DELAY_MS = 300;  // only show the progress bar for slow runs
 let worker = null;
+let worker_failed = false; // the worker hit an error of its own: the next search starts a new one
 let request_id = 0;
 export let running = false;
 export let show_progress = false;
@@ -33,6 +34,7 @@ export function startWorker() {
     worker.onmessage = handleWorkerMessage;
     worker.onerror = event => {
         event.preventDefault();
+        worker_failed = true;
         stopRunning();
         last_result = { status: "error", error: TEXT.results.worker_failed };
         renderResults();
@@ -42,6 +44,7 @@ export function startWorker() {
 
 function restartWorker() {
     worker.terminate();
+    worker_failed = false;
     startWorker();
 }
 
@@ -97,6 +100,8 @@ function showProgress() {
 
 export function scheduleCalculation() {
     clearTimeout(calc_timer);
+    // The setup changed: a result still on its way is for the old one, so it must not be shown.
+    request_id++;
     markSearch("pending");
     calc_timer = setTimeout(runCalculation, CALC_DELAY_MS);
 }
@@ -111,6 +116,13 @@ function findBreak() {
         const data = event.data;
         if (data.request_id !== id || data.message === "progress") return;
         last_break = data.message === "optimal_searched" ? { status: "done", node: data.result } : { status: "failed" };
+        stopBreakSearch(false);
+        renderResults();
+    };
+    break_worker.onerror = event => {
+        event.preventDefault();
+        if (id !== break_id) return;
+        last_break = { status: "failed" };
         stopBreakSearch(false);
         renderResults();
     };
@@ -131,7 +143,7 @@ export function runCalculation() {
     clearTimeout(calc_timer);
     stopBreakSearch();
     // The search is one synchronous call, so a newer request has to replace the worker.
-    if (running) restartWorker();
+    if (running || worker_failed) restartWorker();
     stopRunning();
 
     const entries = logic.buildEntries(state);

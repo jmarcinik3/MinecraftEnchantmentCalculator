@@ -2,7 +2,7 @@
 import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, MOD_IDS, clampStepLimit, cleanName } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, mod_data, state } from "./Store.js";
-import { $, glintsOn, h, motionIgnored, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
+import { $, glintsOn, h, holdRepeat, segmented, motionIgnored, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
 import { loadChecklist, orderKey, renderResults } from "./Results.js";
 import { last_result, scheduleCalculation } from "./Calc.js";
 import { saveToUrl } from "./Link.js";
@@ -14,7 +14,7 @@ import { applyMods, commit, setAllowIncompatible, setEdition, setMod, setupMenuC
 const LEVEL_STORAGE_KEY = "enchantment-calculator-level";
 const LEVEL_ON_STORAGE_KEY = "enchantment-calculator-level-on";
 const MAX_PLAYER_LEVEL = 24791; // the highest level in either edition
-let player_level = readStorage(LEVEL_STORAGE_KEY, null); // "Your level", or null when blank
+let player_level = cleanLevel(readStorage(LEVEL_STORAGE_KEY, null)); // "Your level", or null when blank
 // Whether the steps follow "Your level". Off keeps the number for when it is turned on again.
 let level_on = readStorage(LEVEL_ON_STORAGE_KEY, player_level != null) === true;
 // The step limit in effect, or Infinity when it is turned off.
@@ -26,12 +26,10 @@ export function stepLimit() {
 const MOD_LABELS = { fancy_enchantments: "Fancy Enchantments", spellbound: "Spellbound" };
 
 const ENCHANTING_TABLE_LEVEL = 30; // the enchanting table's top offer
-const HOLD_DELAY_MS = 400;          // holding − / +: wait this long, then repeat
-const HOLD_REPEAT_MS = 70;
 
 // Under the tiles, one grid so the labels share a column: Rename and Your level (tracking it shows
 // the number, what the order needs and how far it falls short). The game rules (the level limit and
-// Allow conflicts) are in the Game rules menu in the page header.
+// Allow conflicts) are in the Settings menu in the page header.
 export function renderRanking() {
     const box = $("#ranking");
     const panel = $("#limit-panel");
@@ -58,7 +56,7 @@ export function renderRanking() {
         h("section", { class: "settings-section" },
             h("div", { class: "settings-section-head" }, h("div", { class: "settings-section-title" }, TEXT.ranking.display)),
             h("div", { class: "options" },
-                optionRow([TEXT.ranking.no_motion, helpTip("motion-help", TEXT.ranking.no_motion_help_label, TEXT.ranking.no_motion_help)], null, motionSwitch()),
+                optionRow([TEXT.ranking.show_motion, helpTip("motion-help", TEXT.ranking.show_motion_help_label, TEXT.ranking.show_motion_help)], null, motionSwitch()),
                 optionRow([TEXT.ranking.glints, helpTip("glint-help", TEXT.ranking.glints_help_label, TEXT.ranking.glints_help)], null, glintSwitch())))
     );
     const summary = TEXT.ranking.settings + ": " + optionsSummary();
@@ -83,16 +81,21 @@ export function renderRanking() {
     updateLevelMeter();
 }
 
+// The mods in effect: they are Java only, so in Bedrock the ones chosen are kept for Java but count for nothing.
+function modsOn() {
+    return state.edition === "java" ? state.mods : [];
+}
+
 // The game's own rules: the level limit 39, no conflicting enchantments together and no mods.
 function rulesAreVanilla() {
-    return !state.no_step_limit && state.max_step === MAX_STEP_LEVELS && !state.allow_incompatible && !state.mods.length;
+    return !state.no_step_limit && state.max_step === MAX_STEP_LEVELS && !state.allow_incompatible && !modsOn().length;
 }
 
 // Back to the game's own rules, in one step (the menu stays open).
 function resetRules() {
     state.max_step = MAX_STEP_LEVELS;
     state.no_step_limit = false;
-    if (state.mods.length) {
+    if (modsOn().length) {
         state.mods = [];
         applyMods();
     }
@@ -107,7 +110,7 @@ function optionsSummary() {
     const limit = state.no_step_limit ? TEXT.ranking.options_no_limit : TEXT.ranking.options_limit({ limit: state.max_step });
     const parts = [limit];
     if (state.allow_incompatible) parts.push(TEXT.ranking.options_conflicts);
-    for (const id of state.mods) if (mod_data[id]) parts.push(mod_data[id].label);
+    for (const id of modsOn()) if (mod_data[id]) parts.push(mod_data[id].label);
     return TEXT.ranking.options + ": " + parts.join(" · ");
 }
 
@@ -121,36 +124,36 @@ function helpTip(id, label, text) {
 
 // Java or Bedrock: their anvil rules differ. Not a rule "Reset to vanilla" changes (both are the game).
 function editionControl() {
-    return h("div", { class: "segmented edition-switch", role: "group", "aria-label": TEXT.page.edition_label },
-        EDITIONS.map(edition => h("button", {
-            type: "button", class: state.edition === edition ? "selected" : "", "aria-pressed": String(state.edition === edition),
-            "data-focus": "edition-" + edition, title: TEXT.page.editions[edition].help, onclick: () => setEdition(edition)
-        }, TEXT.page.editions[edition].label)));
+    return segmented("edition-switch", TEXT.page.edition_label, EDITIONS.map(edition => ({
+        selected: state.edition === edition, content: TEXT.page.editions[edition].label, onclick: () => setEdition(edition),
+        attrs: { "data-focus": "edition-" + edition, title: TEXT.page.editions[edition].help }
+    })));
 }
+
+// An on/off switch button: the track and thumb, then `text`. `attrs` are more attributes (class, data-focus, title, aria-label, disabled...).
+function ruleSwitch(on, text, onclick, attrs = {}) {
+    return h("button", {
+        type: "button", role: "switch", "aria-checked": String(on), onclick, ...attrs,
+        class: "rule-switch" + (attrs.class ? " " + attrs.class : "") + (on ? " on" : "")
+    }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })), h("span", {}, text));
+}
+const onOff = on => (on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off);
 
 // Show animations: an on/off switch (on by default), kept in this browser (Dom.js). Off, nothing on the page moves, fades or slides (the glints have their own switch).
 function motionSwitch() {
     const on = !motionIgnored();
     return h("div", { class: "rule-control" },
-        h("button", {
-            type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
-            "data-focus": "motion-off", "aria-label": TEXT.ranking.no_motion,
-            onclick: () => { setMotionIgnored(on); renderRanking(); }
-        }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
-            h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
-    );
+        ruleSwitch(on, onOff(on), () => { setMotionIgnored(on); renderRanking(); }, { "data-focus": "motion-on", "aria-label": TEXT.ranking.show_motion }));
 }
 
 // Glints: an on/off switch, kept in this browser (Dom.js). Off, the slots' and chosen rows' sheen stops (slots keep a still band).
+// With the device asking for reduced motion the glints are stopped whatever this says, so the switch shows Off, disabled, with a note.
 function glintSwitch() {
-    const on = glintsOn();
+    const reduced = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const on = glintsOn() && !reduced;
     return h("div", { class: "rule-control" },
-        h("button", {
-            type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
-            "data-focus": "glints", "aria-label": TEXT.ranking.glints,
-            onclick: () => { setGlintsOn(!on); renderRanking(); }
-        }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
-            h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
+        ruleSwitch(on, onOff(on), () => { setGlintsOn(!on); renderRanking(); }, { disabled: reduced, "data-focus": "glints", "aria-label": TEXT.ranking.glints }),
+        reduced ? h("span", { class: "mod-note" }, TEXT.ranking.glints_reduced) : null
     );
 }
 
@@ -158,13 +161,7 @@ function glintSwitch() {
 function conflictsSwitch() {
     const on = state.allow_incompatible;
     return h("div", { class: "rule-control" },
-        h("button", {
-            type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on),
-            "data-focus": "allow-conflicts", "aria-label": TEXT.ranking.allow_conflicts,
-            onclick: () => setAllowIncompatible(!on)
-        }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
-            h("span", {}, on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off))
-    );
+        ruleSwitch(on, onOff(on), () => setAllowIncompatible(!on), { "data-focus": "allow-conflicts", "aria-label": TEXT.ranking.allow_conflicts }));
 }
 
 // Mods: a switch for each mod whose enchantments can be added, with where its numbers come from. Mods are
@@ -175,11 +172,7 @@ function modsControl() {
         const on = java && state.mods.includes(id) && Boolean(mod_data[id]);
         const mod = mod_data[id];
         return h("div", { class: "mod-row" },
-            h("button", {
-                type: "button", class: "rule-switch" + (on ? " on" : ""), role: "switch", "aria-checked": String(on), disabled: !java,
-                "data-focus": "mod-" + id, "aria-label": mod ? mod.label : id, onclick: () => setMod(id, !on)
-            }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
-                h("span", {}, mod ? mod.label : MOD_LABELS[id])),
+            ruleSwitch(on, mod ? mod.label : MOD_LABELS[id], () => setMod(id, !on), { disabled: !java, "data-focus": "mod-" + id, "aria-label": mod ? mod.label : id }),
             java ? (on && mod ? h("span", { class: "mod-note" }, mod.note) : null) : h("span", { class: "mod-note" }, TEXT.ranking.mods_java_only));
     }));
 }
@@ -196,8 +189,13 @@ export function setupOptionsMenu() {
         if (!menu.open) return;
         const button = menu.querySelector("summary").getBoundingClientRect();
         const width = panel.offsetWidth;
-        panel.style.top = button.bottom + 6 + "px";
-        panel.style.left = Math.max(8, Math.min(button.right - width, innerWidth - width - 8)) + "px";
+        const room = document.documentElement.clientWidth;
+        const top = button.bottom + 6;
+        panel.style.top = top + "px";
+        // Even margins (16px) on a phone, where the panel fills the width; else under the button's right edge.
+        panel.style.left = Math.max(16, Math.min(button.right - width, room - width - 16)) + "px";
+        // Never past the bottom of the window (a phone on its side): it scrolls inside instead.
+        panel.style.maxHeight = Math.max(120, innerHeight - top - 12) + "px";
     };
     menu.addEventListener("toggle", place);
     menu.querySelector("summary").addEventListener("click", () => requestAnimationFrame(place));
@@ -291,7 +289,7 @@ function editLimit(button) {
         type: "number", class: "limit-edit", min: 1, max: MAX_STEP_LEVELS, inputmode: "numeric",
         value: state.max_step, "data-focus": "limit-value", "aria-label": TEXT.ranking.level_limit_label,
         onkeydown: event => {
-            if (event.key === "Enter") finish(true);
+            if (event.key === "Enter") { event.preventDefault(); finish(true); } // (else the redrawn, focused number takes this Enter as a click and opens the box again)
             if (event.key === "Escape") { event.stopPropagation(); finish(false); }
         },
         onblur: () => finish(true)
@@ -316,12 +314,8 @@ function levelControl() {
     const step = (delta, sign, label) => holdButton({
         class: "xp-step", "data-focus": "level-" + (delta < 0 ? "down" : "up"), "aria-label": label
     }, sign, () => setPlayerLevel((player_level == null ? 0 : player_level) + delta, true));
-    const switcher = h("button", {
-        type: "button", class: "rule-switch level-toggle" + (level_on ? " on" : ""), role: "switch", "aria-checked": String(level_on),
-        "data-focus": "level-toggle", title: TEXT.ranking.use_level_help,
-        onclick: () => setLevelOn(!level_on)
-    }, h("span", { class: "rule-switch-track", "aria-hidden": "true" }, h("span", { class: "rule-switch-thumb" })),
-        h("span", {}, TEXT.ranking.track_level));
+    const switcher = ruleSwitch(level_on, TEXT.ranking.track_level, () => setLevelOn(!level_on),
+        { class: "level-toggle", "data-focus": "level-toggle", title: TEXT.ranking.use_level_help });
     const body = level_on ? h("div", { class: "level-body" },
         h("div", { class: "level-row" },
             h("div", { class: "xp-box" },
@@ -370,24 +364,22 @@ export function activeLevel() {
 // A button that acts once when pressed and keeps acting while held. Keyboard presses
 // (Enter, Space) act once through the click.
 function holdButton(attrs, text, act) {
-    let delay = null, repeat = null;
-    const stop = () => { clearTimeout(delay); clearInterval(repeat); };
     return h("button", {
         type: "button", ...attrs,
-        onpointerdown: event => {
-            if (event.button > 0) return;
-            act();
-            delay = setTimeout(() => { repeat = setInterval(act, HOLD_REPEAT_MS); }, HOLD_DELAY_MS);
-        },
-        onpointerup: stop, onpointerleave: stop, onpointercancel: stop,
+        onpointerdown: event => { if (event.button === 0) holdRepeat(event, act, { stop_on_leave: true }); },
         onclick: event => { if (event.detail === 0) act(); }
     }, text);
+}
+
+// A level as a whole number from 0 to the game's highest, or null (blank) for anything that isn't a number.
+function cleanLevel(value) {
+    return typeof value !== "number" || !Number.isFinite(value) ? null : Math.min(MAX_PLAYER_LEVEL, Math.max(0, Math.floor(value)));
 }
 
 // `null` clears it. `update_input`: also show the new value in the box (not while
 // typing in it, which would move the cursor).
 function setPlayerLevel(value, update_input) {
-    player_level = value == null || Number.isNaN(value) ? null : Math.min(MAX_PLAYER_LEVEL, Math.max(0, Math.floor(value)));
+    player_level = cleanLevel(value);
     writeStorage(LEVEL_STORAGE_KEY, player_level);
     if (update_input) $("#player-level").value = player_level == null ? "" : player_level;
     renderResults();

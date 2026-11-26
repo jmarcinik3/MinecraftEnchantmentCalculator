@@ -2,16 +2,34 @@
 import { roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
-import { $, h, icon, motionOk } from "./Dom.js";
+import { $, closeOnOutside, enchLine, h, icon, motionOk, nameClass, plain, roving, scrollToView, scrubber } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
-import { closeLines, closeRow, growSmoothly, inertCopy, openLines, openRow, rollLevelBar, rollLines, slideWidth } from "./Motion.js";
+import { changeLines, closeRow, easeHeight, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
 import { anvilCell } from "./Results.js";
-import { conflictGraph, markSearch } from "./Graph.js";
+import { floatBubble, infoTip } from "./Tips.js";
+import { conflictGraph, markGraphSearch } from "./Graph.js";
 import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
 // the enchantments that are new.
 let preview_shown = { item: null, enchantments: new Set() };
+// Keeps an item button's tooltip inside the window: it sits centred under the button, shifted
+// (--tip-shift) just far enough when that would pass the window's edge.
+const TIP_MARGIN = 6;
+function placeTip(button) {
+    const tip = button.querySelector(".item-tip");
+    if (!tip) return;
+    tip.style.setProperty("--tip-shift", "0px");
+    tip.style.display = "block"; // measured while shown (CSS shows it on hover or focus too)
+    const box = tip.getBoundingClientRect();
+    const width = document.documentElement.clientWidth;
+    let shift = 0;
+    if (box.left < TIP_MARGIN) shift = TIP_MARGIN - box.left;
+    else if (box.right > width - TIP_MARGIN) shift = width - TIP_MARGIN - box.right;
+    tip.style.display = "";
+    tip.style.setProperty("--tip-shift", shift + "px");
+}
+
 // Every item that can be enchanted, as a grid of buttons.
 function itemGrid() {
     return h("div", { class: "item-grid", id: "items" }, logic.enchantableItems().map(item => h("button", {
@@ -19,20 +37,22 @@ function itemGrid() {
         class: "item-button" + (state.item === item ? " selected" : ""),
         "aria-pressed": String(state.item === item),
         "data-focus": "item-" + item,
-        onclick: () => selectItem(item)
+        onclick: () => selectItem(item),
+        onpointerenter: event => placeTip(event.currentTarget),
+        onfocus: event => placeTip(event.currentTarget)
     },
         h("span", { class: "mc-slot item-slot" }, icon(item)),
         logic.itemName(item),
         // The game's tooltip on hover or focus: the item and how many enchantments it takes.
         h("span", { class: "item-tip mc-tooltip", "aria-hidden": "true" },
-            h("span", { class: "mc-name rarity-common" }, logic.itemName(item)),
+            h("span", { class: nameClass("common") }, logic.itemName(item)),
             h("span", { class: "mc-ench" }, TEXT.wanted.item_takes({ count: logic.applicable(item).length }))
         )
     )));
 }
 
 // Section 1: the item grid until an item is picked; then a preview of the finished item
-// (its slot opens the item menu), the toolbar and presets, and one row per enchantment
+// (its slot opens the item menu), the presets, and one row per enchantment
 // (conflict groups together).
 export function renderWanted() {
     const box = $("#wanted");
@@ -46,13 +66,7 @@ export function renderWanted() {
         for (const group of box.querySelectorAll(".ench-group[data-group]")) old_groups.set(group.dataset.group, group.getBoundingClientRect().height);
     }
     setConflictsToggled(false);
-    // The level bar of each "Pick one" group's chosen row, to roll it if the next pick has a different number of levels.
-    const old_bars = new Map();
-    for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
-        const bar = group.querySelector(".level-bar");
-        if (bar) old_bars.set(group.dataset.group, { levels: bar.querySelectorAll(".level-seg").length, segments: [...bar.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true)) });
-    }
-    // Each "Pick one in each" section: its chosen rows (a copy, height and level bar each), selected options and border.
+    // Each "Pick a side" section: its chosen rows (a copy, height and level bar each), selected options and border.
     const old_each = captureEach(box);
     // The cost line of the preview's tooltip, so it can fold away in place if the redraw drops it.
     const old_cost_line = box.querySelector(".wanted-preview .cost-line:not(.idle)");
@@ -60,11 +74,14 @@ export function renderWanted() {
     // Each row's height, to ease a row that gets taller or shorter (a "not on your books" note appearing, say) instead of jumping.
     const old_rows = new Map([...box.querySelectorAll(".ench-row[data-ns]")].map(row => [row.dataset.ns, row.getBoundingClientRect().height]));
     // Each "Pick one" group before: which option was chosen, how its box looked, and a copy of its row,
-    // so None <-> an enchantment can animate (the row opens or closes, the options and the border fade).
+    // so None <-> an enchantment can animate (the row opens or closes, the options and the border fade), and its level bar
+    // (rolled if the next pick has a different number of levels).
     const old_picks = new Map();
     for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
         const row = group.querySelector(":scope > .ench-row");
+        const bar = group.querySelector(".level-bar");
         old_picks.set(group.dataset.group, {
+            bar: bar && { levels: bar.querySelectorAll(".level-seg").length, segments: [...bar.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true)) },
             selected: group.querySelector(".switch-option.selected")?.dataset.focus || null,
             border: getComputedStyle(group).borderColor,
             row: row ? inertCopy(row) : null,
@@ -76,14 +93,7 @@ export function renderWanted() {
     const old_tip = old_height != null ? old_preview.querySelector(".mc-tooltip") : null;
     const old_tip_rect = old_tip ? old_tip.getBoundingClientRect() : null;
     const old_width = old_tip_rect ? old_tip_rect.width : null;
-    const old_lines = old_tip ? [...old_preview.querySelectorAll(".mc-ench[data-ns]")].map(line => {
-        const rect = line.getBoundingClientRect();
-        // Where the line sat inside the tooltip's padding box (for a copy laid over it).
-        return {
-            ns: line.dataset.ns, node: line.cloneNode(true),
-            box: { left: rect.left - old_tip_rect.left - old_tip.clientLeft, top: rect.top - old_tip_rect.top - old_tip.clientTop, width: rect.width, height: rect.height }
-        };
-    }) : [];
+    const old_lines = old_tip ? snapshotLines(old_tip).lines : [];
     box.replaceChildren();
     if (!state.item) {
         box.append(
@@ -107,13 +117,7 @@ export function renderWanted() {
         // Heights: the preview box can be held taller than the tooltip by the controls beside it,
         // so the tooltip's own height is what is compared and slid in a swap.
         slideWidth(preview.querySelector(".mc-tooltip"), old_width, same_size && old_tip_rect ? old_tip_rect.height : null);
-        // A swap (same size) rolls every changed row upward together; else lines open and close.
-        if (same_size) {
-            rollLines(preview, old_lines);
-        } else {
-            openLines(preview.querySelectorAll(".mc-ench.fresh"));
-            closeLines(preview, old_lines);
-        }
+        changeLines(preview, old_lines, preview.querySelectorAll(".mc-ench.fresh"), same_size);
     }
     const new_cost_line = box.querySelector(".wanted-preview .cost-line");
     if (old_cost_copy && new_cost_line && new_cost_line.classList.contains("idle")) closeRow(new_cost_line.parentElement, old_cost_copy);
@@ -123,12 +127,12 @@ export function renderWanted() {
         if (motionOk()) group.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
     }
     for (const group of box.querySelectorAll(".ench-group.exclusive[data-group]")) {
-        const old = old_bars.get(group.dataset.group);
+        const old = old_picks.get(group.dataset.group);
         const bar = group.querySelector(".level-bar");
-        if (old && bar) rollLevelBar(bar, old.levels, old.segments);
-        animatePick(group, old_picks.get(group.dataset.group));
+        if (old && old.bar && bar) rollLevelBar(bar, old.bar.levels, old.bar.segments);
+        animatePick(group, old);
     }
-    for (const section of box.querySelectorAll(".pick-each[data-each], .pick-side[data-side]")) animateEach(section, old_each.get(section.dataset.each || section.dataset.side));
+    for (const section of box.querySelectorAll(".pick-side[data-side]")) animateEach(section, old_each.get(section.dataset.side));
     if (motionOk() && !old_groups.size) {
         for (const row of box.querySelectorAll(".ench-row[data-ns]")) {
             const was = old_rows.get(row.dataset.ns);
@@ -144,19 +148,25 @@ export function renderWanted() {
 // follow the box meanwhile, so what is in it (the level bar) moves with the box both ways: left to itself, a growing box would
 // lay its content out at the final size and the bar would jump there at once.
 function easeRowHeight(row, from) {
-    const now = row.getBoundingClientRect().height;
-    if (Math.abs(from - now) < 1) return;
-    row.style.overflow = "hidden";
-    if (getComputedStyle(row).gridTemplateRows.trim().split(/\s+/).length === 1) row.style.gridTemplateRows = "minmax(0, 1fr)";
-    const clear = () => { row.style.overflow = ""; row.style.gridTemplateRows = ""; };
-    row.animate([{ height: from + "px" }, { height: now + "px" }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
-    setTimeout(clear, 400);
+    easeHeight(row, from, {
+        duration: 250, easing: "ease-out",
+        during() {
+            if (getComputedStyle(row).gridTemplateRows.trim().split(/\s+/).length === 1) row.style.gridTemplateRows = "minmax(0, 1fr)";
+            return () => { row.style.gridTemplateRows = ""; };
+        }
+    });
 }
 
 // A "Pick one" group after a redraw: its chosen row opens or closes when the pick goes from or to
 // None, the level bar rolls (rollLevelBar) and the row eases to its new height when a switch from one
 // enchantment to another changes it (a longer description, a second row of levels), the option that was
 // chosen fades out of its highlight and the new one fades in, and the border changes color smoothly.
+// A Pick option's look as the selected one (colours), and as a quiet one (nothing): the option that becomes or stops being selected
+// fades between them.
+const QUIET_OPTION = { backgroundColor: "rgba(0, 0, 0, 0)", boxShadow: "inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 3px rgba(0, 0, 0, 0)" };
+const selectedLook = look => ({ backgroundColor: look.backgroundColor, boxShadow: look.boxShadow, color: look.color });
+const fadeOption = (button, from) => button.animate([from, {}], { duration: 260, easing: "ease-out" });
+
 function animatePick(group, old) {
     if (!old || !motionOk()) return;
     const row = group.querySelector(":scope > .ench-row");
@@ -166,15 +176,14 @@ function animatePick(group, old) {
     const now = group.querySelector(".switch-option.selected"); // None is an option too, so there always is one
     if (now && now.dataset.focus !== old.selected) {
         const look = getComputedStyle(now);
-        const quiet = { backgroundColor: "rgba(0, 0, 0, 0)", boxShadow: "inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 3px rgba(0, 0, 0, 0)" };
         const was = old.selected && group.querySelector(`[data-focus="${old.selected}"]`);
-        if (was) was.animate([{ backgroundColor: look.backgroundColor, boxShadow: look.boxShadow, color: look.color }, {}], { duration: 260, easing: "ease-out" });
-        now.animate([quiet, {}], { duration: 260, easing: "ease-out" });
+        if (was) fadeOption(was, selectedLook(look));
+        fadeOption(now, QUIET_OPTION);
     }
     if (getComputedStyle(group).borderColor !== old.border) group.animate([{ borderColor: old.border }, {}], { duration: 300, easing: "ease-out" });
 }
 
-// The element with focus inside `box' (by its data-focus), so a redraw can put the
+// The element with focus inside `box` (by its data-focus), so a redraw can put the
 // focus back where it was (the level bars and switches are rebuilt on every change).
 export function focusState(box) {
     const active = document.activeElement;
@@ -186,8 +195,6 @@ export function restoreFocus(box, key) {
     if (again) again.focus({ preventScroll: true });
 }
 
-// The rows: single enchantments, "Pick one" switches, and brackets around enchantments
-// that only partly conflict; curses last.
 // What a whole group is, by the first level of its conflict tree: "one" (every pair conflicts), "side" (the first level is a Pick a side: its
 // sides are parts that all conflict with each other, whatever is nested inside them) or "any" (the first level is parts that never conflict:
 // pick from any of them; a connected bracket never has this at the top, so it is only here for completeness).
@@ -196,10 +203,12 @@ function groupKind(tree) {
     return tree.children.every(child => child.kind === "leaf") ? "one" : "side";
 }
 
+// The rows: single enchantments, "Pick one" switches, and brackets around enchantments
+// that only partly conflict; curses last.
 function wantedList() {
     // Chosen enchantments the custom books can't reach (none in automatic mode).
     const short = new Map(logic.checkBooks(state).short.map(s => [s.ns, s]));
-    // The search box: only enchantments whose name or description has the typed text. A "Pick one", "Pick one in each" or "Pick a
+    // The search box: only enchantments whose name or description has the typed text. A "Pick one" or "Pick a
     // side" card stays whole when any of its options match, a bracket keeps just the matching rows, and a mod's section opens.
     const query = plain(wanted_query);
     const matches = searchMatcher() || (() => true);
@@ -222,7 +231,7 @@ function wantedList() {
         }
         const several = severalOf(group);
         if (several) {
-            const label = { one: TEXT.wanted.group_pick_one, side: TEXT.wanted.group_pick_side, any: TEXT.wanted.group_pick_from_any }[groupKind(several.tree)];
+            const label = { one: TEXT.wanted.group_pick_one, side: TEXT.wanted.group_pick_side, any: TEXT.wanted.group_pick_part }[groupKind(several.tree)];
             return fold(TEXT.wanted.group_titled({ label, count: members.length }), members[0], pickGroupsSection(members, several, short, label));
         }
         if (members.length === 1) return wantedRow(members[0], short.get(members[0]));
@@ -233,10 +242,10 @@ function wantedList() {
             h("button", {
                 type: "button", class: "ench-group-label group-toggle", "data-focus": "group-" + key, "aria-expanded": String(!folded),
                 onclick: event => {
-                    const folded = !folded_groups.has(key);
-                    if (folded) folded_groups.add(key); else folded_groups.delete(key);
-                    event.currentTarget.parentElement.classList.toggle("folded", folded);
-                    event.currentTarget.setAttribute("aria-expanded", String(!folded));
+                    const group = event.currentTarget.parentElement;
+                    const from = group.getBoundingClientRect().height;
+                    setBracket(group, !folded_groups.has(key));
+                    easeHeight(group, from);
                 }
             }, (state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict) + " (" + members.length + ")"),
             members.map(ns => wantedRow(ns, short.get(ns), true))
@@ -282,8 +291,8 @@ function wantedList() {
         if (!alone.length) return rest;
         const lone = alone.map(group => groupRow(group));
         if (single) return lone;
-        const title = TEXT.wanted.group_titled({ label: TEXT.wanted.group_pick_any, count: alone.length });
-        return [groupFold(title, key, h("div", { class: "pick-any-list", role: "group", "aria-label": TEXT.wanted.group_pick_any }, lone)), ...rest];
+        const title = TEXT.wanted.group_titled({ label: TEXT.wanted.group_no_conflicts, count: alone.length });
+        return [groupFold(title, key, h("div", { class: "pick-any-list", role: "group", "aria-label": TEXT.wanted.group_no_conflicts }, lone)), ...rest];
     };
     rows.push(...withPickAny(own, "pick-any"));
     if (curses.length) rows.push(h("div", { class: "divider" }, TEXT.wanted.curses), ...byKind(curses).map(groupRow));
@@ -299,7 +308,12 @@ function wantedList() {
                 if (event.target.open) mod_open.add(mod); else mod_open.delete(mod);
             }
         },
-            h("summary", {}, TEXT.wanted.mod_group({ name: mod, count })),
+            h("summary", {
+                onclick: foldClick(open => {
+                    if (wanted_query.trim()) return;
+                    if (open) mod_open.add(mod); else mod_open.delete(mod);
+                })
+            }, TEXT.wanted.mod_group({ name: mod, count })),
             withPickAny(groups, "pick-any-" + mod)));
     }
     if (query && !rows.length && !mod_boxes.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
@@ -313,13 +327,12 @@ let list_open = true;
 const listTitle = count => TEXT.wanted.mod_group({ name: TEXT.wanted.list_title, count });
 function listBox(list, count) {
     return h("details", { class: "fold-box list-box", open: list_open, ontoggle: event => { list_open = event.target.open; } },
-        h("summary", {}, listTitle(count)),
+        h("summary", { onclick: foldClick(open => { list_open = open; }) }, listTitle(count)),
         list);
 }
 
 // What is typed in section 1's search box (kept across redraws and items), and the text without case or accents.
 let wanted_query = "";
-const plain = text => text.trim().normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
 
 // The test the search applies to an enchantment (its name or description has the typed text), or null with no search.
 function searchMatcher() {
@@ -328,18 +341,58 @@ function searchMatcher() {
 }
 
 // The search box above the list. Typing redraws only the list (and marks the graph), so the box keeps its focus.
+// Folds or unfolds a plain conflict bracket (no animation: the caller eases its height).
+function setBracket(group, folded) {
+    const key = group.dataset.group;
+    if (folded) folded_groups.add(key); else folded_groups.delete(key);
+    group.classList.toggle("folded", folded);
+    group.querySelector(":scope > .group-toggle").setAttribute("aria-expanded", String(!folded));
+}
+
 // Expand all / Collapse all for section 1: every fold-away box and group subsection, and the folds of the plain conflict brackets.
+// Each box that changes eases like a section does (foldDetails, easeHeight); ones inside another that changes just follow it.
 function foldWanted(open) {
-    for (const details of document.querySelectorAll("#wanted details")) details.open = open;
-    for (const toggle of document.querySelectorAll("#wanted .ench-group > .group-toggle")) if ((toggle.getAttribute("aria-expanded") === "true") !== open) toggle.click();
+    const changing = new Set([...document.querySelectorAll("#wanted details")].filter(details => details.open !== open));
+    const outer = node => { let up = node.parentElement.closest("details"); while (up && !changing.has(up)) up = up.parentElement.closest("details"); return up; };
+    const tops = [...changing].filter(details => !outer(details));
+    const brackets = [...document.querySelectorAll("#wanted .ench-group[data-group]")].filter(group => group.classList.contains("folded") === open && group.querySelector(":scope > .group-toggle"));
+    const free = brackets.filter(group => !outer(group)).map(group => [group, group.getBoundingClientRect().height]);
+    const run = () => { for (const [group, from] of free) easeHeight(group, from); };
+    if (open) {
+        for (const details of changing) if (outer(details)) details.open = true;
+        for (const group of brackets) setBracket(group, false);
+        for (const details of tops) foldDetails(details, true);
+        run();
+    } else {
+        for (const details of tops) foldDetails(details, false, [...changing].filter(nested => nested !== details && details.contains(nested)));
+        for (const group of brackets) setBracket(group, true);
+        run();
+    }
+}
+
+// The "?" beside the fold buttons: what each kind of group means (a bubble that floats over the page, like the other tips).
+function groupLegend() {
+    const item = (term, text) => h("span", { class: "legend-item" }, h("strong", {}, term), " ", text);
+    const tip = infoTip("groups-legend", "?", TEXT.wanted.legend_label, [
+        item(TEXT.wanted.group_pick_one, TEXT.wanted.legend_one),
+        item(TEXT.wanted.group_pick_side, TEXT.wanted.legend_side),
+        item(TEXT.wanted.group_pick_part, TEXT.wanted.legend_part),
+        item(TEXT.wanted.group_pick_any, TEXT.wanted.legend_any),
+        item("⇄", TEXT.wanted.legend_stray),
+        item(TEXT.wanted.group_side_n({ n: 1 }) + ", " + TEXT.wanted.group_part_n({ n: 2 }), TEXT.wanted.legend_badges)
+    ], "group-legend");
+    tip.querySelector(".info-tip-bubble").setAttribute("role", "tooltip");
+    floatBubble(tip);
+    return tip;
 }
 
 // The search box with the fold buttons beside it (below it when the card is too narrow for both).
 function wantedSearch() {
     return h("div", { class: "search-row" }, searchInput(),
         h("span", { class: "fold-buttons" },
-            h("button", { type: "button", class: "btn small", "data-focus": "wanted-expand", onclick: () => foldWanted(true) }, TEXT.results.expand_all),
-            h("button", { type: "button", class: "btn small", "data-focus": "wanted-collapse", onclick: () => foldWanted(false) }, TEXT.results.collapse_all)));
+            h("button", { type: "button", class: "btn small", "data-focus": "wanted-expand", "aria-label": TEXT.wanted.expand_groups_label, onclick: () => foldWanted(true) }, TEXT.wanted.expand_groups),
+            h("button", { type: "button", class: "btn small", "data-focus": "wanted-collapse", "aria-label": TEXT.wanted.collapse_groups_label, onclick: () => foldWanted(false) }, TEXT.wanted.collapse_groups),
+            groupLegend()));
 }
 
 function searchInput() {
@@ -352,7 +405,7 @@ function searchInput() {
             document.querySelector("#wanted > .list-box > summary").textContent = listTitle(count);
             for (const old of document.querySelectorAll("#wanted > .mod-section")) old.remove();
             document.querySelector("#wanted > .list-box").after(...mod_boxes);
-            markSearch(searchMatcher());
+            markGraphSearch(searchMatcher());
             restoreConflicts();
         }
     });
@@ -436,8 +489,11 @@ export function setupConflictTips() {
         hideConflicts();
         for (const chip of document.querySelectorAll("#wanted .conflict-chip")) { chip.classList.remove("pinned"); chip.setAttribute("aria-pressed", "false"); }
     };
-    document.addEventListener("click", event => { if (conflict_pin && !event.target.closest(".conflict-chip")) release(); });
-    document.addEventListener("keydown", event => { if (event.key === "Escape" && (conflict_pin || conflict_shown)) release(); });
+    closeOnOutside({
+        open: () => conflict_pin || conflict_shown,
+        inside: event => !conflict_pin || event.target.closest(".conflict-chip"), // a click only lets go of a pinned chip
+        close: release
+    });
     const follow = () => {
         const chip = conflict_shown && chipOf(conflict_shown);
         if (chip && conflict_tip) placeConflictTip(chip); else if (conflict_tip) hideConflicts();
@@ -451,19 +507,30 @@ const folded_groups = new Set();
 // A Pick one or nested group is a subsection under its section (Enchantments, a mod's), folded away by its header (kept across redraws).
 const closed_groups = new Set();
 function groupFold(title, key, content) {
-    return h("details", {
-        class: "group-fold", "data-fold": key, open: !closed_groups.has(key) || Boolean(wanted_query.trim()),
-        ontoggle: event => {
-            if (wanted_query.trim()) return; // opened by the search, not by the user
-            if (event.target.open) closed_groups.delete(key); else closed_groups.add(key);
-        }
-    }, h("summary", {}, title), content);
+    const remember = open => {
+        if (wanted_query.trim()) return; // opened by the search, not by the user
+        if (open) closed_groups.delete(key); else closed_groups.add(key);
+    };
+    return h("details", { class: "group-fold", "data-fold": key, open: !closed_groups.has(key) || Boolean(wanted_query.trim()), ontoggle: event => remember(event.target.open) },
+        h("summary", { onclick: foldClick(remember) }, title), content);
+}
+
+// A summary's click: fold its `<details>` with the shared slide (Motion.js foldDetails) instead of the browser's own jump.
+// `remember(open)` saves the new state at once (a closing slide only sets `open` at its end).
+function foldClick(remember) {
+    return event => {
+        event.preventDefault();
+        const details = event.currentTarget.parentElement;
+        const open = !foldTarget(details);
+        remember(open);
+        foldDetails(details, open);
+    };
 }
 
 // The mods whose section the user opened (in this visit).
 const mod_open = new Set();
 
-// The top of section 1: the preview, with `controls` (the toolbar and presets) beside it
+// The top of section 1: the preview, with `controls` (the presets) beside it
 // where the card is wide enough, else under it.
 function wantedHead(...controls) {
     return h("div", { class: "wanted-head" + (item_menu_open ? " menu-open" : "") },
@@ -492,7 +559,7 @@ function wantedPreview() {
     const slot = cell.querySelector(".mc-slot");
     const button = h("button", {
         type: "button", class: "item-menu-button", "data-focus": "item-menu",
-        "aria-haspopup": "true", "aria-expanded": String(item_menu_open), "aria-controls": "item-menu",
+        "aria-haspopup": "true", "aria-expanded": String(item_menu_open), "aria-controls": item_menu_open ? "item-menu" : null,
         "aria-label": TEXT.wanted.change_item_label({ item: logic.itemName(state.item) }),
         title: TEXT.wanted.change_item,
         onclick: toggleItemMenu
@@ -536,12 +603,7 @@ function fillCostMeter(line) {
     // New words fade in instead of popping.
     if (changed && words) text.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 300, easing: "ease-out" });
     // The line opens when a result arrives and folds away when there is none, so the tooltip eases to its new height.
-    const after = line.getBoundingClientRect().height;
-    if (Math.abs(after - before) < 1) return;
-    line.style.overflow = "hidden";
-    const clear = () => { line.style.overflow = ""; };
-    line.animate([{ height: before + "px", opacity: before ? 1 : 0 }, { height: after + "px", opacity: after ? 1 : 0 }], { duration: 250, easing: "ease-out" }).finished.then(clear, clear);
-    setTimeout(clear, 400);
+    easeHeight(line, before, { duration: 250, easing: "ease-out", fade: true });
 }
 
 export function updateCostMeter() {
@@ -565,19 +627,16 @@ function toggleItemMenu() {
 // The item menu closes on a click outside it (or its button) and on Escape, which puts
 // the focus back on the slot.
 export function setupItemMenu() {
-    document.addEventListener("click", event => {
-        if (!item_menu_open) return;
-        const path = event.composedPath();
-        if (path.some(el => el.classList && (el.classList.contains("item-menu") || el.classList.contains("item-menu-button")))) return;
-        setItemMenuOpen(false);
-        renderWanted();
-    });
-    document.addEventListener("keydown", event => {
-        if (event.key !== "Escape" || !item_menu_open) return;
-        setItemMenuOpen(false);
-        renderWanted();
-        const button = document.querySelector(".item-menu-button");
-        if (button) button.focus();
+    const close = () => { setItemMenuOpen(false); renderWanted(); };
+    closeOnOutside({
+        open: () => item_menu_open,
+        inside: event => event.composedPath().some(el => el.classList && (el.classList.contains("item-menu") || el.classList.contains("item-menu-button"))),
+        close,
+        escape() {
+            close();
+            const button = document.querySelector(".item-menu-button");
+            if (button) button.focus();
+        }
     });
 }
 
@@ -606,14 +665,14 @@ function presetChips() {
         const lines = [];
         for (const { namespace: ns, level } of logic.tooltipSort(Object.entries(wanted).map(([namespace, level]) => ({ namespace, level })))) {
             const changed = state.wanted[ns] !== level;
-            lines.push(h("div", { class: "mc-ench" + (logic.isCurse(ns) ? " curse" : "") + (changed ? " changed" : "") }, logic.displayName(ns, level)));
+            lines.push(enchLine(logic.displayName(ns, level), logic.isCurse(ns), changed ? " changed" : ""));
         }
         for (const [ns, level] of Object.entries(state.wanted)) {
             if (!wanted[ns]) lines.push(h("div", { class: "mc-ench removed" }, logic.displayName(ns, level)));
         }
         if (!lines.some(line => line.classList.contains("changed") || line.classList.contains("removed"))) lines.splice(0, lines.length, h("div", { class: "mc-ench" }, TEXT.wanted.compare_same));
         compare = h("div", { class: "mc-tooltip compare-tip", "aria-hidden": "true" },
-            h("div", { class: "mc-name rarity-common" }, logic.itemName(state.item)), lines);
+            h("div", { class: nameClass("common") }, logic.itemName(state.item)), lines);
         const box = chip.closest(".presets");
         box.append(compare);
         compare.style.top = chip.offsetTop + chip.offsetHeight + 4 + "px";
@@ -647,7 +706,7 @@ function presetChips() {
     );
 }
 
-// The conflict tree of a bracket (Logic conflictTree) drawn as nested sections: one code for Pick one in each, Pick a side and their mixtures, nested or not. A "side" node is a Pick one
+// The conflict tree of a bracket (Logic conflictTree) drawn as nested sections: one code for Pick a side, Pick any and their mixtures, nested or not. A "side" node is a Pick one
 // (all leaves) or a Pick a side (a lane for each part, holding that part's own groups); an "each" node is its loose enchantments in one
 // lane and its other parts as blocks. A stray (set apart so the rest splits) shows in every lane holding something it conflicts with,
 // marked with an arrow pair; its tooltip names everything it conflicts with, the lane's own first. Then the chosen rows once.
@@ -656,7 +715,7 @@ function pickGroupsSection(members, found, short, label) {
     const chosen = ns => Boolean(state.wanted[ns]);
     const names = list => list.map(ns => logic.enchName(ns));
     const leavesOf = node => (node.kind === "leaf" ? [node.ns] : node.children.flatMap(leavesOf));
-    const chip = (ns, lane_ids = null) => {
+    const chip = (ns, lane_ids = null, radio = false) => {
         const rivals = chosen(ns) ? [] : members.filter(other => chosen(other) && logic.conflicts(ns, other));
         const stray = lane_ids !== null;
         const all = members.filter(other => logic.conflicts(ns, other));
@@ -667,19 +726,32 @@ function pickGroupsSection(members, found, short, label) {
         // A stray fades while something it conflicts with is chosen (and the reverse is shown by that pick's own chip).
         const faded = strays.includes(ns) && rivals.length > 0;
         return h("button", {
-            type: "button", class: "switch-option" + (stray ? " bridge" : "") + (chosen(ns) ? " selected" : "") + (faded ? " blocked" : ""), "aria-pressed": String(chosen(ns)),
+            type: "button", class: "switch-option" + (stray ? " bridge" : "") + (chosen(ns) ? " selected" : "") + (faded ? " blocked" : ""),
+            // A lane where exactly one can be taken is a set of radios; several (Pick any, a stray) are toggles.
+            ...(radio ? { role: "radio", "aria-checked": String(chosen(ns)) } : { "aria-pressed": String(chosen(ns)) }),
             "data-opt": ns, "data-focus": "group-" + (stray ? "stray-" : "") + ns + (stray ? "-" + lane_ids[0] : ""),
             title,
             onclick: () => setWanted(ns, chosen(ns) ? 0 : logic.maxLevel(ns)) // (a pick that conflicts drops the ones it replaces)
-        }, logic.enchName(ns));
+        }, logic.enchName(ns), stray ? [h("span", { class: "bridge-mark", "aria-hidden": "true" }, "⇄"), h("span", { class: "sr-only" }, " (" + TEXT.wanted.group_stray_also + ")")] : null);
     };
     const list = ids => names(ids).slice(0, 3).join(", ") + (ids.length > 3 ? "\u2026" : "");
     // The chips of a lane, then the strays that conflict with something in it.
-    const chips = (ids, title) => h("div", { class: "group-switch", role: "group", "aria-label": title },
-        ids.map(ns => chip(ns)),
-        strays.filter(ns => !ids.includes(ns) && ids.some(other => logic.conflicts(ns, other))).map(ns => chip(ns, ids)));
+    // `one`: exactly one of them can be taken (a Pick one), so they are radios; the strays beside them are toggles.
+    const chips = (ids, title, one = false) => {
+        const radios = one && ids.length > 1;
+        const stray_chips = strays.filter(ns => !ids.includes(ns) && ids.some(other => logic.conflicts(ns, other))).map(ns => chip(ns, ids));
+        // Radios alone are the radiogroup; with strays beside them, the radios are one inside the group.
+        const radio_chips = () => roving(ids.map(ns => chip(ns, null, true)), ids.findIndex(chosen)); // one tab stop: the chosen one
+        if (radios && !stray_chips.length) return h("div", { class: "group-switch", role: "radiogroup", "aria-label": title }, radio_chips());
+        return h("div", { class: "group-switch", role: "group", "aria-label": title },
+            radios ? h("div", { class: "radios", role: "radiogroup", "aria-label": title }, radio_chips()) : ids.map(ns => chip(ns)),
+            stray_chips);
+    };
     // `side`: the number of a side of a Pick a side (a badge and an accent bar mark the sides); `label`: the title is the section's own label.
-    const card = (title, children, ids, { side = 0, label = false } = {}) => h("div", { class: "each-card" + (ids.some(chosen) ? " active" : "") + (side ? " side-lane" : "") },
+    const card = (title, children, ids, { side = 0, label = false, of = 0 } = {}) => h("div", {
+        class: "each-card" + (ids.some(chosen) ? " active" : "") + (side ? " side-lane" : ""),
+        ...(side ? { role: "group", "aria-label": TEXT.wanted.group_side_of({ n: side, total: of }) } : {})
+    },
         title || side ? h("div", { class: "each-card-title" + (label ? " label-title" : "") }, side ? h("span", { class: "side-badge" }, TEXT.wanted.group_side_n({ n: side })) : null, title) : null,
         children);
     const block = (label, children) => h("div", { class: "cluster" }, label ? h("div", { class: "cluster-label" }, label) : null, h("div", { class: "each-cards" }, children));
@@ -694,23 +766,25 @@ function pickGroupsSection(members, found, short, label) {
             ...node.children.filter(child => child.kind !== "leaf").map(part => sideBlock(part))
         ].filter(Boolean);
         return h("div", { class: "cluster-list" }, top
-            ? parts.map((part, index) => h("div", { class: "part-box" }, h("div", { class: "part-badge" }, TEXT.wanted.group_part_n({ n: index + 1 })), part))
+            ? parts.map((part, index) => h("div", { class: "part-box", role: "group", "aria-label": TEXT.wanted.group_part_of({ n: index + 1, total: parts.length }) }, h("div", { class: "part-badge" }, TEXT.wanted.group_part_n({ n: index + 1 })), part))
             : parts);
     }
-    // `top`: the section is the whole group, whose header already names it ("Pick a side (Group 2)"), so it has no label of its own.
+    // `top`: the section is the whole group, whose header already names it ("Pick a side (25)"), so it has no label of its own.
     function sideBlock(node, top = false) {
         const ids = leavesOf(node);
         if (node.children.every(child => child.kind === "leaf")) {
             // A Pick one is one lane whose title is its label.
-            return h("div", { class: "cluster" }, card(top ? null : TEXT.wanted.group_pick_one, chips(ids, TEXT.wanted.group_pick_one), ids, { label: !top }));
+            return h("div", { class: "cluster" }, card(top ? null : TEXT.wanted.group_pick_one, chips(ids, TEXT.wanted.group_pick_one, true), ids, { label: !top }));
         }
         // The lone enchantments of a side all conflict with each other and the rest: one lane for them, then a lane for each other part.
         const lone = node.children.filter(child => child.kind === "leaf").map(child => child.ns);
         // Each side is marked by its badge alone; what is inside says how to pick from it (a Pick one, a Pick any, or a single chip).
         let side = 0;
+        const rest = node.children.filter(child => child.kind !== "leaf");
+        const total = (lone.length ? 1 : 0) + rest.length;
         return block(top ? null : TEXT.wanted.group_pick_side, [
-            lone.length ? card(null, lone.length > 1 ? inside({ kind: "side", children: lone.map(ns => ({ kind: "leaf", ns })) }) : chips(lone, logic.enchName(lone[0])), lone, { side: ++side }) : null,
-            node.children.filter(child => child.kind !== "leaf").map(child => card(null, inside(child), leavesOf(child), { side: ++side }))
+            lone.length ? card(null, lone.length > 1 ? inside({ kind: "side", children: lone.map(ns => ({ kind: "leaf", ns })) }) : chips(lone, logic.enchName(lone[0])), lone, { side: ++side, of: total }) : null,
+            rest.map(child => card(null, inside(child), leavesOf(child), { side: ++side, of: total }))
         ]);
     }
     return h("div", { class: "ench-group exclusive pick-side pick-groups" + (members.some(chosen) ? " has-chosen" : ""), "data-side": members[0], role: "group", "aria-label": label },
@@ -722,8 +796,8 @@ function pickGroupsSection(members, found, short, label) {
 // away, the height, the level bar), the options selected, and the border colour.
 function captureEach(box) {
     const old = new Map();
-    for (const section of box.querySelectorAll(".pick-each[data-each], .pick-side[data-side]")) {
-        old.set(section.dataset.each || section.dataset.side, {
+    for (const section of box.querySelectorAll(".pick-side[data-side]")) {
+        old.set(section.dataset.side, {
             rows: [...section.querySelectorAll(".each-rows > .ench-row")].map(row => ({
                 ns: row.dataset.ns, copy: inertCopy(row), height: row.getBoundingClientRect().height,
                 levels: row.querySelectorAll(".level-seg").length, segments: [...row.querySelectorAll(".level-seg")].map(seg => seg.cloneNode(true))
@@ -782,12 +856,11 @@ function animateEach(section, old) {
     const selected = [...section.querySelectorAll(".switch-option.selected")];
     const keys = new Set(selected.map(button => button.dataset.opt));
     const look = selected[0] && getComputedStyle(selected[0]);
-    const quiet = { backgroundColor: "rgba(0, 0, 0, 0)", boxShadow: "inset 0 0 0 1px rgba(0, 0, 0, 0), 0 1px 3px rgba(0, 0, 0, 0)" };
-    for (const button of selected) if (!old.options.has(button.dataset.opt)) button.animate([quiet, {}], { duration: 260, easing: "ease-out" });
+    for (const button of selected) if (!old.options.has(button.dataset.opt)) fadeOption(button, QUIET_OPTION);
     if (look) {
         for (const key of old.options) {
             const was = keys.has(key) ? null : section.querySelector(`[data-opt="${key}"]`);
-            if (was) was.animate([{ backgroundColor: look.backgroundColor, boxShadow: look.boxShadow, color: look.color }, {}], { duration: 260, easing: "ease-out" });
+            if (was) fadeOption(was, selectedLook(look));
         }
     }
     if (getComputedStyle(section).borderColor !== old.border) section.animate([{ borderColor: old.border }, {}], { duration: 300, easing: "ease-out" });
@@ -809,8 +882,7 @@ function groupSwitch(members, short, label) {
     }, label);
     return h("div", { class: "ench-group exclusive" + (chosen ? " has-chosen" : ""), "data-group": members[0] },
         h("div", { class: "group-switch", role: "radiogroup", "aria-label": label },
-            option(null, TEXT.wanted.none),
-            members.map(ns => option(ns, logic.enchName(ns)))
+            roving([option(null, TEXT.wanted.none), ...members.map(ns => option(ns, logic.enchName(ns)))], chosen ? members.indexOf(chosen) + 1 : 0) // one tab stop: the chosen one
         ),
         chosen ? wantedRow(chosen, short.get(chosen)) : null
     );
@@ -849,7 +921,7 @@ function wantedRow(ns, short = null, chip = false) {
         ),
         h("span", { class: "ench-cost-col" },
             chosen ? h("span", { class: "anvil-cost ench-cost", title: TEXT.wanted.cost_help({ levels: cost }) }, TEXT.wanted.cost({ levels: cost })) : null),
-        levelBar(ns, chosen, blocker),
+        levelBar(ns, chosen, blockers),
         chosen ? h("button", {
             type: "button", class: "ench-clear", "data-focus": "clear-" + ns,
             title: TEXT.wanted.clear_one({ name }), "aria-label": TEXT.wanted.clear_one({ name }),
@@ -863,7 +935,7 @@ function wantedRow(ns, short = null, chip = false) {
 // (off the left end clears), or use the arrow keys, Home/End and digits. Every bar is as
 // wide as five segments with its own from the left, so the I segments share a column.
 // `onChoose(level)` defaults to section 1's choice; `focus` is the data-focus prefix.
-export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, level), focus = "bar-") {
+export function levelBar(ns, chosen, blockers, onChoose = level => setWanted(ns, level), focus = "bar-") {
     const max = logic.maxLevel(ns);
     const segments = [];
     for (let level = 1; level <= max; level++) segments.push(h("span", { class: "level-seg", "data-level": level }, roman(level)));
@@ -871,7 +943,7 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
         class: "level-bar", role: "slider", tabindex: "0", "data-focus": focus + ns,
         "aria-label": TEXT.wanted.level_label({ name: logic.enchName(ns) }),
         "aria-valuemin": "0", "aria-valuemax": String(max),
-        title: blocker ? TEXT.wanted.replaces({ name: logic.enchName(blocker) }) : null,
+        title: blockers.length ? TEXT.wanted.replaces({ name: blockers.map(logic.enchName) }) : null,
         // Five levels to a row: a longer bar (Dullness goes to X) wraps onto more rows.
         style: `--rows: ${Math.ceil(max / 5)}`
     }, segments,
@@ -889,12 +961,14 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
     bar.addEventListener("keydown", event => {
         // Up and down pick another enchantment (the neighbouring bar); left and right change the level.
         if (event.key === "ArrowUp" || event.key === "ArrowDown") {
-            const bars = [...(bar.closest(".entry-popover, #wanted") || document).querySelectorAll(".level-bar")];
+            // Only bars that show: not those in a folded group, a closed box or a hidden row.
+            const shown = other => other === bar || (other.checkVisibility ? other.checkVisibility({ visibilityProperty: true }) : other.offsetParent !== null);
+            const bars = [...(bar.closest(".entry-popover, #wanted") || document).querySelectorAll(".level-bar")].filter(shown);
             const next = bars[bars.indexOf(bar) + (event.key === "ArrowUp" ? -1 : 1)];
             event.preventDefault();
             if (next) {
                 next.focus({ preventScroll: true });
-                next.scrollIntoView({ block: "nearest", behavior: motionOk() ? "smooth" : "auto" });
+                scrollToView(next);
             }
             return;
         }
@@ -920,39 +994,10 @@ export function levelBar(ns, chosen, blocker, onChoose = level => setWanted(ns, 
     };
     // The bar fills as the pointer moves and the choice is made on release (a redraw
     // mid-drag would end it). Vertical swipes still scroll the page (touch-action: pan-y).
-    let drag = null;
-    bar.addEventListener("pointerdown", event => {
-        if (event.button !== 0) return;
-        const level = levelAt(event.clientX, event.clientY);
-        drag = { id: event.pointerId, start: level, level, moved: false };
-        try {
-            bar.setPointerCapture(event.pointerId);
-        } catch {
-            // Some browsers refuse capture for synthetic pointers; moves over the bar still work.
-        }
-        bar.classList.add("dragging");
-        show(level);
-    });
-    bar.addEventListener("pointermove", event => {
-        if (!drag || event.pointerId !== drag.id) return;
-        const level = levelAt(event.clientX, event.clientY);
-        if (level !== drag.level) {
-            drag.level = level;
-            drag.moved = true;
-            show(level);
-        }
-    });
-    bar.addEventListener("pointerup", event => {
-        if (!drag || event.pointerId !== drag.id) return;
-        const { start, level, moved } = drag;
-        drag = null;
-        bar.classList.remove("dragging");
-        choose(!moved && start === chosen ? 0 : level);
-    });
-    bar.addEventListener("pointercancel", () => {
-        drag = null;
-        bar.classList.remove("dragging");
-        show(chosen);
+    scrubber(bar, {
+        at: event => levelAt(event.clientX, event.clientY), show, press_class: "dragging",
+        done: (start, level, moved) => choose(!moved && start === chosen ? 0 : level),
+        cancel: () => show(chosen)
     });
     return bar;
 }

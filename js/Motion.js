@@ -1,11 +1,14 @@
 // Animations: slide a box to its new height or width, open and close tooltip lines, slide cards (FLIP), keep an element in place while the page redraws.
-import { h, motionOk } from "./Dom.js";
+import { afterAnimation, h, motionOk } from "./Dom.js";
 import { meta } from "./Store.js";
 import { steps_scroll } from "./Results.js";
 
 // How long Section 2's view and mode switches, coverage bars, chips and highlights take, and how they ease.
 const MORPH_MS = 360;
 const MORPH_EASING = "cubic-bezier(0.25, 0.8, 0.25, 1)";
+// Every fold (a section, a step, a group in section 1) takes this long and eases this way.
+export const FOLD_MS = MORPH_MS;
+const FOLD_EASING = MORPH_EASING;
 
 // `timing` (optional): { duration, easing } to slide with instead of the default 0.25s ease-out.
 export function growSmoothly(element, from, timing = null) {
@@ -44,9 +47,8 @@ export function openLines(lines) {
     if (!motionOk()) return;
     for (const line of lines) {
         const height = line.getBoundingClientRect().height;
-        line.style.overflow = "hidden";
-        line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" })
-            .finished.then(() => { line.style.overflow = ""; }, () => {});
+        line.style.overflow = "clip";
+        afterAnimation(line.animate([{ height: "0px" }, { height: height + "px" }], { duration: 250, easing: "ease-out" }), () => { line.style.overflow = ""; });
         line.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 350, easing: "ease-out" });
     }
 }
@@ -106,17 +108,17 @@ export function rollLines(preview, old_lines) {
         const old = old_lines[index];
         if (line && old && line.textContent === old.node.textContent) continue;
         if (line) {
-            line.animate([{ transform: `translateY(${100 * sign}%)`, clipPath: up ? "inset(0 0 100% 0)" : "inset(100% 0 0 0)" }, { transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }],
-                { ...options, fill: "backwards" });
+            // Clipped to its own row while it rolls, so it never draws over the rows beside it.
+            line.style.overflow = "clip";
+            afterAnimation(line.animate([{ transform: `translateY(${100 * sign}%)`, clipPath: up ? "inset(0 0 100% 0)" : "inset(100% 0 0 0)" }, { transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }],
+                { ...options, fill: "backwards" }), () => { line.style.overflow = ""; }, 450);
         }
         if (old && old.box) {
             const ghost = retireLine(old.node);
-            Object.assign(ghost.style, { position: "absolute", left: old.box.left + "px", top: old.box.top + "px", width: old.box.width + "px", height: old.box.height + "px", margin: "0", pointerEvents: "none" });
+            Object.assign(ghost.style, { position: "absolute", left: old.box.left + "px", top: old.box.top + "px", width: old.box.width + "px", height: old.box.height + "px", margin: "0", pointerEvents: "none", overflow: "clip" });
             tooltip.append(ghost);
-            const done = () => ghost.remove();
-            ghost.animate([{ transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }, { transform: `translateY(${-100 * sign}%)`, clipPath: up ? "inset(100% 0 0 0)" : "inset(0 0 100% 0)" }],
-                { ...options, fill: "forwards" }).finished.then(done, done);
-            setTimeout(done, 450); // a hidden tab never finishes animations
+            afterAnimation(ghost.animate([{ transform: "translateY(0)", clipPath: "inset(0 0 0 0)" }, { transform: `translateY(${-100 * sign}%)`, clipPath: up ? "inset(100% 0 0 0)" : "inset(0 0 100% 0)" }],
+                { ...options, fill: "forwards" }), () => ghost.remove(), 450);
         }
     }
 }
@@ -144,6 +146,32 @@ export function slideWidth(tooltip, from, from_height = null) {
     setTimeout(finish, 450); // a hidden tab never finishes animations
 }
 
+// A tooltip's enchantment lines before a redraw: `{ rect, lines: [{ ns, node, box }] }`, each line a copy (inert: nothing in it may take
+// focus or be found by data-focus) and its box inside the tooltip's padding box, for `changeLines`.
+export function snapshotLines(tip) {
+    const rect = tip.getBoundingClientRect();
+    const lines = [...tip.querySelectorAll(".mc-ench[data-ns]")].map(line => {
+        const line_rect = line.getBoundingClientRect();
+        const copy = line.cloneNode(true);
+        copy.removeAttribute("data-focus");
+        copy.setAttribute("tabindex", "-1");
+        copy.classList.remove("popover-toggle");
+        return { ns: line.dataset.ns, node: copy, box: { left: line_rect.left - rect.left - tip.clientLeft, top: line_rect.top - rect.top - tip.clientTop, width: line_rect.width, height: line_rect.height } };
+    });
+    return { rect, lines };
+}
+
+// A redraw's change to a tooltip's lines: a swap that leaves the box the same size rolls the changed rows together (`rollLines`),
+// otherwise the `fresh` lines open and the removed ones fold away (`openLines`/`closeLines`). `container` holds the tooltip.
+export function changeLines(container, old_lines, fresh, same_size) {
+    if (same_size) {
+        rollLines(container, old_lines);
+    } else {
+        openLines(fresh);
+        closeLines(container, old_lines);
+    }
+}
+
 // Removed tooltip lines close the way new ones open: a copy stays in its place and folds
 // away (shrinking and fading), so the lines below slide up with the box instead of jumping.
 export function closeLines(preview, old_lines) {
@@ -159,10 +187,9 @@ export function closeLines(preview, old_lines) {
         const before = lines[Math.min(index, lines.length)];
         before ? before.before(ghost) : tooltip.append(ghost);
         const height = ghost.getBoundingClientRect().height;
-        ghost.style.overflow = "hidden";
+        ghost.style.overflow = "clip"; // never over the lines beside it while it closes
         const remove = () => ghost.remove();
-        ghost.animate([{ height: height + "px", opacity: 1 }, { height: "0px", opacity: 0 }], { duration: 250, easing: "ease-out", fill: "forwards" }).finished.then(remove, remove);
-        setTimeout(remove, 400); // a hidden tab never finishes animations
+        afterAnimation(ghost.animate([{ height: height + "px", opacity: 1 }, { height: "0px", opacity: 0 }], { duration: 250, easing: "ease-out", fill: "forwards" }), remove, 400);
     });
 }
 
@@ -249,8 +276,7 @@ function leaveInGrid(grid, spec, timing) {
     Object.assign(leaving.style, { left: spec.left + "px", top: spec.top + "px", width: spec.width + "px", height: spec.height + "px" });
     grid.append(leaving);
     const remove = () => leaving.remove();
-    leaving.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }], { duration: timing.duration * 0.6, easing: "ease-in", fill: "forwards" }).finished.then(remove, remove);
-    setTimeout(remove, timing.duration + 150);
+    afterAnimation(leaving.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.96)" }], { duration: timing.duration * 0.6, easing: "ease-in", fill: "forwards" }), remove, timing.duration + 150);
 }
 
 // After a redraw, each card slides from where it was to where it is now (reordering,
@@ -430,8 +456,7 @@ function openBox(element, duration, easing) {
     const box = boxOf(element);
     element.style.overflow = "hidden";
     const clear = () => { element.style.overflow = ""; };
-    element.animate([{ ...FOLDED, opacity: 0 }, { ...box, opacity: 1 }], { duration, easing }).finished.then(clear, clear);
-    setTimeout(clear, duration + 150);
+    afterAnimation(element.animate([{ ...FOLDED, opacity: 0 }, { ...box, opacity: 1 }], { duration, easing }), clear, duration + 150);
 }
 
 function closeBox(copy, duration, easing) {
@@ -439,8 +464,7 @@ function closeBox(copy, duration, easing) {
     copy.style.pointerEvents = "none";
     const box = boxOf(copy);
     const remove = () => copy.remove();
-    copy.animate([{ ...box, opacity: 1 }, { ...FOLDED, opacity: 0 }], { duration, easing, fill: "forwards" }).finished.then(remove, remove);
-    setTimeout(remove, duration + 150);
+    afterAnimation(copy.animate([{ ...box, opacity: 1 }, { ...FOLDED, opacity: 0 }], { duration, easing, fill: "forwards" }), remove, duration + 150);
 }
 
 // Custom's coverage chips (revealBar) appear and (leaveBar: `old` is { box, clone }, from barSnapshot, and
@@ -594,16 +618,14 @@ export function animateChips(strip, old) {
         chip.animate([{ transform: `translate(${dx}px, ${dy}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], timing);
         const ghost = leavingChip(strip, was);
         const remove = () => ghost.remove();
-        ghost.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${-dx}px, ${-dy}px)`, opacity: 0 }], timing).finished.then(remove, remove);
-        setTimeout(remove, timing.duration + 150);
+        afterAnimation(ghost.animate([{ transform: "none", opacity: 1 }, { transform: `translate(${-dx}px, ${-dy}px)`, opacity: 0 }], timing), remove, timing.duration + 150);
     }
     // Chips that are no longer there fade out where they were.
     for (const [ns, was] of old.chips) {
         if (seen.has(ns)) continue;
         const ghost = leavingChip(strip, was);
         const remove = () => ghost.remove();
-        ghost.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.85)" }], { duration: 220, easing: "ease-in", fill: "forwards" }).finished.then(remove, remove);
-        setTimeout(remove, 400);
+        afterAnimation(ghost.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: "scale(0.85)" }], { duration: 220, easing: "ease-in", fill: "forwards" }), remove, 400);
     }
     const fill = strip.querySelector(".ring-fill");
     if (fill && old.ring != null && old.ring !== fill.getAttribute("stroke-dasharray")) {
@@ -641,8 +663,7 @@ export function slidePills(box, old) {
         switcher.prepend(pill);
         switcher.classList.add("sliding");
         const finish = () => { pill.remove(); switcher.classList.remove("sliding"); };
-        pill.animate([{ left: was.left + "px", width: was.width + "px" }, { left: now.left + "px", width: now.width + "px" }], { duration: 280, easing: MORPH_EASING }).finished.then(finish, finish);
-        setTimeout(finish, 450);
+        afterAnimation(pill.animate([{ left: was.left + "px", width: was.width + "px" }, { left: now.left + "px", width: now.width + "px" }], { duration: 280, easing: MORPH_EASING }), finish, 450);
     }
 }
 
@@ -665,21 +686,31 @@ export function revealBelow(card) {
 // too (ticking one ticks the steps it needs), which moves everything below them; without
 // this the list would jump, and the old scroll position would land somewhere else.
 // The steps scroll inside their own box on desktop and with the page on phones.
-export function keepInPlace(selector, redraw) {
+export function keepInPlace(selector, redraw, eased = false) {
     const before = document.querySelector(selector);
     const top = before ? before.getBoundingClientRect().top : null;
     redraw();
-    const after = document.querySelector(selector);
-    if (top == null || !after) return;
-    const shift = after.getBoundingClientRect().top - top;
-    if (Math.abs(shift) < 1) return;
-    const box = after.closest(".steps-scroll");
-    if (box && box.scrollHeight > box.clientHeight) {
-        box.scrollTop += shift;
-        steps_scroll.top = box.scrollTop;
-    } else {
-        scrollBy(0, shift);
-    }
+    if (top == null) return;
+    // Moves the scroll so the element is back at `top`; false when it is gone.
+    const follow = () => {
+        const after = document.querySelector(selector);
+        if (!after) return false;
+        const shift = after.getBoundingClientRect().top - top;
+        if (Math.abs(shift) < 1) return true;
+        const box = after.closest(".steps-scroll");
+        if (box && box.scrollHeight > box.clientHeight) {
+            box.scrollTop += shift;
+            steps_scroll.top = box.scrollTop;
+        } else {
+            scrollBy(0, shift);
+        }
+        return true;
+    };
+    if (!follow() || !eased || !motionOk()) return;
+    // The boxes above ease to their new heights (easeFold): hold the element in place frame by frame meanwhile.
+    const start = performance.now();
+    const tick = () => { follow(); if (performance.now() - start < FOLD_MS + 60) requestAnimationFrame(tick); };
+    requestAnimationFrame(tick);
 }
 
 // A level bar that changes length (switching Depth Strider, III, for Frost Walker, II, in a
@@ -717,9 +748,8 @@ export function rollLevelBar(bar, old_levels, old_segments) {
         bar.append(ghost);
         const remove = () => ghost.remove();
         const out = ghost.animate([...roll].reverse(), { duration: 260, easing: "ease-in", fill: "forwards" });
-        out.finished.then(remove, remove);
+        afterAnimation(out, remove, 900);
         animations.push(out);
-        setTimeout(remove, 900); // a hidden tab never finishes animations
     }
     // The empty track after the last level fades with it: cells that were track fade out (a copy), and cells
     // that are track now fade in (cells that stay track do not move).
@@ -739,23 +769,64 @@ export function rollLevelBar(bar, old_levels, old_segments) {
         bar.append(ghost);
         const remove = () => ghost.remove();
         const out = ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 260, easing: "ease-in", fill: "forwards" });
-        out.finished.then(remove, remove);
+        afterAnimation(out, remove, 900);
         animations.push(out);
-        setTimeout(remove, 900);
     }
     const settle = () => { bar.style.overflow = ""; };
     Promise.allSettled(animations.map(animation => animation.finished)).then(settle);
     setTimeout(settle, 1000);
 }
 
-// Eases `element` from the height it had (`from`) to its new one; it clips while it does (a folding step hides what is inside).
-export function easeHeight(element, from, duration = 260) {
+// Eases `element` from the height it had (`from`) to its new one, like a section folding (FOLD_MS, FOLD_EASING); it clips while it
+// does (a folding step hides what is inside). Options: `duration`/`easing` (a fold's by default), `fade` (opacity follows a box that
+// opens from or closes to nothing), `during` (runs when it starts and returns what to run when it ends).
+export function easeHeight(element, from, { duration = FOLD_MS, easing = FOLD_EASING, fade = false, during } = {}) {
     const to = element.getBoundingClientRect().height;
     if (Math.abs(to - from) < 1 || !motionOk()) return;
     element.style.overflow = "hidden";
-    const clear = () => { element.style.overflow = ""; };
-    element.animate([{ height: from + "px" }, { height: to + "px" }], { duration, easing: "ease-out" }).finished.then(clear, clear);
-    setTimeout(clear, duration + 200);
+    const restore = during && during();
+    const clear = () => { element.style.overflow = ""; if (restore) restore(); };
+    const frame = height => ({ height: height + "px", ...(fade ? { opacity: height ? 1 : 0 } : {}) });
+    afterAnimation(element.animate([frame(from), frame(to)], { duration, easing }), clear, duration + 150);
+}
+
+// Whether a `<details>` is open or, while it slides, where it is heading (a click mid-slide reverses it).
+export const foldTarget = details => (details.wantOpen === undefined ? details.open : details.wantOpen);
+
+// A `<details>` opening or closing the way a section does: its box slides between the closed and the open height. Closing
+// keeps the content shown until the end; `inside` (details nested in it) close then too, out of sight. Returns nothing; with no motion it
+// just sets `open`.
+export function foldDetails(details, open, inside = []) {
+    if (details.finishFold) details.finishFold();
+    if (details.open === open) return;
+    details.wantOpen = open; // where it is heading, for a second click mid-slide (foldTarget)
+    const settle = () => { details.open = open; if (!open) for (const nested of inside) nested.open = false; };
+    if (!motionOk()) return settle();
+    const from = details.getBoundingClientRect().height;
+    let to;
+    if (open) {
+        details.open = true;
+        to = details.getBoundingClientRect().height;
+    } else {
+        details.open = false;
+        to = details.getBoundingClientRect().height;
+        details.open = true;
+    }
+    if (Math.abs(to - from) < 1) return settle();
+    details.style.overflow = "hidden";
+    const animation = details.animate([{ height: from + "px" }, { height: to + "px" }], { duration: FOLD_MS, easing: FOLD_EASING });
+    let done = false;
+    const finish = () => {
+        if (done) return;
+        done = true;
+        details.finishFold = null;
+        details.wantOpen = undefined;
+        animation.cancel();
+        details.style.overflow = "";
+        settle();
+    };
+    details.finishFold = finish;
+    afterAnimation(animation, finish, FOLD_MS + 150);
 }
 
 // Section 4 switching between Steps, Slots and Tree: the new view fades in while a copy of the old one (`old`:
@@ -771,8 +842,7 @@ export function crossfadeView(scroller, container, old) {
     container.append(copy);
     copy.scrollTop = top;
     const remove = () => copy.remove();
-    copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "ease-in", fill: "forwards" }).finished.then(remove, remove);
-    setTimeout(remove, 900); // a hidden tab never finishes animations
+    afterAnimation(copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 160, easing: "ease-in", fill: "forwards" }), remove, 900);
     scroller.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, easing: "ease-out" });
     growSmoothly(scroller, rect.height);
 }

@@ -2,7 +2,7 @@
 // js/Logic.js is a browser ES module in a folder without "type": "module",
 // so load its source through a data: URL instead of a normal import.
 import assert from "assert";
-import { readFileSync } from "fs";
+import { readFileSync, readdirSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -10,7 +10,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 // data: URLs too (a data: URL has no folder to resolve "./" against).
 const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path)
     .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
-const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods } = await import(moduleUrl("../js/Logic.js"));
+const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods, linkEdition, roman, MAX_PRIOR_WORK } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT, LANGUAGES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
 const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
@@ -30,7 +30,7 @@ function test(name, fn) {
     }
 }
 
-const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false, edition: "java", rename: false, rename_to: "" });
+const baseState = item => ({ item, wanted: {}, auto_books: true, books: [], priority: [...CRITERIA], max_step: 39, no_step_limit: false, allow_incompatible: false, edition: "java", rename: false, rename_to: "", mods: [] });
 
 test("every item has an icon file", () => {
     for (const item of meta.items) {
@@ -672,6 +672,102 @@ test("a share link carries the mods, and reads their enchantments only with them
     assert.deepStrictEqual(linkMods(logic.serialize(baseState("sword"))), []);
     assert.deepStrictEqual(linkMods("not a link"), []);
     assert.deepStrictEqual(logic.deserialize(logic.serialize({ ...baseState("sword"), mods: [] }), () => 0).mods, []);
+});
+
+test("a fix's book takes conflicting enchantments off the other entries, unless conflicts are allowed", () => {
+    const sword = { ...baseState("sword"), wanted: { smite: 5 }, auto_books: false, books: [
+        { id: 1, type: "item", enchantments: {}, prior_work: 0, copies: 1 },
+        { id: 2, type: "book", enchantments: { sharpness: 5 }, prior_work: 0, copies: 1 },
+        { id: 3, type: "book", enchantments: { bane_of_arthropods: 5, unbreaking: 3 }, prior_work: 0, copies: 1 }
+    ] };
+    const fixed = logic.addBook(sword, "smite", 5);
+    // The Sharpness book had nothing else and goes; Bane of Arthropods leaves the other book, Unbreaking stays.
+    assert.deepStrictEqual(fixed.books.map(book => book.enchantments), [{}, { unbreaking: 3 }, { smite: 5 }]);
+    assert.deepStrictEqual(fixed.dropped, [{ ns: "sharpness", level: 5 }, { ns: "bane_of_arthropods", level: 5 }]);
+    assert.deepStrictEqual(sword.books[1].enchantments, { sharpness: 5 }, "the old list is not changed");
+    // Every enchantment on the list can now go together.
+    const together = fixed.books.flatMap(book => Object.keys(book.enchantments));
+    assert.ok(together.every(a => together.every(b => !logic.conflicts(a, b))));
+    const allowed = logic.addBook({ ...sword, allow_incompatible: true }, "smite", 5);
+    assert.strictEqual(allowed.books.length, 4);
+    assert.deepStrictEqual(allowed.dropped, []);
+});
+
+test("a link is read in its own edition: Bedrock's Curse of Vanishing on a recovery compass survives", () => {
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
+    const state = { ...baseState("recovery_compass"), edition: "bedrock", wanted: { vanishing_curse: 1 } };
+    const link = bedrock.serialize(state);
+    assert.strictEqual(linkEdition(link), "bedrock");
+    assert.strictEqual(linkEdition(logic.serialize(baseState("sword"))), "java");
+    assert.strictEqual(linkEdition("not a link"), "java");
+    assert.deepStrictEqual(createLogic(editionMetadata(meta, linkEdition(link)), TEXTS.en.names).deserialize(link, () => 0).wanted, { vanishing_curse: 1 });
+});
+
+test("links with odd fields: edition only by index, broken entries skipped, prior work capped", () => {
+    const encode = data => btoa(JSON.stringify(data)).replace(/=+$/, "");
+    assert.strictEqual(logic.deserialize(encode({ i: "sword", e: "length" }), () => 0).edition, "java");
+    assert.strictEqual(logic.deserialize(encode({ i: "sword", e: 1.5 }), () => 0).edition, "java");
+    assert.strictEqual(logic.deserialize(encode({ i: "sword", e: 1 }), () => 0).edition, "bedrock");
+    assert.strictEqual(linkEdition(encode({ i: "sword", e: "length" })), "java");
+    const loaded = logic.deserialize(encode({ i: "sword", a: 0, b: [null, { x: 1 }, 5, [{ sharpness: 5 }, 5000, 0]] }), () => 0);
+    assert.strictEqual(loaded.books.length, 1);
+    assert.deepStrictEqual(loaded.books[0].enchantments, { sharpness: 5 });
+    assert.strictEqual(loaded.books[0].prior_work, MAX_PRIOR_WORK);
+});
+
+test("typed books: level 0 can't be read, and Roman numerals go past V", () => {
+    assert.deepStrictEqual(logic.parseBooks("sharpness 0", "sword"), { books: [], unknown: ["sharpness 0"] });
+    assert.deepStrictEqual(logic.parseBooks("sharpness v, unbreaking iii, smite iiii", "sword").books, [{ sharpness: 5 }, { unbreaking: 3 }]);
+    const spellbound = MODS.spellbound;
+    const modded = createLogic(withMods(meta, [spellbound]), { ...TEXTS.en.names, ...modNames([spellbound], "en") });
+    const dullness = Object.keys(spellbound.enchantments).find(ns => ns.endsWith(":dullness"));
+    const item = spellbound.enchantments[dullness].items[0];
+    assert.deepStrictEqual(modded.parseBooks("dullness x", item).books, [{ [dullness]: 10 }]);
+    assert.deepStrictEqual(modded.parseBooks("dullness vii", item).books, [{ [dullness]: 7 }]);
+    assert.deepStrictEqual(modded.parseBooks("dullness ix", item).books, [{ [dullness]: 9 }]);
+    assert.strictEqual(roman(40), "XL");
+    assert.strictEqual(roman(14), "XIV");
+});
+
+test("missing lists the chosen enchantments the result lacks or has too low, as named", () => {
+    const state = { ...baseState("sword"), wanted: { sharpness: 5, mending: 1, unbreaking: 3 } };
+    const result = enchantments => ({ item_namespace: "sword", enchantments: Object.entries(enchantments).map(([namespace, level]) => ({ namespace, level })), left: null, right: null });
+    assert.deepStrictEqual(logic.missing(state, result({ sharpness: 5, mending: 1, unbreaking: 3 })), []);
+    assert.deepStrictEqual(logic.missing(state, result({ sharpness: 4, unbreaking: 3 })), ["Sharpness V", "Mending"]);
+    assert.deepStrictEqual(logic.missing(state, result({ sharpness: 5, mending: 1, unbreaking: 3, smite: 5 })), [], "extras are not missing");
+    assert.deepStrictEqual(logic.missing(baseState("sword"), result({})), []);
+});
+
+test("conflictsWith lists what an item could take that clashes with an enchantment", () => {
+    const rivals = logic.conflictsWith("sharpness", "sword");
+    assert.deepStrictEqual([...rivals].sort(), ["bane_of_arthropods", "smite"]);
+    assert.ok(!rivals.includes("sharpness"), "never itself");
+    assert.deepStrictEqual(logic.conflictsWith("sharpness", "pickaxe"), [], "an enchantment the item cannot take has no rivals there");
+    assert.deepStrictEqual(logic.conflictsWith("mending", "sword"), []);
+    assert.ok(logic.conflicts("smite", "sharpness") && logic.conflicts("sharpness", "smite"), "both ways");
+    assert.ok(!logic.conflicts("sharpness", "sharpness"));
+});
+
+test("roman numerals, including the tens and hundreds", () => {
+    const cases = { 0: "", 1: "I", 4: "IV", 9: "IX", 14: "XIV", 39: "XXXIX", 40: "XL", 49: "XLIX", 50: "L", 90: "XC", 99: "XCIX", 100: "C" };
+    for (const [number, text] of Object.entries(cases)) assert.strictEqual(roman(Number(number)), text, number);
+});
+
+test("the service worker's file list holds every script, style, data file and language the page can load", () => {
+    const list = read("../ServiceWorker.js").match(/const FILES = \[([\s\S]*?)\]\.map/)[1];
+    const listed = new Set([...list.matchAll(/"([^"]+)"/g)].map(match => match[1]));
+    const onDisk = [
+        ...readdirSync(new URL("../js/", import.meta.url)).map(file => "js/" + file),
+        ...readdirSync(new URL("../css/", import.meta.url)).map(file => "css/" + file),
+        ...readdirSync(new URL("../json/text/", import.meta.url)).map(file => "json/text/" + file),
+        ...readdirSync(new URL("../json/mods/", import.meta.url)).map(file => "json/mods/" + file),
+        "json/metadata.json"
+    ];
+    assert.deepStrictEqual(onDisk.filter(file => !listed.has(file)), [], "on disk but not in FILES");
+    assert.deepStrictEqual([...listed].filter(file => !onDisk.includes(file)), [], "in FILES but not on disk");
+    for (const code of Object.keys(LANGUAGES)) assert.ok(listed.has(`json/text/${code}.json`), code);
+    const html = read("../index.html");
+    for (const [, file] of html.matchAll(/(?:href|src)="((?:css|js)\/[^"?]+)/g)) assert.ok(listed.has(file), file + " is in index.html but not in FILES");
 });
 
 console.log(`${passed} passed`);

@@ -4,6 +4,11 @@ const path = require("path");
 const { createEngine, experienceFromLevel, normalizePriority, CRITERIA } = require("../js/Engine.js");
 const metadata = require(path.join(__dirname, "../json/metadata.json"));
 
+// A small repeatable random generator: `lcg(seed)` returns rand(k), a whole number from 0 to k - 1.
+function lcg(seed) {
+    return k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+}
+
 const engine = createEngine(metadata);
 let passed = 0;
 
@@ -138,8 +143,7 @@ function bruteForce(entries) {
 
 test("memoized search matches brute force on random inputs", () => {
     const sword = ["sharpness", "smite", "unbreaking", "mending", "looting", "fire_aspect", "knockback", "sweeping"];
-    let seed = 12345;
-    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    const rand = lcg(12345);
     for (let trial = 0; trial < 60; trial++) {
         const count = 2 + rand(4);
         const entries = [["sword", [], rand(3)]];
@@ -198,8 +202,7 @@ function permutations(list) {
 test("every ranking and step limit matches brute force", () => {
     const sword = ["sharpness", "smite", "unbreaking", "mending", "looting", "fire_aspect", "knockback", "sweeping"];
     const orders = permutations(CRITERIA);
-    let seed = 777;
-    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    const rand = lcg(777);
     for (let trial = 0; trial < 40; trial++) {
         const count = 3 + rand(3);
         const entries = [["sword", [], rand(3)]];
@@ -230,8 +233,7 @@ test("every ranking and step limit matches brute force", () => {
 
 test("repeated identical entries match brute force for every ranking", () => {
     const orders = permutations(CRITERIA);
-    let seed = 2024;
-    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    const rand = lcg(2024);
     // A tiny pool, so most inputs repeat an entry.
     const pool = [["book", [["sharpness", 1]], 0], ["book", [["sharpness", 2]], 0], ["book", [["unbreaking", 1]], 1], ["sword", [], 0]];
     for (let trial = 0; trial < 25; trial++) {
@@ -302,8 +304,7 @@ test("Bedrock: cheaper Impaling, no Sweeping Edge", () => {
 test("Bedrock search matches brute force", () => {
     const bedrock = createEngine(metadata, { edition: "bedrock" });
     const pool = ["sharpness", "unbreaking", "looting", "mending"];
-    let seed = 31;
-    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    const rand = lcg(31);
     for (let trial = 0; trial < 25; trial++) {
         const entries = [["sword", [], rand(2)]];
         for (let i = 0, extra = 2 + rand(3); i < extra; i++) {
@@ -333,8 +334,7 @@ test("renaming adds 1 level to the last step and can make it too expensive", () 
 });
 
 test("renaming matches brute force, including which order is best", () => {
-    let seed = 77;
-    const rand = k => (seed = (seed * 1103515245 + 12345) % 2147483648) % k;
+    const rand = lcg(77);
     const pool = ["sharpness", "unbreaking", "looting", "fire_aspect"];
     for (let trial = 0; trial < 30; trial++) {
         const entries = [["sword", [], rand(3)]];

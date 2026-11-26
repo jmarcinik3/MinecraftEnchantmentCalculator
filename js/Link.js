@@ -1,25 +1,36 @@
 // Share links: saving the setup to the address and loading it (with optional progress).
 import { logic, mod_data, nextBookId, setState, state } from "./Store.js";
-import { linkMods } from "./Logic.js";
+import { linkEdition, linkMods } from "./Logic.js";
 import { syncRename } from "./Options.js";
 import { loadChecklist, orderKey, saveChecklist } from "./Results.js";
 import { last_result } from "./Calc.js";
 import { useEdition } from "./App.js";
 
+// The address keeps a link's progress (see carried_progress) until the first result has used it,
+// so a reload before then still has it; after that, the ticks live in this browser, and a
+// reload must not bring back the link's older ones.
 export function saveToUrl() {
-    const url = state.item ? "#" + logic.serialize(state) : location.pathname + location.search;
+    const url = state.item ? "#" + linkText() : location.pathname + location.search;
     history.replaceState(null, "", url);
+}
+
+// The link text the address holds for the setup on screen.
+export function linkText() {
+    return logic.serialize(state, carried_progress);
 }
 
 export function loadFromUrl() {
     const hash = location.hash.slice(1);
     const loaded = hash ? readLink(hash) : null;
-    if (loaded) {
-        carried_progress = loaded.progress;
-        delete loaded.progress;
-        setState(loaded);
-        syncRename();
-    }
+    if (loaded) useLink(loaded);
+}
+
+// Puts a read link's setup on screen (the caller rebuilds the helpers for its edition and redraws).
+export function useLink(loaded) {
+    carried_progress = loaded.progress;
+    delete loaded.progress;
+    setState(loaded);
+    syncRename();
 }
 
 // Ticked steps from a "link with progress", held until the order is calculated: they are
@@ -35,8 +46,10 @@ function orderHash(order_key) {
 
 export function applyCarriedProgress(node) {
     const carried = carried_progress;
+    if (!carried) return;
     carried_progress = null;
-    if (!carried || !node) return;
+    saveToUrl(); // the progress is used (or dropped): the address no longer carries it
+    if (!node) return;
     const steps = logic.collectSteps(node);
     const order_key = orderKey(steps);
     if (orderHash(order_key) !== carried.key) return;
@@ -55,11 +68,12 @@ export function currentLink() {
     return location.href.split("#")[0] + "#" + link;
 }
 
-// The state in a share link's text, or null if it is not valid. Read with the Java
-// helpers, which know every enchantment; the caller then switches to the link's edition.
+// The state in a share link's text, or null if it is not valid. Read with the helpers of the
+// link's own edition and mods (Bedrock offers enchantments Java does not); the caller then
+// switches to them.
 export function readLink(text) {
     try {
-        useEdition("java", linkMods(text).filter(id => mod_data[id]));
+        useEdition(linkEdition(text), linkMods(text).filter(id => mod_data[id]));
         return logic.deserialize(text, () => nextBookId());
     } catch (error) {
         console.warn("Ignoring invalid link", error);
