@@ -114,13 +114,16 @@ def scrub(page, action, sample, steps=20):
 
 
 def fold_all(page, label):
-    """Clicks Expand all / Collapse all in section 4: its buttons, or on a phone the "more" menu that holds them."""
-    menu = page.locator("#results .more-menu")
-    if menu.is_visible():
-        menu.locator("summary").click()
-        menu.locator(".copy-panel button", has_text=label).click()
-    else:
-        page.click("#results .fold-buttons >> text=" + label)
+    """Expand all ("Expand steps") or Collapse all ("Collapse steps") in section 4: one button that shows what it would do, so it is
+    clicked until it has done the one asked for (twice when it first offers the other)."""
+    want = "Expand" if label.startswith("Expand") else "Collapse"
+    for _ in range(2):
+        button = page.locator("#results .fold-toggle")
+        offers = button.get_attribute("aria-label")
+        button.click()
+        settle(page)
+        if offers.startswith(want):
+            return
 
 
 def link_data(page):
@@ -192,7 +195,7 @@ def part_steps(browser, base):
     page.click('#results [data-view="steps"]')
 
     # The link with progress: another device (new context) continues from the same ticks.
-    ticked = page.locator(".step-tick input:checked").count()
+    ticked = page.locator("input[data-step]:checked").count()
     page.click("#copy-link")
     copied = page.evaluate("navigator.clipboard.readText()")
     check("the link carries progress", "#" in copied and len(copied) > len(base), copied[:60])
@@ -200,16 +203,16 @@ def part_steps(browser, base):
     page2.goto(copied)
     page2.reload()
     page2.wait_for_selector("#results .anvil-step", timeout=8000)
-    check("the second device has the same ticks", page2.locator(".step-tick input:checked").count() == ticked,
-          (ticked, page2.locator(".step-tick input:checked").count()))
+    check("the second device has the same ticks", page2.locator("input[data-step]:checked").count() == ticked,
+          (ticked, page2.locator("input[data-step]:checked").count()))
     settle(page2)
     check("once used, the link's progress leaves the address", "t" not in link_data(page2) and "k" not in link_data(page2), link_data(page2))
-    page2.locator(".step-tick input:checked").last.click()  # the last one: no ticked step needs it
+    page2.locator("#results .step-node:has(input:checked)").last.click()  # the last one: no ticked step needs it
     settle(page2)
     page2.reload()
     page2.wait_for_selector("#results .anvil-step", timeout=8000)
-    check("a reload keeps the newer ticks, not the link's", page2.locator(".step-tick input:checked").count() == ticked - 1,
-          (ticked, page2.locator(".step-tick input:checked").count()))
+    check("a reload keeps the newer ticks, not the link's", page2.locator("input[data-step]:checked").count() == ticked - 1,
+          (ticked, page2.locator("input[data-step]:checked").count()))
 
     # Ticking the last step flashes the bar once ("level up").
     for number in range(1, total + 1):
@@ -218,10 +221,10 @@ def part_steps(browser, base):
             box.check()
     check("all steps ticked flashes the bar", page.locator(".step-progress-track.level-up").count() == 1)
 
-    # Phones: Steps/Tree and the "more" menu (Copy, Print, Expand all) share a row.
-    tops = page2.evaluate("""[...document.querySelector('.result-tools').children]
-        .filter(el => !el.classList.contains('step-progress') && el.offsetParent !== null).map(el => { const box = el.getBoundingClientRect(); return Math.round(box.top + box.height / 2); })""")
-    check("on a phone the tools share one row", len(tops) == 2 and max(tops) - min(tops) <= 2, tops)
+    # Phones: the icons (Steps | Tree, Compact, fold all, Share) share one row, under the progress.
+    tops = page2.evaluate("""[...document.querySelectorAll('.result-tools .result-icons :is(.segmented, .icon-btn)')]
+        .filter(el => el.offsetParent !== null).map(el => { const box = el.getBoundingClientRect(); return Math.round(box.top + box.height / 2); })""")
+    check("on a phone the tools share one row", len(tops) == 4 and max(tops) - min(tops) <= 2, tops)
     overflow = page2.evaluate("document.documentElement.scrollWidth > innerWidth")
     check("a phone has no sideways scroll", not overflow)
 
@@ -472,7 +475,7 @@ def part_books_tail(browser, base):
     page4.click("#copy-link")
     page4.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(page4) # a result arriving would redraw (and close) the menu
-    page4.click(".copy-menu summary")
+    page4.click("#results .share-menu summary")
     page4.click(".copy-steps")
     page4.locator("#language select").select_option("es")
     page4.wait_for_function("document.documentElement.lang === 'es'")
@@ -737,7 +740,8 @@ def part_anvil_uses(browser, base):
     p7.locator("#results .anvil-step").nth(2).locator(".anvil-cost").hover()
     check("the cost shows where its levels come from", p7.locator("#results .cost-breakdown").first.is_visible() or p7.locator("#results .has-breakdown.open").count() == 1)
     p7.mouse.move(0, 0)
-    check("the progress sits on its own row", p7.evaluate("document.querySelector('.step-progress').getBoundingClientRect().top > document.querySelector('.result-tools .copy-menu').getBoundingClientRect().bottom - 2"))
+    check("the progress and the icons share one row", p7.evaluate("Math.abs(document.querySelector('.result-tools .step-progress').getBoundingClientRect().top - document.querySelector('.result-tools .result-icons').getBoundingClientRect().top) < 12"))
+    check("the toolbar has no Copy, Print or Expand buttons of its own (they are in Share and one fold icon)", p7.locator("#results .result-tools > .result-icons > .share-menu").count() == 1 and p7.locator("#results .fold-buttons, #results .more-menu, #results .result-actions").count() == 0)
     check("the heading counts steps, not uses twice", "step" in p7.inner_text("#steps-summary"), p7.inner_text("#steps-summary"))
     p7.click("#results .density")
     check("Compact Steps hides the tooltips until hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell .mc-tooltip')).display") == "none")
@@ -750,6 +754,22 @@ def part_anvil_uses(browser, base):
     settle(p7)
     check("ticking every step finishes the card", "done" in (p7.get_attribute("#results .final-card", "class") or ""))
     p7.click("#results .step-reset")
+    settle(p7)
+    check("Uncheck all unticks the steps and offers Undo", p7.locator("#results input[data-step]:checked").count() == 0 and "Undo" in p7.inner_text(".toast"))
+    p7.click(".toast .link")
+    settle(p7)
+    check("Undo brings the ticks back", p7.locator("#results input[data-step]:checked").count() >= 1)
+    check("done steps can be shown again from under the list", "done step" in p7.inner_text("#results .show-done"))
+    p7.click("#results .step-reset")
+    settle(p7)
+    check("with nothing ticked there is no Uncheck all", p7.locator("#results .step-reset").count() == 0)
+    round_steps = p7.locator("#results .round").first.locator(".anvil-step")
+    p7.locator("#results .round-toggle").first.click()
+    settle(p7)
+    first_round_folded = round_steps.evaluate_all("steps => steps.map(step => step.classList.contains('folded'))")
+    p7.locator("#results .round-toggle").first.click()
+    settle(p7)
+    check("a round's label folds or unfolds its steps", len(set(first_round_folded)) == 1 and round_steps.evaluate_all("steps => steps.map(step => step.classList.contains('folded'))") != first_round_folded, first_round_folded)
     p7.click('#results [data-view="tree"]')
     p7.click("#results .density")
     check("the compact tree shows captions", p7.locator("#results .merge-tree.compact").count() == 1)
@@ -995,7 +1015,7 @@ def part_ranking(browser, base):
     p10.wait_for_selector("#results .anvil-step", timeout=8000)
     check("raising the limit from there gives an order", p10.locator("#results .break-down").count() == 0)
     # Section 4: the goal line, "In words", the wear label, jumping, the keyboard, the copy menu and source highlighting.
-    check("a line says the goal before the steps", "enchantments" in p10.inner_text("#results .result-goal"), p10.inner_text("#results .result-goal"))
+    check("no goal line repeats what Section 1 and the heading say", p10.locator("#results .result-goal").count() == 0)
     check("the anvil wear badge is labelled", p10.locator("#anvil-risk .anvil-risk-label").is_visible())
     check("the sentence is behind an In words line", not p10.locator("#results .anvil-step.current .step-instruction").is_visible())
     p10.click("#results .anvil-step.current .step-words summary")
@@ -1008,8 +1028,8 @@ def part_ranking(browser, base):
     check("Down moves to the next step", p10.evaluate("document.activeElement.dataset.step") == "6")
     p10.keyboard.press("ArrowUp")
     check("Up moves back", p10.evaluate("document.activeElement.dataset.step") == "5")
-    p10.click(".copy-menu summary")
-    check("Copy is a menu of steps and checklist", p10.locator(".copy-panel .copy-steps").is_visible() and p10.locator(".copy-panel .copy-checklist").is_visible())
+    p10.click("#results .share-menu summary")
+    check("Share is a menu of steps, checklist, link and Print", all(p10.locator(".share-menu .copy-panel " + part).is_visible() for part in (".copy-steps", ".copy-checklist", ".copy-link", ".print-button")))
     p10.keyboard.press("Escape")
     p10.locator("#results .step-progress-cell").nth(6).click()
     settle(p10)
@@ -1024,7 +1044,7 @@ def part_ranking(browser, base):
     p10.click("#results .density")
     settle(p10)
     steps_n = p10.locator("#results .anvil-step").count()
-    check("the Slots view's steps have a fold arrow and start with the same steps open as Steps", p10.locator("#results .step-fold").count() == steps_n and folded_steps() == in_steps and p10.locator("#results .fold-buttons").count() == 1, (in_steps, folded_steps()))
+    check("the Slots view's steps have a fold arrow and start with the same steps open as Steps", p10.locator("#results .step-fold").count() == steps_n and folded_steps() == in_steps and p10.locator("#results .fold-toggle").count() == 1, (in_steps, folded_steps()))
     fold_all(p10, "Collapse steps")
     settle(p10)
     check("Collapse all folds every Slots step to its head (the row and caption go, the one-line summary shows)", p10.locator("#results .anvil-step.folded").count() == steps_n and p10.locator("#results .anvil-row:visible").count() == 0 and p10.locator("#results .step-caption:visible").count() == 0 and "+" in p10.locator("#results .anvil-step.folded .step-summary").first.inner_text())
@@ -1727,7 +1747,7 @@ def part_narrow_results(browser, base):
     p18.click('#results [data-view="steps"]')
     settle(p18)
     heights = "[...document.querySelectorAll('#results .anvil-step')].map(e => Math.round(e.getBoundingClientRect().height))"
-    result = scrub(p18, "[...document.querySelectorAll('#results .fold-buttons button, #results .more-menu .copy-panel button')].find(b => b.textContent.includes('Expand steps')).click();", heights)
+    result = scrub(p18, "document.querySelector('#results .fold-toggle').click();", heights)
     frames_seen = result["values"]
     first, last = frames_seen[0], result["after"]
     grown = [i for i in range(len(first)) if last[i] > first[i] + 20]
@@ -1767,10 +1787,10 @@ def part_layout(browser, base):
     check("on a phone the three slots stack with wide tooltips", len(cells) == 3 and cells[0][0] < cells[1][0] < cells[2][0] and min(w for _, w in cells) >= 120, cells)
     broken = ph.evaluate("""() => [...document.querySelectorAll('#results .anvil-step.current .mc-name')].filter(n => { const range = document.createRange(); range.selectNodeContents(n); return range.getClientRects().length > 1; }).map(n => n.textContent)""")
     check("no name in a step is split over lines", not broken, broken)
-    menu = ph.locator("#results .more-menu")
-    check("on a phone Copy, Print and Expand all are one menu", menu.is_visible() and not ph.locator("#results .result-actions").is_visible() and not ph.locator("#results .fold-buttons").is_visible())
+    menu = ph.locator("#results .share-menu")
+    check("on a phone the same icons show (no menu of their own)", menu.is_visible() and ph.locator("#results .fold-toggle").is_visible() and ph.locator("#results .more-menu").count() == 0)
     menu.locator("summary").click()
-    check("the menu holds the five actions", menu.locator(".copy-panel button").count() == 5)
+    check("Share holds the four actions", menu.locator(".copy-panel button").count() == 4)
     ph.keyboard.press("Escape")
     check("Escape closes the menu", not menu.evaluate("e => e.open"))
     # The current-step bar never sits over the step it stands for: with the step peeking in at the bottom edge it is tucked.
@@ -1782,7 +1802,7 @@ def part_layout(browser, base):
     _, wide, errs = open_page(browser, base, viewport={"width": 1280, "height": 900})
     errors += errs
     pick_boots(wide)
-    check("on a wide screen Copy, Print and Expand all stay buttons", wide.locator("#results .result-actions").is_visible() and wide.locator("#results .fold-buttons").is_visible() and not wide.locator("#results .more-menu").is_visible())
+    check("on a wide screen the same icons show as on a phone", wide.locator("#results .share-menu").is_visible() and wide.locator("#results .fold-toggle").is_visible() and wide.locator("#results .density").is_visible())
     # The settings panel: one label column for both sections, inside a short window (a phone on its side).
     _, land, errs = open_page(browser, base, viewport={"width": 740, "height": 360})
     errors += errs
@@ -1872,9 +1892,10 @@ def part_keys(browser, base):
     p.click('#wanted [data-focus="wanted-expand"]')
     settle(p)
     # The two fold pairs are named apart.
-    labels = [t.strip() for t in p.eval_on_selector_all("#wanted .fold-buttons .btn, #results .fold-buttons .btn", "e => e.map(x => x.textContent)")]
-    check("Section 1's buttons say groups, Section 4's say steps", labels == ["Expand groups", "Collapse groups", "Expand steps", "Collapse steps"], labels)
-    check("and their aria-labels differ", p.get_attribute('#wanted [data-focus="wanted-expand"]', "aria-label") != p.get_attribute("#results .fold-buttons button", "aria-label"))
+    labels = [t.strip() for t in p.eval_on_selector_all("#wanted .fold-buttons .btn", "e => e.map(x => x.textContent)")]
+    step_label = p.get_attribute("#results .fold-toggle", "aria-label")
+    check("Section 1's buttons say groups, Section 4's says steps", labels == ["Expand groups", "Collapse groups"] and step_label in ("Expand all steps", "Collapse all steps"), (labels, step_label))
+    check("and their aria-labels differ", p.get_attribute('#wanted [data-focus="wanted-expand"]', "aria-label") != step_label)
     # One tab stop per group, step, and progress bar.
     stops = p.evaluate("""() => [...document.querySelectorAll('#wanted [role=radiogroup]')].map(g => [...g.querySelectorAll('[role=radio]')].filter(r => r.tabIndex === 0).length)""")
     check("each Pick one radiogroup is one tab stop", stops and all(n == 1 for n in stops), stops)

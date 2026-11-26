@@ -790,12 +790,15 @@ export function rollLevelBar(bar, old_levels, old_segments) {
 // Eases `element` from the height it had (`from`) to its new one, like a section folding (FOLD_MS, FOLD_EASING); it clips while it
 // does (a folding step hides what is inside). Options: `duration`/`easing` (a fold's by default), `fade` (opacity follows a box that
 // opens from or closes to nothing), `during` (runs when it starts and returns what to run when it ends).
-export function easeHeight(element, from, { duration = FOLD_MS, easing = FOLD_EASING, fade = false, during } = {}) {
+// `overhang`: what the element draws outside its box on the sides and top, in px (a step's circle on the rail, its ring): then only the bottom edge, the
+// one that moves, clips (a clip-path), instead of every edge (overflow: hidden), so those parts stay on show while it eases.
+export function easeHeight(element, from, { duration = FOLD_MS, easing = FOLD_EASING, fade = false, during, overhang = 0 } = {}) {
     const to = element.getBoundingClientRect().height;
     if (Math.abs(to - from) < 1 || !motionOk()) return;
-    element.style.overflow = "hidden";
+    if (overhang) element.style.clipPath = `inset(-${overhang}px -${overhang}px 0 -${overhang}px)`;
+    else element.style.overflow = "hidden";
     const restore = during && during();
-    const clear = () => { element.style.overflow = ""; if (restore) restore(); };
+    const clear = () => { element.style.overflow = ""; element.style.clipPath = ""; if (restore) restore(); };
     const frame = height => ({ height: height + "px", ...(fade ? { opacity: height ? 1 : 0 } : {}) });
     afterAnimation(element.animate([frame(from), frame(to)], { duration, easing }), clear, duration + 150);
 }

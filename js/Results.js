@@ -11,6 +11,7 @@ import { activeLevel, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { commit, renderOrderSummary, renderStepsSummary } from "./App.js";
+import { currentLink } from "./Link.js";
 
 const CHECKLIST_STORAGE_KEY = "enchantment-calculator-checklist";
 const VIEW_STORAGE_KEY = "enchantment-calculator-view";
@@ -203,44 +204,42 @@ export function renderResults() {
         writeStorage(VIEW_STORAGE_KEY, view);
         renderResults();
     };
-    // Compact (one setting for Steps and Tree): only the slots, with the details on hover. Expand all / Collapse all are with the progress.
+    // Compact (one setting for Steps and Tree): only the slots, with the details on hover. A density icon, lit while on.
     const compact = h("button", {
-        type: "button", class: "btn small density", "aria-pressed": String(isCompact()), title: TEXT.results.compact_help,
+        type: "button", class: "icon-btn density", "aria-pressed": String(isCompact()), title: TEXT.results.compact_help, "aria-label": TEXT.results.compact,
         onclick: () => {
             rememberView();
             compact_choice = !isCompact();
             writeStorage(COMPACT_STORAGE_KEY, compact_choice);
             renderResults();
         }
-    }, TEXT.results.compact);
-    const foldAll = fold => {
+    }, densityIcon());
+    const foldSteps = (numbers, fold) => {
         const was = new Map([...stepBoxes()].map(([number, el]) => [number, el.getBoundingClientRect().height]));
-        for (const step of steps) foldsFor(order_key).set(step.number, fold);
+        for (const number of numbers) foldsFor(order_key).set(number, fold);
         fold_change = was;
         renderResults();
     };
-    const fold_buttons = h("span", { class: "fold-buttons" },
-        h("button", { type: "button", class: "btn small", "aria-label": TEXT.results.expand_steps_label, onclick: () => foldAll(false) }, TEXT.results.expand_steps),
-        h("button", { type: "button", class: "btn small", "aria-label": TEXT.results.collapse_steps_label, onclick: () => foldAll(true) }, TEXT.results.collapse_steps));
+    const foldAll = fold => foldSteps(steps.map(step => step.number), fold);
+    // Whether a step is folded on screen now (the Tree opens every merge by default; Steps only the current step).
+    const foldedNow = number => isFolded(order_key, number, done, result_view === "tree" ? false : foldedByDefault(number));
+    // One button for Expand all / Collapse all: it shows what it would do (unfold while most steps are folded, else fold).
+    const mostly_folded = steps.filter(step => foldedNow(step.number)).length * 2 >= steps.length;
+    const fold_label = mostly_folded ? TEXT.results.expand_steps_label : TEXT.results.collapse_steps_label;
+    const fold_toggle = h("button", {
+        type: "button", class: "icon-btn fold-toggle", title: fold_label, "aria-label": fold_label, onclick: () => foldAll(!mostly_folded)
+    }, foldIcon(mostly_folded));
 
-    // The goal, before the steps: what is made, what it costs and in how many steps.
-    content.append(h("p", { class: "result-goal" }, TEXT.results.goal({
-        item: nodeName(node),
-        enchantments: TEXT.results.goal_enchantments({ count: node.enchantments.length }),
-        levels: node.cumulative_levels + " " + TEXT.ranking.criteria.levels.unit({ value: node.cumulative_levels }),
-        steps: TEXT.page.summary_steps({ count: steps.length })
-    })));
+    // One row: the progress on the left; how the order is shown (Steps | Tree, Compact, fold all) and Share on the right, as quiet icons.
     content.append(h("div", { class: "toolbar result-tools" },
-        segmented("view-icons", TEXT.results.view_label, [["steps", TEXT.results.view_steps], ["tree", TEXT.results.view_tree]].map(([view, label]) => ({
-            selected: result_view === view, content: viewIcon(view), onclick: () => setView(view), attrs: { "data-view": view, title: label, "aria-label": label }
-        }))),
-        stepProgress(steps, done, remaining.needed, order_key, [compact, fold_buttons]),
-        // Copy steps and Print go to the next row together, never one without the other.
-        h("div", { class: "result-actions" },
-            copyMenu(node, steps, done),
-            h("button", { type: "button", class: "btn small", title: TEXT.results.print_help, onclick: () => window.print() }, TEXT.results.print)),
-        // Phones (CSS): Copy, Print and Expand / Collapse all fold into this one menu.
-        moreMenu(node, steps, done, foldAll)
+        stepProgress(steps, done, remaining.needed, order_key),
+        h("div", { class: "result-icons" },
+            h("div", { class: "view-group", role: "group", "aria-label": TEXT.results.view_label },
+                segmented("view-icons", TEXT.results.view_label, [["steps", TEXT.results.view_steps], ["tree", TEXT.results.view_tree]].map(([view, label]) => ({
+                    selected: result_view === view, content: viewIcon(view), onclick: () => setView(view), attrs: { "data-view": view, title: label, "aria-label": label }
+                }))),
+                compact, fold_toggle),
+            shareMenu(node, steps, done))
     ));
 
     // Only the steps (or the tree) scroll, under the Steps/Tree row; on desktop they fill
@@ -259,7 +258,7 @@ export function renderResults() {
         const rounds = logic.stepRounds(steps);
         const timeline = h("div", { class: "rounds timeline" + (slots ? " slots-mode" : "") }, rounds.map((round, index) => h("section", { class: "round" },
             h("div", { class: "round-label" },
-                TEXT.results.round({ number: index + 1, steps: round.length }),
+                roundToggle(round, index, foldedNow, foldSteps),
                 round.length > 1 ? roundTip(index) : null),
             h("ol", { class: "anvil-steps" }, round.map(step =>
                 anvilStep(step, done, order_key, steps,
@@ -277,6 +276,15 @@ export function renderResults() {
             });
         }
         scroller.append(timeline);
+        // Done steps fold by themselves; one toggle under the list shows them all again (or folds them back).
+        const done_steps = steps.filter(step => done.has(step.number)).map(step => step.number);
+        if (done_steps.length) {
+            const hidden = done_steps.some(number => foldedNow(number));
+            scroller.append(h("button", {
+                type: "button", class: "link show-done", "aria-pressed": String(!hidden),
+                onclick: () => foldSteps(done_steps, !hidden)
+            }, hidden ? TEXT.results.show_done({ count: done_steps.length }) : TEXT.results.hide_done({ count: done_steps.length })));
+        }
         // The finished item, after the last step.
         scroller.append(h("section", { class: "final-card" + (current == null ? " done" : "") },
             h("div", { class: "final-title" }, current == null ? TEXT.results.final_done : TEXT.results.final_title),
@@ -295,7 +303,7 @@ export function renderResults() {
     if (folding) {
         // A tree merge or step that folds keeps its contents on show while its box shrinks, so it is unfolding played backwards (the box clips them); then it hides them.
         const keepBranch = el => el.matches("li.tree-node.folded, li.anvil-step.folded") ? () => { el.classList.add("folding"); return () => el.classList.remove("folding"); } : undefined;
-        for (const [number, el] of stepBoxes()) if (folding.has(number)) easeHeight(el, folding.get(number), { during: keepBranch(el) });
+        for (const [number, el] of stepBoxes()) if (folding.has(number)) easeHeight(el, folding.get(number), { during: keepBranch(el), overhang: el.matches(".anvil-step") ? 40 : 0 }); // (a step's circle sits on the rail, outside its box)
     }
 }
 
@@ -560,26 +568,26 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
 
     const cost = step.node.merge_levels;
 
-    // Every step folds and unfolds the same way: a click anywhere on its head (but the
-    // tick) or its ▾/▴ button. Folded, the head says what the step does.
+    // Every step folds and unfolds the same way: a click anywhere on its head or its ▾/▴ button. Folded, the head says what the step does.
+    // The step's circle on the rail ticks it (its checkbox is inside, hidden: the keyboard and screen readers use it).
     const fold_label = folded ? TEXT.results.expand_step : TEXT.results.collapse_step;
     // Keys on the head's two controls (the tick, the ▾/▴ button), which are the step's tab stops: Space ticks and Enter or Space folds
     // as for any checkbox or button, and Up and Down move the focus to the same control of the neighbouring step.
+    const keys = event => {
+        if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+        const control = event.target.closest("input[data-step], .step-fold");
+        if (!control) return;
+        event.preventDefault();
+        const cards = [...document.querySelectorAll("#results .anvil-step")];
+        const next = cards[cards.indexOf(event.currentTarget.closest(".anvil-step")) + (event.key === "ArrowDown" ? 1 : -1)];
+        const target = next && next.querySelector(control.matches(".step-fold") ? ".step-fold" : "input[data-step]");
+        if (target) { target.focus({ preventScroll: true }); scrollToView(target); }
+    };
     const head = h("div", {
         class: "step-head", title: fold_label,
-        onclick: event => { if (!event.target.closest(".step-tick, .step-fold")) toggleFold(order_key, number, !folded); },
-        onkeydown: event => {
-            if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
-            const control = event.target.closest("input[data-step], .step-fold");
-            if (!control) return;
-            event.preventDefault();
-            const cards = [...document.querySelectorAll("#results .anvil-step")];
-            const next = cards[cards.indexOf(event.currentTarget.closest(".anvil-step")) + (event.key === "ArrowDown" ? 1 : -1)];
-            const target = next && next.querySelector(control.matches(".step-fold") ? ".step-fold" : "input[data-step]");
-            if (target) { target.focus({ preventScroll: true }); scrollToView(target); }
-        }
+        onclick: event => { if (!event.target.closest(".step-fold")) toggleFold(order_key, number, !folded); }
     },
-        h("label", { class: "step-tick", title: TEXT.results.step_done_help, "data-fly": "step:" + number }, tick, h("span", {}, TEXT.results.step_title({ number }))),
+        h("span", { class: "step-title", "data-fly": "step:" + number }, TEXT.results.step_title({ number })),
         h("span", { class: "step-summary" }, folded ? stepLine(step) : null),
         h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
@@ -589,9 +597,9 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
 
     return h("li", {
         class: "anvil-step" + (is_done ? " done" : "") + (folded ? " folded" : "") + (current ? " current" : ""),
-        "data-step-card": number
+        "data-step-card": number, onkeydown: keys
     },
-        h("span", { class: "step-node", "aria-hidden": "true" }, is_done ? "✓" : number),
+        h("label", { class: "step-node", title: TEXT.results.step_done_help }, tick, h("span", { class: "step-node-mark", "aria-hidden": "true" }, is_done ? "✓" : number)),
         head,
         // With "Your level" filled in and too low: how many levels to gain before this step.
         level && level.short ? h("div", { class: "level-checkpoint" }, TEXT.results.checkpoint({ count: level.short, level: cost })) : null,
@@ -834,38 +842,59 @@ function announce(text, order_key, count) {
 }
 
 // "Copy": a small menu of the two ways to take the steps along: as plain text, or as a checklist.
-function copyMenu(node, steps, done) {
-    const menu = h("details", { class: "copy-menu" }, h("summary", { class: "btn small" }, TEXT.results.copy_menu));
-    const item = (name, title, text) => h("button", {
+// A round's label folds its round: every step of it, or unfolds them all when they are all folded.
+function roundToggle(round, index, foldedNow, foldSteps) {
+    const all_folded = round.every(step => foldedNow(step.number));
+    const label = all_folded ? TEXT.results.round_unfold : TEXT.results.round_fold;
+    return h("button", {
+        type: "button", class: "round-toggle", "aria-expanded": String(!all_folded), title: label,
+        onclick: () => foldSteps(round.map(step => step.number), !all_folded)
+    }, TEXT.results.round({ number: index + 1, steps: round.length }), h("span", { class: "round-chevron", "aria-hidden": "true" }, all_folded ? "\u25b8" : "\u25be"));
+}
+
+// Share: everything that hands the order on (copy it as text or a checklist, the link with your progress, print).
+function shareMenu(node, steps, done) {
+    const menu = h("details", { class: "copy-menu share-menu" },
+        h("summary", { class: "icon-btn", title: TEXT.results.share_help, "aria-label": TEXT.results.share }, shareIcon()));
+    const copy = (name, label, title, text) => h("button", {
         type: "button", class: "btn small " + name, title,
         onclick: event => {
-            copyText(event.currentTarget, text(), TEXT.results[name === "copy-steps" ? "copy_steps" : "copy_checklist"]);
+            copyText(event.currentTarget, text(), label);
             setTimeout(() => { menu.open = false; }, 900); // after the "Copied" it says
         }
-    }, TEXT.results[name === "copy-steps" ? "copy_steps" : "copy_checklist"]);
+    }, label);
     menu.append(h("div", { class: "copy-panel" },
-        item("copy-steps", TEXT.results.copy_steps_help, () => stepsText(node, steps)),
-        item("copy-checklist", TEXT.results.copy_checklist_help, () => checklistText(node, steps, done))));
+        copy("copy-steps", TEXT.results.copy_steps, TEXT.results.copy_steps_help, () => stepsText(node, steps)),
+        copy("copy-checklist", TEXT.results.copy_checklist, TEXT.results.copy_checklist_help, () => checklistText(node, steps, done)),
+        copy("copy-link", TEXT.results.copy_link, TEXT.results.copy_link_help, () => currentLink()),
+        h("button", { type: "button", class: "btn small print-button", title: TEXT.results.print_help, onclick: () => { menu.open = false; window.print(); } }, TEXT.results.print)));
     return menu;
 }
-// Phones: one "⋯" menu holding what wide screens show as buttons (Copy steps, Copy checklist, Print, Expand all, Collapse all).
-function moreMenu(node, steps, done, foldAll) {
-    const menu = h("details", { class: "copy-menu more-menu" },
-        h("summary", { class: "btn small", "aria-label": TEXT.results.more, title: TEXT.results.more }, "\u22ef"));
-    const action = (label, title, onclick) => h("button", { type: "button", class: "btn small", title, onclick }, label);
-    const copy = (label, title, text) => action(label, title, event => {
-        copyText(event.currentTarget, text(), label);
-        setTimeout(() => { menu.open = false; }, 900); // after the "Copied" it says
-    });
-    const close = run => event => { menu.open = false; run(event); };
-    menu.append(h("div", { class: "copy-panel" },
-        copy(TEXT.results.copy_steps, TEXT.results.copy_steps_help, () => stepsText(node, steps)),
-        copy(TEXT.results.copy_checklist, TEXT.results.copy_checklist_help, () => checklistText(node, steps, done)),
-        action(TEXT.results.print, TEXT.results.print_help, close(() => window.print())),
-        action(TEXT.results.expand_steps, null, close(() => foldAll(false))),
-        action(TEXT.results.collapse_steps, null, close(() => foldAll(true)))));
-    return menu;
+
+// The toolbar's icons: Compact (list density), fold all (chevrons apart or together) and Share.
+const ICON_STROKE = { fill: "none", stroke: "currentColor", "stroke-width": "1.5", "stroke-linecap": "round", "stroke-linejoin": "round" };
+function densityIcon() {
+    return svgIcon("0 0 16 16", [["path", { d: "M2.5 3.5h11M2.5 6.5h11M2.5 9.5h11M2.5 12.5h11" }]], ICON_STROKE);
 }
+function foldIcon(expand) {
+    return svgIcon("0 0 16 16", expand ? [["path", { d: "M5 5.5 8 2.5l3 3M5 10.5l3 3 3-3" }]] : [["path", { d: "M5 2.5l3 3 3-3M5 13.5l3-3 3 3" }]], ICON_STROKE);
+}
+function shareIcon() {
+    return svgIcon("0 0 16 16", [["path", { d: "M8 10V2.5M5 5.5l3-3 3 3" }], ["path", { d: "M3.5 8.5v4.5h9V8.5" }]], ICON_STROKE);
+}
+
+// Unticking every step can be undone for a few seconds (a toast with Undo) instead of asking first.
+let undo_toast = null;
+function undoToast(text, undo) {
+    if (undo_toast) undo_toast.remove();
+    const toast = h("div", { class: "toast", role: "status" },
+        h("span", {}, text),
+        h("button", { type: "button", class: "link", onclick: () => { toast.remove(); undo(); } }, TEXT.results.undo));
+    document.body.append(toast);
+    undo_toast = toast;
+    setTimeout(() => { toast.remove(); if (undo_toast === toast) undo_toast = null; }, 4000);
+}
+
 // The menu closes on a click outside it, or on Escape (one listener for the menu of every redraw).
 closeOnOutside({
     open: () => document.querySelector(".copy-menu[open]"),
@@ -886,17 +915,14 @@ function jumpToStep(order_key, number) {
 }
 
 // In the toolbar: "3 of 7 done · 18 levels to go" over a bar that fills as steps are
-// ticked, and ↺ to untick them all; `extra` are more buttons for the same row (some may be null).
-function stepProgress(steps, done, levels, order_key, extra) {
+// ticked, and ↺ to untick them all (shown once something is ticked; a toast's Undo brings the ticks back).
+function stepProgress(steps, done, levels, order_key) {
     const total = steps.length;
     const count = steps.filter(step => done.has(step.number)).length;
     const level_up = total > 0 && count === total && celebrated !== order_key;
     celebrated = count === total ? order_key : null;
     const summary = count === total ? TEXT.results.progress_done({ total }) : TEXT.results.progress({ done: count, total, levels });
     announce(summary, order_key, count);
-    // The bar, its text and ↺ stay together; the extra buttons (Compact, Expand all /
-    // Collapse all) wrap to their own row as one group when there is no room beside them.
-    const tools = extra.filter(Boolean);
     // With "Your level" tracked: enough for what is left, or how many levels are missing.
     const level = activeLevel();
     const level_status = level != null && levels > 0
@@ -915,11 +941,15 @@ function stepProgress(steps, done, levels, order_key, extra) {
                 level_up && motionOk() ? orbBurst() : null),
             h("span", { class: "step-progress-text" }, summary),
             level_status,
-            h("button", {
+            count ? h("button", {
                 type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
-                disabled: count === 0, onclick: () => { saveTicks(order_key, steps, done, new Set()); renderResults(); }
-            }, "↺")),
-        tools.length ? h("div", { class: "step-progress-tools" }, tools) : null
+                onclick: () => {
+                    const before = new Set(done);
+                    saveTicks(order_key, steps, done, new Set());
+                    renderResults();
+                    undoToast(TEXT.results.unticked({ count: before.size }), () => { saveChecklist(order_key, before); renderResults(); });
+                }
+            }, "↺") : null)
     );
 }
 

@@ -1791,6 +1791,17 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     color: var(--text-secondary);
     font: 600 11px/1 system-ui, sans-serif;
 }
+/* The circle ticks its step: its checkbox lies over it, invisible (a click anywhere on the circle is a click on it; the keyboard and screen readers use it as
+   any checkbox); hovering shows the tick it would give. */
+.step-node { cursor: pointer; transition: border-color 0.15s, background-color 0.15s; }
+.step-node input { position: absolute; inset: -2px; z-index: 1; width: auto; height: auto; margin: 0; border-radius: 50%; opacity: 0; cursor: pointer; }
+.step-node:hover { border-color: var(--mc-done); }
+.anvil-step:not(.done) .step-node:hover .step-node-mark { font-size: 0; }
+.anvil-step:not(.done) .step-node:hover .step-node-mark::after { content: "\2713"; font-size: 13px; color: var(--mc-done); }
+.step-node:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
+/* A bigger target on touch screens, without changing the circle. */
+.step-node::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; }
+@media (pointer: coarse) { .step-node::after { inset: -9px; } }
 .anvil-step.done .step-node { border-color: var(--mc-done); background: var(--mc-done); color: var(--mc-white); }
 .anvil-step.current .step-node { border-color: var(--accent); color: var(--accent-text); box-shadow: 0 0 0 4px var(--accent-bg); }
 
@@ -1802,27 +1813,11 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     background: var(--surface-alt);
 }
 
-/* The step's head: the tick (the whole "☐ Step 3" is the target) and a folded step's line. */
+/* The step's head: its title ("Step 3") and a folded step's line; the whole head folds the step. */
 .anvil-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .anvil-step.current { border-color: var(--accent); }
 .step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; cursor: pointer; }
-.step-tick {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    flex: none;
-    min-height: 26px; /* the whole label ticks: a big enough target */
-    padding: 3px 8px 3px 5px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--text);
-    cursor: pointer;
-}
-.step-tick:hover { background: var(--surface); }
-.step-tick input { width: 16px; height: 16px; margin: 0; accent-color: var(--accent); cursor: pointer; }
-/* The whole label ticks, so on touch screens it is the tall target (its extra height is taken back by the margin). */
-@media (pointer: coarse) { .step-tick { min-height: 40px; margin: -6px 0; } }
+.step-title { flex: none; padding: 3px 0; font-size: 13px; font-weight: 600; color: var(--text); }
 /* The whole head (but the tick) folds and unfolds the step; ▾/▴ says which it will do. */
 .step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-fold {
@@ -2088,7 +2083,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 [data-entry-link]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
-/* Takes the row's width and wraps its extra buttons under it (see .result-tools .step-progress). */
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* An experience bar: black frame, dark empty segments, bright green filled ones. */
 .step-progress-track { position: relative; display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 24px; margin: -8px 0; padding: 0 1px; }
@@ -2116,11 +2110,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .step-progress-main { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
-/* With room (not phones), the text stays on one line: the bar gives way first, then the
-   tools wrap to a row of their own. */
+/* With room (not phones), the text stays on one line: the bar gives way first, then the icons wrap under it. */
 @media (min-width: 600px) { .step-progress-text { white-space: nowrap; } }
-.step-progress-tools { display: flex; align-items: center; gap: 4px; margin-left: auto; }
-.step-progress-tools .fold-buttons { margin-left: 0; }
 .step-reset {
     flex: none;
     width: 24px;
@@ -2134,8 +2125,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     cursor: pointer;
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
-.step-reset:hover:not(:disabled) { background: var(--surface-alt); color: var(--text); }
-.step-reset:disabled { opacity: 0.35; cursor: default; }
+.step-reset:hover { background: var(--surface-alt); color: var(--text); }
 
 /* The break risk in section 4's heading: [anvil] 4%, a pill colored by risk. */
 .info-tip.anvil-risk { flex: none; }
@@ -2159,10 +2149,62 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .info-tip.anvil-risk .info-tip-button:hover, .info-tip.anvil-risk.open .info-tip-button { box-shadow: inset 0 0 0 1px currentColor; }
 .info-tip.anvil-risk .info-tip-bubble { font-weight: normal; }
 
-.result-actions { display: flex; gap: 8px; margin-left: auto; }
 .result-tools .btn:disabled:not(.primary) { opacity: 1; }
-/* Steps/Tree, Copy steps and Print share one row; the progress goes under them. */
-.result-tools .step-progress { order: 1; flex-basis: 100%; }
+/* One row: the progress on the left, then the icons (Steps | Tree, Compact, fold all; Share) on the right. With no room the icons wrap under the progress. */
+.result-tools { flex-wrap: wrap; align-items: center; row-gap: 8px; }
+.result-icons { display: flex; align-items: center; gap: 6px; margin-left: auto; }
+.view-group { display: flex; align-items: center; gap: 2px; }
+/* Phones: the progress takes the first line, the icons the next. */
+@media (max-width: 600px) { .result-tools .step-progress { flex-basis: 100%; } }
+.view-group .segmented { margin-right: 4px; }
+/* Quiet icon buttons: no border until hovered or focused, lit while pressed (Compact on). */
+.icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    background: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+}
+.icon-btn svg { display: block; width: 16px; height: 16px; }
+.icon-btn:hover, .copy-menu[open] > .icon-btn { border-color: var(--border-strong); background: var(--surface-alt); color: var(--text); }
+.icon-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.icon-btn[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-bg); color: var(--accent-text); }
+@media (pointer: coarse) { .icon-btn { width: 40px; height: 40px; } }
+.copy-menu > summary.icon-btn::after { content: none; }
+/* Unticking every step: a toast at the bottom of the window with Undo, for a few seconds. */
+.toast {
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 60;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 10px 16px;
+    border-radius: var(--radius);
+    background: var(--text);
+    color: var(--surface);
+    font-size: 13px;
+    box-shadow: var(--shadow-menu);
+    transform: translateX(-50%);
+    animation: toast-in 0.2s ease-out;
+}
+.toast .link { color: inherit; font-weight: 700; text-decoration: underline; }
+@keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
+@media print { .toast, .show-done { display: none !important; } }
+/* A round's label folds its round (Results.js roundToggle). */
+.round-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; }
+.round-toggle:hover { color: var(--text); }
+.round-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
+.round-chevron { font-size: 9px; }
+/* Under the steps: show (or hide) the done steps, which fold by themselves. */
+.show-done { display: block; margin: 4px 0 10px 32px; font-size: 13px; }
 
 /* The order as a tree: each merge with its two inputs indented below it */
 .merge-tree, .tree-children { list-style: none; margin: 0; padding: 0; }
@@ -2250,7 +2292,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     body { font-size: 12px; }
     .inputs, .collapse-toggle, .section-summary,
     .header-actions, #ranking, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
-    .step-tick input, .step-fold, .step-summary, .step-reset,
+    .step-node input, .step-fold, .step-summary, .step-reset,
     .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
     /* On paper each step is its sentence (everything the slots show, in words), not the full-size cards. */
     .anvil-step .anvil-row, .anvil-step .step-words, .anvil-step .step-caption, .step-progress-track { display: none !important; }
@@ -2421,7 +2463,6 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 
 /* Anvil uses: the Compact toggle, slot labels, instruction, cost breakdown,
    final card, phone bar, the Slots view and the compact tree. */
-.btn.density[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
 .round-label { display: inline-flex; align-items: center; }
 .round-label .info-tip { margin-left: 6px; }
 .round-label .info-tip-button { width: 16px; height: 16px; font-size: 10px; }
@@ -2440,7 +2481,6 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 /* The Slots view's caption under its row. */
 .step-caption { display: none; }
 .anvil-step.flash { animation: entry-flash 1.4s ease-out; }
-.result-goal { margin: 0 0 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
 .step-progress-main .level-status { flex-basis: 100%; }
 .level-checkpoint { display: inline-block; margin: 0 0 8px; padding: 2px 10px; border-radius: 10px; background: var(--warning-bg); color: var(--warning-text); font-size: 12px; }
 .mc-from { font-size: 11px; color: var(--mc-from); }
@@ -2525,7 +2565,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .tree-line.path-up { border-radius: 6px; box-shadow: inset 3px 0 0 var(--accent); }
 .tree-line.path-down { border-radius: 6px; background: color-mix(in srgb, var(--accent-bg) 55%, transparent); }
 .round-label .info-tip-bubble { text-transform: none; letter-spacing: 0; font-weight: normal; }
-.fold-buttons { display: inline-flex; gap: 4px; margin-left: auto; }
+.search-row .fold-buttons { display: inline-flex; gap: 4px; }
 /* Switching Cards / Slots / List (Motion.js morphCard): the card's frame (an empty box that grows or
    shrinks), a copy of its old contents fading out, and the real card with no box of its own meanwhile. */
 .entry-card.morphing { isolation: isolate; background: transparent; border-color: transparent; box-shadow: none; }
@@ -2569,16 +2609,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
     .merge-tree:not(.compact) { overflow-x: auto; padding-bottom: 6px; }
     .merge-tree:not(.compact) .tree-tooltip { flex: 0 0 auto; min-width: 9em; max-width: 16em; }
 }
-/* Phones: Copy, Print and Expand / Collapse all are one "⋯" menu (the copy menu's panel); wide screens keep the buttons. */
-.more-menu { display: none; }
-.more-menu > summary { min-width: 36px; height: 30px; justify-content: center; font-size: 16px; line-height: 1; }
-@media (pointer: coarse) { .more-menu > summary { min-width: 44px; height: 40px; } }
-.copy-menu.more-menu > summary::after { content: none; }
-@media (max-width: 600px) {
-    .more-menu { display: block; margin-left: auto; }
-    .result-actions, .step-progress-tools .fold-buttons { display: none; }
-}
-/* Copy: a small menu of the ways to copy the steps. */
+/* Share: a small menu of the ways to hand the order on (copy, link, print). */
 .copy-menu { position: relative; }
 .copy-menu > summary { list-style: none; cursor: pointer; }
 .copy-menu > summary::-webkit-details-marker { display: none; }
@@ -2709,5 +2740,4 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 /* The search box with Expand all / Collapse all beside it, wrapping below when the card is narrow. */
 .search-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
 .search-row .wanted-search { flex: 1 1 200px; width: auto; margin: 0; }
-.search-row .fold-buttons { margin-left: 0; }
 
