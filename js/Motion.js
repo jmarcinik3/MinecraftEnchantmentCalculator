@@ -800,15 +800,29 @@ export function easeHeight(element, from, { duration = FOLD_MS, easing = FOLD_EA
     afterAnimation(element.animate([frame(from), frame(to)], { duration, easing }), clear, duration + 150);
 }
 
+// A summary's click: fold its `<details>` with the shared slide (foldDetails) instead of the browser's own jump. `remember(open)` saves the new state at
+// once (a closing slide only sets `open` at its end). Every fold-away box in section 1 takes its clicks from here.
+export function foldClick(remember) {
+    return event => {
+        event.preventDefault();
+        const details = event.currentTarget.parentElement;
+        const open = !foldTarget(details);
+        remember(open);
+        foldDetails(details, open);
+    };
+}
+
 // Whether a `<details>` is open or, while it slides, where it is heading (a click mid-slide reverses it).
 export const foldTarget = details => (details.wantOpen === undefined ? details.open : details.wantOpen);
 
 // A `<details>` opening or closing the way a section does: its box slides between the closed and the open height. Closing
 // keeps the content shown until the end; `inside` (details nested in it) close then too, out of sight. Returns nothing; with no motion it
-// just sets `open`.
+// just sets `open`. A box whose content is made only when it opens (the conflict graph) sets `details.beforeFold(open)`: it runs first, so the content
+// is there when the slide measures the box, however the fold was asked for (a click on its summary, Expand groups).
 export function foldDetails(details, open, inside = []) {
     if (details.finishFold) details.finishFold();
     if (details.open === open) return;
+    if (details.beforeFold) details.beforeFold(open);
     details.wantOpen = open; // where it is heading, for a second click mid-slide (foldTarget)
     const settle = () => { details.open = open; if (!open) for (const nested of inside) nested.open = false; };
     if (!motionOk()) return settle();

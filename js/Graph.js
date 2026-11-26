@@ -3,6 +3,7 @@
 import { TEXT } from "./Text.js";
 import { logic, state } from "./Store.js";
 import { h, svg } from "./Dom.js";
+import { foldClick } from "./Motion.js";
 import { clashes, setWanted } from "./App.js";
 
 const WIDTH = 640;
@@ -94,16 +95,18 @@ export function conflictGraph(matches = null) {
 
     const box = h("details", {
         class: "fold-box graph-box", open: graph_open,
-        ontoggle: event => {
-            graph_open = event.target.open;
-            if (!graph_open) return;
-            if (!layout.points.size) layout.points = computeLayout(nodes, edges);
-            if (!canvas) fill();
-        }
-    }, h("summary", {}, TEXT.wanted.graph_title));
+        ontoggle: event => { graph_open = event.target.open; }
+    }, h("summary", { onclick: foldClick(open => { graph_open = open; }) }, TEXT.wanted.graph_title));
     const hint = TEXT.wanted.graph_hint({ nodes: nodes.length, edges: edges.length });
     const caption = h("div", { class: "graph-caption", "aria-live": "polite" }, hint);
     let canvas = null;
+    // The graph is laid out and drawn when the box first opens, before the slide measures it (Motion.js foldDetails), so it eases open whether its own
+    // summary or Expand groups opened it, like every other fold-away box in section 1.
+    box.beforeFold = open => {
+        if (!open) return;
+        if (!layout.points.size) layout.points = computeLayout(nodes, edges);
+        if (!canvas) fill();
+    };
 
     function fill() {
         if (canvas) canvas.remove();

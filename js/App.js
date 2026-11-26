@@ -4,7 +4,7 @@ import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
 import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
-import { renderWanted, setupConflictTips, setupItemMenu } from "./Wanted.js";
+import { renderItem, renderWanted, setupConflictTips, setupItemDock, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics } from "./Ranking.js";
 import { renderRanking, resultNode, setupOptionsMenu, syncRename } from "./Options.js";
@@ -33,9 +33,12 @@ export function commit() {
 // under the long item grid, so on a phone the page would be left halfway down the
 // enchantment list: bring section 1's top back into view.
 export function tryExample() {
-    state.item = "helmet";
+    state.item = "boots";
     sanitizeAll();
-    state.wanted = logic.maxAll(state.item, {}, state.allow_incompatible);
+    // Boots with Depth Strider (not Frost Walker, its rival) and the rest at max level.
+    const wanted = logic.maxAll(state.item, {}, state.allow_incompatible);
+    if (!state.allow_incompatible) delete wanted.frost_walker;
+    state.wanted = { ...wanted, depth_strider: 3 };
     commit();
     const section = document.querySelector('[data-section="wanted"]');
     if (section.getBoundingClientRect().top < 0) scrollToView(section, "start");
@@ -44,7 +47,7 @@ export function tryExample() {
 // Switching item drops the enchantments the new one can't take.
 export function selectItem(item) {
     setItemMenuOpen(false);
-    if (state.item === item) { renderWanted(); return; }
+    if (state.item === item) { renderItem(); return; }
     state.item = item;
     sanitizeAll();
     commit();
@@ -178,6 +181,7 @@ function render() {
     renderLanguage();
     renderTheme();
     renderSaved();
+    renderItem();
     renderWanted();
     renderBooks();
     renderRanking();
@@ -449,14 +453,10 @@ function setupTheme() {
     renderTheme();
 }
 
-// "Start over" (the footer): clears the setup, the ticks and every setting kept in this
-// browser (view, collapsed sections, level, theme) so the first screen comes back, with
-// its explainer and example. Saved setups and the language stay.
-function setupReset() {
-    $("#reset").addEventListener("click", resetEverything);
-}
-
-function resetEverything() {
+// "Start over" (the Item card's button, and the restart icon on its sticky bar): clears the setup,
+// the ticks and every setting kept in this browser (view, collapsed sections, level, theme) so the
+// first screen comes back, with its explainer and example. Saved setups and the language stay.
+export function resetEverything() {
     try {
         for (const key of Object.keys(localStorage)) {
             if (key.startsWith("enchantment-calculator-") && key !== SAVED_STORAGE_KEY && key !== LANGUAGE_STORAGE_KEY) localStorage.removeItem(key);
@@ -531,12 +531,12 @@ async function init() {
     startWorker();
     setupHashChange();
     setupCopyLink();
-    setupReset();
     setupTheme();
     setupInfoTip();
     setupSkipLinks();
     setupSavedMenu();
     setupItemMenu();
+    setupItemDock();
     setupConflictTips();
     setupEntryPopover();
     setupOptionsMenu();

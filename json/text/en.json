@@ -2,7 +2,8 @@
     "page": {
         "title": "Enchantment Calculator",
         "heading": "Enchantment calculator",
-        "enchantments_heading": "Item and enchantments",
+        "item_heading": "Item",
+        "enchantments_heading": "Enchantments",
         "books_heading": "Books and items",
         "results_heading": "Best order",
         "skip_best": "Skip to Best order",
@@ -41,7 +42,7 @@
 
     "wanted": {
         "intro": "Find the cheapest anvil order to put enchanted books on an item. Pick an item and its enchantments, then follow the steps.",
-        "example": "Try an example: a fully enchanted helmet",
+        "example": "Try an example: Depth Strider boots",
         "pick_item_first": "Pick the item to enchant.",
         "change_item": "Change item",
         "change_item_label": "{item}: change item",
@@ -93,6 +94,8 @@
         "preset_plain": "Plain",
         "preset_plain_help": "No enchantments: the plain item",
         "presets": "Presets",
+        "item_mini_top": "Back to the top",
+        "item_mini_none": "No enchantments chosen",
         "preset_best": "God",
         "preset_best_help": "The usual best enchantments for this item, at max level, without curses",
         "preset_swap_help": "The best set, with {name} in place of what it conflicts with",

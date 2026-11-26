@@ -171,7 +171,7 @@ h2 { font-size: 16px; display: flex; align-items: center; gap: 8px; margin-botto
 
 /* Room for the page's scrollbar is always kept, so it appearing (a section opening, entries
    added) never pushes everything left. */
-html { scrollbar-gutter: stable; }
+html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8px); }
 
 /* The header's controls: one height, font, border and radius, so they read as one toolbar. */
 .header-control {
@@ -223,6 +223,8 @@ html { scrollbar-gutter: stable; }
     max-width: 1200px;
     margin: 0 auto;
     padding: 20px 16px 8px;
+    position: relative;
+    z-index: 40; /* the header's menus (Settings, Saved) open over the sticky item bar */
 }
 
 .layout {
@@ -391,7 +393,7 @@ html { scrollbar-gutter: stable; }
 /* The top of section 1: the preview, then the controls, side by side once the section
    is 460px wide (a container query, so it follows the card, not the window). On the wide
    layout the preview has a fixed width, so longer names never push the controls aside. */
-#wanted { container: wanted / inline-size; }
+#wanted, #item { container: wanted / inline-size; }
 .wanted-head { position: relative; display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 4px; }
 .wanted-preview { flex: 1 1 100%; margin-bottom: 12px; }
 /* While its height slides (Motion.js growSmoothly), new lines show as the box opens. */
@@ -402,6 +404,43 @@ html { scrollbar-gutter: stable; }
     .wanted-controls { flex: 1 1 0; }
 }
 #wanted > .hint { margin: 0 0 10px; }
+
+/* The item (not a section): a floating card beside the sections on wide windows, a sticky bar over them on narrow ones, condensed to one line once the
+   page has scrolled (Wanted.js renderItem, setupItemDock). */
+.layout { position: relative; }
+.dock-sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
+.item-dock { grid-column: 1 / -1; position: sticky; top: 0; z-index: 25; padding: 8px 0 0; background: linear-gradient(var(--bg) 82%, transparent); }
+.item-dock[hidden] { display: none; }
+#item { padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+.item-mini { display: none; align-items: center; gap: 10px; min-width: 0; }
+.item-mini { cursor: pointer; border-radius: 4px; }
+.item-mini:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.item-mini .mc-slot { flex: none; }
+.mini-text { flex: 1 1 auto; min-width: 0; }
+.mini-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.mini-list { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.item-mini .cost-line { flex: none; margin: 0; }
+.item-mini .cost-line-text { color: var(--success-text); }
+@media (max-width: 1359px) {
+    .item-dock.condensed { background: none; pointer-events: none; } /* it keeps the height it had (Wanted.js setupItemDock), so only the one line is solid */
+    .item-dock.condensed #item { padding: 8px 14px; pointer-events: auto; }
+    .item-dock.condensed #item > .wanted-head, .item-dock.condensed #item > .item-heading { display: none; }
+    .item-dock.condensed .item-mini-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
+    .item-dock.condensed .item-mini-row > .item-mini { flex: 1; min-width: 0; }
+    .item-dock.condensed .mini-reset { display: inline-flex; }
+    .item-dock.condensed .item-mini { display: flex; }
+}
+/* 900 to 1359px: the results column sticks under the bar too. */
+@media (min-width: 900px) and (max-width: 1359px) {
+    .results-column { top: calc(16px + var(--dock-h, 0px)); max-height: calc(100vh - 32px - var(--dock-h, 0px)); }
+}
+/* From 1360px the item is a card of its own, floating at the left of the sections (a third column that sticks). */
+@media (min-width: 1360px) {
+    .layout.has-item { grid-template-columns: 272px minmax(0, 1.15fr) minmax(0, 1.3fr); max-width: 1500px; }
+    .item-dock { grid-column: auto; top: 16px; align-self: start; padding: 0; background: none; }
+    #item { border-color: var(--border-strong); box-shadow: var(--shadow-pop); }
+    .item-dock .item-menu { width: 440px; }
+}
 
 /* The slot is the item menu's button: a caret in its corner, a purple ring on hover. */
 .item-menu-button, .entry-slot {
@@ -2262,11 +2301,16 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 
 /* Start over, at the foot of the page. */
-.page-footer { max-width: 1200px; margin: 8px auto 0; padding: 12px 16px 28px; text-align: center; font-size: 13px; }
-.reset-button { display: inline-flex; align-items: center; gap: 8px; color: var(--text-secondary); background: var(--surface); }
+/* Start over: a quiet button at the right of the Item card's heading, and a restart icon at the left of its sticky bar. */
+.item-heading { display: flex; align-items: center; }
+.item-heading .reset-button { margin-left: auto; font: 400 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.reset-button { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); background: var(--surface); }
+.item-mini-row { display: contents; }
+.mini-reset { display: none; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-secondary); cursor: pointer; }
+.mini-reset:hover, .mini-reset:focus-visible { color: var(--text); border-color: var(--accent); }
+.mini-reset .reset-icon { width: 16px; height: 16px; }
 .reset-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .reset-button:hover, .reset-button:focus-visible { color: var(--text); border-color: var(--accent); }
-@media print { .page-footer { display: none !important; } }
 
 /* Section 1: the XP orb and total levels under the preview; the tooltip a preset shows. */
 /* The cost line is as wide as its words and so can widen a tooltip of one short line ("Legacy" over "2 Levels"); folded away

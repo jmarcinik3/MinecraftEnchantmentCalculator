@@ -4,11 +4,11 @@ import { TEXT } from "./Text.js";
 import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
 import { $, closeOnOutside, enchLine, h, icon, motionOk, nameClass, plain, roving, scrollToView, scrubber } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
-import { changeLines, closeRow, easeHeight, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
+import { changeLines, closeRow, easeHeight, foldClick, foldDetails, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
 import { anvilCell } from "./Results.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { conflictGraph, markGraphSearch } from "./Graph.js";
-import { clashes, commit, selectItem, setWanted, tryExample } from "./App.js";
+import { clashes, commit, resetEverything, selectItem, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
 // the enchantments that are new.
@@ -51,14 +51,116 @@ function itemGrid() {
     )));
 }
 
-// Section 1: the item grid until an item is picked; then a preview of the finished item
-// (its slot opens the item menu), the presets, and one row per enchantment
-// (conflict groups together).
-export function renderWanted() {
-    const box = $("#wanted");
+// The item (not a section): a floating card beside the sections on wide windows, a sticky bar over them on narrow ones (condensed to one line once
+// the page has scrolled). The preview of the finished item (its slot opens the item menu) and the presets; hidden until an item is picked, and
+// the item grid is section 1's until then.
+export function renderItem() {
+    const dock = $("#item-dock");
+    const box = $("#item");
+    document.querySelector(".layout").classList.toggle("has-item", Boolean(state.item));
+    dock.hidden = !state.item;
     const focus = focusState(box);
     const old_preview = box.querySelector(".wanted-preview");
     const old_height = old_preview && preview_shown.item === state.item ? old_preview.getBoundingClientRect().height : null;
+    // The cost line of the preview's tooltip, so it can fold away in place if the redraw drops it.
+    const old_cost_line = box.querySelector(".wanted-preview .cost-line:not(.idle)");
+    const old_cost_copy = old_cost_line ? inertCopy(old_cost_line) : null;
+    // The preview's tooltip lines, to fade out the ones about to go (closeLines).
+    const old_tip = old_height != null ? old_preview.querySelector(".mc-tooltip") : null;
+    const old_tip_rect = old_tip ? old_tip.getBoundingClientRect() : null;
+    const old_width = old_tip_rect ? old_tip_rect.width : null;
+    const old_lines = old_tip ? snapshotLines(old_tip).lines : [];
+    box.replaceChildren();
+    if (!state.item) return;
+    // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
+    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title" }, h("span", { class: "step-badge", "aria-hidden": "true" }, "1"), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading),
+            h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, restartIcon(), TEXT.page.reset)),
+        wantedHead(presetChips()), itemMini());
+    if (old_height != null) {
+        const preview = box.querySelector(".wanted-preview");
+        const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
+        growSmoothly(preview, old_height);
+        // Heights: the preview box can be held taller than the tooltip by the controls beside it,
+        // so the tooltip's own height is what is compared and slid in a swap.
+        slideWidth(preview.querySelector(".mc-tooltip"), old_width, same_size && old_tip_rect ? old_tip_rect.height : null);
+        changeLines(preview, old_lines, preview.querySelectorAll(".mc-ench.fresh"), same_size);
+    }
+    const new_cost_line = box.querySelector(".wanted-preview .cost-line");
+    if (old_cost_copy && new_cost_line && new_cost_line.classList.contains("idle")) closeRow(new_cost_line.parentElement, old_cost_copy);
+    restoreFocus(box, focus);
+}
+
+// Until an item is picked this section is the item picker, so it is "1 Item"; then the item has its own card (1) and this is
+// "2 Enchantments". The heading's data-text changes too, so a language switch fills in the right title.
+function sectionHeading() {
+    const card = document.querySelector('[data-section="wanted"]');
+    const key = state.item ? "enchantments_heading" : "item_heading";
+    card.querySelector("h2 .step-badge").textContent = state.item ? "2" : "1";
+    const title = card.querySelector("#wanted-title");
+    title.dataset.text = "page." + key;
+    title.textContent = TEXT.page[key];
+}
+
+// The restart arrow (Start over).
+function restartIcon() {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("class", "reset-icon"); svg.setAttribute("viewBox", "0 0 24 24"); svg.setAttribute("aria-hidden", "true");
+    for (const d of ["M3 12a9 9 0 1 0 3-6.7", "M3 4v5h5"]) { const path = document.createElementNS(ns, "path"); path.setAttribute("d", d); svg.append(path); }
+    return svg;
+}
+
+// The one-line form of the item shown in the sticky bar once the page has scrolled (narrow windows): its slot, name and enchantments, and the cost;
+// clicking it goes back to the top.
+function itemMini() {
+    const chosen = Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level }));
+    // A tap (or Enter/Space) on the bar scrolls back to the top of the page.
+    const top = () => window.scrollTo({ top: 0, behavior: motionOk() ? "smooth" : "auto" });
+    const restart = h("button", {
+        type: "button", class: "mini-reset", title: TEXT.page.reset_help, "aria-label": TEXT.page.reset,
+        onclick: event => { event.stopPropagation(); resetEverything(); },
+        onkeydown: event => event.stopPropagation()
+    }, restartIcon());
+    return h("div", { class: "item-mini-row" }, restart, h("div", {
+        class: "item-mini", role: "button", tabindex: "0", title: TEXT.wanted.item_mini_top, "aria-label": TEXT.wanted.item_mini_top,
+        onclick: top,
+        onkeydown: event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); top(); } }
+    },
+        h("span", { class: "mc-slot" + (chosen.length ? " glint" : "") }, icon(state.item)),
+        h("div", { class: "mini-text" },
+            h("div", { class: "mini-name" }, logic.itemName(state.item)),
+            h("div", { class: "mini-list" }, chosen.length ? logic.summary(chosen) : TEXT.wanted.item_mini_none)),
+        costLine()));
+}
+
+// The bar condenses once the page is scrolled past the top of the sections (a sentinel at their top leaves the window), and the results column and the browser's scrolling keep clear of the bar's height (`--dock-h`, `scroll-padding-top`).
+export function setupItemDock() {
+    const layout = document.querySelector(".layout");
+    const dock = $("#item-dock");
+    const sentinel = h("div", { class: "dock-sentinel", "aria-hidden": "true" });
+    layout.prepend(sentinel);
+    // The bar's height while it sticks over the page (narrow windows only; beside the sections it covers nothing): the results column and what the browser
+    // scrolls into view (scroll-padding) keep clear of it.
+    const narrow = matchMedia("(max-width: 1359px)");
+    const sync = () => document.documentElement.style.setProperty("--dock-h", narrow.matches && dock.classList.contains("condensed") && !dock.hidden ? $("#item").offsetHeight + 8 + "px" : "0px");
+    narrow.addEventListener("change", sync);
+    new IntersectionObserver(([entry]) => {
+        const condense = !entry.isIntersecting && Boolean(state.item);
+        // Condensing must not change the page's length, or the browser's scroll anchoring moves the scroll position back across the threshold and the bar
+        // flips between its two forms again and again: the dock keeps the height it had (the CSS lets clicks through its empty part).
+        if (narrow.matches && condense && !dock.classList.contains("condensed")) dock.style.height = dock.offsetHeight + "px";
+        if (!condense) dock.style.height = "";
+        dock.classList.toggle("condensed", condense);
+        sync();
+    }, { rootMargin: "-1px 0px 0px 0px" }).observe(sentinel);
+    new ResizeObserver(sync).observe($("#item"));
+}
+
+// Section 1: the item grid until an item is picked; then a search box and one box
+// of enchantments (conflict groups together), a box for each mod, and the conflict graph.
+export function renderWanted() {
+    const box = $("#wanted");
+    const focus = focusState(box);
     // "Allow conflicts" turns each conflict group from a switch into plain rows (and
     // back): their old heights, so the new ones can slide from them.
     const old_groups = new Map();
@@ -68,9 +170,6 @@ export function renderWanted() {
     setConflictsToggled(false);
     // Each "Pick a side" section: its chosen rows (a copy, height and level bar each), selected options and border.
     const old_each = captureEach(box);
-    // The cost line of the preview's tooltip, so it can fold away in place if the redraw drops it.
-    const old_cost_line = box.querySelector(".wanted-preview .cost-line:not(.idle)");
-    const old_cost_copy = old_cost_line ? inertCopy(old_cost_line) : null;
     // Each row's height, to ease a row that gets taller or shorter (a "not on your books" note appearing, say) instead of jumping.
     const old_rows = new Map([...box.querySelectorAll(".ench-row[data-ns]")].map(row => [row.dataset.ns, row.getBoundingClientRect().height]));
     // Each "Pick one" group before: which option was chosen, how its box looked, and a copy of its row,
@@ -89,12 +188,8 @@ export function renderWanted() {
             height: row ? row.getBoundingClientRect().height : null
         });
     }
-    // The preview's tooltip lines, to fade out the ones about to go (closeLines).
-    const old_tip = old_height != null ? old_preview.querySelector(".mc-tooltip") : null;
-    const old_tip_rect = old_tip ? old_tip.getBoundingClientRect() : null;
-    const old_width = old_tip_rect ? old_tip_rect.width : null;
-    const old_lines = old_tip ? snapshotLines(old_tip).lines : [];
     box.replaceChildren();
+    sectionHeading();
     if (!state.item) {
         box.append(
             h("p", { class: "hint intro" }, TEXT.wanted.intro),
@@ -109,18 +204,7 @@ export function renderWanted() {
     }
 
     const { list, mod_boxes, count } = wantedList();
-    box.append(...[wantedHead(presetChips()), wantedSearch(), listBox(list, count), ...mod_boxes, conflictGraph(searchMatcher())].filter(Boolean)); // append(null) would print "null"
-    if (old_height != null) {
-        const preview = box.querySelector(".wanted-preview");
-        const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides
-        growSmoothly(preview, old_height);
-        // Heights: the preview box can be held taller than the tooltip by the controls beside it,
-        // so the tooltip's own height is what is compared and slid in a swap.
-        slideWidth(preview.querySelector(".mc-tooltip"), old_width, same_size && old_tip_rect ? old_tip_rect.height : null);
-        changeLines(preview, old_lines, preview.querySelectorAll(".mc-ench.fresh"), same_size);
-    }
-    const new_cost_line = box.querySelector(".wanted-preview .cost-line");
-    if (old_cost_copy && new_cost_line && new_cost_line.classList.contains("idle")) closeRow(new_cost_line.parentElement, old_cost_copy);
+    box.append(...[wantedSearch(), listBox(list, count), ...mod_boxes, conflictGraph(searchMatcher())].filter(Boolean)); // append(null) would print "null"
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
         growSmoothly(group, old_groups.get(group.dataset.group));
@@ -515,18 +599,6 @@ function groupFold(title, key, content) {
         h("summary", { onclick: foldClick(remember) }, title), content);
 }
 
-// A summary's click: fold its `<details>` with the shared slide (Motion.js foldDetails) instead of the browser's own jump.
-// `remember(open)` saves the new state at once (a closing slide only sets `open` at its end).
-function foldClick(remember) {
-    return event => {
-        event.preventDefault();
-        const details = event.currentTarget.parentElement;
-        const open = !foldTarget(details);
-        remember(open);
-        foldDetails(details, open);
-    };
-}
-
 // The mods whose section the user opened (in this visit).
 const mod_open = new Set();
 
@@ -610,14 +682,13 @@ export function updateCostMeter() {
     const ok = last_result && last_result.status === "ok";
     if (ok && last_result.node) { meter_levels = last_result.node.cumulative_levels; meter_none = false; }
     else if (!running) { meter_levels = null; meter_none = Boolean(ok); }
-    const line = document.querySelector("#wanted .cost-line");
-    if (line) fillCostMeter(line);
+    for (const line of document.querySelectorAll("#item .cost-line")) fillCostMeter(line);
 }
 
 // Opens or closes the item menu (the slot's button).
 function toggleItemMenu() {
     setItemMenuOpen(!item_menu_open);
-    renderWanted();
+    renderItem();
     if (item_menu_open) {
         const current = document.querySelector(`#items [data-focus="item-${state.item}"]`);
         if (current) current.focus({ preventScroll: true });
@@ -627,7 +698,7 @@ function toggleItemMenu() {
 // The item menu closes on a click outside it (or its button) and on Escape, which puts
 // the focus back on the slot.
 export function setupItemMenu() {
-    const close = () => { setItemMenuOpen(false); renderWanted(); };
+    const close = () => { setItemMenuOpen(false); renderItem(); };
     closeOnOutside({
         open: () => item_menu_open,
         inside: event => event.composedPath().some(el => el.classList && (el.classList.contains("item-menu") || el.classList.contains("item-menu-button"))),

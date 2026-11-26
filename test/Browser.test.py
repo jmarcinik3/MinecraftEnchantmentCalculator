@@ -72,7 +72,7 @@ def open_page(browser, url, **options):
     errors = []
     page.on("pageerror", lambda error: errors.append(str(error)))
     page.goto(url)
-    page.wait_for_selector("#wanted .item-grid, #wanted .wanted-preview")
+    page.wait_for_selector("#wanted .item-grid, #item .wanted-preview")
     return context, page, errors
 
 
@@ -130,7 +130,7 @@ def link_data(page):
 
 def pick_helmet_max(page):
     page.click('#wanted .item-grid button[data-focus="item-helmet"]')
-    page.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     page.wait_for_selector("#results .anvil-step", timeout=8000)
 
 
@@ -141,7 +141,7 @@ def part_steps(browser, base):
     check("the first screen explains the page", page.locator("#wanted .intro").count() == 1)
     page.click("#wanted .example")
     page.wait_for_selector("#results .anvil-step", timeout=8000)
-    check("the example picks a helmet with enchantments", page.locator("#wanted .wanted-preview .mc-ench").count() >= 3)
+    check("the example picks Depth Strider boots with enchantments", page.locator("#item .wanted-preview .mc-ench").count() >= 3)
 
     steps = page.locator("#results .anvil-step")
     total = steps.count()
@@ -161,6 +161,7 @@ def part_steps(browser, base):
 
     # Starting items: hover lights the card, Tab + Enter shows it.
     link = page.locator(".anvil-step:not(.folded) [data-entry-link]").first
+    link.scroll_into_view_if_needed() # (under the sticky item bar the results start lower than they did)
     link.hover()
     check("hovering a starting item outlines its card", page.locator("#books .entry-card.highlight").count() == 1)
     page.mouse.move(0, 0)
@@ -234,8 +235,10 @@ def part_steps(browser, base):
 
     # Start over: one click clears the setup and bring the first screen back; saved setups stay.
     page.evaluate("localStorage.setItem('enchantment-calculator-saved', JSON.stringify([{name: 'Keep', item: 'sword', link: 'x'}]))")
+    page.evaluate("window.scrollTo(0, 0)")
+    page.wait_for_selector("#item .item-heading .reset-button", state="visible")
     with page.expect_navigation():
-        page.click("#reset")
+        page.click("#item .item-heading .reset-button")
     page.wait_for_selector("#wanted .intro")
     check("Start over brings the first screen back", page.locator("#wanted .intro").count() == 1)
     check("Start over keeps saved setups", "Keep" in (page.evaluate("localStorage.getItem('enchantment-calculator-saved')") or ""))
@@ -248,7 +251,7 @@ def part_section1(browser, base):
     # Section 1: aligned rows, descriptions, the x on a chosen row, the item menu on the slot.
     sec, page6, errors6 = open_page(browser, base, viewport={"width": 1280, "height": 900})
     page6.click('#wanted .item-grid button[data-focus="item-sword"]')
-    page6.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page6.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     page6.wait_for_selector("#wanted .ench-row.chosen")
     rights = page6.evaluate("[...document.querySelectorAll('#wanted .ench-row .level-bar')].map(b => Math.round(b.getBoundingClientRect().right))")
     check("every level bar ends at the same x", len(set(rights)) == 1, rights)
@@ -258,27 +261,27 @@ def part_section1(browser, base):
     page6.locator("#wanted .ench-row.chosen .ench-clear").first.click()
     settle(page6) # a cleared row closes, as a copy, before it is gone
     check("the × clears one enchantment", page6.locator("#wanted .ench-row.chosen").count() == chosen_before - 1)
-    page6.click("#wanted .preset >> text=Plain")
+    page6.click("#item .preset >> text=Plain")
     settle(page6)
     check("the Plain preset clears every enchantment", page6.locator("#wanted .ench-row.chosen").count() == 0)
-    check("with nothing chosen the Levels line has folded away", page6.locator("#wanted .wanted-preview .cost-line:not(.idle)").count() == 0 and page6.locator("#wanted .wanted-preview .cost-line").evaluate("l => l.textContent.trim()") == "")
-    check("Plain shows as selected", page6.locator("#wanted .preset.selected >> text=Plain").count() == 1)
+    check("with nothing chosen the Levels line has folded away", page6.locator("#item .wanted-preview .cost-line:not(.idle)").count() == 0 and page6.locator("#item .wanted-preview .cost-line").evaluate("l => l.textContent.trim()") == "")
+    check("Plain shows as selected", page6.locator("#item .preset.selected >> text=Plain").count() == 1)
 
     # Swapping Protection for Projectile Protection: the old line is covered from the right
     # (a copy, without data-ns) while the new one is uncovered; the copy is gone afterwards.
-    page6.click("#wanted .item-menu-button")
+    page6.click("#item .item-menu-button")
     page6.click('#items button[data-focus="item-helmet"]')
     page6.click('#wanted button[data-focus$="-protection"]')
     settle(page6)
     page6.click('#wanted button[data-focus$="-projectile_protection"]')
-    mid_copy = page6.locator("#wanted .mc-tooltip .mc-ench:not([data-ns])").count()
+    mid_copy = page6.locator("#item .mc-tooltip .mc-ench:not([data-ns])").count()
     settle(page6)
     check("a swapped line leaves a copy while it is covered, then none",
-          mid_copy == 1 and page6.locator("#wanted .mc-tooltip .mc-ench:not([data-ns])").count() == 0, mid_copy)
+          mid_copy == 1 and page6.locator("#item .mc-tooltip .mc-ench:not([data-ns])").count() == 0, mid_copy)
 
     # Switching Depth Strider (III) for Frost Walker (II) rolls the bar: a copy of the lost
     # segment is there mid-roll, and gone afterwards.
-    page6.click('#wanted .item-menu-button')
+    page6.click('#item .item-menu-button')
     page6.click('#items button[data-focus="item-boots"]')
     page6.click('#wanted .group-switch button:has-text("Depth Strider")')
     settle(page6)
@@ -287,7 +290,7 @@ def part_section1(browser, base):
     settle(page6)
     after = page6.locator("#wanted .ench-group.exclusive:has(button[data-focus$=\"-frost_walker\"]) .level-bar > .level-seg").count()
     check("a shrinking bar rolls its lost segment away", mid == 3 and after == 2, (mid, after))
-    page6.click("#wanted .item-menu-button")
+    page6.click("#item .item-menu-button")
     check("the slot opens the item menu", page6.locator("#item-menu").count() == 1)
     page6.keyboard.press("Escape")
     check("the item menu closes again", page6.locator("#item-menu").count() == 0)
@@ -299,7 +302,7 @@ def part_books(browser, base):
     # Everything else once, so a broken import or typo anywhere shows up as a page error.
     wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
     page4.click('#wanted .item-grid button[data-focus="item-sword"]')
-    page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page4.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     page4.wait_for_selector("#results .anvil-step", timeout=8000)
     # Automatic mode: dragging a slot onto another entry previews the merge too.
     page4.locator("#books .entry-card").nth(1).scroll_into_view_if_needed()
@@ -380,7 +383,7 @@ def part_books_views(browser, base):
     """section 2's three views: the switch animation, the slots view, reordering slots (motion on)"""
     wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900})
     page4.click('#wanted .item-grid button[data-focus="item-sword"]')
-    page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page4.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     page4.wait_for_selector("#results .anvil-step", timeout=8000)
     page4.click('#books >> text=Custom')
     settle(page4)
@@ -435,7 +438,7 @@ def part_books_tail(browser, base):
     """section 2's add area and the page's menus: Add book, a typed book, the limit, a saved setup, Bedrock, theme, collapsing, copy, language"""
     wide, page4, errors4 = open_page(browser, base, viewport={"width": 1280, "height": 900}, permissions=["clipboard-read", "clipboard-write"])
     page4.click('#wanted .item-grid button[data-focus="item-sword"]')
-    page4.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    page4.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     page4.wait_for_selector("#results .anvil-step", timeout=8000)
     page4.click('#books >> text=Custom')
     settle(page4)
@@ -496,7 +499,7 @@ def drag_to(page, source, target, grab=(0.5, 0.5), drop=(0.5, 0.5), release=True
 def empty_custom_helmet(page, picks):
     """A Helmet with nothing chosen but `picks` (namespace -> level), Custom books, and every entry removed, so the coverage chips are all amber."""
     page.click('#wanted .item-grid button[data-focus="item-helmet"]')
-    page.click("#wanted .preset >> text=Plain")
+    page.click("#item .preset >> text=Plain")
     settle(page)
     for ns, level in picks.items():
         if ns == "protection":  # (one of a Pick one group: its switch chooses it at its top level)
@@ -610,23 +613,23 @@ def part_controls(browser, base):
     """the preset compare tooltip, the rename field (badge, count, cut length per edition), the typed level limit and the infinity button"""
     _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p.click('#wanted .item-grid button[data-focus="item-helmet"]')
-    p.click("#wanted .preset >> text=Plain")
+    p.click("#item .preset >> text=Plain")
     settle(p)
-    preset = p.locator('#wanted .preset:not([data-focus="preset-plain"])').first
+    preset = p.locator('#item .preset:not([data-focus="preset-plain"])').first
     preset.hover()
-    added = p.locator("#wanted .compare-tip .mc-ench.changed").count()
-    check("hovering a preset shows what it adds, as a tooltip", p.locator("#wanted .compare-tip").count() == 1 and added >= 3 and p.locator("#wanted .compare-tip .mc-ench.removed").count() == 0, added)
+    added = p.locator("#item .compare-tip .mc-ench.changed").count()
+    check("hovering a preset shows what it adds, as a tooltip", p.locator("#item .compare-tip").count() == 1 and added >= 3 and p.locator("#item .compare-tip .mc-ench.removed").count() == 0, added)
     p.mouse.move(0, 0)
-    check("it goes when the pointer leaves", p.locator("#wanted .compare-tip").count() == 0)
+    check("it goes when the pointer leaves", p.locator("#item .compare-tip").count() == 0)
     preset.focus()
-    check("focusing a preset shows it too", p.locator("#wanted .compare-tip").count() == 1)
+    check("focusing a preset shows it too", p.locator("#item .compare-tip").count() == 1)
     p.keyboard.press("Enter")
     settle(p)
     p.mouse.move(0, 0)
     preset.hover()
-    check("a preset that is already chosen says so", "Already chosen" in p.inner_text("#wanted .compare-tip"), p.inner_text("#wanted .compare-tip"))
-    p.locator("#wanted .preset >> text=Plain").hover()
-    check("Plain shows everything it takes away", p.locator("#wanted .compare-tip .mc-ench.removed").count() >= 3)
+    check("a preset that is already chosen says so", "Already chosen" in p.inner_text("#item .compare-tip"), p.inner_text("#item .compare-tip"))
+    p.locator("#item .preset >> text=Plain").hover()
+    check("Plain shows everything it takes away", p.locator("#item .compare-tip .mc-ench.removed").count() >= 3)
     p.mouse.move(0, 0)
     p.wait_for_selector("#results .anvil-step", timeout=8000)
 
@@ -704,7 +707,7 @@ def part_offline(browser, base):
     page.wait_for_selector("#wanted .item-grid")
     check("with no connection the page still opens", page.locator("#wanted .item-grid .item-button").count() > 5)
     page.click('#wanted .item-grid button[data-focus="item-boots"]')
-    page.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    page.click('#item .preset:not([data-focus="preset-plain"]) >> nth=0')
     page.wait_for_selector("#results .anvil-step", timeout=8000)
     check("and it calculates an order with no connection (the worker and the data come from the copy)", page.locator("#results .anvil-step").count() >= 3)
     context.set_offline(False)
@@ -718,7 +721,7 @@ def part_anvil_uses(browser, base):
     _, p7, errors7 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p7.wait_for_selector("#wanted .item-grid")
     p7.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p7.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p7.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p7.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p7)
     steps = p7.locator("#results .anvil-step").count()
@@ -730,6 +733,7 @@ def part_anvil_uses(browser, base):
     fold_all(p7, "Collapse steps")
     check("Collapse all folds every step", p7.locator("#results .anvil-step:not(.folded)").count() == 0)
     p7.locator("#results .anvil-step").nth(2).locator(".step-head").click()
+    p7.locator("#results .anvil-step").nth(2).locator(".anvil-cost").scroll_into_view_if_needed()
     p7.locator("#results .anvil-step").nth(2).locator(".anvil-cost").hover()
     check("the cost shows where its levels come from", p7.locator("#results .cost-breakdown").first.is_visible() or p7.locator("#results .has-breakdown.open").count() == 1)
     p7.mouse.move(0, 0)
@@ -757,7 +761,7 @@ def part_anvil_uses(browser, base):
     p9 = browser.new_page(viewport={"width": 1280, "height": 1000})
     p9.goto(base)
     p9.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p9.click('#wanted .preset >> text=Plain')
+    p9.click('#item .preset >> text=Plain')
     p9.locator('[data-focus="bar-feather_falling"] .level-seg').nth(3).click()
     p9.click('[data-focus="mode-custom"]')
     p9.click('#books button[aria-label^="Remove entry 2"]')
@@ -777,7 +781,7 @@ def part_anvil_uses(browser, base):
     p8.on("pageerror", lambda error: errors8.append(str(error)))
     p8.goto(base)
     p8.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p8.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p8.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p8.wait_for_selector("#results .anvil-step", timeout=8000)
     p8.locator("#results .anvil-step").first.scroll_into_view_if_needed()
     try:
@@ -817,7 +821,7 @@ def part_chips(browser, base):
     _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p9.wait_for_selector("#wanted .item-grid")
     p9.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p9.wait_for_selector("#books .entry-card")
     settle(p9)
     left_over = "#books .card-frame, #books .card-ghost, #books .card-leaving, #books .bar-leaving, #books .seg-pill, #books .morphing"
@@ -863,7 +867,7 @@ def part_pick_none(browser, base):
     """the warning badge's menu, and a Pick one going to None and back (Boots with the first preset, Custom)"""
     _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p9.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p9.wait_for_selector("#books .entry-card")
     settle(p9)
     p9.click('[data-focus="mode-custom"]')
@@ -895,19 +899,29 @@ def part_section1_motion(browser, base):
     _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p9.wait_for_selector("#wanted .item-grid")
     p9.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p9.wait_for_selector("#books .entry-card")
     settle(p9)
     p9.click('[data-focus="mode-custom"]')
     settle(p9)
     key = p9.locator("#wanted .ench-group.exclusive").first.get_attribute("data-group")
+    # The conflict graph eases open and shut from its own summary, as it does from Expand / Collapse groups: both go through foldDetails, which makes the graph
+    # before it measures the box (an unmade graph opened by a click grew after the slide had measured it, and appeared at once).
+    own = eases(p9, "#wanted .graph-box", "#wanted .graph-box > summary")
+    check("the conflict graph eases open from its own summary, drawn (not a jump)", own[0] > 3 and p9.locator(".graph-canvas").count() == 1, own)
+    shut = eases(p9, "#wanted .graph-box", "#wanted .graph-box > summary")
+    check("and eases shut from its own summary", shut[0] > 3, shut)
+    via = eases(p9, "#wanted .graph-box", '#wanted [data-focus="wanted-expand"]')
+    check("and eases open from Expand groups, the same way", via[0] > 3, via)
+    settle(p9)
     # Section 1 changes ease to a stop: the last change in #wanted's height, frame to frame, is small (a jump at the end is a snap).
     def last_step(action):
         """the size of the last change in #wanted's height as its animations are scrubbed: a jump at the end is a snap"""
         heights = scrub(p9, action, "document.querySelector('#wanted').getBoundingClientRect().height", 40)["values"]
         changes = [abs(b - a) for a, b in zip(heights, heights[1:]) if abs(b - a) > 0.05]
         return changes[-1] if changes else 0
-    p9.click("#wanted .preset >> text=Plain")
+    p9.evaluate("window.scrollTo(0, 0)") # (the item bar is one line while the page is scrolled: no presets in it)
+    p9.click("#item .preset >> text=Plain")
     settle(p9)
     jump = last_step("document.querySelector('[data-focus=\"bar-feather_falling\"] .level-seg').dispatchEvent(new KeyboardEvent('keydown', { key: '4', bubbles: true, cancelable: true }));")  # (the bar takes digits; its pointer drag is not a click)
     check("adding an enchantment does not jump in height", jump < 4, jump)
@@ -915,7 +929,7 @@ def part_section1_motion(browser, base):
     jump = last_step("document.querySelector('[data-focus=\"clear-feather_falling\"]').click();")
     check("removing an enchantment does not jump in height", jump < 4, jump)
     settle(p9)
-    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     settle(p9)
     jump = last_step("document.querySelector('#wanted [data-focus=\"switch-%s-none\"]').click();" % key)
     check("picking None in a group does not jump in height", jump < 4, jump)
@@ -926,7 +940,7 @@ def part_sections_motion(browser, base):
     """sections sliding shut and open, glints keeping in step (split from part_section1_motion so the two run side by side)"""
     _, p9, errors9 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p9.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p9.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p9.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p9.wait_for_selector("#books .entry-card")
     settle(p9)
     # A section slides shut and open, and leaves nothing fixed behind.
@@ -954,7 +968,7 @@ def part_ranking(browser, base):
     _, p10, errors10 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
     p10.wait_for_selector("#wanted .item-grid")
     p10.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p10.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p10.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p10.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p10)
     check("the game rules menu is among the header buttons", p10.locator(".header-actions #options-menu").count() == 1 and p10.locator("#metrics #options-menu, .section-head #options-menu").count() == 0)
@@ -1045,7 +1059,7 @@ def part_settings_motion(browser, base):
     """Settings: its sections, Show animations and Show glints (motion on, since the switches are what is tested)"""
     _, p10, errors10 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
     p10.click('#wanted .item-grid button[data-focus="item-boots"]')
-    p10.click("#wanted .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    p10.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
     p10.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p10)
     p10.click("#options-menu summary")
@@ -1077,7 +1091,7 @@ def part_elytra(browser, base):
     _, p13, errors13 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
     p13.wait_for_selector("#wanted .item-grid")
     p13.click('#wanted .item-button:has-text("Elytra")')
-    p13.wait_for_selector("#wanted .wanted-preview")
+    p13.wait_for_selector("#item .wanted-preview")
     check("an item with no conflicts has no conflict graph and no stray text", p13.locator("#wanted .graph-box").count() == 0 and "null" not in p13.inner_text("#wanted"), p13.inner_text("#wanted")[:200])
     p13.click("#books >> text=Custom")
     p13.click("#books >> text=Add book")
@@ -1086,7 +1100,7 @@ def part_elytra(browser, base):
     settle(p13)
     check("the add-enchantment menu has a search box, with no mod on", p13.eval_on_selector_all(".entry-popover .picker-row", "e => e.map(x => x.dataset.ns)") == ["mending"])
     # Flint & Steel in the game's own list has one group only (its lone enchantments), so no subsection is made around it.
-    p13.click("#wanted .item-menu-button")
+    p13.click("#item .item-menu-button")
     p13.click('#items button[data-focus="item-flint_and_steel"]')
     p13.wait_for_selector("#wanted .ench-row")
     check("a section with one group shows it without a subsection", p13.locator("#wanted .group-fold").count() == 0 and p13.locator("#wanted .wanted-list > .ench-row").count() >= 1)
@@ -1106,7 +1120,7 @@ def part_fancy(browser, base):
     p11.goto(base)
     p11.wait_for_selector("#wanted .item-grid")
     p11.click('#wanted .item-button:has-text("Sword")')
-    p11.wait_for_selector("#wanted .wanted-preview")
+    p11.wait_for_selector("#item .wanted-preview")
     vanilla_rows = p11.locator("#wanted .ench-row").count()
     p11.click("#options-menu summary")
     check("the Mods row offers the mod, off", p11.get_attribute('#limit-panel [data-focus="mod-spellbound"]', "aria-checked") == "false")
@@ -1118,7 +1132,7 @@ def part_fancy(browser, base):
     p11.click("#wanted .graph-box > summary")
     p11.wait_for_selector(".graph-canvas")
     order = p11.evaluate("[...document.querySelector('#wanted').children].map(el => el.classList.contains('wanted-head') ? 'head' : el.classList.contains('search-row') ? 'search' : el.classList.contains('list-box') ? 'list' : el.classList.contains('mod-section') ? 'mod' : el.classList.contains('graph-box') ? 'graph' : '?')")
-    check("section 1 has the search, then the enchantment list, each mod's list and the conflict graph as boxes of their own", order == ["head", "search", "list", "mod", "graph"], order)
+    check("section 1 has the search (the item is its own card now), then the enchantment list, each mod's list and the conflict graph as boxes of their own", order == ["search", "list", "mod", "graph"], order)
     p11.click("#wanted .list-box > summary")
     check("a mod's box stays when the list is folded", p11.locator("#wanted > .mod-section").is_visible())
     p11.click("#wanted .list-box > summary")
@@ -1179,8 +1193,8 @@ def part_two_mods(browser, base):
     _, p14, errors14 = open_page(browser, base, viewport={"width": 1280, "height": 1100})
     p14.wait_for_selector("#wanted .item-grid")
     p14.click('#wanted .item-button:has-text("Sword")')
-    p14.wait_for_selector("#wanted .wanted-preview")
-    preset_names = lambda: p14.eval_on_selector_all("#wanted .preset-chips button, #wanted .presets button, #wanted .chip", "e => e.map(x => x.textContent.trim())")
+    p14.wait_for_selector("#item .wanted-preview")
+    preset_names = lambda: p14.eval_on_selector_all("#item .preset-chips button, #item .presets button, #wanted .chip", "e => e.map(x => x.textContent.trim())")
     names_off = preset_names()
     p14.click("#options-menu summary")
     check("the Mods row offers both mods", p14.locator('#limit-panel [data-focus^="mod-"]').count() == 2)
@@ -1242,13 +1256,13 @@ def part_mod_off(browser, base):
     p17.click('#wanted .ench-row[data-ns="spellbound:c"] .level-seg[data-level="2"]')
     p17.click("#wanted .group-switch >> text=Sharpness")
     p17.wait_for_selector("#results .anvil-step")
-    p17.wait_for_function("document.querySelector('#wanted .cost-line') && document.querySelector('#wanted .wanted-preview').textContent.includes('Mod C')")
+    p17.wait_for_function("document.querySelector('#item .wanted-preview .cost-line') && document.querySelector('#item .wanted-preview').textContent.includes('Mod C')")
     p17.click("#options-menu summary")
     p17.click('#limit-panel [data-focus="mod-spellbound"]')
     p17.keyboard.press("Escape")
-    p17.wait_for_function("document.querySelector('#wanted .cost-line') && document.querySelector('#wanted .cost-line').textContent.includes('5 ')", timeout=5000)
+    p17.wait_for_function("document.querySelector('#item .wanted-preview .cost-line') && document.querySelector('#item .wanted-preview .cost-line').textContent.includes('5 ')", timeout=5000)
     settle(p17) # the removed tooltip line fades out first
-    tip, results = p17.inner_text("#wanted .wanted-preview"), p17.inner_text("#results")
+    tip, results = p17.inner_text("#item .wanted-preview"), p17.inner_text("#results")
     check("turning a mod off drops its picks everywhere, with no error", "Mod C" not in tip and "5 Levels" in tip and "Mod C" not in results and "issing" not in results, (tip, results[:200]))
     context.close()
     return errors17
@@ -1260,9 +1274,9 @@ def part_cost_width(browser, base):
     p19.click('#wanted .item-button:has-text("Fishing Rod")')
     p19.click('#wanted .ench-row[data-ns="lure"] .level-seg[data-level="1"]')
     p19.wait_for_selector("#results .anvil-step")
-    p19.wait_for_function("document.querySelector('#wanted .cost-line:not(.idle) .cost-line-text') && document.querySelector('#wanted .cost-line-text').textContent.includes('Levels')")
+    p19.wait_for_function("document.querySelector('#item .wanted-preview .cost-line:not(.idle) .cost-line-text') && document.querySelector('#item .wanted-preview .cost-line-text').textContent.includes('Levels')")
     settle(p19)
-    fits = p19.evaluate("""() => { const tip = document.querySelector('#wanted .wanted-preview .mc-tooltip').getBoundingClientRect(); const text = document.querySelector('#wanted .cost-line-text').getBoundingClientRect(); return [Math.round(text.right), Math.round(tip.right)]; }""")
+    fits = p19.evaluate("""() => { const tip = document.querySelector('#item .wanted-preview .mc-tooltip').getBoundingClientRect(); const text = document.querySelector('#item .wanted-preview .cost-line-text').getBoundingClientRect(); return [Math.round(text.right), Math.round(tip.right)]; }""")
     check("a tooltip with one short enchantment still fits its cost line", fits[0] <= fits[1], fits)
     return errors19
 
@@ -1462,7 +1476,7 @@ def part_fold_all(browser, base):
     check("the No conflicts subsection holds plain rows", p.locator("#wanted .wanted-list > .group-fold >> nth=0 >> .ench-row").count() == int(heads[0].split("(")[1].rstrip(")")))
     check("the fold buttons sit to the right of the search box", p.evaluate("""() => { const input = document.querySelector('#wanted .wanted-search').getBoundingClientRect(), buttons = document.querySelector('#wanted .search-row .fold-buttons').getBoundingClientRect(); return buttons.left >= input.right - 1 && Math.abs(buttons.top - input.top) < 40; }"""))
     # The presets are the same whether or not conflicts are allowed.
-    preset_row = lambda: p.eval_on_selector_all("#wanted .presets button, #wanted .preset-chips button", "e => e.map(x => x.textContent.trim())")
+    preset_row = lambda: p.eval_on_selector_all("#item .presets button, #item .preset-chips button", "e => e.map(x => x.textContent.trim())")
     presets_before = preset_row()
     p.click("#options-menu summary")
     p.click("#limit-panel .rule-switch")
@@ -1601,7 +1615,7 @@ def part_links(browser, base):
     bedrock = base64.urlsafe_b64encode(json_module.dumps({"i": "recovery_compass", "w": {"vanishing_curse": 1}, "a": 1, "b": [], "e": 1}).encode()).decode().rstrip("=")
     p4 = new_page()
     p4.goto(base + "#" + bedrock)
-    p4.wait_for_selector("#wanted .wanted-preview")
+    p4.wait_for_selector("#item .wanted-preview")
     check("a Bedrock link keeps Bedrock's own enchantments", p4.locator('#wanted .ench-row.chosen[data-ns="vanishing_curse"]').count() == 1)
 
     # Corrupt values in storage are ignored.
@@ -1726,7 +1740,7 @@ def part_narrow_results(browser, base):
 def pick_boots(page):
     """Boots with the first preset, until the steps show."""
     page.click('#wanted .item-grid button[data-focus="item-boots"]')
-    page.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    page.click('#item .preset:not([data-focus="preset-plain"]) >> nth=0')
     page.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(page)
 
@@ -1801,7 +1815,7 @@ def part_motion_access(browser, base):
     errors += errs
     pick_boots(p2)
     names = p2.evaluate("""() => [...document.querySelectorAll('main h2')].map(h => [h.getAttribute('aria-labelledby') && document.getElementById(h.getAttribute('aria-labelledby')).textContent, h.querySelector('.step-badge').getAttribute('aria-hidden')])""")
-    check("each section's heading is named by its title alone", len(names) == 4 and all(t and a == "true" for t, a in names), names)
+    check("each section's heading is named by its title alone", len(names) == 5 and all(t and a == "true" for t, a in names), names)
     check("the item menu button has no aria-controls while closed", p2.get_attribute(".item-menu-button", "aria-controls") is None)
     p2.click(".item-menu-button")
     check("and points at the menu while it is open", p2.get_attribute(".item-menu-button", "aria-controls") == "item-menu" and p2.locator("#item-menu").count() == 1)
@@ -1812,7 +1826,7 @@ def part_motion_access(browser, base):
     _, p3, errs = open_page(browser, base, viewport={"width": 1000, "height": 900})
     errors += errs
     p3.click('#wanted .item-grid button[data-focus="item-helmet"]')
-    p3.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    p3.click('#item .preset:not([data-focus="preset-plain"]) >> nth=0')
     p3.wait_for_selector("#wanted .wanted-list")
     sides = p3.evaluate("""() => [...document.querySelectorAll('#wanted [role=group][aria-label^="Side "]')].map(e => e.getAttribute('aria-label'))""")
     radios = p3.evaluate("""() => [...document.querySelectorAll('#wanted [role=radiogroup]')].every(g => g.querySelectorAll('[role=radio]').length > 0)""")
@@ -1881,7 +1895,7 @@ def part_keys(browser, base):
     _, q, errs = open_page(browser, base, viewport={"width": 1280, "height": 900})
     errors += errs
     q.click('#wanted .item-grid button[data-focus="item-sword"]')
-    q.click('#wanted .preset:not([data-focus="preset-plain"]) >> nth=0')
+    q.click('#item .preset:not([data-focus="preset-plain"]) >> nth=0')
     q.wait_for_selector("#results .anvil-step", timeout=8000)
     q.click("#books >> text=Custom")
     settle(q)

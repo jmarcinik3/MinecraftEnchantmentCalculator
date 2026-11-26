@@ -50,17 +50,20 @@
     </header>
 
     <main class="layout">
+        <!-- The item: a floating card beside the sections on wide windows, a sticky bar over them (condensed to one line once scrolled) on narrow ones.
+             Not a section (no number, no collapse); Wanted.js renderItem fills it, and it is hidden until an item is picked. -->
+        <div id="item-dock" class="item-dock" hidden><div id="item"></div></div>
         <div class="inputs">
             <!-- Each section can collapse from its heading (App.js setupCollapsing); the
                  summary says what is chosen while it is closed. -->
             <!-- 1: the item (a grid until one is picked, then a menu on its slot) and its enchantments. -->
             <section class="card collapsible" data-section="wanted">
-                <h2 aria-labelledby="wanted-title"><span class="step-badge" aria-hidden="true">1</span><span class="section-title" id="wanted-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
+                <h2 aria-labelledby="wanted-title"><span class="step-badge" aria-hidden="true">2</span><span class="section-title" id="wanted-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
                 <div id="wanted-body" class="section-body"><div id="wanted"></div></div>
             </section>
 
             <section class="card collapsible" data-section="books">
-                <h2 aria-labelledby="books-title"><span class="step-badge" aria-hidden="true">2</span><span class="section-title" id="books-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
+                <h2 aria-labelledby="books-title"><span class="step-badge" aria-hidden="true">3</span><span class="section-title" id="books-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
                 <div id="books-body" class="section-body"><div id="books"></div></div>
             </section>
 
@@ -73,7 +76,7 @@
                  .section-head: the h2 and the collapse arrow (the game rules are in the header). -->
             <section class="card collapsible" data-section="order">
                 <div class="section-head">
-                    <h2 aria-labelledby="order-title"><span class="step-badge" aria-hidden="true">3</span><span class="section-title" id="order-title" data-text="page.results_heading"></span>
+                    <h2 aria-labelledby="order-title"><span class="step-badge" aria-hidden="true">4</span><span class="section-title" id="order-title" data-text="page.results_heading"></span>
                         <span class="info-tip">
                             <button id="rank-help" class="info-tip-button" type="button" aria-expanded="false"
                                 aria-controls="rank-help-text" data-text-label="ranking.rank_help_label">?</button>
@@ -92,12 +95,10 @@
             </section>
 
             <section class="card collapsible results-card" data-section="steps">
-                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">4</span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary always" id="steps-summary"></span><span id="anvil-risk"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
+                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">5</span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary always" id="steps-summary"></span><span id="anvil-risk"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
                 <div id="steps-body" class="section-body"><div id="results"></div></div>
             </section>
         </aside>
     </main>
-    <!-- Start over: clears the setup and the settings kept in this browser (App.js setupReset). -->
-    <footer class="page-footer"><button id="reset" class="btn reset-button" type="button" data-text-title="page.reset_help"><svg class="reset-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7"/><path d="M3 4v5h5"/></svg><span data-text="page.reset"></span></button></footer>
 </body>
 </html>

@@ -2,7 +2,8 @@
     "page": {
         "title": "Calculadora de encantamientos",
         "heading": "Calculadora de encantamientos",
-        "enchantments_heading": "Objeto y encantamientos",
+        "item_heading": "Objeto",
+        "enchantments_heading": "Encantamientos",
         "books_heading": "Libros y objetos",
         "results_heading": "Mejor orden",
         "skip_best": "Ir a Mejor orden",
@@ -41,7 +42,7 @@
 
     "wanted": {
         "intro": "Encuentra el orden más barato en el yunque para poner libros encantados en un objeto. Elige un objeto y sus encantamientos, y sigue los pasos.",
-        "example": "Prueba un ejemplo: un casco con todos los encantamientos",
+        "example": "Prueba un ejemplo: botas con Agilidad acuática",
         "pick_item_first": "Elige el objeto que quieres encantar.",
         "change_item": "Cambiar objeto",
         "change_item_label": "{item}: cambiar objeto",
@@ -94,6 +95,8 @@
         "preset_plain_help": "Sin encantamientos: el objeto sin más",
         "presets": "Preajustes",
         "preset_best": "Dios",
+        "item_mini_top": "Volver arriba",
+        "item_mini_none": "Sin encantamientos elegidos",
         "preset_best_help": "Los mejores encantamientos habituales para este objeto, al nivel máximo y sin maldiciones",
         "preset_swap_help": "El mejor conjunto, con {name} en lugar de lo que entra en conflicto con él",
         "none": "Ninguno",
