@@ -10,6 +10,15 @@ const MORPH_EASING = "cubic-bezier(0.25, 0.8, 0.25, 1)";
 export const FOLD_MS = MORPH_MS;
 export const FOLD_EASING = MORPH_EASING;
 
+// How every view switch hides what goes (Section 2's Cards / Slots / List, Section 4's Steps / Slots / Tree). What comes is never faded in over
+// what goes: two partly see-through layers add up to less than one, so the screen dips ("fades out, then appears"). What comes is drawn whole and
+// is uncovered as its box grows; what goes is a copy laid over it, and the copy is the only thing that fades. (A new part with nothing going
+// away from its place may still fade in.)
+const COVER_FADE = 0.5; // how much of a morph the covering copy takes to fade
+function fadeOutCover(copy, duration) {
+    return copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * COVER_FADE, easing: "ease-in-out", fill: "forwards" });
+}
+
 // `timing` (optional): { duration, easing } to slide with instead of the default 0.25s ease-out.
 export function growSmoothly(element, from, timing = null) {
     const to = element.getBoundingClientRect().height;
@@ -340,7 +349,8 @@ function morphCard(card, old, now, timing, how) {
         const outer = unit.getBoundingClientRect();
         origin = `${inner.left - outer.left}px ${inner.top - outer.top}px`;
     }
-    const fading = [...card.children].filter(child => child !== unit && !child.matches(".slot-tip, .copies-control") && getComputedStyle(child).opacity === "1" && !(keep && old.parts.has(partName(child))));
+    // (Where the old contents are a copy laid over the card, the new ones are simply there under it: only what has nothing going away over it fades in.)
+    const fading = (!keep && old.ghost) ? [] : [...card.children].filter(child => child !== unit && !child.matches(".slot-tip, .copies-control") && getComputedStyle(child).opacity === "1" && !(keep && old.parts.has(partName(child))));
     const looks = (box, chrome) => ({ width: box.width + "px", height: box.height + "px", backgroundColor: chrome.background, borderColor: chrome.border, borderRadius: chrome.radius });
     const frame = h("div", { class: "card-frame", "aria-hidden": "true" });
     frame.style.left = frame.style.top = -now.chrome.width + "px";
@@ -362,7 +372,7 @@ function morphCard(card, old, now, timing, how) {
         card.parentElement.append(ghost);
         animations.push(ghost.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], timing));
         animations.push(ghost.animate([{ width: old.width + "px", height: old.height + "px" }, { width: now.width + "px", height: now.height + "px" }], timing));
-        animations.push(ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: timing.duration * 0.25, easing: "ease-out", fill: "forwards" }));
+        animations.push(fadeOutCover(ghost, timing.duration));
     }
     if (keep) {
         for (const child of card.children) {
@@ -836,19 +846,12 @@ export function foldDetails(details, open, inside = []) {
 // A Steps card, a Slots card and a Tree line are the same step (`data-step-card`); their result slots are the same slot.
 const STEP_SLOT_ROLES = ["left", "right", "result"];
 
-// What travels with a step by name: the three anvil slots, the "+", the arrow, the cost, the rail's node and the head (Steps, Slots), or the tree line's
-// own slot (the result). Steps and Slots share all of these.
+// What travels with a step by name: the "+", the arrow, the cost, the rail's node and the head (Steps, Slots share all of these). The item icons are
+// not here: each is its own flyer (morphView), matched by item (`data-node`) across all three views.
 const STEP_BITS = { node: ".step-node", head: ".step-head", checkpoint: ".level-checkpoint", op: ".anvil-op", arrow: ".arrow-glyph", cost: ".anvil-cost" };
 function stepSlots(box) {
     const found = new Map();
-    if (box.classList.contains("tree-line")) {
-        const slot = box.querySelector(":scope > .tree-slot");
-        if (slot) found.set("result", slot);
-    } else {
-        for (const role of STEP_SLOT_ROLES) {
-            const slot = box.querySelector(`.anvil-cell.${role} > .mc-slot`);
-            if (slot) found.set(role, slot);
-        }
+    if (!box.classList.contains("tree-line")) {
         for (const [name, selector] of Object.entries(STEP_BITS)) {
             const bit = box.querySelector(selector);
             if (bit) found.set(name, bit);
@@ -865,6 +868,24 @@ const chromeOf = style => ({
 // The steps as they are before the view changes: a copy of the whole box to fade out, where it was, and each step's box
 // and slots (by step number) with the matching parts of the copy. Nothing in the copy may be found as a step, a tick box
 // or a link to a card (the real ones are what the page and the tests look up).
+// Everything a switch lays over the scroller (the old view's copies, the frames, the flyers) borrows the classes and attributes of the parts it copies
+// (`.tree-caption`, `[data-node]`...). Every lookup of what is really in the view goes through here, which leaves the overlay out, so the switch can never
+// take its own flyers for the new view's parts (and fly a flyer). The overlay is marked `.view-overlay`.
+const real = (scroller, selector) => [...scroller.querySelectorAll(selector)].filter(el => !el.closest(".view-overlay"));
+
+// Where a thing that a view hides (inside a folded step, or under a folded Tree line) goes to or comes from: a point in the card or line that holds it
+// (a little in from its left, a line down), relative to `origin`; or null if even that is not shown.
+function hostPoint(el, origin) {
+    let host = el.closest(".tree-line, [data-step-card]");
+    while (host) {
+        const r = host.getBoundingClientRect();
+        if (r.width >= 1 && r.height >= 1) return { left: r.left - origin.left + 16, top: r.top - origin.top + Math.min(r.height / 2, 20) };
+        const list = host.closest("ul.tree-children");
+        host = list ? list.parentElement.querySelector(":scope > .tree-line") : null;
+    }
+    return null;
+}
+
 let settling = null; // ends the morph in progress (set by morphView)
 export function viewSnapshot(scroller) {
     // A switch while the last one is still running starts from where that one ends (not from a copy of its frames, its old copy and its borrowed text).
@@ -877,10 +898,32 @@ export function viewSnapshot(scroller) {
     const copy = inertCopy(scroller);
     // A second copy, all hidden but the parts the panel holds, goes above the panel's frame (the first is under it), so those show only inside it.
     const held_copy = inertCopy(scroller);
+    copy.classList.add("view-overlay");
+    held_copy.classList.add("view-overlay");
     held_copy.style.visibility = "hidden";
     const twins = [...copy.querySelectorAll("[data-step-card]")];
+    // Every item icon (`data-node`) with where it is, and its twin in the copy.
+    const twin_icons = [...copy.querySelectorAll("[data-node]")];
+    const all_icons = real(scroller, "[data-node]");
+    const slot_list = all_icons.map((el, i) => {
+        const rect = rel(el);
+        const shown = rect.width >= 1 && rect.height >= 1;
+        return { id: el.dataset.node, index: i, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_icons[i] };
+    });
+    // The tooltips and step badges (`data-fly`) the same way: where each is (`shown`: not hidden), and its twin in the copy.
+    const twin_fly = [...copy.querySelectorAll("[data-fly]")];
+    const fly_list = real(scroller, "[data-fly]").map((el, i) => {
+        const rect = rel(el);
+        const shown = rect.width >= 1 && rect.height >= 1;
+        return { id: el.dataset.fly, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_fly[i] };
+    });
+    // Compact Tree's captions (the one-line text beside each icon), each with the icon it sits beside.
+    const twin_captions = [...copy.querySelectorAll(".tree-caption")];
+    const caption_list = real(scroller, ".tree-caption").map((el, i) => ({
+        rect: rel(el), twin: twin_captions[i], icon: all_icons.indexOf(el.parentElement.querySelector("[data-node]"))
+    })).filter(caption => caption.rect.width >= 1 && caption.rect.height >= 1);
     const items = new Map();
-    [...scroller.querySelectorAll("[data-step-card]")].forEach((box, index) => {
+    real(scroller, "[data-step-card]").forEach((box, index) => {
         const outline = rel(box);
         if (outline.width < 1 || outline.height < 1) return; // folded away
         const slots = new Map();
@@ -891,7 +934,9 @@ export function viewSnapshot(scroller) {
         const twin = twins[index];
         // The frame draws the box while it travels; the copy keeps only what was inside.
         Object.assign(twin.style, { background: "transparent", borderColor: "transparent", boxShadow: "none" });
-        for (const slot of stepSlots(twin).values()) slot.style.visibility = "hidden"; // the real slots travel
+        // The parts that travel (the head, the node...) are hidden in the copy; one with nothing to travel to is shown again by morphStep and goes with the copy.
+        const twin_bits = stepSlots(twin);
+        for (const bit of twin_bits.values()) bit.style.visibility = "hidden";
         // The anvil panel (the embossed rectangle under the slots) is a shape of its own, so it morphs between Steps and Slots.
         const row = box.querySelector(":scope > .anvil-row");
         const panel = row ? rel(row) : null;
@@ -902,56 +947,45 @@ export function viewSnapshot(scroller) {
         const held = ".anvil-row .cell-label, .anvil-row .mc-tooltip, .anvil-row .cell-meta";
         const twin_held = [...twin.querySelectorAll(held)];
         const kept = [...held_copy.querySelectorAll(held)];
-        const all_held = [...scroller.querySelectorAll(held)];
-        const parts = [...box.querySelectorAll(held)].map((part, i) => ({ el: kept[all_held.indexOf(part)], rect: rel(part), under: twin_held[i] })).filter(part => part.rect.width >= 1 && part.rect.height >= 1);
+        const all_held = real(scroller, held);
+        const parts = [...box.querySelectorAll(held)].map((part, i) => ({ el: kept[all_held.indexOf(part)], rect: rel(part), under: twin_held[i], icon: all_icons.indexOf((part.closest(".anvil-cell") || document.body).querySelector("[data-node]")) })).filter(part => part.rect.width >= 1 && part.rect.height >= 1);
         for (const part of parts) { part.under.style.visibility = "hidden"; part.el.style.visibility = "visible"; }
-        items.set(box.dataset.stepCard, { ...outline, parts, restoreRow: () => { if (twin_row) Object.assign(twin_row.style, { background: "", borderColor: "" }); }, classes: (scroller.querySelector(".rounds.timeline") || {}).className || "", summary: line ? line.textContent : "", chrome: chromeOf(getComputedStyle(box)), slots, twin, panel: panel && panel.width >= 1 ? { ...panel, chrome: chromeOf(getComputedStyle(row)) } : null });
+        items.set(box.dataset.stepCard, { ...outline, parts, twin_bits, restoreRow: () => { if (twin_row) Object.assign(twin_row.style, { background: "", borderColor: "" }); }, classes: (scroller.querySelector(".rounds.timeline") || {}).className || "", summary: line ? line.textContent : "", chrome: chromeOf(getComputedStyle(box)), slots, twin, panel: panel && panel.width >= 1 ? { ...panel, chrome: chromeOf(getComputedStyle(row)) } : null });
     });
     for (const part of [...copy.querySelectorAll("[data-step], [data-step-card], [data-entry-link], [data-view]"), ...held_copy.querySelectorAll("[data-step], [data-step-card], [data-entry-link], [data-view]")]) {
         for (const name of ["data-step", "data-step-card", "data-entry-link", "data-view"]) part.removeAttribute(name);
     }
     for (const tip of copy.querySelectorAll(".info-tip")) tip.classList.remove("floating");
-    const shared = [...scroller.querySelectorAll(".round-label, .final-card")].map(rel); // the parts both timeline views have, in order
-    return { copy, held_copy, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
-}
-
-// The parts of a box that fade in (everything but the slots that travel, which stay whole): the box's children,
-// down into the ones that hold a slot (`holders`: their own box fades in, so its panel does not pop), leaving out what is not drawn.
-function fadingParts(node, slots, holders = []) {
-    const parts = [];
-    for (const child of node.children) {
-        if (slots.has(child) || child.classList.contains("card-frame")) continue; // (a frame is the box itself, never faded)
-        if ([...slots].some(slot => child.contains(slot))) { holders.push(child); parts.push(...fadingParts(child, slots, holders)); continue; }
-        const style = getComputedStyle(child);
-        if (style.display !== "none" && style.opacity !== "0") parts.push(child);
-    }
-    return parts;
+    const shared = real(scroller, ".round-label, .final-card").map(rel); // the parts both timeline views have, in order
+    return { copy, held_copy, slot_list, fly_list, caption_list, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
 }
 
 // One step's box, from where it was (`was`) to where it is (`now`), both relative to the scroller's visible box.
-// `fade`: the parts the new view adds fade in (between Steps and Slots they are simply there, uncovered as the box grows and as the old copy fades off them).
-function morphStep(box, was, now, origin, timing, fade) {
+// `same`: between Steps and Slots (the old copy is under the panels, and each part of it goes by itself); else the old copy lies over everything and fades.
+function morphStep(box, was, now, origin, timing, same, follow, layer) {
     const dx = was.left - now.left;
     const dy = was.top - now.top;
-    // The box (and the anvil panel's) is a frame in the scroller, not in the card: the card's transform and clip make a layer of their own, and
-    // the old copy has to sit between the frames (layers -3 and -1) to be covered by the panel and not the card. Positions are in the scroller's content.
+    // The box (and the anvil panel's) is a frame in the overlay layer, not in the card: the card's transform and clip make a layer of their own, and
+    // the old copy has to sit between the frames (layers -3 and -1) to be covered by the panel and not the card. Positions are in the scroller's visible box.
     const scroller = box.closest(".steps-scroll");
-    const lift = scroller.scrollTop;
-    const frameOf = layer => { const el = h("div", { class: "card-frame", "aria-hidden": "true" }); el.style.cssText = `z-index: ${layer}; left: 0; top: 0; width: 0; height: 0`; scroller.append(el); return el; };
+    const frameOf = z => { const el = h("div", { class: "card-frame view-overlay", "aria-hidden": "true" }); el.style.cssText = `z-index: ${z}; left: 0; top: 0; width: 0; height: 0`; layer.append(el); return el; };
     const frame = frameOf("-3");
     const looks = (rect, chrome) => ({
-        left: rect.left + "px", top: rect.top + lift + "px", width: rect.width + "px", height: rect.height + "px",
+        left: rect.left + "px", top: rect.top + "px", width: rect.width + "px", height: rect.height + "px",
         backgroundColor: chrome.background, borderColor: chrome.border, borderRadius: chrome.radius, borderWidth: chrome.width + "px"
     });
     // The slots that were in the old step glide and scale to their new places (about their own corner), and never fade.
     const moving = new Map();
+    const matched = new Set();
     for (const [role, slot] of stepSlots(box)) {
         const before = was.slots.get(role);
         if (!before) continue;
         const after = slot.getBoundingClientRect();
+        matched.add(role);
         moving.set(slot, { role, before, left: after.left - origin.left, top: after.top - origin.top, width: after.width, height: after.height });
         slot.style.zIndex = "2";
     }
+    for (const [role, bit] of was.twin_bits) if (!matched.has(role)) bit.style.visibility = "";
     const row = box.querySelector(":scope > .anvil-row");
     const panel_rect = row && was.panel ? row.getBoundingClientRect() : null;
     const now_panel = panel_rect && panel_rect.width >= 1
@@ -961,14 +995,16 @@ function morphStep(box, was, now, origin, timing, fade) {
     // What only the new view has inside the panel (tooltips, slot labels, the prior-work line) appears as the panel grows, the reverse of what the old view's
     // lose: shown only where the panel has got to, and fading in.
     const arrivals = [];
-    if (!fade && now_panel && was.panel) {
+    if (same && now_panel && was.panel) {
         for (const el of box.querySelectorAll(".anvil-row .cell-label, .anvil-row .mc-tooltip, .anvil-row .cell-meta")) {
             const r = el.getBoundingClientRect();
-            if (r.width >= 1 && r.height >= 1) arrivals.push({ el, rect: { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height } });
+            const icon = (el.closest(".anvil-cell") || document.body).querySelector("[data-node]");
+            // (A part goes with its item's icon: it starts where the icon starts, shifted by the icon's own journey.)
+            if (r.width >= 1 && r.height >= 1) arrivals.push({ el, follows: follow.new.get(icon) || { dx: 0, dy: 0 }, rect: { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height } });
         }
     }
     const reveals = [];
-    if (!fade && now_panel) {
+    if (same && now_panel) {
         for (const el of box.querySelectorAll(":scope > .step-caption, :scope > .step-words")) {
             const r = el.getBoundingClientRect();
             if (r.width >= 1 && r.height >= 1) reveals.push({ el, top: r.top - origin.top, height: r.height });
@@ -988,10 +1024,11 @@ function morphStep(box, was, now, origin, timing, fade) {
         animations.push(slot.animate([{ transform: move, transformOrigin: "0 0" }, { transform: "none", transformOrigin: "0 0" }], timing));
     }
     const insetAround = (panel, r) => `inset(${panel.top - r.top}px ${r.left + r.width - panel.left - panel.width}px ${r.top + r.height - panel.top - panel.height}px ${panel.left - r.left}px)`;
-    for (const { el, rect } of arrivals) {
-        // (At the start the card is still at its old place, so the part is too: shifted by the card's move.)
-        const start = { ...rect, left: rect.left + dx, top: rect.top + dy };
+    for (const { el, rect, follows } of arrivals) {
+        // (At the start the card is still at its old place, so the part is too: shifted by the card's move, and by the icon's.)
+        const start = { ...rect, left: rect.left + dx + follows.dx, top: rect.top + dy + follows.dy };
         animations.push(el.animate([{ clipPath: insetAround(was.panel, start) }, { clipPath: insetAround(now_panel, rect) }], timing));
+        animations.push(el.animate([{ transform: `translate(${follows.dx}px, ${follows.dy}px)` }, { transform: "none" }], timing));
         animations.push(el.animate([{ opacity: 0 }, { opacity: 1 }], { ...timing, easing: "ease-out" }));
     }
     for (const { el, top, height } of reveals) {
@@ -1001,29 +1038,27 @@ function morphStep(box, was, now, origin, timing, fade) {
         const clip = at => below ? `inset(${at}px 0 0 0)` : `inset(0 0 ${height - at}px 0)`;
         animations.push(el.animate([{ clipPath: clip(edge(was.panel) - (top + dy)) }, { clipPath: clip(edge(now_panel) - top) }], timing));
     }
-    const holders = [];
-    const fading = { duration: timing.duration * 0.55, delay: timing.duration * 0.15, easing: "ease-out", fill: "backwards" };
-    if (fade) {
-        for (const part of fadingParts(box, new Set(moving.keys()), holders)) animations.push(part.animate([{ opacity: 0 }], fading));
-        for (const holder of holders) if (holder !== row || !now_panel) animations.push(holder.animate([{ backgroundColor: "transparent", borderColor: "transparent", boxShadow: "none" }], fading));
-    }
     // A folded step's one-line summary (which the open step lacks) fades out in its head, travelling with the card, not left behind in the copy.
     const summary = box.querySelector(":scope > .step-head .step-summary");
     const borrowed = Boolean(summary && !summary.textContent && was.summary);
     if (borrowed) {
         summary.textContent = was.summary;
-        animations.push(summary.animate([{ opacity: 1 }, { opacity: 0 }], { duration: timing.duration * 0.35, easing: "ease-out", fill: "forwards" }));
+        animations.push(fadeOutCover(summary, timing.duration));
     }
     // Between Steps and Slots the old copy (morphView) is whole and under the panel: what the panel will not cover fades at once; the text it will
     // cover (In words, the one-line caption) stays until it has, and fades at the end if some is left.
-    if (!fade) {
-        if (!now_panel) was.restoreRow(); // an anvil panel with no new one to become fades out with the rest of the old card
+    if (!now_panel) was.restoreRow(); // an anvil panel with no new one to become goes with the rest of the old card (fading in the copy)
+    if (same) {
         // What only the old view has inside the panel is not faded: it is shown only where the panel still is, so it goes as the panel shrinks past it.
         if (!now_panel) for (const { el } of was.parts) animations.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: timing.duration * 0.35, easing: "ease-out", fill: "forwards" }));
         if (now_panel) {
             const inset = (panel, r) => `inset(${panel.top - r.top}px ${r.left + r.width - panel.left - panel.width}px ${r.top + r.height - panel.top - panel.height}px ${panel.left - r.left}px)`;
-            for (const { el, rect } of was.parts) {
-                animations.push(el.animate([{ clipPath: inset(was.panel, rect) }, { clipPath: inset(now_panel, rect) }], { ...timing, fill: "forwards" }));
+            for (const { el, rect, icon } of was.parts) {
+                // Each goes with its item's icon (the clip goes with it), and is cut by the panel's edges as the panel shrinks past it.
+                const follows = follow.old.get(icon) || { dx: 0, dy: 0 };
+                const end = { ...rect, left: rect.left + follows.dx, top: rect.top + follows.dy };
+                animations.push(el.animate([{ transform: "none" }, { transform: `translate(${follows.dx}px, ${follows.dy}px)` }], { ...timing, fill: "forwards" }));
+                animations.push(el.animate([{ clipPath: inset(was.panel, rect) }, { clipPath: inset(now_panel, end) }], { ...timing, fill: "forwards" }));
                 // ...and they fade as they go, slowly at first so they are whole while the panel still holds them.
                 animations.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: timing.duration, easing: "ease-in", fill: "forwards" }));
             }
@@ -1071,45 +1106,207 @@ export function morphView(scroller, container, old) {
     const bar_before = old.rect.width - old.client[0] > 0.5;
     const bar_after = scroller.scrollHeight > scroller.clientHeight + 1;
     scroller.style.overflowY = bar_before || bar_after ? "scroll" : "hidden";
+    // The scroller is made the container of everything laid over it before anything is: an absolute child of a scroller that is not positioned belongs
+    // to something above it, and a flyer put there can lengthen the page and bring a scroll bar, narrowing everything by its width while the rest is measured.
+    scroller.classList.add("morphing-view");
     const timing = { duration: MORPH_MS, easing: MORPH_EASING };
     if (same) {
         for (const part of copy.querySelectorAll(".round-label, .final-card, .current-bar")) part.style.visibility = "hidden";
         copy.querySelector(".rounds.timeline").classList.add("no-rail");
     }
-    // The rail and the tree's branches fade in through their transitions (CSS, .view-morph: start clear, then let go).
-    if (!same) {
-        scroller.classList.add("view-morph");
-        getComputedStyle(scroller).opacity;
-        scroller.getBoundingClientRect();
-        scroller.classList.remove("view-morph");
-    }
     growSmoothly(scroller, rect.height, timing); // first, so the boxes below are measured in the layout they are animated in
     const origin = scroller.getBoundingClientRect();
     const fresh = [];
     const finishers = [];
-    for (const box of scroller.querySelectorAll("[data-step-card]")) {
+    // One layer holds every flyer (and nothing else is put among the page's own parts).
+    const layer = h("div", { class: "view-overlay", "aria-hidden": "true" });
+    // (The layer is the scroller's visible box, clipped, and positions in it are the scroller's own, a `rect` relative to its box: it is as big as the scroller, so a clone
+    // laid in it takes the percentages and max-widths of a real container, and what is laid in it can never add to the scroller's length or width or to the page's, so putting
+    // the overlay up changes nothing the rest of the switch measures.)
+    // (Its size is a percentage of the scroller's, not a number taken now: the scroller's height eases during the switch, and a layer fixed at the height it had when the
+    // overlay went up would cut off, for the whole flight, everything below that: the tooltips at the bottom of a taller tree.)
+    layer.style.cssText = `position: absolute; left: 0; top: ${scroller.scrollTop}px; width: 100%; height: 100%; overflow: hidden; pointer-events: none`;
+    scroller.append(layer);
+    const follow = { old: new Map(), new: new Map() }; // how far each icon travels, by the old icon's index and by the new icon: what sits beside it goes with it
+    // Each item icon flies from where it was to where it is, in a layer above everything: a clone of the new icon, so it is never faded, only moved
+    // (and scaled to the new icon's size). An item shown twice in one view (an input made by an earlier step) flies from both places to its one place
+    // (and back); the real icons wait, hidden, and the old ones in the copy are hidden, until they land.
+    {
+        const news = real(scroller, "[data-node]").map(el => {
+            const r = el.getBoundingClientRect();
+            const rect = { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height };
+            const shown = rect.width >= 1 && rect.height >= 1;
+            return { el, id: el.dataset.node, rect, shown, point: shown ? null : hostPoint(el, origin) };
+        });
+        const group = list => { const by = new Map(); for (const icon of list) by.set(icon.id, [...(by.get(icon.id) || []), icon]); return by; };
+        const olds_by = group(old.slot_list);
+        const flyers = [];
+        const hidden = new Set();
+        const animations = [];
+        const centre = r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+        for (const [id, here] of group(news)) {
+            const olds = olds_by.get(id);
+            if (!olds) continue;
+            const pairs = here.map((n, k) => [olds[Math.min(k, olds.length - 1)], n]);
+            for (let k = here.length; k < olds.length; k++) pairs.push([olds[k], here[0]]);
+            for (const [o, n] of pairs) {
+                // An icon a view hides (inside a folded step) goes into, or comes out of, the card that holds it, small, and is not faded: it only moves.
+                if (!o.shown && !n.shown) continue;
+                if (o.shown && !n.shown && !n.point) continue;
+                if (!o.shown && n.shown && !o.point) continue;
+                const natural = n.shown ? n.rect : o.rect;
+                const fly = n.el.cloneNode(true);
+                fly.removeAttribute("data-node");
+                fly.setAttribute("aria-hidden", "true");
+                Object.assign(fly.style, {
+                    position: "absolute", left: natural.left + "px", top: natural.top + "px", width: natural.width + "px", height: natural.height + "px",
+                    margin: "0", zIndex: "3", pointerEvents: "none", visibility: "visible", transformOrigin: o.shown && n.shown ? "0 0" : "50% 50%",
+                    maxWidth: "none", maxHeight: "none", minWidth: "0", minHeight: "0", flex: "none"
+                });
+                layer.append(fly);
+                flyers.push(fly);
+                if (o.shown && n.shown) {
+                    animations.push(fly.animate([{ transform: `translate(${o.rect.left - n.rect.left}px, ${o.rect.top - n.rect.top}px) scale(${o.rect.width / n.rect.width}, ${o.rect.height / n.rect.height})` }, { transform: "none" }], timing));
+                    follow.old.set(o.index, { dx: n.rect.left - o.rect.left, dy: n.rect.top - o.rect.top });
+                    follow.new.set(n.el, { dx: o.rect.left - n.rect.left, dy: o.rect.top - n.rect.top });
+                } else if (o.shown) {
+                    const c = centre(o.rect);
+                    animations.push(fly.animate([{ transform: "none" }, { transform: `translate(${n.point.left - c.x}px, ${n.point.top - c.y}px) scale(0.3)` }], { ...timing, fill: "forwards" }));
+                    follow.old.set(o.index, { dx: n.point.left - c.x, dy: n.point.top - c.y });
+                } else {
+                    const c = centre(n.rect);
+                    animations.push(fly.animate([{ transform: `translate(${o.point.left - c.x}px, ${o.point.top - c.y}px) scale(0.3)` }, { transform: "none" }], timing));
+                    follow.new.set(n.el, { dx: o.point.left - c.x, dy: o.point.top - c.y });
+                }
+                if (o.shown && o.twin) o.twin.style.visibility = "hidden";
+                if (n.shown) hidden.add(n.el);
+            }
+        }
+        // Between the Tree and the other views the tooltips and step badges travel too: each box goes from its old place and size to its new one while the
+        // text in it stays as it is (the old text over the new, the old fading, so nothing dips), a tooltip a view hides (Slots) grows out of its icon or is
+        // taken into it, and a badge becomes the step's tick label and back. (Between Steps and Slots the panel clips them, above.)
+        if (!same) {
+            const strip = el => {
+                const clone = inertCopy(el);
+                for (const node of [clone, ...clone.querySelectorAll("*")]) for (const name of ["data-step", "data-step-card", "data-entry-link", "data-view", "data-node", "data-fly"]) node.removeAttribute(name);
+                return clone;
+            };
+            const place = (clone, rect) => {
+                Object.assign(clone.style, {
+                    position: "absolute", left: rect.left + "px", top: rect.top + "px", width: rect.width + "px", height: rect.height + "px",
+                    boxSizing: "border-box", margin: "0", zIndex: "2", pointerEvents: "none", visibility: "visible", overflow: "hidden",
+                    // Its size is the one given, whatever its container: no limit of the page's own layout (a max-width, a flex share) is left on a clone.
+                    maxWidth: "none", maxHeight: "none", minWidth: "0", minHeight: "0", flex: "none"
+                });
+                layer.append(clone);
+                flyers.push(clone);
+            };
+            const icons_new = group(news.filter(icon => icon.shown));
+            const icons_old = group(old.slot_list.filter(icon => icon.shown));
+            // A tooltip a view hides collapses to its icon, or, if that is hidden too (a folded step), to the card that holds it.
+            const collapsed = (entry, icons, id, k) => {
+                const list = id.startsWith("step:") ? null : icons.get(id.split(":")[1]);
+                if (list) {
+                    const rect = list[Math.min(k, list.length - 1)].rect;
+                    return { left: rect.left + rect.width / 2, top: rect.top + rect.height / 2, width: 0, height: 0 };
+                }
+                return entry.point ? { left: entry.point.left, top: entry.point.top, width: 0, height: 0 } : null;
+            };
+            const boxes_new = real(scroller, "[data-fly]").map(el => {
+                const r = el.getBoundingClientRect();
+                const rect = { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height };
+                const shown = rect.width >= 1 && rect.height >= 1;
+                return { el, id: el.dataset.fly, rect, shown, point: shown ? null : hostPoint(el, origin) };
+            });
+            const boxes_old = group(old.fly_list);
+            for (const [key, here] of group(boxes_new)) {
+                const olds = boxes_old.get(key);
+                if (!olds) continue;
+                const pairs = here.map((n, k) => [olds[Math.min(k, olds.length - 1)], n, k]);
+                for (let k = here.length; k < olds.length; k++) pairs.push([olds[k], here[0], 0]);
+                for (const [o, n, k] of pairs) {
+                    if (!o.shown && !n.shown) continue;
+                    const from = o.shown ? o.rect : collapsed(o, icons_old, key, k);
+                    const to = n.shown ? n.rect : collapsed(n, icons_new, key, k);
+                    if (!from || !to) continue;
+                    if (n.shown) {
+                        const fly = strip(n.el);
+                        place(fly, to);
+                        animations.push(fly.animate([
+                            { transform: `translate(${from.left - to.left}px, ${from.top - to.top}px)`, clipPath: `inset(0 ${to.width - from.width}px ${to.height - from.height}px 0)` },
+                            { transform: "none", clipPath: "inset(0 0 0 0)" }], timing));
+                        hidden.add(n.el);
+                    }
+                    if (o.shown && o.twin) {
+                        const gone = strip(o.twin);
+                        place(gone, from);
+                        animations.push(gone.animate([
+                            { transform: "none", clipPath: "inset(0 0 0 0)" },
+                            { transform: `translate(${to.left - from.left}px, ${to.top - from.top}px)`, clipPath: `inset(0 ${from.width - to.width}px ${from.height - to.height}px 0)` }], { ...timing, fill: "forwards" }));
+                        animations.push(fadeOutCover(gone, timing.duration));
+                        o.twin.style.visibility = "hidden";
+                    }
+                }
+            }
+            // Compact Tree's captions (the text beside each icon) follow their icon: an old one travels with it as far as the icon goes, and fades; a new
+            // one starts where its icon starts and fades in.
+            // (A caption is only drawn inside the compact Tree, by a rule of the tree's, so its clone, laid in the overlay, gets that look itself.)
+            const captionLook = clone => Object.assign(clone.style, { display: "block", fontSize: "12px", color: "var(--text-secondary)", whiteSpace: "nowrap", textOverflow: "ellipsis" });
+            for (const caption of old.caption_list) {
+                const moved = follow.old.get(caption.icon);
+                if (!moved || !caption.twin) continue;
+                const gone = strip(caption.twin);
+                captionLook(gone);
+                place(gone, caption.rect);
+                animations.push(gone.animate([{ transform: "none" }, { transform: `translate(${moved.dx}px, ${moved.dy}px)` }], { ...timing, fill: "forwards" }));
+                animations.push(fadeOutCover(gone, timing.duration));
+                caption.twin.style.visibility = "hidden";
+            }
+            for (const el of real(scroller, ".tree-caption")) {
+                const r = el.getBoundingClientRect();
+                const rect = { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height };
+                const moved = follow.new.get(el.parentElement.querySelector("[data-node]"));
+                if (!moved || rect.width < 1 || rect.height < 1) continue;
+                const fly = strip(el);
+                captionLook(fly);
+                place(fly, rect);
+                animations.push(fly.animate([{ transform: `translate(${moved.dx}px, ${moved.dy}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { ...timing, easing: "ease-out" }));
+                hidden.add(el);
+            }
+        }
+        for (const el of hidden) el.style.visibility = "hidden";
+        let landed = false;
+        const land = () => {
+            if (landed) return;
+            landed = true;
+            layer.remove();
+            for (const el of hidden) el.style.visibility = "";
+        };
+        finishers.push(land);
+        Promise.allSettled(animations.map(animation => animation.finished)).then(land);
+        setTimeout(land, MORPH_MS + 150);
+    }
+    for (const box of real(scroller, "[data-step-card]")) {
         const r = box.getBoundingClientRect();
         if (r.width < 1 || r.height < 1) continue;
         const was = items.get(box.dataset.stepCard);
-        if (was) finishers.push(morphStep(box, was, { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height, chrome: chromeOf(getComputedStyle(box)) }, origin, timing, !same));
-        else fresh.push(box);
+        if (was) finishers.push(morphStep(box, was, { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height, chrome: chromeOf(getComputedStyle(box)) }, origin, timing, same, follow, layer));
+        else if (same) fresh.push(box);
     }
-    // What has no old counterpart (a step that was folded away, the round labels, the tree's starting items, the finished item) fades in.
-    for (const line of scroller.querySelectorAll(".tree-line:not([data-step-card])")) fresh.push(line.parentElement);
-    const labels = [...scroller.querySelectorAll(".round-label, .final-card")];
-    if (!same) fresh.push(...labels);
-    // The round labels and the finished item move to their new places (the old copy's are hidden).
-    else labels.forEach((label, index) => {
+    // Nothing new is faded in over the old copy (see COVER_FADE): the rail, the labels and the tree's branches and starting items are simply there under it.
+    const labels = real(scroller, ".round-label, .final-card");
+    // Between Steps and Slots the round labels and the finished item move to their new places (the old copy's are hidden).
+    if (same) labels.forEach((label, index) => {
         const was = old.shared[index];
         const now = label.getBoundingClientRect();
         if (!was || Math.abs(was.top - (now.top - origin.top)) < 1 && Math.abs(was.left - (now.left - origin.left)) < 1) return;
         label.animate([{ transform: `translate(${was.left - (now.left - origin.left)}px, ${was.top - (now.top - origin.top)}px)` }, { transform: "none" }], timing);
     });
-    for (const part of fresh) part.animate([{ opacity: 0 }], { duration: 280, delay: MORPH_MS * 0.2, easing: "ease-out", fill: "backwards" });
+    // A step with no old box (one that was folded away) has nothing going away from its place, so it fades in.
+    for (const part of fresh) part.animate([{ opacity: 0 }], { duration: 280, easing: "ease-out", fill: "backwards" });
     // The old view's copy goes inside the scroller. Between Steps and Slots it is on the layer between the cards' boxes (-3) and the anvil panels (-1), so a
     // panel covers the old text it passes over, and it lays out as the old view did (the old width, bar excluded); between other views it is above
     // the new view and fades out.
-    scroller.classList.add("morphing-view");
     Object.assign(copy.style, {
         position: "absolute", top: scroller.scrollTop + "px", left: "0", width: old.client[0] + "px", height: old.client[1] + "px",
         // (The scroller's own padding comes from a rule for a direct child of the results box, so the copy, inside it, is given it.)
@@ -1126,13 +1323,14 @@ export function morphView(scroller, container, old) {
     // (Between Steps and Slots each part of the copy fades by itself, in morphStep, and the copy goes at the end.)
     afterAnimation(same
         ? copy.animate([{ opacity: 1 }, { opacity: 1 }], { duration: MORPH_MS, fill: "forwards" })
-        : copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: MORPH_MS * 0.35, easing: "ease-out", fill: "forwards" }), () => { copy.remove(); old.held_copy.remove(); }, MORPH_MS + 600);
+        : fadeOutCover(copy, MORPH_MS), () => { copy.remove(); old.held_copy.remove(); }, MORPH_MS + 600);
     const end = () => {
         for (const animation of scroller.getAnimations({ subtree: true })) if (Number.isFinite(animation.effect.getComputedTiming().endTime)) animation.cancel();
         for (const finish of finishers) finish();
         copy.remove();
         old.held_copy.remove();
-        scroller.classList.remove("morphing-view", "view-morph", "resizing");
+        layer.remove();
+        scroller.classList.remove("morphing-view", "resizing");
         scroller.style.height = "";
         scroller.style.overflowY = "";
     };

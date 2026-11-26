@@ -1005,16 +1005,24 @@ def part_ranking(browser, base):
     p10.mouse.move(0, 0)
     check("moving away clears them", p10.locator("#books .entry-card.highlight").count() == 0)
     # The Slots view folds like Steps: every step starts open, Collapse all folds each to its head, Expand all opens them again.
+    folded_steps = lambda: p10.eval_on_selector_all("#results .anvil-step", "e => e.map(x => x.classList.contains('folded'))")
+    in_steps = folded_steps()
     p10.click('#results [data-view="slots"]')
     settle(p10)
     steps_n = p10.locator("#results .anvil-step").count()
-    check("the Slots view's steps have a fold arrow and all start open", p10.locator("#results .step-fold").count() == steps_n and p10.locator("#results .anvil-step.folded").count() == 0 and p10.locator("#results .fold-buttons").count() == 1)
+    check("the Slots view's steps have a fold arrow and start with the same steps open as Steps", p10.locator("#results .step-fold").count() == steps_n and folded_steps() == in_steps and p10.locator("#results .fold-buttons").count() == 1, (in_steps, folded_steps()))
     fold_all(p10, "Collapse steps")
     settle(p10)
     check("Collapse all folds every Slots step to its head (the row and caption go, the one-line summary shows)", p10.locator("#results .anvil-step.folded").count() == steps_n and p10.locator("#results .anvil-row:visible").count() == 0 and p10.locator("#results .step-caption:visible").count() == 0 and "+" in p10.locator("#results .anvil-step.folded .step-summary").first.inner_text())
     p10.locator("#results .anvil-step").nth(1).locator(".step-head").click(position={"x": 200, "y": 8})
     settle(p10)
     check("a click on a folded Slots step's head opens it", p10.locator("#results .anvil-step.folded").count() == steps_n - 1 and p10.locator("#results .anvil-row:visible").count() == 1)
+    in_slots = folded_steps()
+    p10.click('#results [data-view="steps"]')
+    settle(p10)
+    check("the steps folded or opened in Slots are the same in Steps (one fold state for both views)", folded_steps() == in_slots, (in_slots, folded_steps()))
+    p10.click('#results [data-view="slots"]')
+    settle(p10)
     fold_all(p10, "Expand steps")
     settle(p10)
     check("Expand all opens every Slots step", p10.locator("#results .anvil-step.folded").count() == 0 and p10.locator("#results .anvil-row:visible").count() == steps_n)
@@ -1625,11 +1633,70 @@ def part_narrow_results(browser, base):
     check("switching Steps and Slots morphs the cards (frames and a copy of the old view during it) and leaves nothing behind", max(copies) >= 3 and result["after"] == 1 and p18.locator("#results .results-content > .steps-scroll").count() == 1, copies)
     travel = p18.evaluate("""async () => {
         document.querySelector('#results [data-view="tree"]').click();
-        const during = document.querySelectorAll('#results .steps-scroll > .card-frame').length;
+        const during = document.querySelectorAll('#results .steps-scroll > .view-overlay:not(.steps-scroll) > .card-frame').length;
         for (let waited = 0; waited < 6000 && document.querySelector('#results .morphing'); waited += 50) await new Promise(done => setTimeout(done, 50));
         return [during, document.querySelectorAll('#results .card-frame, #results .morphing').length];
     }""")
     check("each step is a travelling box while the view switches, and none is left once it has", travel[0] >= 1 and travel[1] == 0, travel)
+    # Each caption of the compact Tree flies once, from where it is: the switch's own flyers are never taken for parts of the new view and flown again.
+    p18.click('#results [data-view="tree"]')
+    settle(p18)
+    if "compact" not in (p18.get_attribute("#results .merge-tree", "class") or ""):
+        p18.click("#results .density")
+        settle(p18)
+    captions = p18.locator("#results .tree-caption:visible").count()
+    flown = p18.evaluate("""() => {
+        document.querySelector('#results [data-view="steps"]').click();
+        const flyers = [...document.querySelectorAll('#results .steps-scroll > .view-overlay:not(.steps-scroll) .tree-caption')];
+        return [flyers.length, flyers.filter(f => getComputedStyle(f).visibility === 'visible').length];
+    }""")
+    check("each caption of the compact Tree flies once, and is seen (a flyer is never taken for part of the view and flown again)", captions > 0 and flown[0] == captions and flown[1] == captions, (captions, flown))
+    settle(p18)
+    # A flyer is the size it was given: a clone laid in the overlay takes no limit (a percentage max-width, a flex share) from the layer it is in, which cut a tooltip
+    # to a sliver of itself for the whole flight.
+    p18.click('#results [data-view="tree"]')
+    settle(p18)
+    p18.click('#results [data-view="steps"]')
+    settle(p18)
+    wrong = p18.evaluate("""() => {
+        document.querySelector('#results [data-view="tree"]').click();
+        const flyers = [...document.querySelectorAll('#results .steps-scroll > .view-overlay:not(.steps-scroll) > :not(.card-frame)')];
+        return [flyers.length, flyers.map(e => [parseFloat(e.style.width), e.offsetWidth]).filter(([want, got]) => Math.abs(want - got) > 1).length];
+    }""")
+    check("every flyer is the size it was given", wrong[0] > 0 and wrong[1] == 0, wrong)
+    settle(p18)
+    p18.click('#results [data-view="steps"]')
+    settle(p18)
+    # A flyer lands where the real thing will be: laying the overlay over the scroller must not move the page's own parts (a flyer that brought a scroll bar to the page
+    # narrowed the tree by its width while the badges were measured, and the real badges then snapped back to the right at the end).
+    landing = p18.evaluate("""() => {
+        document.querySelector('#results [data-view="tree"]').click();
+        return [...document.querySelectorAll('#results .steps-scroll > .view-overlay:not(.steps-scroll) .tree-step')].map(f => [parseFloat(f.style.left), parseFloat(f.style.top)]);
+    }""")
+    settle(p18)
+    real = p18.evaluate("""() => { const box = document.querySelector('#results .steps-scroll').getBoundingClientRect(); return [...document.querySelectorAll('#results .steps-scroll .tree-step')].map(b => { const r = b.getBoundingClientRect(); return [r.left - box.left, r.top - box.top]; }); }""")
+    off = [max(abs(a[0] - b[0]), abs(a[1] - b[1])) for a, b in zip(sorted(landing), sorted(real))]
+    check("every badge flyer lands exactly where the real badge is", len(landing) > 0 and len(landing) == len(real) and max(off) < 2, (len(landing), len(real), max(off) if off else None))
+    # The overlay is always the size of the scroller, which eases its height when the tree gets taller (Compact to the full Tree): a layer fixed at the height it had
+    # when the overlay went up cut off the bottom of the taller tree, tooltips and all, for the whole flight.
+    if "compact" not in (p18.get_attribute("#results .merge-tree", "class") or ""):
+        p18.click("#results .density")
+        settle(p18)
+    grown = p18.evaluate("""async () => {
+        document.querySelector('#results .density').click();
+        const box = document.querySelector('#results .steps-scroll');
+        const heights = [];
+        const gaps = [];
+        await new Promise(done => { let left = 24; const tick = () => {
+            const layer = box.querySelector(':scope > .view-overlay:not(.steps-scroll)');
+            if (layer) { heights.push(box.clientHeight); gaps.push(Math.abs(layer.offsetHeight - box.clientHeight)); }
+            if (--left > 0) requestAnimationFrame(tick); else done(); }; tick(); });
+        return [Math.max(...heights) - Math.min(...heights), Math.max(...gaps)];
+    }""")
+    check("the overlay keeps the scroller's size while the scroller grows (the bottom of a taller tree is not cut off)", grown[0] > 10 and grown[1] <= 1, grown)
+    settle(p18)
+    p18.click('#results [data-view="steps"]')
+    settle(p18)
     p18.click('#results [data-view="steps"]')
     settle(p18)
     heights = "[...document.querySelectorAll('#results .anvil-step')].map(e => Math.round(e.getBoundingClientRect().height))"

@@ -35,6 +35,13 @@ function foldsFor(order_key) {
     return step_folds.folded;
 }
 
+// The first step not done in the order on screen (set by renderResults), the one the Steps and Slots views leave open.
+let current_step = null;
+
+// Steps and Slots show the same steps open and folded: one rule (a done step, or any but the current one, is folded) and one record (the hand folds above),
+// never a default of each view's own (Steps used to start with only the current one open and Slots with all, so they differed until every step was folded by hand).
+const foldedByDefault = number => number !== current_step;
+
 function isFolded(order_key, number, done, by_default = false) {
     const folds = foldsFor(order_key);
     return folds.has(number) ? folds.get(number) : done.has(number) || by_default;
@@ -68,6 +75,14 @@ const stepBoxes = () => new Map([...document.querySelectorAll("#results [data-st
 function easedChange(selector, change) {
     fold_change = new Map([...stepBoxes()].map(([number, el]) => [number, el.getBoundingClientRect().height]));
     keepInPlace(selector, change, true);
+}
+
+// An id for each item in the order (the same across redraws of the same result), so an icon is the same icon in every view (Motion.js morphView).
+const node_ids = new WeakMap();
+let next_node_id = 1;
+function nodeId(node) {
+    if (!node_ids.has(node)) node_ids.set(node, next_node_id++);
+    return node_ids.get(node);
 }
 
 export function renderResults() {
@@ -167,6 +182,7 @@ export function renderResults() {
 
     const left = steps.map(step => step.number).filter(number => !done.has(number));
     const current = left.length ? Math.min(...left) : null;
+    current_step = current;
     const setView = view => {
         if (view === result_view) return;
         rememberView();
@@ -230,8 +246,8 @@ export function renderResults() {
             h("ol", { class: "anvil-steps" }, round.map(step =>
                 anvilStep(step, done, order_key, steps,
                     track && !done.has(step.number) ? track.steps[step.number - 1] : null,
-                    // Steps start with only the current one in full; Slots with every one open (a line of slots each).
-                    step.number === current, isFolded(order_key, step.number, done, !slots && step.number !== current))))
+                    // Both views start with only the current step in full (the same steps, whichever view; see foldedByDefault).
+                    step.number === current, isFolded(order_key, step.number, done, foldedByDefault(step.number)))))
         )));
         // Slots view on touch: a tap on a slot shows its tooltip (there is no hover); another tap, or one elsewhere, hides it.
         if (slots) {
@@ -374,13 +390,13 @@ function mergeTree(root, steps, done, order_key) {
                 // A starting item lights its card in section 2 and scrolls to it on a click (entryHover).
                 ...entryHover(node)
             },
-                h("span", { class: "tree-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace, true)),
+                h("span", { class: "tree-slot" + (enchanted ? " glint" : ""), "data-node": nodeId(node) }, icon(node.item_namespace, true)),
                 // Compact: a one-line caption next to the slot; the tooltip shows on hover.
                 h("span", { class: "tree-caption" }, enchanted ? logic.summary(node.enchantments) : nodeName(node)),
-                h("span", { class: "mc-tooltip tree-tooltip" },
+                h("span", { class: "mc-tooltip tree-tooltip", "data-fly": "tip:" + nodeId(node) },
                     h("span", { class: nameClass(logic.rarity(node.item_namespace, enchanted), renamed ? " renamed" : "") }, nodeName(node)),
                     enchanted ? h("span", { class: "mc-ench" }, enchantments) : null),
-                number ? h("label", { class: "tree-step", title: TEXT.results.step_done_help },
+                number ? h("label", { class: "tree-step", title: TEXT.results.step_done_help, "data-fly": "step:" + number },
                     stepTick(number, done, order_key, steps),
                     TEXT.results.tree_step({ number, levels: node.merge_levels })) : null,
                 number ? h("button", {
@@ -545,7 +561,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
             if (target) { target.focus({ preventScroll: true }); scrollToView(target); }
         }
     },
-        h("label", { class: "step-tick", title: TEXT.results.step_done_help }, tick, h("span", {}, TEXT.results.step_title({ number }))),
+        h("label", { class: "step-tick", title: TEXT.results.step_done_help, "data-fly": "step:" + number }, tick, h("span", {}, TEXT.results.step_title({ number }))),
         h("span", { class: "step-summary" }, folded ? stepLine(step) : null),
         h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
@@ -840,7 +856,7 @@ closeOnOutside({
 
 // Brings a step into view (unfolding it, in the Steps view) and flashes it.
 function jumpToStep(order_key, number) {
-    if (result_view !== "tree" && isFolded(order_key, number, loadChecklist(order_key), result_view === "steps")) {
+    if (result_view !== "tree" && isFolded(order_key, number, loadChecklist(order_key), foldedByDefault(number))) {
         foldsFor(order_key).set(number, false);
         renderResults();
     }
@@ -910,8 +926,8 @@ export function anvilCell(node, changed, role, meta = null, attrs = {}, label = 
 
     return h("div", { class: "anvil-cell " + role, ...attrs },
         label ? h("span", { class: "cell-label" }, label) : null,
-        h("div", { class: "mc-slot" + (enchanted ? " glint" : "") }, icon(node.item_namespace)),
-        h("div", { class: "mc-tooltip" }, h("div", { class: name_class }, name), lines),
+        h("div", { class: "mc-slot" + (enchanted ? " glint" : ""), "data-node": nodeId(node) }, icon(node.item_namespace)),
+        h("div", { class: "mc-tooltip", "data-fly": "tip:" + nodeId(node) }, h("div", { class: name_class }, name), lines),
         meta
     );
 }

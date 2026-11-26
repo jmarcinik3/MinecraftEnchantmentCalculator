@@ -2493,10 +2493,6 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .anvil-step.morphing, .anvil-step.morphing.current, .tree-line.morphing { position: relative; background: transparent; border-color: transparent; box-shadow: none; outline-color: transparent; }
 .anvil-row.morphing { position: relative; background: transparent; border-color: transparent; }
 /* Layers inside the scroller while it morphs (Motion.js): the cards' boxes (frames, -3), the old view's copy (-2), the anvil panels (frames, -1), then everything else. */
-.rounds.timeline::before, .tree-children > .tree-node::before { transition: opacity 0.3s ease-out 0.1s; }
-.tree-children { transition: border-color 0.3s ease-out 0.1s; }
-.view-morph .rounds.timeline::before, .view-morph .tree-children > .tree-node::before { opacity: 0; }
-.view-morph .tree-children { border-left-color: transparent; }
 .card-ghost { position: absolute; z-index: 1; overflow: hidden; pointer-events: none; }
 .card-ghost > .entry-card { position: absolute; left: 0; top: 0; margin: 0; background: transparent; border-color: transparent; box-shadow: none; outline: none; }
 /* Automatic <-> Custom, the coverage chips and the segmented switches (Motion.js). */
