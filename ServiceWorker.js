@@ -15,7 +15,7 @@ const CACHE = "enchantment-calculator-" + VERSION;
 const FILES = [
     "css/Style.css", "js/Logic.js", "js/Text.js", "js/Calculator.js", "js/Engine.js",
     "js/App.js", "js/Store.js", "js/Dom.js", "js/Motion.js", "js/Wanted.js", "js/Books.js", "js/Ranking.js", "js/Options.js",
-    "js/Results.js", "js/Calc.js", "js/Link.js", "js/Tips.js", "js/Graph.js", "js/Languages.js",
+    "js/Results.js", "js/Calc.js", "js/Link.js", "js/Tips.js", "js/Graph.js", "js/Languages.js", "js/Feedback.js",
     "json/metadata.json", "json/mods/fancy_enchantments.json", "json/mods/spellbound.json", "json/text/en_us.json", "json/text/es_es.json"
 ].map(file => (VERSION === "dev" ? file : file + "?v=" + VERSION));
 const PAGES = ["./", "index.html", "manifest.webmanifest", "font/minecraft.woff"];

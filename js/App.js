@@ -2,6 +2,7 @@
 import { cleanName, createLogic, editionMetadata, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
 import { DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Text.js";
 import { setupLanguagePicker } from "./Languages.js";
+import { setupFeedback } from "./Feedback.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
 import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
@@ -180,6 +181,7 @@ function render() {
     const scroll = scrollY; // redrawn sections are emptied first, which can pull the page up
     renderSummaries();
     renderLanguage();
+    renderFeedback();
     renderTheme();
     renderSaved();
     renderItem();
@@ -292,6 +294,13 @@ function renderBadges() {
 // ---------- Language ----------
 
 let renderLanguagePicker = null;
+let renderFeedbackLabels = null;
+function renderFeedback() {
+    // The dialog (Feedback.js) is built once, when its button first needs it.
+    renderFeedbackLabels ||= setupFeedback($("#feedback"));
+    renderFeedbackLabels();
+}
+
 function renderLanguage() {
     // The picker (Languages.js) is built once; later calls redraw its labels in the page's language.
     renderLanguagePicker ||= setupLanguagePicker($("#language"), {
@@ -464,6 +473,7 @@ function renderTheme() {
     const label = dark ? TEXT.page.theme_light : TEXT.page.theme_dark;
     button.setAttribute("aria-label", label);
     button.title = label;
+    button.querySelector(".theme-label").textContent = dark ? TEXT.page.theme_light_label : TEXT.page.theme_dark_label;
     button.querySelector(".sun-icon").style.display = dark ? "" : "none";
     button.querySelector(".moon-icon").style.display = dark ? "none" : "";
 }

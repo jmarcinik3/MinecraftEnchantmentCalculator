@@ -191,7 +191,6 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .header-control:hover { background: var(--surface-alt); }
 .copy-link .link-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; flex: none; }
 /* Sun/moon: an icon-only header button. */
-.theme-toggle { justify-content: center; padding: 0 9px; }
 .theme-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
 /* Phones: the title on its own line, then the toolbar across the full width. */
@@ -206,12 +205,12 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 }
 /* Small phones: Copy link is just its icon (the label returns while it says "Copied"). */
 @media (max-width: 440px) {
-    .copy-link:not(.copied) .copy-label { display: none; }
+    .copy-link:not(.copied) .copy-label, .theme-label { display: none; }
     .copy-link { padding: 0 9px; }
     /* A little tighter, so the toolbar (with the sun/moon) stays on one row on a 375px phone,
        in Spanish too. */
     header .header-actions { gap: 5px; }
-    .copy-link, .theme-toggle { padding: 0 8px; }
+    .copy-link, .feedback-open, .theme-toggle { padding: 0 8px; }
     .header-actions .saved-menu > .header-control { padding: 0 8px; }
 }
 
@@ -2381,7 +2380,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
    the enchantment names keep room beside their level bars. */
 @media (max-width: 359px) {
     header .header-actions { gap: 4px; }
-    .copy-link, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
+    .copy-link, .feedback-open, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
     .language-button { padding: 0 6px; }
     .ench-row { column-gap: 6px; }
     .level-bar { --seg: 25px; }
@@ -2850,3 +2849,37 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 .level-chip.on:hover, .level-chip.on:focus-visible { border-color: var(--accent); }
 .show-done { display: flex; width: max-content; }
 .btn.small:disabled:not(.primary) { color: var(--text-muted); border-style: dashed; border-color: var(--border-strong); }
+
+/* The Feedback button (header) and its dialog (Feedback.js). */
+.feedback-open .feedback-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+.feedback-dialog { width: min(480px, calc(100vw - 32px)); max-height: calc(100vh - 32px); padding: 0; border: 1px solid var(--border-strong); border-radius: 10px; background: var(--surface); color: var(--text); box-shadow: var(--shadow-pop); }
+.feedback-dialog::backdrop { background: rgba(0, 0, 0, .4); }
+.feedback-form { padding: 16px; display: grid; gap: 12px; font: 14px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.feedback-form h3 { margin: 0; font-size: 16px; display: flex; justify-content: space-between; align-items: center; }
+.feedback-types { display: flex; gap: 6px; flex-wrap: wrap; }
+.feedback-type { padding: 4px 12px; border: 1px solid var(--border-strong); border-radius: 14px; background: none; color: var(--text); font: inherit; cursor: pointer; }
+.feedback-type[aria-pressed="true"] { background: var(--accent-bg); color: var(--accent-text); border-color: var(--accent); font-weight: 600; }
+.feedback-field { display: grid; gap: 4px; }
+.feedback-field label { font-weight: 600; font-size: 13px; }
+.feedback-field input, .feedback-form textarea, .feedback-row select { box-sizing: border-box; width: 100%; padding: 7px 8px; font: inherit; color: var(--text); background: var(--bg); border: 1px solid var(--border-strong); border-radius: 6px; }
+.feedback-desc { border: 1px solid var(--border-strong); border-radius: 6px; background: var(--bg); overflow: hidden; }
+.feedback-desc textarea { border: 0; border-radius: 0; background: transparent; min-height: 90px; display: block; resize: vertical; }
+.feedback-desc textarea:focus-visible { outline: none; }
+.feedback-desc:focus-within { outline: 2px solid var(--accent); outline-offset: 1px; }
+.feedback-added { margin: 0; padding: 8px; background: var(--surface-alt); border-top: 1px dashed var(--border-strong); color: var(--text-muted); font: 11px/1.45 ui-monospace, monospace; white-space: pre-wrap; word-break: break-word; user-select: text; cursor: default; max-height: 96px; overflow: auto; }
+.feedback-check { display: flex; gap: 8px; align-items: flex-start; }
+.feedback-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.feedback-button { padding: 7px 14px; border-radius: 6px; border: 1px solid var(--border-strong); background: none; color: var(--text); font: inherit; cursor: pointer; text-decoration: none; }
+.feedback-button:hover { background: var(--surface-alt); }
+.feedback-button.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+.feedback-button.primary:hover { filter: brightness(1.1); }
+.feedback-button[aria-disabled="true"], .feedback-button:disabled { opacity: .5; cursor: not-allowed; pointer-events: none; }
+.feedback-close { padding: 2px 8px; }
+.feedback-note { color: var(--text-muted); margin: 0; font-size: 13px; }
+.feedback-translation { border-top: 1px solid var(--border); padding-top: 10px; display: grid; gap: 6px; }
+.feedback-translation h4 { margin: 0; font-size: 13px; }
+.feedback-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.feedback-row select { flex: 1; min-width: 160px; width: auto; }
+@media (max-width: 440px) {
+    .feedback-open .feedback-label { display: none; }
+}
