@@ -318,10 +318,17 @@ def part_item_bar(browser, base):
     settle(p)
     p.evaluate("scrollTo(0, 900)")
     p.wait_for_selector("#item-dock.condensed")
+    # (Anvil uses closed first: the Steps button opens it before it scrolls there)
+    p.evaluate("scrollTo(0, 0)")
+    p.click('[data-section="steps"] .collapse-toggle')
+    settle(p)
+    p.evaluate("scrollTo(0, 900)")
+    p.wait_for_selector("#item-dock.condensed")
     check("the condensed bar has a Steps button", p.locator("#item .mini-steps").is_visible())
     p.click("#item .mini-steps")
     p.wait_for_function("Math.abs(document.querySelector('[data-section=\"steps\"]').getBoundingClientRect().top - document.querySelector('#item .item-mini').getBoundingClientRect().bottom) < 40")
     check("Steps scrolls to Anvil uses, just under the bar", p.locator('[data-section="steps"]').bounding_box()["y"] > 0)
+    check("and Anvil uses is open, its steps showing", not p.evaluate("document.querySelector('[data-section=steps]').classList.contains('collapsed')") and p.locator("#results .anvil-step").first.is_visible())
     p.click("#item .item-mini")
     p.wait_for_function("scrollY === 0")
     check("the bar itself goes back to the top", p.evaluate("scrollY") == 0)
@@ -1434,7 +1441,7 @@ def part_mod_off(browser, base):
 
 
 def part_shelf(browser, base):
-    """Automatic mode's shelf of slots, the switch to Custom, the phone order with its jump button, and the conflict graph as the last box of Enchantments on wide windows"""
+    """Automatic mode's shelf of slots, the switch to Custom, the phone order, and the conflict graph as the last box of Enchantments on wide windows"""
     def pick_boots(page):
         page.click('#wanted .item-grid button[data-focus="item-boots"]')
         page.click('#item .preset:not([data-focus="preset-plain"]) >> nth=0')
@@ -1457,7 +1464,6 @@ def part_shelf(browser, base):
     d.focus("#books .shelf .slot-cell-button >> nth=0")
     check("focusing a slot shows its tooltip too", d.locator("#books .shelf .slotcell:focus-within .slot-tip").first.is_visible())
     check("the shelf's slots are one tab stop", d.locator("#books .shelf .slot-cell-button[tabindex='0']").count() == 1)
-    check("the jump button is hidden on wide windows", not d.locator(".jump-order").is_visible())
     check("at 1440 the graph is the last box inside Enchantments", d.locator("#wanted > .graph-box").count() == 1 and d.evaluate("document.querySelector('#wanted').lastElementChild.classList.contains('graph-box')"))
     d.click("#wanted .graph-box > summary")
     d.wait_for_selector("#wanted .graph-canvas")
@@ -1493,7 +1499,7 @@ def part_shelf(browser, base):
     check("Automatic brings the shelf back", d.locator("#books .shelf .slotcell").count() == entries and d.locator("#books .view-switch").count() == 0)
     check("no sideways overflow on desktop", no_overflow(d))
 
-    # Phone (390): Item, Enchantments, Anvil uses, then Books and items; the jump button goes to the order.
+    # Phone (390): Item, Enchantments, Books and items, then Anvil uses.
     _, m, errors_m = open_page(browser, base, viewport={"width": 390, "height": 844})
     pick_boots(m)
     tops = m.evaluate("Object.fromEntries([...document.querySelectorAll('.layout [data-section]')].map(el => [el.dataset.section, el.getBoundingClientRect().top + scrollY]))")
@@ -1501,17 +1507,6 @@ def part_shelf(browser, base):
     check("the item card still comes first", m.evaluate("document.querySelector('#item-dock').getBoundingClientRect().top + scrollY") < tops["wanted"])
     check("the section badges are checks once their stage is done", m.inner_text('[data-section="wanted"] .step-badge') == "\u2713" and m.inner_text('[data-section="books"] .step-badge') == "\u2713" and m.inner_text('[data-section="steps"] .step-badge') == "\u2713")
     check("the phone shelf stays inside the screen", no_overflow(m) and m.evaluate("[...document.querySelectorAll('#books .shelf .slotcell')].every(el => el.getBoundingClientRect().right <= innerWidth)"))
-    jump = m.locator(".jump-order")
-    check("the jump button shows on phones, at the end of Enchantments", jump.is_visible() and m.evaluate("document.querySelector('.jump-order').getBoundingClientRect().top + scrollY") > tops["wanted"] and m.evaluate("document.querySelector('.jump-order').getBoundingClientRect().bottom + scrollY") <= tops["steps"], jump.inner_text())
-    jump.scroll_into_view_if_needed()
-    jump.click()
-    m.wait_for_function("Math.abs(document.querySelector('[data-section=steps]').getBoundingClientRect().top - parseFloat(getComputedStyle(document.documentElement).scrollPaddingTop)) < 6", timeout=5000)
-    top = m.evaluate("document.querySelector('[data-section=steps]').getBoundingClientRect().top")
-    check("it scrolls to Anvil uses, clear of the sticky item bar", 0 < top < 200 and m.evaluate("document.querySelector('#item-dock').classList.contains('condensed')"), top)
-    m.click('[data-section="wanted"] .collapse-toggle')
-    settle(m)
-    check("collapsing Enchantments hides the jump button with it", not m.locator(".jump-order").is_visible())
-    m.click('[data-section="wanted"] .collapse-toggle')
     m.click('[data-section="books"] .collapse-toggle')
     settle(m)
     check("Books and items still collapses", m.locator("#books-body").is_hidden())

@@ -2475,12 +2475,6 @@ div.slot-cell-button { cursor: default; }
 @media (hover: none) { .entry-card.slotcell .slot-tip { display: none; } }
 /* Automatic mode's shelf: a line saying what the books are, then a wrapping row of read-only slots whose tooltips show on hover
    or focus (display, not opacity, so a hidden tooltip never widens the page), shifted into the section by Books.js placeShelfTip. */
-.jump-order { display: none; }
-/* Phones: one column, in the sections' own order (Item, Enchantments, Books and items, Anvil uses). The jump button at the end of Enchantments goes down
-   past Books to the order. */
-@media (max-width: 600px) {
-    .layout.has-item .jump-order { display: flex; width: 100%; justify-content: center; margin-top: 14px; }
-}
 .entry-grid.shelf .slotcell .slot-tip { display: none; transform: translateX(var(--tip-shift, 0px)); }
 .entry-grid.shelf .slotcell:hover .slot-tip, .entry-grid.shelf .slotcell:focus-within .slot-tip, .entry-grid.shelf .slotcell.pointer-in .slot-tip { display: block; }
 @media (hover: none) { .entry-grid.shelf .slotcell:focus-within .slot-tip { display: block; } }
@@ -2811,7 +2805,7 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 /* One small-button look (ghost): no fill, a subtle border, one height/radius/size, accent on hover and focus.
    Start over, Try an example, See the order, Show N done steps, Set level, and every other small text button.
    The primary Done/Raise buttons, the header controls and the true chips (presets, coverage, cost) keep their own looks. */
-.btn.small:not(.primary), .btn.example, .btn.jump-order, .reset-button, .level-chip, .show-done {
+.btn.small:not(.primary), .btn.example, .reset-button, .level-chip, .show-done {
     display: inline-flex; align-items: center; justify-content: center; gap: 6px;
     height: 26px; padding: 0 10px; box-sizing: border-box;
     border: 1px solid var(--border); border-radius: var(--radius);
@@ -2820,8 +2814,8 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
     text-decoration: none; white-space: nowrap; cursor: pointer;
 }
 .btn.small:not(.primary):not(:disabled):active { box-shadow: none; transform: none; }
-.btn.small:not(.primary):hover, .btn.example:hover, .btn.jump-order:hover, .reset-button:hover, .level-chip:hover, .show-done:hover,
-.btn.small:not(.primary):focus-visible, .btn.example:focus-visible, .btn.jump-order:focus-visible, .reset-button:focus-visible, .level-chip:focus-visible, .show-done:focus-visible,
+.btn.small:not(.primary):hover, .btn.example:hover, .reset-button:hover, .level-chip:hover, .show-done:hover,
+.btn.small:not(.primary):focus-visible, .btn.example:focus-visible, .reset-button:focus-visible, .level-chip:focus-visible, .show-done:focus-visible,
 .level-chip[aria-expanded="true"] {
     background: transparent; color: var(--accent-text); border-color: var(--accent);
 }
@@ -2829,5 +2823,3 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 .level-chip.on:hover, .level-chip.on:focus-visible { border-color: var(--accent); }
 .show-done { display: flex; width: max-content; }
 .btn.small:disabled:not(.primary) { color: var(--text-muted); border-style: dashed; border-color: var(--border-strong); }
-.btn.jump-order { display: none; }
-@media (max-width: 600px) { .layout.has-item .btn.jump-order { display: flex; width: 100%; } }

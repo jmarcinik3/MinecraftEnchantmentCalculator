@@ -9,7 +9,7 @@ import { anvilCell, foldIcon } from "./Results.js";
 import { nameField } from "./Options.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { conflictGraph, markGraphSearch } from "./Graph.js";
-import { clashes, commit, resetEverything, selectItem, setWanted, tryExample } from "./App.js";
+import { clashes, commit, openSection, resetEverything, selectItem, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
 // the enchantments that are new.
@@ -135,7 +135,7 @@ function itemMini() {
         // Down to the steps (Anvil uses), from anywhere on the page.
         h("button", {
             type: "button", class: "mini-steps", title: TEXT.wanted.item_mini_steps_help, "aria-label": TEXT.wanted.item_mini_steps_help,
-            onclick: event => { event.stopPropagation(); scrollToView(document.querySelector('[data-section="steps"]'), "start"); },
+            onclick: event => { event.stopPropagation(); openSection("steps"); scrollToView(document.querySelector('[data-section="steps"]'), "start"); },
             onkeydown: event => event.stopPropagation()
         }, TEXT.wanted.item_mini_steps));
 }

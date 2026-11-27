@@ -206,6 +206,14 @@ function setCollapsed(section, closed) {
     slideSection(document.querySelector(`.card.collapsible[data-section="${section}"]`), closed, applyCollapsed);
 }
 
+// Opens a closed section at once (no slide, so what is scrolled to next is where it will stay): the Item bar's Steps button opens Anvil uses first.
+export function openSection(section) {
+    if (!collapsed.has(section)) return;
+    collapsed.delete(section);
+    writeStorage(COLLAPSED_STORAGE_KEY, [...collapsed]);
+    applyCollapsed();
+}
+
 function applyCollapsed() {
     for (const card of document.querySelectorAll(".card.collapsible")) {
         const section = card.dataset.section;
@@ -519,7 +527,6 @@ function goToSection(section) {
     scrollToView(section, "start");
 }
 
-// "See the order" at the end of Enchantments (phones): scrolls to Anvil uses, which comes before Books and items there.
 // The right column (900px+) scrolls with the page, one scrollbar for every section: it sticks under the top (and the Item bar) while it fits the window,
 // and once taller it sticks by its bottom instead, a negative top, so reading down the steps scrolls the page.
 function setupResultsColumn() {
@@ -535,12 +542,6 @@ function setupResultsColumn() {
     new MutationObserver(place).observe(root, { attributes: true, attributeFilter: ["style"] });
     addEventListener("resize", place);
     place();
-}
-
-function setupJumpButtons() {
-    for (const button of document.querySelectorAll(".jump-order[data-jump]")) {
-        button.addEventListener("click", () => scrollToView(document.querySelector(`[data-section="${button.dataset.jump}"]`), "start"));
-    }
 }
 
 async function init() {
@@ -571,7 +572,6 @@ async function init() {
     setupInfoTip();
     setupSkipLinks();
     new MutationObserver(renderBadges).observe($("#books-alert"), { childList: true }); // (Books.js draws and clears the alert badge)
-    setupJumpButtons();
     setupResultsColumn();
     setupSavedMenu();
     setupItemMenu();
