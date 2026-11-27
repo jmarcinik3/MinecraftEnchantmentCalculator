@@ -7,7 +7,7 @@ import { $, closeOnOutside, copyText, enchLine, flash, h, icon, motionOk, nameCl
 import { svgIcon } from "./Books.js";
 import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
-import { activeLevel, levelChip, placeLevelPop, remainingLevels, updateLevelMeter } from "./Options.js";
+import { activeLevel, spendLevels, levelChip, placeLevelPop, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { commit, renderStepsSummary } from "./App.js";
@@ -51,11 +51,15 @@ function isFolded(order_key, number, done, by_default = false) {
     return folds.has(number) ? folds.get(number) : done.has(number) || by_default;
 }
 
-// Saves new ticks, forgetting the hand folding of the steps whose tick changed.
+// Saves new ticks, forgetting the hand folding of the steps whose tick changed. With "Track my level" on, a step ticked spends its levels from
+// the tracked level and one unticked gives them back (`spendLevels`), as the anvil does.
 function saveTicks(order_key, steps, done, next) {
     if (step_folds.key === order_key) {
         for (const step of steps) if (done.has(step.number) !== next.has(step.number)) step_folds.folded.delete(step.number);
     }
+    let spent = 0;
+    for (const step of steps) if (done.has(step.number) !== next.has(step.number)) spent += (next.has(step.number) ? 1 : -1) * step.node.merge_levels;
+    if (spent) spendLevels(spent);
     saveChecklist(order_key, next);
 }
 
@@ -950,7 +954,7 @@ function stepProgress(steps, done, levels, order_key) {
                     const before = new Set(done);
                     saveTicks(order_key, steps, done, new Set());
                     renderResults();
-                    undoToast(TEXT.results.unticked({ count: before.size }), () => { saveChecklist(order_key, before); renderResults(); });
+                    undoToast(TEXT.results.unticked({ count: before.size }), () => { saveTicks(order_key, steps, new Set(), before); renderResults(); });
                 }
             }, "↺") : null),
         level_status // (on its own row under the bar when there is a level to compare)

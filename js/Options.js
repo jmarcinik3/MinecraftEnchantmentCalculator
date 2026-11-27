@@ -441,6 +441,15 @@ function setPlayerLevel(value, update_input) {
     renderResults();
 }
 
+// A step ticked (levels > 0) or unticked (< 0) while tracking: the tracked level pays for it or gets it back. The caller redraws.
+export function spendLevels(levels) {
+    if (!level_on || player_level == null) return;
+    player_level = cleanLevel(player_level - levels);
+    writeStorage(LEVEL_STORAGE_KEY, player_level);
+    const input = $("#player-level");
+    if (input) input.value = player_level;
+}
+
 // What is still to spend, for "Your level": ticked steps are done, so their levels are
 // already gone from the player's level and count as 0 here. (The Levels tile keeps the
 // whole order's total.) Returns { costs: per step in step order, needed: their sum }.
