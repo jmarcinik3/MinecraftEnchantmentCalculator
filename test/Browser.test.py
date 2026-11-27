@@ -336,11 +336,14 @@ def part_item_bar(browser, base):
     # Try an example is under the long item grid: the page is already scrolled when the item appears, so the bar must condense then too.
     _, e, errs = open_page(browser, base, viewport={"width": 1100, "height": 700})
     errors += errs
+    e.evaluate("""window.bar_flash = 0; new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1)
+        for (const bar of [n, ...n.querySelectorAll('.current-bar')]) if (bar.matches('.current-bar') && !bar.classList.contains('tucked')) bar_flash++; }).observe(document.body, { childList: true, subtree: true });""")
     e.locator("#wanted .example").scroll_into_view_if_needed()
     e.click("#wanted .example")
     settle(e)
     shown = e.evaluate("document.querySelector('.dock-sentinel').getBoundingClientRect().bottom > 0")
     check("picking the example while scrolled down condenses the bar", shown or e.locator("#item-dock.condensed").count() == 1, shown)
+    check("a finished search never flashes the Next step card (it starts tucked)", e.evaluate("bar_flash") == 0, e.evaluate("bar_flash"))
     return errors
 
 

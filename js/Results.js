@@ -723,7 +723,10 @@ function currentBar(steps, done, order_key, current) {
     const step = steps.find(entry => entry.number === current);
     const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
     const mini = node => h("span", { class: "mini-slot" + (node.enchantments.length ? " glint" : ""), title: nodeName(node) }, icon(node.item_namespace));
-    return h("div", { class: "current-bar" }, h("div", { class: "current-bar-card" },
+    // It starts as the bar on screen was (tucked when there was none): its observers answer only after the first frame, and an untucked start
+    // flashed the card in and out each time a search finished.
+    const shown = document.querySelector("#results .current-bar:not(.tucked)");
+    return h("div", { class: "current-bar" + (shown ? "" : " tucked") }, h("div", { class: "current-bar-card" },
         h("div", { class: "current-bar-text" },
             h("small", { class: "current-bar-eyebrow" }, TEXT.results.bar_next),
             h("strong", {}, TEXT.results.bar_step({ number: current, total: steps.length })),
