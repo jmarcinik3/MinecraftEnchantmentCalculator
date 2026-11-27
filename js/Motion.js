@@ -822,6 +822,17 @@ export const foldTarget = details => (details.wantOpen === undefined ? details.o
 // keeps the content shown until the end; `inside` (details nested in it) close then too, out of sight. Returns nothing; with no motion it
 // just sets `open`. A box whose content is made only when it opens (the conflict graph) sets `details.beforeFold(open)`: it runs first, so the content
 // is there when the slide measures the box, however the fold was asked for (a click on its summary, Expand groups).
+// iPhone browsers (WebKit) can keep a closed <details> inside another at the height it had open, an empty space, once the outer one opens again:
+// taking each closed one out of the layout for a moment makes it measure itself anew.
+function relayoutClosed(details) {
+    for (const nested of details.querySelectorAll("details:not([open])")) {
+        const display = nested.style.display;
+        nested.style.display = "none";
+        void nested.offsetHeight;
+        nested.style.display = display;
+    }
+}
+
 export function foldDetails(details, open, inside = []) {
     if (details.finishFold) details.finishFold();
     if (details.open === open) return;
@@ -829,12 +840,13 @@ export function foldDetails(details, open, inside = []) {
     details.wantOpen = open; // where it is heading, for a second click mid-slide (foldTarget)
     // The boxes inside close first, while this one is still drawn: iPhone browsers (WebKit) don't lay out a <details> closed while it is hidden in a closed
     // one, so it kept its open height and reopened as an empty space.
-    const settle = () => { if (!open) for (const nested of inside) nested.open = false; details.open = open; };
+    const settle = () => { if (!open) for (const nested of inside) nested.open = false; details.open = open; if (open) relayoutClosed(details); };
     if (!motionOk()) return settle();
     const from = details.getBoundingClientRect().height;
     let to;
     if (open) {
         details.open = true;
+        relayoutClosed(details);
         to = details.getBoundingClientRect().height;
     } else {
         details.open = false;

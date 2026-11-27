@@ -61,6 +61,7 @@ export function renderItem() {
     document.querySelector(".layout").classList.toggle("has-item", Boolean(state.item));
     dock.hidden = !state.item;
     const focus = focusState(box);
+    requestAnimationFrame(() => syncDock()); // once the card is drawn, so the height it keeps is the full card's
     const old_preview = box.querySelector(".wanted-preview");
     const old_height = old_preview && preview_shown.item === state.item ? old_preview.getBoundingClientRect().height : null;
     // The cost line of the preview's tooltip, so it can fold away in place if the redraw drops it.
@@ -141,6 +142,7 @@ function itemMini() {
 }
 
 // The bar condenses once the page is scrolled past the top of the sections (a sentinel at their top leaves the window), and the results column and the browser's scrolling keep clear of the bar's height (`--dock-h`, `scroll-padding-top`).
+let syncDock = () => {};
 export function setupItemDock() {
     const layout = document.querySelector(".layout");
     const dock = $("#item-dock");
@@ -156,15 +158,19 @@ export function setupItemDock() {
         if (graph) (WIDE_ITEM.matches ? $("#item-graph") : $("#wanted")).append(graph);
         syncFoldToggle();
     });
-    new IntersectionObserver(([entry]) => {
-        const condense = !entry.isIntersecting && Boolean(state.item);
+    // The sentinel's last answer: the observer only reports a crossing, so picking an item while the page is already scrolled
+    // (Try an example, under the long item grid) re-checks from it (`syncDock`, called by renderItem).
+    let sentinel_shown = true;
+    syncDock = () => {
+        const condense = !sentinel_shown && Boolean(state.item);
         // Condensing must not change the page's length, or the browser's scroll anchoring moves the scroll position back across the threshold and the bar
         // flips between its two forms again and again: the dock keeps the height it had (the CSS lets clicks through its empty part).
         if (narrow.matches && condense && !dock.classList.contains("condensed")) dock.style.height = dock.offsetHeight + "px";
         if (!condense) dock.style.height = "";
         dock.classList.toggle("condensed", condense);
         sync();
-    }, { rootMargin: "-1px 0px 0px 0px" }).observe(sentinel);
+    };
+    new IntersectionObserver(([entry]) => { sentinel_shown = entry.isIntersecting; syncDock(); }, { rootMargin: "-1px 0px 0px 0px" }).observe(sentinel);
     new ResizeObserver(sync).observe($("#item"));
 }
 

@@ -333,6 +333,14 @@ def part_item_bar(browser, base):
     n.wait_for_selector("#item-dock.condensed")
     overlap = n.evaluate("""(() => { const a = document.querySelector('#item .mini-text').getBoundingClientRect(), b = document.querySelector('#item .mini-steps').getBoundingClientRect(); return a.right > b.left + 1; })()""")
     check("at 320px the bar's text never runs into the Steps button", not overlap and not n.evaluate("document.documentElement.scrollWidth > innerWidth"))
+    # Try an example is under the long item grid: the page is already scrolled when the item appears, so the bar must condense then too.
+    _, e, errs = open_page(browser, base, viewport={"width": 1100, "height": 700})
+    errors += errs
+    e.locator("#wanted .example").scroll_into_view_if_needed()
+    e.click("#wanted .example")
+    settle(e)
+    shown = e.evaluate("document.querySelector('.dock-sentinel').getBoundingClientRect().bottom > 0")
+    check("picking the example while scrolled down condenses the bar", shown or e.locator("#item-dock.condensed").count() == 1, shown)
     return errors
 
 
@@ -2048,26 +2056,17 @@ def part_stage_hotbar(browser, base):
     page.click("#results .density")  # (full Steps again)
     page.click('#results [data-step-card="1"] .step-fold')  # (fold the current step to one short line)
     settle(page)
-    scroller = page.locator("#results .steps-scroll")
-    size = lambda: scroller.evaluate("e => [e.clientHeight, e.clientWidth]")
-    page.wait_for_function("() => { const s = document.querySelector('.steps-scroll'); return s.scrollHeight > s.clientHeight + 150; }")
+    # One page scrollbar: the steps scroll with the page, and the card sticks to the window's bottom.
+    check("the steps have no scrollbar of their own", page.evaluate("getComputedStyle(document.querySelector('#results .steps-scroll')).overflowY") == "visible")
+    page.evaluate("scrollTo(0, 0)")
     frames(page, 3)
     check("the Next step card is tucked while its step shows", page.evaluate("getComputedStyle(document.querySelector('#results .current-bar')).visibility") == "hidden")
-    before = size()
-    scroller.evaluate("e => { e.scrollTop = e.scrollHeight; }")
+    page.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
     page.wait_for_function("() => getComputedStyle(document.querySelector('#results .current-bar')).visibility === 'visible'")
     card = page.locator("#results .current-bar-card")
-    inside = page.evaluate("() => { const c = document.querySelector('#results .current-bar-card').getBoundingClientRect(), s = document.querySelector('.steps-scroll').getBoundingClientRect(); return c.left >= s.left - 1 && c.right <= s.right + 1 && c.bottom <= s.bottom + 1 && c.top >= s.top; }")
+    inside = page.evaluate("() => { const c = document.querySelector('#results .current-bar-card').getBoundingClientRect(); return c.top >= 0 && c.bottom <= innerHeight + 1; }")
     check("the card shows with the step's three slots and Done once the step is scrolled away", card.is_visible() and page.locator("#results .current-bar .mini-slot").count() == 3 and "Step 1 of" in card.inner_text() and inside, card.inner_text())
-    after = size()
-    check("the card does not change the scroller's size", after == before, (before, after))
-    # With the step just peeking in at the top edge the card is tucked (it never covers the step it stands for).
-    scroller.evaluate("e => { const s = e.querySelector('.anvil-step.current'); e.scrollTop = s.offsetTop + s.offsetHeight - 16; }")
-    frames(page, 3)
-    peek = page.evaluate("() => { const s = document.querySelector('.anvil-step.current').getBoundingClientRect(), v = document.querySelector('.steps-scroll').getBoundingClientRect(); return [s.bottom > v.top, getComputedStyle(document.querySelector('#results .current-bar')).visibility]; }")
-    check("the card is tucked while any of its step shows", peek == [True, "hidden"], peek)
-    scroller.evaluate("e => { e.scrollTop = e.scrollHeight; }")
-    page.wait_for_function("() => getComputedStyle(document.querySelector('#results .current-bar')).visibility === 'visible'")
+    check("the right column ends at the window's bottom", page.evaluate("Math.abs(document.querySelector('.results-column').getBoundingClientRect().bottom - (innerHeight - 16)) < 3 || document.querySelector('.results-column').getBoundingClientRect().bottom <= innerHeight"))
     page.click("#results .current-bar .btn.primary")
     settle(page)
     check("its Done button ticks the step like the step's own circle", page.locator('#results input[data-step="1"]').is_checked() and "Step 2 of" in page.locator("#results .current-bar-card").text_content(), page.locator("#results .current-bar-card").text_content())

@@ -268,36 +268,11 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 
 @media (min-width: 900px) {
     .layout { grid-template-columns: minmax(0, 1.15fr) minmax(0, 1.3fr); align-items: start; }
-    /* The right column fills the window's height: section 3 at its natural height, and
-       section 4 (the steps) takes the rest, where only the steps (or tree) scroll, so the
-       Steps | Slots | Tree row stays in view. Closing section 3 gives the steps more room. If the
-       column is too short for both, it scrolls as a whole. */
-    .results-column {
-        position: sticky;
-        top: 16px;
-        max-height: calc(100vh - 32px);
-        overflow-y: auto;
-        display: flex;
-        flex-direction: column;
-        gap: 16px;
-    }
-    .results-column > .card { flex: none; }
-    .results-card .section-body > .order { flex: none; }
-    .results-column > .results-card:not(.collapsed) { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-    .results-card > * { flex: none; }
-    .results-card > .section-body { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-    .results-card > .section-body[hidden] { display: none; }
-    .results-card #results { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-    .results-card #results > * { flex: none; }
-    .results-card #results > .results-content { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; }
-    .results-content > * { flex: none; }
+    /* One page scrollbar: the right column scrolls with the page. Shorter than the window it sticks under the top; taller, it scrolls with the page
+       until its bottom reaches the window's bottom and sticks there (`--column-top`, a negative top set by App.js setupResultsColumn). */
+    .results-column { position: sticky; top: var(--column-top, 16px); }
     .results-content > .steps-scroll {
-        flex: 1 1 auto;
-        min-height: 220px;
-        overflow-y: auto;
-        overscroll-behavior: contain;
-        /* Room so the step badges (which sit above each step's border) and the scrollbar
-           are not clipped. */
+        /* Room so the step badges (which sit above each step's border) are not clipped. */
         padding: 10px 4px 2px 0;
         margin-right: -4px;
     }
@@ -462,7 +437,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 }
 /* 900 to 1359px: the results column sticks under the bar too. */
 @media (min-width: 900px) and (max-width: 1359px) {
-    .results-column { top: calc(16px + var(--dock-h, 0px)); max-height: calc(100vh - 32px - var(--dock-h, 0px)); }
+    /* (the column's top keeps clear of the bar through --column-top, which counts --dock-h) */
 }
 /* From 1360px the item is a card of its own, floating at the left of the sections (a third column that sticks). */
 @media (min-width: 1360px) {

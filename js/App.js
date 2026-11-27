@@ -532,6 +532,23 @@ function goToSection(section) {
 }
 
 // "See the order" at the end of Enchantments (phones): scrolls to Anvil uses, which comes before Books and items there.
+// The right column (900px+) scrolls with the page, one scrollbar for every section: it sticks under the top (and the Item bar) while it fits the window,
+// and once taller it sticks by its bottom instead, a negative top, so reading down the steps scrolls the page.
+function setupResultsColumn() {
+    const column = document.querySelector(".results-column");
+    const root = document.documentElement;
+    const place = () => {
+        const dock = parseFloat(getComputedStyle(root).getPropertyValue("--dock-h")) || 0;
+        const top = 16 + dock;
+        const value = Math.min(top, innerHeight - column.offsetHeight - 16) + "px";
+        if (root.style.getPropertyValue("--column-top") !== value) root.style.setProperty("--column-top", value); // (it watches the style it sets)
+    };
+    new ResizeObserver(place).observe(column);
+    new MutationObserver(place).observe(root, { attributes: true, attributeFilter: ["style"] });
+    addEventListener("resize", place);
+    place();
+}
+
 function setupJumpButtons() {
     for (const button of document.querySelectorAll(".jump-order[data-jump]")) {
         button.addEventListener("click", () => scrollToView(document.querySelector(`[data-section="${button.dataset.jump}"]`), "start"));
@@ -567,6 +584,7 @@ async function init() {
     setupSkipLinks();
     new MutationObserver(renderStepper).observe($("#books-alert"), { childList: true }); // (Books.js draws and clears the alert badge)
     setupJumpButtons();
+    setupResultsColumn();
     setupSavedMenu();
     setupItemMenu();
     setupItemDock();
