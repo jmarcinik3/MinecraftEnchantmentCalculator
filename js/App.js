@@ -262,7 +262,8 @@ export function renderStepsSummary() {
 function renderBadges() {
     const books_problem = $("#books-alert").childElementCount > 0;
     const stages = [
-        { section: "wanted", number: state.item ? "2" : "1", done: state.item && Object.keys(state.wanted).length > 0 },
+        // (An item with no enchantment chosen is a problem too: there is nothing to calculate yet.)
+        { section: "wanted", number: state.item ? "2" : "1", done: state.item && Object.keys(state.wanted).length > 0, problem: Boolean(state.item) && Object.keys(state.wanted).length === 0 },
         { section: "books", number: "3", done: Boolean(state.item) && (state.auto_books || state.books.length > 0), problem: books_problem },
         { section: "steps", number: "4", done: Boolean(resultNode()) }
     ];

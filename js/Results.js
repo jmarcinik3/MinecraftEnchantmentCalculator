@@ -8,7 +8,7 @@ import { svgIcon } from "./Books.js";
 import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, spendLevels, levelChip, placeLevelPop, remainingLevels, updateLevelMeter } from "./Options.js";
-import { cancelCalculation, last_break, last_result, progressLabel, runCalculation, running, show_progress } from "./Calc.js";
+import { cancelCalculation, last_break, last_result, runCalculation, running, show_progress } from "./Calc.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { commit, renderStepsSummary } from "./App.js";
 import { currentLink } from "./Link.js";
@@ -132,9 +132,8 @@ function drawResults() {
     }
 
     if (running && show_progress) {
+        // (How far it has got is on the section's number: its ring fills, and hovering it says the percent and the time left. Calc.js showProgress.)
         box.append(h("div", { class: "progress" },
-            h("div", { class: "progress-track" }, h("div", { class: "progress-fill", id: "progress-fill" })),
-            h("span", { class: "progress-text", id: "progress-text" }, progressLabel()),
             h("button", { type: "button", class: "btn small", onclick: cancelCalculation }, TEXT.results.cancel)
         ));
     }

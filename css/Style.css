@@ -284,16 +284,22 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     font-size: 12px;
     position: relative;
 }
-/* A stage's state (App.js renderBadges): a check once done, amber "!" while Books has a problem, a spinning ring while a search is pending or running (<html data-search>). */
+/* A stage's state (App.js renderBadges): a check once done, amber "!" while Books has a problem, a ring while a search is pending or running
+   (<html data-search>): a progress ring from the start (empty while the search waits its short delay), filling clockwise from the top as it goes
+   (Calc.js sets --search-share, 0 to 1, on the badge). */
 .step-badge.done { background: var(--success-bg); color: var(--success-text); }
 .step-badge.warn { background: var(--warning-bg); color: var(--warning-text); box-shadow: 0 0 0 1px var(--warning-text); font-weight: 700; }
 :root:is([data-search="running"], [data-search="pending"]) [data-section="steps"]:not(.idle) .step-badge { background: var(--warning-bg); color: var(--warning-text); }
 :root:is([data-search="running"], [data-search="pending"]) [data-section="steps"] .step-badge::after {
     content: ""; position: absolute; inset: -3px; border-radius: 50%;
-    border: 2px solid transparent; border-top-color: var(--warning-text);
-    animation: badge-spin 0.9s linear infinite;
+    /* (drawn straight from the share: progress comes many times a second, and an eased copy restarted by each one fell further and further behind) */
+    background: conic-gradient(var(--warning-text) calc(var(--search-share, 0) * 1turn), color-mix(in srgb, var(--warning-text) 22%, transparent) 0);
+    -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
+    mask: radial-gradient(farthest-side, transparent calc(100% - 2.5px), #000 calc(100% - 2px));
 }
-@keyframes badge-spin { to { transform: rotate(360deg); } }
+/* The live tooltip under it while the search runs (Calc.js showProgress): the percent and the time so far or left. */
+.search-tip { position: fixed; z-index: 60; padding: 4px 8px; border-radius: 6px; background: var(--text); color: var(--surface); font-size: 12px; white-space: nowrap; pointer-events: none; box-shadow: var(--shadow-menu-deep); }
+.search-tip[hidden] { display: none; }
 
 
 .hint { color: var(--text-secondary); font-size: 14px; margin: 4px 0; }
@@ -1613,16 +1619,19 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     margin-bottom: 12px;
 }
 .warning { background: var(--warning-bg); color: var(--warning-text); }
-/* The badge on the Books and items heading (an .info-tip in warning colors). */
+/* Books and items' number while its books can't make the chosen enchantments: the amber "!" badge is the button of the fixes menu (an .info-tip,
+   Books.js renderBooksAlert), drawn just like the other badges' "!", in the badge's place (the plain badge hides meanwhile). */
 .info-tip.alert .info-tip-button {
-    width: auto;
-    padding: 0 6px;
-    border-radius: 9px;
-    border-color: transparent;
+    width: 22px; height: 22px; padding: 0;
+    border-radius: 50%;
+    border: none;
     background: var(--warning-bg);
     color: var(--warning-text);
+    box-shadow: 0 0 0 1px var(--warning-text);
+    font-size: 12px; font-weight: 700;
 }
 .info-tip.alert .info-tip-button:hover, .info-tip.alert.open .info-tip-button { background: var(--warning-text); color: var(--warning-bg); }
+h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 /* The mark next to a chosen enchantment's name. */
 .ench-title { display: inline-flex; align-items: center; gap: 6px; flex-wrap: wrap; }
 .short-mark {
@@ -1732,9 +1741,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .warning.no-order .btn { margin-top: 2px; }
 
 .progress { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
-.progress-track { flex: 1; min-width: 60px; height: 8px; border-radius: 4px; background: var(--surface-alt); overflow: hidden; }
-.progress-fill { height: 100%; width: 0; background: var(--accent); transition: width 0.15s; }
-.progress-text { font-size: 12px; color: var(--text-secondary); min-width: 36px; text-align: right; }
 
 .stale { opacity: 0.45; }
 
@@ -2472,8 +2478,6 @@ div.slot-cell-button { cursor: default; }
 @media (max-width: 600px) {
     .layout.has-item .jump-order { display: flex; width: 100%; justify-content: center; margin-top: 14px; }
 }
-.shelf-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin: 2px 0 14px; }
-.shelf-summary { flex: 1 1 auto; min-width: 0; font-size: 13px; color: var(--text-secondary); }
 .entry-grid.shelf .slotcell .slot-tip { display: none; transform: translateX(var(--tip-shift, 0px)); }
 .entry-grid.shelf .slotcell:hover .slot-tip, .entry-grid.shelf .slotcell:focus-within .slot-tip, .entry-grid.shelf .slotcell.pointer-in .slot-tip { display: block; }
 @media (hover: none) { .entry-grid.shelf .slotcell:focus-within .slot-tip { display: block; } }

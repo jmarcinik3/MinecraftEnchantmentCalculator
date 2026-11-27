@@ -65,6 +65,7 @@ export function resetWorkers() {
 // Nothing in the page reads it: the browser tests wait on it instead of sleeping.
 function markSearch(status) {
     document.documentElement.dataset.search = status;
+    if (status === "pending") { progress_share = 0; shareToBadge(); } // (the ring starts empty, not where the last search ended)
 }
 
 function stopRunning() {
@@ -73,6 +74,7 @@ function stopRunning() {
     show_progress = false;
     clearTimeout(progress_timer);
     clearInterval(progress_clock);
+    if (badge_tip) badge_tip.hidden = true;
 }
 
 // "37%", then "2% · 40 seconds so far", then "4% · about 12 minutes left". The time ticks
@@ -95,11 +97,44 @@ function duration(seconds) {
     return new Intl.NumberFormat(language, { style: "unit", unit, unitDisplay: "long" }).format(value);
 }
 
+// Section 4's number badge is the search's progress: its ring fills with how far the search has got (CSS `--search-share`, 0 to 1, on the
+// badge itself: on <html> it woke the observers of the root's style on every message) and hovering it says the percent and the time left.
+const stepsBadge = () => document.querySelector('[data-section="steps"] .step-badge');
+function shareToBadge() {
+    const badge = stepsBadge();
+    if (!badge) return;
+    const share = Math.min(1, progress_share).toFixed(3);
+    if (badge.style.getPropertyValue("--search-share") !== share) badge.style.setProperty("--search-share", share);
+}
+
+// Hovering the badge while a search runs shows a small tooltip under it with the percent and the time (a `title` would not change while it
+// shows): one fixed element, its text refreshed by every progress message and every second.
+let badge_hovered = false;
+let badge_tip = null;
+function searchTip() {
+    if (!badge_tip) {
+        badge_tip = document.createElement("div");
+        badge_tip.className = "search-tip";
+        badge_tip.setAttribute("role", "status");
+        document.body.append(badge_tip);
+        const badge = stepsBadge();
+        badge.addEventListener("mouseenter", () => { badge_hovered = true; showProgress(); });
+        badge.addEventListener("mouseleave", () => { badge_hovered = false; showProgress(); });
+    }
+    return badge_tip;
+}
+
 function showProgress() {
-    const fill = document.getElementById("progress-fill");
-    const text = document.getElementById("progress-text");
-    if (fill) fill.style.width = Math.min(100, progress_share * 100).toFixed(1) + "%";
-    if (text) text.textContent = progressLabel();
+    shareToBadge();
+    const badge = stepsBadge();
+    if (!badge) return;
+    const tip = searchTip();
+    tip.hidden = !(running && badge_hovered);
+    if (tip.hidden) return;
+    tip.textContent = progressLabel();
+    const box = badge.getBoundingClientRect();
+    tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, box.left + box.width / 2 - tip.offsetWidth / 2)) + "px";
+    tip.style.top = box.bottom + 8 + "px";
 }
 
 // Everything a search depends on, as one string: the entries (sorted: their order changes nothing but which of two equal orders is shown), the ranking,
@@ -189,6 +224,12 @@ export function runCalculation() {
     markSearch("running");
     started_at = performance.now();
     progress_share = 0;
+    showProgress();
+    // "Cancelled. Run again" goes as soon as a search runs (it would start yet another one); the Cancel button comes with the progress.
+    if (last_result && last_result.status === "cancelled") {
+        last_result = null;
+        renderResults();
+    }
     progress_timer = setTimeout(() => {
         show_progress = true;
         renderResults();

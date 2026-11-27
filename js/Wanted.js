@@ -217,7 +217,7 @@ export function renderWanted() {
 
     const { list, mod_boxes } = wantedList();
     box.append(...[wantedSearch(), list, ...mod_boxes].filter(Boolean)); // append(null) would print "null"
-    const graph = conflictGraph(searchMatcher());
+    const graph = state.allow_incompatible ? null : conflictGraph(searchMatcher()); // (with conflicts allowed nothing conflicts)
     if (graph) box.append(graph); // the last box of the section, at every width
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
@@ -348,7 +348,7 @@ function wantedList() {
                     setBracket(group, !folded_groups.has(key));
                     easeHeight(group, from);
                 }
-            }, (state.allow_incompatible ? TEXT.wanted.group_allowed : TEXT.wanted.group_some_conflict) + " (" + members.length + ")"),
+            }, TEXT.wanted.group_some_conflict + " (" + members.length + ")"),
             members.map(ns => wantedRow(ns, short.get(ns), true))
         );
     };
@@ -369,7 +369,12 @@ function wantedList() {
     const own = [];
     const curses = [];
     const mods = new Map(); // mod name -> its groups (those with none of the game's own enchantments)
-    for (const whole of logic.enchantmentGroups(state.item)) {
+    // With Allow conflicts every enchantment can go with every other, so none is shown as conflicting: each is a group of its own, and they all
+    // end up in the one "No conflicts (N)" subsection, alphabetical (the curses and each mod's still keep their own).
+    const all_groups = state.allow_incompatible
+        ? logic.enchantmentGroups(state.item).flatMap(group => group.members.map(ns => ({ members: [ns], exclusive: false })))
+        : logic.enchantmentGroups(state.item);
+    for (const whole of all_groups) {
         const group = shown(whole);
         if (!group) continue;
         const mod = logic.modOf(whole.members[0]);
@@ -391,7 +396,7 @@ function wantedList() {
         const rest = others.map(group => groupRow(group));
         if (!alone.length) return rest;
         const lone = alone.map(group => groupRow(group));
-        if (single) return lone;
+        if (single && !state.allow_incompatible) return lone; // (with conflicts allowed they are still the one "No conflicts (N)" group)
         const title = TEXT.wanted.group_titled({ label: TEXT.wanted.group_no_conflicts, count: alone.length });
         return [groupFold(title, key, h("div", { class: "pick-any-list", role: "group", "aria-label": TEXT.wanted.group_no_conflicts }, lone)), ...rest];
     };

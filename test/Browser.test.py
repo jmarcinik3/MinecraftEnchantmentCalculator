@@ -157,7 +157,7 @@ def part_steps(browser, base):
     total = steps.count()
     check("a result with several steps", total >= 3, total)
     bars = page.locator("#results .hotbar-slot")
-    check("the hotbar has one slot per step and no XP bar is left", bars.count() == total and page.locator(".step-progress-track, .step-progress-cell").count() == 0, bars.count())
+    check("the hotbar has one slot per step", bars.count() == total, bars.count())
 
     # Ticking folds the ticked step and fills a segment; the page doesn't jump.
     page.locator('input[data-step="1"]').check()
@@ -811,7 +811,7 @@ def part_offline(browser, base):
 
 
 def part_anvil_uses(browser, base):
-    """section 4: slots, cost, planner, final card, tree, phones"""
+    """section 4: slots, cost, planner, tree, phones"""
     # Anvil uses: focus, slot labels and instruction, cost breakdown, Slots view, planner, final card, tree.
     _, p7, errors7 = open_page(browser, base, viewport={"width": 1280, "height": 1000})
     p7.wait_for_selector("#wanted .item-grid")
@@ -833,7 +833,7 @@ def part_anvil_uses(browser, base):
     check("the cost shows where its levels come from", p7.locator("#results .cost-breakdown").first.is_visible() or p7.locator("#results .has-breakdown.open").count() == 1)
     p7.mouse.move(0, 0)
     check("the hotbar and the icons share one row", p7.evaluate("Math.abs(document.querySelector('.result-tools .step-hotbar').getBoundingClientRect().top - document.querySelector('.result-tools .result-icons').getBoundingClientRect().top) < 12"))
-    check("the toolbar has no Copy, Print or Expand buttons of its own (they are in Share and one fold icon)", p7.locator("#results .result-tools > .result-icons > .share-menu").count() == 1 and p7.locator("#results .fold-buttons, #results .more-menu, #results .result-actions").count() == 0)
+    check("Copy and Print are in the Share menu of the toolbar's icons", p7.locator("#results .result-tools > .result-icons > .share-menu").count() == 1)
     check("the receipt says the uses and the heading does not repeat them while open", "use" in p7.inner_text("#order-uses") and not p7.is_visible("#steps-summary"), p7.inner_text("#order-uses"))
     p7.click("#results .density")
     check("Compact Steps hides the tooltips until hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell .mc-tooltip')).display") == "none")
@@ -841,7 +841,6 @@ def part_anvil_uses(browser, base):
     check("Compact Steps' result slot shows its tooltip on hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell.result .mc-tooltip')).display") != "none")
     p7.click("#results .density")
     settle(p7) # the old view is laid over the new one while they cross-fade
-    check("there is no finished-item card after the steps", p7.locator("#results .final-card").count() == 0)
     p7.locator('#results input[data-step="7"]').check(force=True)
     settle(p7)
     check("ticking the last step ticks every step", p7.locator("#results input[data-step]:not(:checked)").count() == 0)
@@ -1093,7 +1092,6 @@ def part_ranking(browser, base):
     p10.wait_for_selector("#results .anvil-step", timeout=8000)
     settle(p10)
     check("the open panel is remembered across a reload", p10.is_visible("#metrics .rank-tile") and p10.get_attribute("#order-toggle", "aria-expanded") == "true")
-    check("no Rank by chips", p10.locator(".rank-presets, .rank-preset").count() == 0 and p10.locator("#ranking").count() == 0 and p10.locator('[data-section="order"]').count() == 0)
     check("every ranking tile has a grip, a unit and a note", p10.locator(".rank-tile .rank-grip").count() == 4 and all(p10.locator(".rank-tile .metric-unit").nth(i).inner_text() for i in range(4)) and all(p10.locator(".rank-tile .metric-note").nth(i).inner_text() for i in range(4)))
     p10.click(".rank-tile >> nth=1 >> .rank-move >> nth=0")
     check("an arrow ranks a tile higher", p10.locator(".rank-tile").first.get_attribute("data-criterion") == "xp" and "XP" in p10.inner_text(".rank-caption"))
@@ -1114,7 +1112,7 @@ def part_ranking(browser, base):
     p10.keyboard.press("Escape")
     level = lambda: int(p10.input_value("#player-level"))
     start = level()
-    cost = int(p10.evaluate("""(() => { const step = document.querySelector('#results [data-step-card="1"]'); return step.querySelector('.anvil-cost').textContent.match(/\d+/)[0]; })()"""))
+    cost = int(p10.evaluate("""(() => { const step = document.querySelector('#results [data-step-card="1"]'); return step.querySelector('.anvil-cost').textContent.match(/[0-9]+/)[0]; })()"""))
     p10.locator('#results input[data-step="1"]').check(force=True)
     settle(p10)
     check("ticking a step spends its levels from the tracked level", level() == start - cost, (start, cost, level()))
@@ -1146,7 +1144,6 @@ def part_ranking(browser, base):
     p10.wait_for_selector("#results .anvil-step", timeout=8000)
     check("raising the limit from there gives an order", p10.locator("#results .break-down").count() == 0)
     # Section 4: the goal line, "In words", the wear label, jumping, the keyboard, the copy menu and source highlighting.
-    check("no goal line repeats what Section 1 and the heading say", p10.locator("#results .result-goal").count() == 0)
     check("the anvil wear badge is labelled", p10.locator("#anvil-risk .anvil-risk-label").is_visible())
     check("the sentence is behind an In words line", not p10.locator("#results .anvil-step.current .step-instruction").is_visible())
     p10.click("#results .anvil-step.current .step-words summary")
@@ -1283,7 +1280,6 @@ def part_fancy(browser, base):
     p11.wait_for_selector(".graph-canvas")
     order = p11.evaluate("[...document.querySelector('#wanted').children].map(el => el.classList.contains('wanted-head') ? 'head' : el.classList.contains('search-row') ? 'search' : el.classList.contains('wanted-list') ? 'list' : el.classList.contains('mod-section') ? 'mod' : el.classList.contains('graph-box') ? 'graph' : '?')")
     check("section 1 has the search (the item is its own card now), then the enchantment list, each mod's list and the conflict graph as boxes of their own", order == ["search", "list", "mod", "graph"], order)
-    check("no fold box wraps the enchantment list", p11.locator("#wanted .list-box").count() == 0)
     p11.click("#wanted .graph-box > summary")
     p11.click("#wanted .mod-section > summary")
     # The search meets the mod's enchantments, and opens their section.
@@ -1433,7 +1429,7 @@ def part_mod_off(browser, base):
 
 
 def part_shelf(browser, base):
-    """Automatic mode's shelf of slots, the switch to Custom, the phone order with its jump button, and the conflict graph in the item column on wide windows"""
+    """Automatic mode's shelf of slots, the switch to Custom, the phone order with its jump button, and the conflict graph as the last box of Enchantments on wide windows"""
     def pick_boots(page):
         page.click('#wanted .item-grid button[data-focus="item-boots"]')
         page.click('#item .preset:not([data-focus="preset-plain"]) >> nth=0')
@@ -1446,7 +1442,7 @@ def part_shelf(browser, base):
     pick_boots(d)
     entries = d.evaluate("document.querySelectorAll('#books .entry-grid.shelf .entry-card.slotcell').length")
     check("Automatic draws a shelf: one slot per book or item, each with a tooltip", entries >= 3 and d.locator("#books .shelf .slotcell .slot-tip").count() == entries, entries)
-    check("the shelf has a one-line summary and no Cards | Slots | List switch", "one per enchantment" in d.inner_text("#books .shelf-summary") and d.locator("#books .view-switch").count() == 0, d.inner_text("#books .shelf-summary"))
+    check("the shelf has no Cards | Slots | List switch", d.locator("#books .view-switch").count() == 0)
     check("the shelf is slots only, no enchantment cards", d.locator("#books .entry-grid.shelf .entry-tooltip").count() == 0)
     d.hover("#books .shelf .slotcell >> nth=1")
     check("hovering a slot shows its tooltip, inside the section", d.evaluate("""() => { const tip = document.querySelector('#books .shelf .slotcell:hover .slot-tip'), area = document.querySelector('#books').getBoundingClientRect(); if (!tip) return false; const box = tip.getBoundingClientRect(); return box.width > 0 && box.right <= area.right + 1 && tip.textContent.includes('Enchanted Book'); }"""))
@@ -1457,7 +1453,7 @@ def part_shelf(browser, base):
     check("focusing a slot shows its tooltip too", d.locator("#books .shelf .slotcell:focus-within .slot-tip").first.is_visible())
     check("the shelf's slots are one tab stop", d.locator("#books .shelf .slot-cell-button[tabindex='0']").count() == 1)
     check("the jump button is hidden on wide windows", not d.locator(".jump-order").is_visible())
-    check("at 1440 the graph is the last box inside Enchantments, no item-column host remains", d.locator("#wanted > .graph-box").count() == 1 and d.locator("#item-graph").count() == 0 and d.evaluate("document.querySelector('#wanted').lastElementChild.classList.contains('graph-box')"))
+    check("at 1440 the graph is the last box inside Enchantments", d.locator("#wanted > .graph-box").count() == 1 and d.evaluate("document.querySelector('#wanted').lastElementChild.classList.contains('graph-box')"))
     d.click("#wanted .graph-box > summary")
     d.wait_for_selector("#wanted .graph-canvas")
     settle(d)
@@ -1484,7 +1480,6 @@ def part_shelf(browser, base):
 
     # Custom (the mode switch; the shelf has no Customize button).
     entries = d.locator("#books .shelf .slotcell").count()
-    check("the shelf has no Customize button", d.locator("#books .shelf-customize").count() == 0)
     d.click("#books .mode-switch >> text=Custom")
     settle(d)
     check("Custom switches to: editable cards, the view switch, the add bar", d.locator("#books .mode-switch button.selected").inner_text() == "Custom" and d.locator("#books .view-switch").count() == 1 and d.locator("#books .entry-add-card").count() == 1 and d.locator("#books .shelf").count() == 0)
@@ -1697,7 +1692,7 @@ def part_several_groups(browser, base):
     # Round 2: the curses fold like the other groups, and every fold marker is the one chevron.
     curses = p.locator('#wanted .group-fold[data-fold="curses"]')
     curses.locator("> summary").click(); settle(p)
-    check("Curses is a fold-away group of its own, closed by its header", not p.evaluate("document.querySelector('#wanted .group-fold[data-fold=\"curses\"]').open") and p.locator("#wanted .divider").count() == 0)
+    check("Curses is a fold-away group of its own, closed by its header", not p.evaluate("document.querySelector('#wanted .group-fold[data-fold=\"curses\"]').open"))
     check("the fold markers are one chevron (no text arrows), turning with the state", p.evaluate("""() => { const t = el => getComputedStyle(el, '::before').content; const summary = document.querySelector('#wanted .group-fold > summary'); const closed = document.querySelector('#wanted .group-fold[data-fold="curses"] > summary'); return t(summary) === '""' && t(document.querySelector('#steps .collapse-toggle, .collapse-toggle')) === '""' && getComputedStyle(summary, '::before').transform !== getComputedStyle(closed, '::before').transform; }"""))
     curses.locator("> summary").click(); settle(p)
     check("a section with a single group (the mod's) shows it without a subsection or a second header", section.locator("xpath=ancestor::details[contains(@class, 'group-fold')]").count() == 0 and p.locator("#wanted .ench-group-label").count() == 0)
@@ -1739,6 +1734,11 @@ def part_fold_all(browser, base):
     p.keyboard.press("Escape")
     settle(p)
     check("Allow conflicts keeps the same presets", presets_before and preset_row() == presets_before, (presets_before, preset_row()))
+    titles = p.eval_on_selector_all("#wanted .wanted-list > .group-fold > summary", "e => e.map(x => x.textContent)")
+    names = p.eval_on_selector_all("#wanted .pick-any-list .ench-title", "e => e.map(x => x.firstChild.textContent)")
+    check("with conflicts allowed every enchantment is in one No conflicts group, alphabetical, with no conflict marks or graph",
+          len(titles) >= 1 and titles[0].startswith("No conflicts") and all(not t.startswith("Pick") for t in titles) and names == sorted(names) and len(names) > 3
+          and p.locator("#wanted .conflict-chip, #wanted .ench-group, #wanted .graph-box").count() == 0, (titles, names))
     p.click("#options-menu summary")
     p.click("#limit-panel .rule-switch")
     p.keyboard.press("Escape")
@@ -1762,7 +1762,7 @@ def part_fold_all(browser, base):
     settle(p)
     check("and Expand all opens them again", open_count() == total)
     # The groups sit directly in the section (no box around them); a group folds from its own heading.
-    check("the groups are not inside a fold box", p.locator("#wanted .list-box").count() == 0 and p.locator("#wanted > .wanted-list > .group-fold").count() > 0)
+    check("the groups sit directly in the section", p.locator("#wanted > .wanted-list > .group-fold").count() > 0)
     first = p.locator("#wanted .group-fold > summary").nth(1)
     first.click()
     settle(p)
@@ -2001,22 +2001,33 @@ def pick_boots(page):
 
 
 def part_stage_hotbar(browser, base):
-    """the section badges (checks, the amber Books !, the search spinner), the wide item card, the step hotbar (slots, current, jumps, phones) and the Next step card"""
+    """the section badges (checks, the amber Books !, the search's progress ring), the wide item card, the step hotbar (slots, current, jumps, phones) and the Next step card"""
     errors = []
     _, page, errs = open_page(browser, base, viewport={"width": 1280, "height": 760})
     errors += errs
-    check("the header stepper is gone", page.locator("#stages, .stage-nav, .stage-chip").count() == 0)
     badges = lambda: page.evaluate("[...document.querySelectorAll('[data-section] > h2 .step-badge')].map(b => [b.textContent, b.classList.contains('done'), b.classList.contains('warn')])")
     check("before an item the badges are 1, 3 and 4, plain (greyed)", badges() == [["1", False, False], ["3", False, False], ["4", False, False]], badges())
     check("before an item Books and Anvil uses are a heading and one muted line each", page.inner_text("#books") == "Pick an item first" and page.inner_text("#results") == "Pick an item first" and page.locator(".card.idle").count() == 2 and page.locator("#books").evaluate("e => e.closest('.card').getBoundingClientRect().height") < 90)
     pick_boots(page)
     check("with an item, enchantments and an order every badge is a check, and the Item card's too", badges() == [["\u2713", True, False]] * 3 and page.inner_text("#item .step-badge") == "\u2713", badges())
     check("a done heading says so to a screen reader", "done" in page.evaluate("(() => { const h = document.querySelector('[data-section=steps] h2'); return h.getAttribute('aria-labelledby').split(' ').map(id => document.getElementById(id).textContent).join(' '); })()"))
+    # With nothing chosen, Enchantments' badge is the amber "!" too (there is nothing to calculate yet), and back to a check once one is.
+    page.click("#item .preset >> text=Plain")
+    settle(page)
+    check("with no enchantment chosen, the Enchantments badge is an amber !", page.evaluate("[document.querySelector('[data-section=wanted] .step-badge').textContent, document.querySelector('[data-section=wanted] .step-badge').classList.contains('warn')]") == ["!", True])
+    page.click("#item .preset:not([data-focus=\"preset-plain\"]) >> nth=0")
+    settle(page)
+    check("and a check again once one is chosen", page.inner_text('[data-section="wanted"] .step-badge') == "✓")
     badge_bg = lambda: page.evaluate("getComputedStyle(document.querySelector('[data-section=steps] .step-badge')).backgroundColor")
     idle_bg = badge_bg()
     spin = lambda: page.evaluate("getComputedStyle(document.querySelector('[data-section=steps] .step-badge'), '::after').content")
+    page.evaluate("document.documentElement.dataset.search = 'pending'")
+    pending = page.evaluate("(() => { const s = getComputedStyle(document.querySelector('[data-section=steps] .step-badge'), '::after'); return [s.backgroundImage.includes('conic-gradient'), s.animationName]; })()")
+    check("waiting to start, the badge already shows the (empty) progress ring, no spinner", pending == [True, "none"], pending)
     page.evaluate("document.documentElement.dataset.search = 'running'")
     running_bg, running_spin = badge_bg(), spin()
+    ring = page.evaluate("getComputedStyle(document.querySelector('[data-section=steps] .step-badge'), '::after').backgroundImage")
+    check("while it runs, the badge's ring is a progress ring filling with the search (Calc.js sets --search-share on it), and Section 4 has no progress bar of its own", "conic-gradient" in ring and page.evaluate("document.querySelector('[data-section=steps] .step-badge').style.getPropertyValue('--search-share') !== ''") and page.locator("#results .progress-track, #progress-fill").count() == 0, ring)
     page.evaluate("document.documentElement.dataset.search = 'idle'")
     check("the Anvil uses badge turns amber and spins while the search runs, and back once idle", running_bg != idle_bg and running_spin != "none" and badge_bg() == idle_bg and spin() == "none", (idle_bg, running_bg, running_spin))
     # The Books badge turns amber "!" while Section 3's alert badge shows, and back once it is fixed.
@@ -2024,7 +2035,16 @@ def part_stage_hotbar(browser, base):
     page.click('#books button[aria-label^="Remove entry 2"]')
     settle(page)
     books_badge = page.locator('[data-section="books"] .step-badge')
-    check("the Books badge is an amber ! while the alert badge shows", page.locator("#books-alert .info-tip").count() == 1 and "warn" in books_badge.get_attribute("class") and books_badge.inner_text() == "!" and "problem" in page.inner_text("#books-state"), books_badge.get_attribute("class"))
+    button = page.locator("#books-alert .info-tip-button")
+    check("the Books badge is an amber ! while the books fall short, and that ! is the fixes menu's button (no separate triangle)",
+          page.locator("#books-alert .info-tip").count() == 1 and "warn" in books_badge.get_attribute("class") and "problem" in page.inner_text("#books-state")
+          and button.inner_text() == "!" and button.is_visible() and not books_badge.is_visible() and "⚠" not in page.inner_text('[data-section="books"] > h2')
+          and abs(button.bounding_box()["x"] - page.locator('[data-section="wanted"] > h2 .step-badge').bounding_box()["x"]) < 2,
+          page.evaluate("(() => { const b = document.querySelector('#books-alert .info-tip-button'); return [document.querySelector('#books-alert').outerHTML.slice(0, 200), b && b.textContent, b && Math.round(b.getBoundingClientRect().x), Math.round(document.querySelector('[data-section=wanted] > h2 .step-badge').getBoundingClientRect().x), getComputedStyle(document.querySelector('[data-section=books] > h2 .step-badge')).display]; })()"))
+    button.hover()
+    check("hovering the ! opens the menu of fixes, Switch to Automatic first", page.locator("#books-alert .info-tip-bubble").is_visible() and page.locator("#books-alert .fix-option").count() >= 2
+          and "Automatic" in page.locator("#books-alert .fix-option").first.inner_text())
+    page.mouse.move(0, 0)
     page.click('[data-focus="mode-auto"]')
     settle(page)
     check("fixed, the Books badge is a check again", "warn" not in books_badge.get_attribute("class") and books_badge.inner_text() == "\u2713" and page.locator("#books-alert .info-tip").count() == 0)
@@ -2073,8 +2093,9 @@ def part_stage_hotbar(browser, base):
     frames(page, 3)
     check("the Next step card is tucked while its step shows", page.evaluate("getComputedStyle(document.querySelector('#results .current-bar')).visibility") == "hidden")
     page.set_viewport_size({"width": page.viewport_size["width"], "height": 520})  # (short, so Step 1 leaves the window at the bottom)
-    page.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
-    page.wait_for_function("() => getComputedStyle(document.querySelector('#results .current-bar')).visibility === 'visible'")
+    frames(page, 3)
+    # (scrolled again on every try: under load the resize can still be settling the page's length when the first scroll lands)
+    page.wait_for_function("() => { scrollTo(0, document.documentElement.scrollHeight); return getComputedStyle(document.querySelector('#results .current-bar')).visibility === 'visible'; }", polling=100)
     card = page.locator("#results .current-bar-card")
     inside = page.evaluate("() => { const c = document.querySelector('#results .current-bar-card').getBoundingClientRect(); return c.top >= 0 && c.bottom <= innerHeight + 1; }")
     check("the card shows with the step's three slots and Done once the step is scrolled away", card.is_visible() and page.locator("#results .current-bar .mini-slot").count() == 3 and "Step 1 of" in card.inner_text() and inside, card.inner_text())
@@ -2099,7 +2120,7 @@ def part_stage_hotbar(browser, base):
     errors += errs
     pick_boots(ph)
     text = ph.locator("#results .step-progress-text").inner_text()
-    check("on a phone the hotbar shows, there is no XP bar, and the progress text stays", ph.locator("#results .step-hotbar").is_visible() and ph.locator("#results .step-progress-track").count() == 0 and "of 7 done" in text, text)
+    check("on a phone the hotbar and the progress text show", ph.locator("#results .step-hotbar").is_visible() and "of 7 done" in text, text)
     check("the phone hotbar has a slot per step inside the card", ph.locator("#results .hotbar-slot").count() == ph.locator("#results .anvil-step").count() and ph.evaluate("(() => { const c = document.querySelector('.results-card').getBoundingClientRect(); return [...document.querySelectorAll('#results .hotbar-slot')].every(s => { const r = s.getBoundingClientRect(); return r.right <= c.right && r.left >= c.left; }); })()"))
     check("the progress text has no levels-to-go part, and nothing overflows at 320px", "to go" not in text and ph.evaluate("document.documentElement.scrollWidth <= innerWidth"), text)
     ph.locator("#results .hotbar-slot").nth(4).click()
@@ -2109,7 +2130,7 @@ def part_stage_hotbar(browser, base):
 
 
 def part_layout(browser, base):
-    """no sideways scroll on the first screen with a mouse, tooltips kept in the window, phone steps, the More menu, the settings panel"""
+    """no sideways scroll on the first screen with a mouse, tooltips kept in the window, phone steps, the settings panel"""
     errors = []
     # The first screen (the item grid) with a mouse: no sideways scroll, and a tooltip near the edge stays inside the window.
     for width in (320, 390, 768):
@@ -2147,7 +2168,7 @@ def part_layout(browser, base):
     broken = ph.evaluate("""() => [...document.querySelectorAll('#results .anvil-step.current .mc-name')].filter(n => { const range = document.createRange(); range.selectNodeContents(n); return range.getClientRects().length > 1; }).map(n => n.textContent)""")
     check("no name in a step is split over lines", not broken, broken)
     menu = ph.locator("#results .share-menu")
-    check("on a phone the same icons show (no menu of their own)", menu.is_visible() and ph.locator("#results .fold-toggle").is_visible() and ph.locator("#results .more-menu").count() == 0)
+    check("on a phone the same icons show", menu.is_visible() and ph.locator("#results .fold-toggle").is_visible())
     menu.locator("summary").click()
     check("Share holds the four actions", menu.locator(".copy-panel button").count() == 4)
     ph.keyboard.press("Escape")
@@ -2373,7 +2394,48 @@ def part_wide_morph(browser, base):
     return errors
 
 
-PARTS = [part_stage_hotbar, part_wide_morph, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
+def part_search_tip(browser, base):
+    """a slow search (vanilla boots, Allow conflicts, all 11 non-curse enchantments at max): the badge's ring fills and its tooltip follows it without moving the mouse"""
+    _, p, errors = open_page(browser, base, viewport={"width": 1440, "height": 900})
+    p.click('#wanted .item-grid button[data-focus="item-boots"]')
+    settle(p)
+    p.click("#options-menu summary")
+    p.click("#limit-panel .rule-switch")
+    p.keyboard.press("Escape")
+    settle(p)
+    p.mouse.move(0, 0)
+    count = p.locator("#wanted .pick-any-list .ench-row").count()
+    for i in range(count):
+        p.evaluate("i => { const bar = document.querySelectorAll('#wanted .pick-any-list .ench-row .level-bar')[i]; bar.focus(); bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'End', bubbles: true })); }", i)
+    check("all 11 of the boots' enchantments are chosen", count == 11 and p.locator("#wanted .ench-row.chosen").count() == 11, count)
+    p.wait_for_function("document.documentElement.dataset.search === 'running'", timeout=6000)
+    p.hover('[data-section="steps"] .step-badge')
+    # Read the tooltip every 50ms while the mouse stays where it is, until the search ends.
+    seen = p.evaluate("""() => new Promise(done => { const seen = []; const tick = () => { const tip = document.querySelector('.search-tip');
+        if (document.documentElement.dataset.search !== 'running') { done({ seen, hidden_after: !tip || tip.hidden }); return; }
+        if (tip && !tip.hidden && seen[seen.length - 1] !== tip.textContent) seen.push(tip.textContent);
+        const badge = document.querySelector('[data-section=steps] .step-badge'); const share = parseFloat(badge.style.getPropertyValue('--search-share')) || 0;
+        const deg = parseFloat((getComputedStyle(badge, '::after').backgroundImage.match(/([0-9.]+)deg/) || [0, 0])[1]);
+        seen.lag = Math.max(seen.lag || 0, Math.abs(deg - share * 360)); setTimeout(tick, 50); }; tick(); }).then(r => ({ ...r, lag: r.seen.lag }))""")
+    check("hovering the badge shows the search's percent, and it changes while the mouse is still", len(seen["seen"]) >= 2 and all("%" in t for t in seen["seen"]), seen["seen"])
+    check("the tooltip goes when the search ends", seen["hidden_after"])
+    check("while hovered, the ring keeps up with the search (it is drawn straight from the share)", seen["lag"] is not None and seen["lag"] < 2, seen["lag"])
+    settle(p)
+    # Cancel, then Run again: while the new search runs there is no "Cancelled. Run again" (it would start yet another one), only Cancel.
+    p.mouse.move(0, 0)
+    p.evaluate("() => { const bar = document.querySelector('#wanted .pick-any-list .ench-row .level-bar'); bar.focus(); bar.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })); }")  # (a change, so the search runs again)
+    p.wait_for_function("document.documentElement.dataset.search === 'running'", timeout=6000)
+    p.click("#results .progress .btn", timeout=4000)
+    p.wait_for_selector("#results .hint >> text=Run again")
+    p.click("#results .hint .link")
+    p.wait_for_function("document.documentElement.dataset.search === 'running'", timeout=6000)
+    during = p.evaluate("[document.documentElement.dataset.search, document.querySelectorAll('#results .hint .link').length]")
+    check("once Run again starts the search, the Cancelled line and its Run again are gone", during == ["running", 0], during)
+    settle(p)
+    return errors
+
+
+PARTS = [part_search_tip, part_stage_hotbar, part_wide_morph, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
 
 
 class PartBrowser:

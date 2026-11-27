@@ -69,7 +69,7 @@ export function renderBooks() {
             modeSwitch(),
             custom ? viewSwitch() : null // the view only matters for entries you can edit
         ),
-        custom ? coverageStrip() : shelfHead(books),
+        custom ? coverageStrip() : null,
         grid
     ].filter(Boolean));
     // The shelf's slots are one tab stop (Left and Right move along them); the tooltips are kept inside the section.
@@ -464,13 +464,6 @@ let books_view = ["list", "slots"].includes(stored_view) ? stored_view : "cards"
 // choice is for Custom.
 function shownView() {
     return state.auto_books ? "slots" : books_view;
-}
-
-// Automatic mode's one line above the shelf: what the books are, and the way to change them.
-function shelfHead(books) {
-    const count = books.filter(book => book.type === "book").length;
-    return h("div", { class: "shelf-head" },
-        h("span", { class: "shelf-summary" }, count ? TEXT.books.shelf_summary({ count }) : TEXT.books.shelf_empty));
 }
 
 // A shelf slot's tooltip hangs under it; shifted left (--tip-shift) just far enough to stay inside the section.
@@ -1173,8 +1166,8 @@ export function setupEntryPopover() {
     document.addEventListener("touchmove", event => { if (dragging_any) event.preventDefault(); }, { passive: false });
 }
 
-// "⚠ 1" next to the section heading when chosen enchantments can't be reached; it
-// opens the details. It sits in the heading's empty space, so it never moves anything.
+// The amber "!" in the place of the section's number when chosen enchantments can't be reached; hovering, focusing or tapping it
+// opens the fixes.
 function renderBooksAlert(check) {
     const box = $("#books-alert");
     if (!check.short.length) {
@@ -1182,13 +1175,14 @@ function renderBooksAlert(check) {
         box.replaceChildren();
         return;
     }
-    // After the fixes, a way out: let Automatic make the books.
-    const details = [...check.short.map(fixSuggestion), h("div", { class: "fix" },
+    // First the way out that fixes everything at once (let Automatic make the books), then one fix per enchantment.
+    const details = [h("div", { class: "fix" },
         h("div", { class: "fix-title" }, TEXT.books.automatic),
         h("button", { type: "button", class: "fix-option", onclick: useAutomatic },
             h("span", { class: "fix-action" }, TEXT.books.alert_auto),
-            h("span", { class: "fix-replaces" }, TEXT.books.alert_auto_note)))];
-    box.replaceChildren(infoTip("books-alert-tip", TEXT.books.alert({ count: check.short.length }),
+            h("span", { class: "fix-replaces" }, TEXT.books.alert_auto_note))), ...check.short.map(fixSuggestion)];
+    // The button is the section's amber "!" badge itself (CSS hides the plain badge meanwhile); its label says how many fall short.
+    box.replaceChildren(infoTip("books-alert-tip", TEXT.books.alert,
         TEXT.books.alert_label({ count: check.short.length }), details, "alert"));
 }
 
