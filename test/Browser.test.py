@@ -247,7 +247,14 @@ def part_steps(browser, base):
 
     # Start over: one click clears the setup and bring the first screen back; saved setups stay.
     page.evaluate("localStorage.setItem('enchantment-calculator-saved', JSON.stringify([{name: 'Keep', item: 'sword', link: 'x'}]))")
+    # ...and the Settings menu's: a game rule (Bedrock) and a Display one (descriptions Always).
     page.evaluate("window.scrollTo(0, 0)")
+    page.click("#options-menu > summary")
+    page.click('[data-focus="edition-bedrock"]')
+    page.click('[data-focus="descriptions-always"]')
+    page.click("#options-menu > summary")
+    page.evaluate("localStorage.setItem('enchantment-calculator-theme', JSON.stringify('light'))")
+    settle(page)
     page.wait_for_selector("#item .item-foot .reset-button", state="visible")
     with page.expect_navigation():
         page.click("#item .item-foot .reset-button")
@@ -255,6 +262,11 @@ def part_steps(browser, base):
     check("Start over brings the first screen back", page.locator("#wanted .intro").count() == 1)
     check("Start over keeps saved setups", "Keep" in (page.evaluate("localStorage.getItem('enchantment-calculator-saved')") or ""))
     check("Start over clears the ticks", page.evaluate("localStorage.getItem('enchantment-calculator-checklist')") is None)
+    check("Start over keeps the Dark/Light theme", page.evaluate("document.documentElement.dataset.theme") == "light")
+    page.click("#options-menu > summary")
+    check("Start over keeps the Settings menu: the game rules (Bedrock) and Display (descriptions Always)",
+          page.get_attribute('[data-focus="edition-bedrock"]', "aria-pressed") == "true" and page.get_attribute('[data-focus="descriptions-always"]', "aria-pressed") == "true")
+    page.click("#options-menu > summary")
     return errors + errors2 + errors3
 
 

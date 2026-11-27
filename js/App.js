@@ -1,5 +1,5 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
-import { cleanName, createLogic, editionMetadata, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
+import { clampStepLimit, cleanName, createLogic, editionMetadata, EDITIONS, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
 import { DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Text.js";
 import { setupLanguagePicker } from "./Languages.js";
 import { setupFeedback } from "./Feedback.js";
@@ -492,13 +492,24 @@ function setupTheme() {
 // "Start over" (the Item card's button, and the restart icon on its sticky bar): clears the setup,
 // the ticks and every setting kept in this browser (view, collapsed sections, level, theme) so the
 // first screen comes back, with its explainer and example. Saved setups and the language stay.
+// Start over keeps what the Settings menu holds and the Dark/Light theme: the Display switches and the theme (kept in this browser) stay in storage, and
+// the game rules (edition, level limit, conflicts, mods), which live in the link the reload drops, cross it in this tab's session storage (`keptRules`,
+// read once by `init`).
+const KEPT_SETTINGS = new Set(["enchantment-calculator-no-motion", "enchantment-calculator-glints", "enchantment-calculator-descriptions", THEME_STORAGE_KEY]);
+const KEPT_RULES_KEY = "enchantment-calculator-kept-rules";
 export function resetEverything() {
     try {
         for (const key of Object.keys(localStorage)) {
-            if (key.startsWith("enchantment-calculator-") && key !== SAVED_STORAGE_KEY && key !== LANGUAGE_STORAGE_KEY) localStorage.removeItem(key);
+            if (key.startsWith("enchantment-calculator-") && key !== SAVED_STORAGE_KEY && key !== LANGUAGE_STORAGE_KEY && !KEPT_SETTINGS.has(key)) localStorage.removeItem(key);
         }
     } catch {
         // No storage: nothing was kept.
+    }
+    try {
+        const { edition, max_step, no_step_limit, allow_incompatible, mods } = state;
+        sessionStorage.setItem(KEPT_RULES_KEY, JSON.stringify({ edition, max_step, no_step_limit, allow_incompatible, mods }));
+    } catch {
+        // No session storage: the rules go back to the game's own.
     }
     history.replaceState(null, "", location.pathname + location.search);
     location.reload();
@@ -507,6 +518,25 @@ export function resetEverything() {
 function setupCopyLink() {
     const button = $("#copy-link");
     button.addEventListener("click", () => copyText(button.querySelector(".copy-label"), currentLink(), TEXT.page.copy_link, button));
+}
+
+// The game rules Start over kept (or null), read once: a later reload starts from the game's own again.
+function keptRules() {
+    try {
+        const text = sessionStorage.getItem(KEPT_RULES_KEY);
+        sessionStorage.removeItem(KEPT_RULES_KEY);
+        const kept = text && JSON.parse(text);
+        if (!kept) return null;
+        return {
+            edition: EDITIONS.includes(kept.edition) ? kept.edition : "java",
+            max_step: clampStepLimit(kept.max_step),
+            no_step_limit: Boolean(kept.no_step_limit),
+            allow_incompatible: Boolean(kept.allow_incompatible),
+            mods: Array.isArray(kept.mods) ? kept.mods.filter(id => MOD_IDS.includes(id)) : []
+        };
+    } catch {
+        return null;
+    }
 }
 
 // ---------- Start ----------
@@ -579,8 +609,10 @@ async function init() {
         return;
     }
     useEdition("java");
-    await loadMods(linkMods(location.hash.slice(1)));
+    const kept = location.hash ? null : keptRules();
+    await loadMods(kept ? kept.mods : linkMods(location.hash.slice(1)));
     loadFromUrl();
+    if (kept) Object.assign(state, kept);
     useEdition(state.edition);
     if (state.edition !== "java" && state.item) sanitizeAll();
     startWorker();
