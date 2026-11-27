@@ -77,7 +77,8 @@ export function renderItem() {
     // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
     box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, "✓"), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading)),
         wantedHead(presetChips()),
-        h("div", { class: "item-foot" }, h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, restartIcon(), TEXT.page.reset)),
+        h("div", { class: "item-foot" }, h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, h("span", { class: "reset-label" }, TEXT.page.reset), restartIcon()),
+            h("button", { type: "button", class: "mini-steps foot-steps", title: TEXT.wanted.item_mini_steps_help, "aria-label": TEXT.wanted.item_mini_steps_help, onclick: goToSteps }, TEXT.wanted.item_mini_steps)),
         itemMini());
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
@@ -112,6 +113,13 @@ function restartIcon() {
     return svg;
 }
 
+// Down to the steps (Anvil uses), opening the section if it is closed: the card's foot and the condensed bar both have the button.
+function goToSteps() {
+    openSection("steps");
+    reserveDock(); // from the tall card the bar is not there yet: the scroll's target keeps clear of the bar it will end under
+    scrollToView(document.querySelector('[data-section="steps"]'), "start");
+}
+
 // The one-line form of the item shown in the sticky bar once the page has scrolled (narrow windows): its slot, name and enchantments, and the cost;
 // clicking it goes back to the top.
 function itemMini() {
@@ -130,43 +138,309 @@ function itemMini() {
     },
         h("span", { class: "mc-slot" + (chosen.length ? " glint" : "") }, icon(state.item)),
         h("div", { class: "mini-text" },
-            h("div", { class: "mini-name" }, logic.itemName(state.item)),
-            h("div", { class: "mini-list" }, chosen.length ? logic.summary(chosen) : TEXT.wanted.item_mini_none)),
+            h("div", { class: nameClass(logic.rarity(state.item, chosen.length > 0), " mini-name") }, logic.itemName(state.item)), // in its rarity colour, as in the tooltip
+            // One span per enchantment, so each can be met by its tooltip line in the morph (setupItemDock).
+            h("div", { class: "mini-list" }, chosen.length ? logic.tooltipSort(chosen).flatMap((e, i) => [
+                i ? h("span", { class: "mini-sep" }, ", ") : null,
+                h("span", { class: "mini-ench" + (logic.isCurse(e.namespace) ? " curse" : ""), "data-ns": e.namespace }, logic.displayName(e.namespace, e.level))
+            ]) : TEXT.wanted.item_mini_none)),
         costLine()),
         // Down to the steps (Anvil uses), from anywhere on the page.
         h("button", {
             type: "button", class: "mini-steps", title: TEXT.wanted.item_mini_steps_help, "aria-label": TEXT.wanted.item_mini_steps_help,
-            onclick: event => { event.stopPropagation(); openSection("steps"); scrollToView(document.querySelector('[data-section="steps"]'), "start"); },
+            onclick: event => { event.stopPropagation(); goToSteps(); },
             onkeydown: event => event.stopPropagation()
         }, TEXT.wanted.item_mini_steps));
 }
 
-// The bar condenses once the page is scrolled past the top of the sections (a sentinel at their top leaves the window), and the results column and the browser's scrolling keep clear of the bar's height (`--dock-h`, `scroll-padding-top`).
+// Narrow windows: the card morphs into the one-line bar as the page scrolls past the top of the sections (a sentinel there), over DOCK_RANGE px, following the
+// scroll: the slot travels and shrinks to the bar's slot, the tooltip's name and cost travel toward the bar's while the rest of the card fades out over the first
+// half, the bar's parts fade in over the second, and the card's box shrinks to the bar's (`.morphing`: `--morph-h`, a clip on the dock). Only transforms,
+// opacity and that clip change per frame. The dock keeps the full card's height throughout (clicks pass through its empty part), so the page's length never
+// changes with the scroll. The shown progress chases the scroll's (time constant DOCK_FOLLOW_MS), so a wheel's jumps glide, eased in and out (smoothstep).
+// Without motion the bar switches at half way. The results column and the browser's scrolling keep clear of the bar (`--dock-h`, `scroll-padding-top`).
+const DOCK_RANGE = 160;
+const DOCK_FOLLOW_MS = 90;
 let syncDock = () => {};
+let reserveDock = () => {};
 export function setupItemDock() {
     const layout = document.querySelector(".layout");
     const dock = $("#item-dock");
+    const root = document.documentElement;
     const sentinel = h("div", { class: "dock-sentinel", "aria-hidden": "true" });
     layout.prepend(sentinel);
-    // The bar's height while it sticks over the page (narrow windows only; beside the sections it covers nothing): the results column and what the browser
-    // scrolls into view (scroll-padding) keep clear of it.
     const narrow = matchMedia("(max-width: 1359px)");
-    const sync = () => document.documentElement.style.setProperty("--dock-h", narrow.matches && dock.classList.contains("condensed") && !dock.hidden ? $("#item").offsetHeight + 8 + "px" : "0px");
-    narrow.addEventListener("change", sync);
-    // The sentinel's last answer: the observer only reports a crossing, so picking an item while the page is already scrolled
-    // (Try an example, under the long item grid) re-checks from it (`syncDock`, called by renderItem).
-    let sentinel_shown = true;
-    syncDock = () => {
-        const condense = !sentinel_shown && Boolean(state.item);
-        // Condensing must not change the page's length, or the browser's scroll anchoring moves the scroll position back across the threshold and the bar
-        // flips between its two forms again and again: the dock keeps the height it had (the CSS lets clicks through its empty part).
-        if (narrow.matches && condense && !dock.classList.contains("condensed")) dock.style.height = dock.offsetHeight + "px";
-        if (!condense) dock.style.height = "";
-        dock.classList.toggle("condensed", condense);
-        sync();
+    let geo = null, shown = 0, following = false, last_frame = 0;
+    const past = () => -sentinel.getBoundingClientRect().top;
+    const target = () => {
+        const p = Math.min(1, Math.max(0, past() / DOCK_RANGE));
+        return motionOk() ? p : (p >= 0.5 ? 1 : 0);
     };
-    new IntersectionObserver(([entry]) => { sentinel_shown = entry.isIntersecting; syncDock(); }, { rootMargin: "-1px 0px 0px 0px" }).observe(sentinel);
-    new ResizeObserver(sync).observe($("#item"));
+    const parts = () => {
+        const item = $("#item");
+        return {
+            item,
+            slot: item.querySelector(".wanted-preview .item-menu-button"), // the slot with its menu caret, which fades
+            name: item.querySelector(".wanted-preview .mc-name"),
+            cost: item.querySelector(".wanted-preview .cost-line:not(.idle)"),
+            row: item.querySelector(".item-mini-row"),
+            mini_slot: item.querySelector(".item-mini .mc-slot"),
+            mini_name: item.querySelector(".item-mini .mini-name"),
+            mini_cost: item.querySelector(".item-mini .cost-line"),
+            reset: item.querySelector(".item-foot .reset-button"),
+            reset_label: item.querySelector(".item-foot .reset-label"),
+            mini_reset: item.querySelector(".mini-reset"),
+            steps: item.querySelector(".foot-steps"),
+            mini_steps: item.querySelector(".item-mini-row > .mini-steps"),
+            fade_out: [...item.querySelectorAll(":scope > .item-heading, .anvil-name, .wanted-controls, .wanted-preview .mc-tooltip, .item-menu-caret")],
+            fade_in: [...item.querySelectorAll(".mini-list")]
+        };
+    };
+    const styled = P => [P.slot, P.name, P.cost, P.mini_slot, P.mini_name, P.mini_cost, P.reset, P.reset_label, P.mini_reset, P.steps, P.mini_steps, ...P.fade_out, ...P.fade_in].filter(Boolean);
+    // Start over and Steps morph their box: two frames (each button's look) share one box that eases from the full button's place and size to the bar's,
+    // crossfading, while the two buttons' contents (their own box hidden, `.morph-travel`) ride its centre and crossfade too.
+    let frames = null;
+    // The item's name and the cost travel as one copy each (laid over the card, since their tooltip fades): from their place in the tooltip to the bar's,
+    // their size following (a scale from one font size to the other); the originals hide meanwhile and the bar's show at the end.
+    let flyers = null;
+    const makeFlyers = P => {
+        flyers = [];
+        // The tooltip's box, between the tall card's and the bar's.
+        const tip = P.item.querySelector(".wanted-preview .mc-tooltip"), mini_tip = P.item.querySelector(".item-mini .mini-text");
+        if (tip && mini_tip) {
+            const card = P.item.getBoundingClientRect();
+            const box = node => { const r = node.getBoundingClientRect(); return { x: r.left - card.left, y: r.top - card.top, w: r.width, h: r.height }; };
+            const frame = h("div", { class: "tip-frame", "aria-hidden": "true" });
+            P.item.append(frame);
+            flyers.unshift({ flyer: frame, tip: { from: box(tip), to: box(mini_tip), pad: parseFloat(getComputedStyle(mini_tip).paddingRight) + parseFloat(getComputedStyle(mini_tip).borderRightWidth) } /* to the list's own right edge */ });
+        }
+        // The words that travel: the name, the cost, and each enchantment's line in the tooltip to its place in the bar's list (by `data-ns`).
+        const list = P.item.querySelector(".item-mini .mini-list");
+        const pairs = [[P.name, P.mini_name], [P.cost, P.mini_cost]];
+        for (const line of P.item.querySelectorAll(".wanted-preview .mc-tooltip .mc-ench[data-ns]")) pairs.push([line, list && list.querySelector(`.mini-ench[data-ns="${line.dataset.ns}"]`)]);
+                for (const [el, to_el] of pairs) {
+            const in_tip = el.classList.contains("mc-ench"); // an enchantment line: kept inside the tooltip's box on the way
+            if (!el || !to_el || !el.getClientRects().length || !to_el.getClientRects().length) continue;
+            // Its colour (and shadow) go from the tooltip's to the bar's too (the words' own element: the cost line's text span).
+            const words = node => node.querySelector(".cost-line-text") || node;
+            const from_look = getComputedStyle(words(el)), to_look = getComputedStyle(words(to_el));
+            const colors = { from: from_look.color, to: to_look.color, shadow_from: from_look.textShadow, shadow_to: to_look.textShadow };
+            // The scale is the ratio of the font sizes (the boxes' heights also hold line spacing and the orb, so they over- or undershoot).
+            const scale = parseFloat(to_look.fontSize) / parseFloat(from_look.fontSize);
+            // Where the words start (past the cost's orb), relative to the card, in both forms: those are what line up.
+            const card = P.item.getBoundingClientRect();
+            // The text itself (a range over it: an element's box also holds its line spacing, which differs between a tooltip line and a span), so the
+            // glyphs land exactly where the bar's are.
+            const text = node => { const range = document.createRange(); range.selectNodeContents(words(node)); const r = range.getBoundingClientRect(); return { x: r.left - card.left, cy: r.top + r.height / 2 - card.top }; };
+            const text_from = text(el), text_to = text(to_el);
+            const words_from = text_from.x, words_to = text_to.x;
+            const box = node => { const r = node.getBoundingClientRect(); return { x: r.left - card.left, y: r.top - card.top, w: r.width, h: r.height }; };
+            const look = getComputedStyle(el), at = box(el), to = box(to_el);
+            const flyer = el.cloneNode(true);
+            flyer.removeAttribute("id");
+            flyer.setAttribute("aria-hidden", "true");
+            flyer.classList.add("morph-flyer");
+            for (const prop of ["font-family", "font-size", "font-weight", "line-height", "color", "text-shadow", "letter-spacing"]) flyer.style.setProperty(prop, look.getPropertyValue(prop));
+            Object.assign(flyer.style, { left: at.x - geo.border + "px", top: at.y - geo.border + "px", width: at.w + "px", height: at.h + "px" });
+            for (const inner of flyer.querySelectorAll("*")) { inner.style.color = "inherit"; inner.style.textShadow = "inherit"; }
+            // The comma after an enchantment in the bar's list rides with it, fading in (the tooltip has none).
+            const sep = in_tip && to_el.nextElementSibling && to_el.nextElementSibling.classList.contains("mini-sep") ? to_el.nextElementSibling : null;
+            const comma = sep ? h("span", { class: "morph-comma" }, sep.textContent) : null;
+            if (comma) flyer.append(comma);
+            // An enchantment's copy is as wide as its words and comma (a tooltip line's box is the tooltip's width and would end before the comma: its
+            // clip and fade, which only reach the box, cut the comma off).
+            if (in_tip) flyer.style.width = "max-content";
+            P.item.append(flyer);
+            el.style.visibility = "hidden";
+            to_el.style.visibility = "hidden";
+            if (sep) sep.style.visibility = "hidden";
+            const box_w = flyer.offsetWidth;
+            flyers.push({ flyer, a: at, b: to, box_w, colors, scale, words_from, words_to, cy_from: text_from.cy, cy_to: text_to.cy, comma, in_tip, hidden: [el, to_el, sep].filter(Boolean) });
+            // The cost's XP orb travels on its own, from its box to the bar's (its size is its own, not the words'): the one in the words' copy hides.
+            const orb = el.querySelector(".cost-line-orb"), to_orb = to_el.querySelector(".cost-line-orb");
+            if (orb && to_orb) {
+                const from = box(orb), to = box(to_orb);
+                flyer.querySelector(".cost-line-orb").style.visibility = "hidden";
+                const orb_flyer = orb.cloneNode(true);
+                orb_flyer.classList.add("morph-flyer");
+                orb_flyer.setAttribute("aria-hidden", "true");
+                Object.assign(orb_flyer.style, { left: from.x - geo.border + "px", top: from.y - geo.border + "px", width: from.w + "px", height: from.h + "px" });
+                P.item.append(orb_flyer);
+                flyers.push({ flyer: orb_flyer, orb: { from, to } });
+            }
+        }
+    };
+    const clear = P => {
+        for (const el of styled(P)) { el.style.transform = el.style.transformOrigin = el.style.opacity = el.style.clipPath = el.style.visibility = ""; el.classList.remove("morph-travel"); }
+        if (frames) for (const pair of frames) for (const frame of pair.frames) frame.remove();
+        frames = null;
+        if (flyers) for (const { flyer, hidden } of flyers) { flyer.remove(); if (hidden) for (const el of hidden) el.style.visibility = ""; }
+        flyers = null;
+        dock.classList.remove("morphing");
+    };
+    const frameLike = el => {
+        const look = getComputedStyle(el);
+        return h("div", { class: "morph-frame", "aria-hidden": "true", style: `border: ${look.borderTopWidth} solid ${look.borderTopColor}; background: ${look.backgroundColor}; border-radius: ${look.borderTopLeftRadius}` });
+    };
+    const makeFrames = P => {
+        frames = [];
+        for (const [from_el, to_el, key] of [[P.reset, P.mini_reset, "reset"], [P.steps, P.mini_steps, "steps"]]) {
+            if (!from_el || !to_el || !geo.full[key] || !geo.cond[key]) continue;
+            const pair = { from_el, to_el, key, frames: [frameLike(from_el), frameLike(to_el)] };
+            P.item.append(...pair.frames);
+            from_el.classList.add("morph-travel");
+            to_el.classList.add("morph-travel");
+            frames.push(pair);
+        }
+    };
+    // The bar's height while it sticks over the page (narrow windows only; beside the sections it covers nothing); set only when it changes,
+    // since App.js setupResultsColumn watches <html>'s style.
+    const setDockHeight = height => {
+        const value = height && narrow.matches && !dock.hidden ? height + 8 + "px" : "0px";
+        if (root.style.getPropertyValue("--dock-h") !== value) root.style.setProperty("--dock-h", value);
+    };
+    // The two forms' boxes, relative to the card: measured with the classes switched back and forth in one go (nothing is painted between).
+    const measure = () => {
+        if (!state.item || dock.hidden || !narrow.matches) {
+            // (a window widened past the narrow layout mid-morph: everything the morph moved, hid or laid over the card goes back first)
+            if ($("#item")) clear(parts());
+            geo = null; dock.style.height = ""; return;
+        }
+        const P = parts();
+        clear(P);
+        dock.classList.remove("condensed");
+        dock.style.height = "";
+        const base = () => P.item.getBoundingClientRect();
+        const rel = el => {
+            if (!el || !el.getClientRects().length) return null; // (not offsetWidth: an <svg> has none)
+            const r = el.getBoundingClientRect(), b = base();
+            return { x: r.left - b.left, y: r.top - b.top, w: r.width, h: r.height };
+        };
+        const full = { dock_h: dock.offsetHeight, item_h: P.item.offsetHeight, slot: rel(P.slot), name: rel(P.name), cost: rel(P.cost), reset: rel(P.reset), reset_icon: rel(P.reset && P.reset.querySelector(".reset-icon")), steps: rel(P.steps) };
+        dock.classList.add("condensed");
+        const row = rel(P.row);
+        const cond = { item_h: P.item.offsetHeight, slot: rel(P.mini_slot), name: rel(P.mini_name), cost: rel(P.mini_cost), reset: rel(P.mini_reset), reset_icon: rel(P.mini_reset && P.mini_reset.querySelector(".reset-icon")), steps: rel(P.mini_steps), row, row_w: P.row.offsetWidth };
+        dock.classList.remove("condensed");
+        dock.style.height = full.dock_h + "px";
+        geo = { full, cond, border: P.item.clientLeft };
+    };
+    const move = (el, from, to, s) => {
+        if (!el || !from || !to) return;
+        el.style.transformOrigin = "0 0";
+        el.style.transform = `translate(${(to.x - from.x) * s}px, ${(to.y - from.y) * s}px) scale(${1 + (to.h / from.h - 1) * s})`;
+    };
+    const apply = e => {
+        if (!geo) {
+            dock.classList.toggle("condensed", Boolean(state.item) && past() > 0);
+            setDockHeight(0);
+            return;
+        }
+        const P = parts();
+        if (e <= 0 || e >= 1) {
+            clear(P);
+            dock.classList.toggle("condensed", e >= 1);
+            setDockHeight(e >= 1 ? geo.cond.item_h : 0);
+            return;
+        }
+        const s = e * e * (3 - 2 * e);
+        const { full, cond } = geo;
+        dock.classList.remove("condensed");
+        dock.classList.add("morphing");
+        dock.style.setProperty("--morph-h", full.item_h + (cond.item_h - full.item_h) * s + "px");
+        dock.style.setProperty("--mini-x", cond.row.x - geo.border + "px");
+        dock.style.setProperty("--mini-y", cond.row.y - geo.border + "px");
+        dock.style.setProperty("--mini-w", cond.row_w + "px");
+        move(P.slot, full.slot, cond.slot, s);
+        if (!flyers) makeFlyers(P);
+        let tip_box = null;
+        for (const { flyer, a, b, box_w, colors, scale, words_from, words_to, cy_from, cy_to, comma, in_tip, orb, tip } of flyers) {
+            if (orb) { move(flyer, orb.from, orb.to, s); continue; }
+            if (tip) {
+                const lerp_box = prop => tip.from[prop] + (tip.to[prop] - tip.from[prop]) * s;
+                Object.assign(flyer.style, { left: lerp_box("x") - geo.border + "px", top: lerp_box("y") - geo.border + "px", width: lerp_box("w") + "px", height: lerp_box("h") + "px" });
+                tip_box = { x: lerp_box("x"), y: lerp_box("y"), w: lerp_box("w"), h: lerp_box("h"), pad: tip.pad * s };
+                continue;
+            }
+            flyer.style.transformOrigin = "0 0";
+            // The words' left edge and the vertical middle travel to the bar's.
+            const k = 1 + (scale - 1) * s;
+            const tx = words_from + (words_to - words_from) * s - a.x - k * (words_from - a.x);
+            const ty = cy_from + (cy_to - cy_from) * s - a.y - k * (cy_from - a.y);
+            if (comma) comma.style.opacity = s;
+            flyer.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+            // An enchantment line is clipped to the tooltip's box (inside its right padding, where the bar's list cuts off with "…"), in the copy's own
+            // coordinates, so the ones the bar has no room for slide out of sight under its edge instead of over the cost and Steps.
+            if (in_tip && tip_box) {
+                const lx = (tip_box.x - a.x - tx) / k, ly = (tip_box.y - a.y - ty) / k, lw = (tip_box.w - tip_box.pad) / k, lh = tip_box.h / k;
+                flyer.style.clipPath = `inset(${ly}px ${box_w - lx - lw}px ${a.h - ly - lh}px ${lx}px)`;
+                // The bar's list fades out over its last FADE px instead of a "…": the copies fade the same way at the clip's edge, growing in from
+                // no fade, so the morph ends exactly as the bar looks.
+                const fade = 24 * s / k, edge = lx + lw;
+                flyer.style.maskImage = flyer.style.webkitMaskImage = `linear-gradient(to right, #000 ${edge - fade}px, transparent ${edge}px)`;
+            }
+            flyer.style.color = `color-mix(in srgb, ${colors.from} ${(1 - s) * 100}%, ${colors.to})`;
+            flyer.style.textShadow = s < 0.5 ? colors.shadow_from : colors.shadow_to;
+        }
+        for (const el of P.fade_out) el.style.opacity = Math.max(0, 1 - 2 * s);
+        for (const el of P.fade_in) el.style.opacity = Math.max(0, 2 * s - 1);
+        if (P.mini_slot) P.mini_slot.style.opacity = 0;
+        if (!frames) makeFrames(P);
+        const lerp = (a, b) => a + (b - a) * s;
+        for (const { from_el, to_el, key, frames: pair } of frames) {
+            const a = full[key], b = cond[key];
+            const box = { x: lerp(a.x, b.x), y: lerp(a.y, b.y), w: lerp(a.w, b.w), h: lerp(a.h, b.h) };
+            const icon_a = full[key + "_icon"], icon_b = cond[key + "_icon"];
+            // With an arrow in both, the box's right edge keeps its padding beside the travelling arrow, so the arrow is always inside it.
+            if (icon_a && icon_b) box.x = lerp(icon_a.x + icon_a.w, icon_b.x + icon_b.w) + lerp(a.x + a.w - icon_a.x - icon_a.w, b.x + b.w - icon_b.x - icon_b.w) - box.w;
+            pair.forEach((frame, i) => {
+                Object.assign(frame.style, { left: box.x - geo.border + "px", top: box.y - geo.border + "px", width: box.w + "px", height: box.h + "px", opacity: i ? s : 1 - s });
+            });
+            // One copy of the contents rides the whole way, no fade; the bar's own shows at the end. Steps (the same words in both) rides the box's
+            // centre. Start over's arrow (in both) travels and resizes from its place to the bar's; the words beside it fade out over the first half (and are
+            // clipped by the box as it closes round the arrow).
+            const ia = full[key + "_icon"], ib = cond[key + "_icon"];
+            const k = ia && ib ? lerp(1, ib.h / ia.h) : 1;
+            const anchor = ia && ib ? [ia.x + ia.w / 2 - a.x, ia.y + ia.h / 2 - a.y] : [a.w / 2, a.h / 2];
+            const goal = ia && ib ? [lerp(ia.x + ia.w / 2, ib.x + ib.w / 2), lerp(ia.y + ia.h / 2, ib.y + ib.h / 2)] : [box.x + box.w / 2, box.y + box.h / 2];
+            const tx = goal[0] - a.x - k * anchor[0], ty = goal[1] - a.y - k * anchor[1];
+            from_el.style.transformOrigin = "0 0";
+            from_el.style.transform = `translate(${tx}px, ${ty}px) scale(${k})`;
+            // The box in the button's own (unscaled) coordinates, as its clip.
+            const lx = (box.x - a.x - tx) / k, ly = (box.y - a.y - ty) / k, lw = box.w / k, lh = box.h / k;
+            from_el.style.clipPath = `inset(${ly}px ${a.w - lx - lw}px ${a.h - ly - lh}px ${lx}px)`;
+            from_el.style.opacity = 1;
+            to_el.style.opacity = 0;
+            if (key === "reset" && P.reset_label) P.reset_label.style.opacity = Math.max(0, 1 - 2 * s); // the words fade as the box closes round the arrow
+        }
+        setDockHeight(cond.item_h);
+    };
+    const follow = now => {
+        const dt = last_frame ? now - last_frame : 16;
+        last_frame = now;
+        const goal = target();
+        shown += (goal - shown) * (1 - Math.exp(-dt / DOCK_FOLLOW_MS));
+        if (Math.abs(goal - shown) < 0.001) shown = goal;
+        apply(shown);
+        if (shown !== goal) requestAnimationFrame(follow);
+        else { following = false; last_frame = 0; }
+    };
+    // Picking an item while the page is already scrolled (Try an example, under the long item grid) and every redraw of the card (renderItem) re-measure
+    // and jump to the scroll's state.
+    syncDock = () => { measure(); shown = target(); apply(shown); };
+    reserveDock = () => { if (geo) setDockHeight(geo.cond.item_h); };
+    addEventListener("scroll", () => {
+        if (!geo || !motionOk()) { shown = target(); apply(shown); return; }
+        if (!following) { following = true; requestAnimationFrame(follow); }
+    }, { passive: true });
+    narrow.addEventListener("change", syncDock);
+    // The card's own size changes (a redraw's eases, the window's width): measured again once it has settled for the frame. The morph itself never
+    // changes the card's layout size, and the condensed form's change is measured back to the same values, so this does not feed itself.
+    let resize_pending = false;
+    new ResizeObserver(() => {
+        if (resize_pending) return;
+        resize_pending = true;
+        requestAnimationFrame(() => { resize_pending = false; measure(); apply(shown); });
+    }).observe($("#item"));
 }
 
 // Section 1: the item grid until an item is picked; then a search box and one box
@@ -454,15 +728,17 @@ function setBracket(group, folded) {
 // Expand all / Collapse all is one icon that shows what it would do: fold while anything in the section is open (a box, a group, a plain
 // bracket; a box mid-slide counts where it is heading), and unfold once everything is folded. So it starts as Collapse, as the list opens open.
 // It follows each fold by hand too (a `toggle` of any box, setBracket).
-function allFolded() {
-    const open = [...document.querySelectorAll(FOLDS)].some(details => foldTarget(details))
-        || [...document.querySelectorAll("#wanted .ench-group[data-group]")].some(group => !group.classList.contains("folded") && group.querySelector(":scope > .group-toggle"));
-    return !open;
+// Like section 4's: Expand while most of the boxes, subsections and brackets are folded, else Collapse.
+function mostFolded() {
+    const states = [...[...document.querySelectorAll(FOLDS)].map(details => foldTarget(details)),
+        ...[...document.querySelectorAll("#wanted .ench-group[data-group]")].filter(group => group.querySelector(":scope > .group-toggle")).map(group => !group.classList.contains("folded"))];
+    const open = states.filter(Boolean).length;
+    return open < states.length - open;
 }
 function syncFoldToggle() {
     const button = document.querySelector("#wanted .fold-toggle");
     if (!button) return;
-    const expand = allFolded();
+    const expand = mostFolded();
     const label = expand ? TEXT.wanted.expand_groups_label : TEXT.wanted.collapse_groups_label;
     button.dataset.action = expand ? "expand" : "collapse";
     button.title = label;
@@ -518,7 +794,7 @@ function groupLegend() {
 // The search box with the fold toggle and the groups "?" beside it (below it when the card is too narrow for both).
 function wantedSearch() {
     watchFolds();
-    const toggle = h("button", { type: "button", class: "icon-btn fold-toggle", "data-focus": "wanted-fold", onclick: () => foldWanted(allFolded()) });
+    const toggle = h("button", { type: "button", class: "icon-btn fold-toggle", "data-focus": "wanted-fold", onclick: () => foldWanted(mostFolded()) });
     return h("div", { class: "search-row" }, searchInput(),
         h("span", { class: "fold-buttons" }, toggle, groupLegend()));
 }

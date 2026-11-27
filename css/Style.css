@@ -406,6 +406,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 /* The item (not a section): a floating card beside the sections on wide windows, a sticky bar over them on narrow ones, condensed to one line once the
    page has scrolled (Wanted.js renderItem, setupItemDock). */
 .layout { position: relative; }
+@media screen and (max-width: 1359px) { .layout { overflow-anchor: none; } } /* (the item bar condenses and grows: the page must stay where it is, Wanted.js syncDock) */
 .dock-sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; }
 .item-dock { grid-column: 1 / -1; position: sticky; top: 0; z-index: 25; padding: 8px 0 0; background: linear-gradient(var(--bg) 82%, transparent); }
 .item-dock[hidden] { display: none; }
@@ -414,16 +415,19 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .item-mini { cursor: pointer; border-radius: 4px; }
 .item-mini:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .item-mini .mc-slot { flex: none; }
-.mini-text { flex: 1 1 auto; min-width: 0; overflow: hidden; }
-.mini-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The bar's name and enchantments sit in the game's tooltip, like the tall card's. */
+.mini-text, .tip-frame { background: var(--mc-tooltip-bg); outline: 2px solid var(--mc-tooltip-edge); outline-offset: -3px; border: 1px solid var(--mc-tooltip-border); text-shadow: 1px 1px 0 var(--mc-text-shadow); }
+.mini-text { flex: 1 1 auto; min-width: 0; overflow: hidden; padding: 3px 7px; }
+.mini-name { font-family: "Minecraft", system-ui, sans-serif; font-weight: normal; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Very narrow: the bar keeps the name and the way to the steps; the cost is in the receipt below. */
 @media (max-width: 359px) { .item-mini .cost-line { display: none; } }
-.mini-list { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mini-list { font-family: "Minecraft", system-ui, sans-serif; font-size: 12px; color: var(--mc-gray); overflow: hidden; white-space: nowrap; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); } /* fades out at the right instead of "…" (the morph uses the same fade, Wanted.js setupItemDock) */
+.mini-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 .item-mini .cost-line { flex: none; margin: 0; }
-.item-mini .cost-line-text { color: var(--success-text); }
+.item-mini .cost-line-text { color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); font-family: "Minecraft", system-ui, sans-serif; } /* the tooltip's green */
 /* (screen only: on paper the item is always the full card, never the condensed bar) */
 @media screen and (max-width: 1359px) {
-    .item-dock.condensed { background: none; pointer-events: none; } /* it keeps the height it had (Wanted.js setupItemDock), so only the one line is solid */
+    .item-dock.condensed { background: none; }
     .item-dock.condensed #item { padding: 8px 14px; pointer-events: auto; }
     .item-dock.condensed #item > .wanted-head, .item-dock.condensed #item > .item-heading, .item-dock.condensed #item > .item-foot { display: none; }
     .item-dock.condensed .item-mini-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
@@ -431,6 +435,22 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     .item-dock.condensed .mini-reset { display: inline-flex; }
     .item-dock.condensed .mini-steps { display: inline-flex; }
     .item-dock.condensed .item-mini { display: flex; }
+    /* Between the two forms (Wanted.js setupItemDock): the full card stays laid out, its box drawn by ::before at --morph-h, the bar's row laid over it
+       where it will be, and the dock clipped to the box; clicks pass through the dock's empty part. */
+    .item-dock.condensed, .item-dock.morphing { pointer-events: none; }
+    .item-dock.morphing { background: none; clip-path: inset(0 0 calc(100% - var(--morph-h) - 8px) 0); }
+    .item-dock.morphing #item { pointer-events: auto; position: relative; isolation: isolate; background: none; border-color: transparent; }
+    .item-dock.morphing #item::before { content: ""; position: absolute; z-index: -1; left: -1px; right: -1px; top: -1px; height: var(--morph-h); box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+    .item-dock.morphing .item-mini-row { display: flex; align-items: center; gap: 10px; min-width: 0; position: absolute; left: var(--mini-x); top: var(--mini-y); width: var(--mini-w); }
+    .item-dock.morphing .item-mini-row > .item-mini { display: flex; flex: 1; min-width: 0; }
+    .item-dock.morphing .mini-reset, .item-dock.morphing .mini-steps { display: inline-flex; }
+    /* The tooltip's box morphs into the bar's (Wanted.js makeFlyers: one .tip-frame between the two, whose own boxes are hidden meanwhile). */
+    .item-dock.morphing .tip-frame { position: absolute; z-index: 0; box-sizing: border-box; pointer-events: none; }
+    .item-dock.morphing .wanted-preview .mc-tooltip, .item-dock.morphing .mini-text { background: none; outline-color: transparent; border-color: transparent; }
+    .item-dock.morphing .wanted-preview .mc-tooltip, .item-dock.morphing .item-mini-row { z-index: 1; }
+    .item-dock.morphing .morph-flyer { position: absolute; z-index: 1; margin: 0; white-space: nowrap; pointer-events: none; }
+    .item-dock.morphing .morph-frame { position: absolute; z-index: 0; box-sizing: border-box; pointer-events: none; }
+    .item-dock.morphing .morph-travel { position: relative; z-index: 1; border-color: transparent !important; background: transparent !important; box-shadow: none !important; }
 }
 /* A wide item card (900 to 1359px, a bar over the sections): the item on the left, the name box and presets in a column beside it. The floating card
    (1360px+, 272px) and phones are narrower and keep the stack. */
@@ -2394,7 +2414,9 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 /* Start over, at the foot of the page. */
 /* Start over: a quiet button at the foot of the Item card, and a restart icon at the left of its sticky bar. */
 .item-heading { display: flex; align-items: center; }
-.item-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+.item-foot { display: flex; justify-content: flex-end; gap: 8px; margin-top: 12px; }
+/* The tall card's way down to the steps, beside Start over (the condensed bar has its own; they travel into each other, Wanted.js setupItemDock). */
+.item-foot .foot-steps { display: inline-flex; height: auto; min-height: 26px; }
 .item-foot .reset-button { font: 400 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
 .reset-button { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); background: var(--surface); }
 .item-mini-row { display: contents; }
