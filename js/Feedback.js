@@ -7,7 +7,7 @@ import { language, state } from "./Store.js";
 import { roman } from "./Logic.js";
 
 const REPO = "jmarcinik3/MinecraftEnchantmentCalculator";
-// Per type: its label on GitHub, and its name in the title and in the issue form's Type dropdown (.github/ISSUE_TEMPLATE/feedback.yml; the reports are in English).
+// Per type: its label on GitHub, and its name in the title (the reports are in English).
 const TYPES = {
     correction: { name: "Correction", labels: "correction" },
     suggestion: { name: "Suggestion", labels: "enhancement" },
@@ -52,10 +52,10 @@ function report() {
     };
 }
 
-// An issue form fills a field by its id (type, description); a plain issue reads `body`. Both are sent, so either works.
+// A plain issue (no issue form: with one, GitHub made the prefilled title and description revert while they were edited): the type is the title's [tag].
 function issueUrl(r) {
     const t = TYPES[type];
-    return "https://github.com/" + REPO + "/issues/new?" + new URLSearchParams({ template: "feedback.yml", type: t.name, title: r.title, labels: t.labels, description: r.body, body: r.body });
+    return "https://github.com/" + REPO + "/issues/new?" + new URLSearchParams({ title: r.title, labels: t.labels, body: r.body });
 }
 
 function refresh() {

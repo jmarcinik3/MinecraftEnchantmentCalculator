@@ -162,9 +162,10 @@ function modsControl() {
     return h("div", { class: "mods-control" }, MOD_IDS.map(id => {
         const on = java && state.mods.includes(id) && Boolean(mod_data[id]);
         const mod = mod_data[id];
-        return h("div", { class: "mod-row" },
+        // Hovering the row says where the mod works and for which Minecraft version (its note), once its file has loaded.
+        return h("div", { class: "mod-row", title: java ? mod?.note : null },
             ruleSwitch(on, mod ? mod.label : MOD_LABELS[id], () => setMod(id, !on), { disabled: !java, "data-focus": "mod-" + id, "aria-label": mod ? mod.label : id }),
-            java ? (on && mod ? h("span", { class: "mod-note" }, mod.note) : null) : h("span", { class: "mod-note" }, TEXT.ranking.mods_java_only));
+            java ? null : h("span", { class: "mod-note" }, TEXT.ranking.mods_java_only));
     }));
 }
 

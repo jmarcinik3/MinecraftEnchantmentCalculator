@@ -1371,7 +1371,7 @@ def part_two_mods(browser, base):
     check("the Mods row offers both mods", p14.locator('#limit-panel [data-focus^="mod-"]').count() == 2)
     p14.click('#limit-panel [data-focus="mod-spellbound"]')
     p14.wait_for_selector('#wanted .mod-section[data-mod="Spellbound"]')
-    check("a mod's note shows only while the mod is on", p14.locator("#limit-panel .mod-note").count() == 1, p14.locator("#limit-panel .mod-note").all_inner_texts())
+    check("a mod's note (loader and Minecraft version) is its row's hover tooltip once loaded", p14.locator("#limit-panel .mod-row[title]").count() == 1 and "Fabric, Minecraft 1.20.1" in p14.locator("#limit-panel .mod-row[title]").get_attribute("title"), p14.locator("#limit-panel .mod-row[title]").count())
     check("Spellbound alone adds its own folded section", p14.locator("#wanted .mod-section").count() == 1)
     p14.click('#limit-panel [data-focus="mod-fancy_enchantments"]')
     p14.wait_for_selector('#wanted .mod-section[data-mod="Fancy Enchantments"]')

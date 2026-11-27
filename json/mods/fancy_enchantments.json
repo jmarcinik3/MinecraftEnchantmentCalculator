@@ -1,7 +1,7 @@
 {
  "id": "fancy_enchantments",
  "label": "Fancy Enchantments",
- "note": "Forge and NeoForge, Minecraft 1.21.1 (elemental opposites conflict, as in its default settings)",
+ "note": "Forge and NeoForge, Minecraft 1.21.1",
  "source": "https://modrinth.com/mod/fancy-enchantments",
  "enchantments": {
   "fancyenchantments:abyssal_maelstrom": {
