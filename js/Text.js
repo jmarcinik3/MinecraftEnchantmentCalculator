@@ -183,6 +183,58 @@ export const CONFIDENCE = {
     zlm_arab: 1
 };
 // Codes Intl does not take (or has no rules for), and the locale used for their numbers, lists and plurals instead.
+// English names (and a few aliases) for each language, so a search for "spanish" finds Español and "english" finds Pirate Speak: the picker's search reads these too.
+export const SEARCH_NAMES = {
+    af_za: "Afrikaans", ar_sa: "Arabic", ast_es: "Asturian",
+    az_az: "Azerbaijani Azeri", ba_ru: "Bashkir", bar: "Bavarian",
+    be_by: "Belarusian", be_latn: "Belarusian Latin Lacinka", bg_bg: "Bulgarian",
+    br_fr: "Breton", brb: "Brabantian Brabants Dutch", bs_ba: "Bosnian",
+    ca_es: "Catalan", cbk_zam: "Chavacano Spanish creole", cs_cz: "Czech",
+    cv_cu: "Chuvash", cy_gb: "Welsh", da_dk: "Danish",
+    de_at: "German Austrian", de_ch: "German Swiss", de_de: "German",
+    el_gr: "Greek", en_au: "Australian", en_ca: "Canadian",
+    en_gb: "British", en_nz: "New Zealand", en_pt: "Pirate Speak Pirate",
+    en_ud: "Upside Down", en_us: "American", enp: "Anglish English",
+    enws: "Shakespearean Early Modern English Shakespeare", eo_uy: "Esperanto", es_ar: "Argentina Argentinian Spanish",
+    es_cl: "Chile Chilean Spanish", es_ec: "Ecuador Ecuadorian Spanish", es_es: "Spain Castilian Spanish",
+    es_mx: "Mexico Mexican Spanish", es_uy: "Uruguay Uruguayan Spanish", es_ve: "Venezuela Venezuelan Spanish",
+    esan: "Andalusian Spanish", et_ee: "Estonian", eu_es: "Basque",
+    fa_ir: "Persian Farsi", fi_fi: "Finnish", fil_ph: "Filipino Philippines",
+    fo_fo: "Faroese", fr_ca: "French Canadian Quebec", fr_ch: "French Swiss",
+    fr_fr: "French", fra_de: "Frisian Franconian East Franconian", fur_it: "Friulian",
+    fy_nl: "West Frisian Frisian", ga_ie: "Irish Gaelic", gd_gb: "Scottish Gaelic",
+    gl_es: "Galician", go_fr: "Gallo", got_de: "Gothic",
+    hal_ua: "Halychian Galician Ukrainian", haw_us: "Hawaiian", he_il: "Hebrew",
+    hi_in: "Hindi", hn_no: "High Norwegian Norwegian Høgnorsk", hr_hr: "Croatian",
+    hu_hu: "Hungarian", hy_am: "Armenian", id_id: "Indonesian",
+    ig_ng: "Igbo", io_en: "Ido", is_is: "Icelandic",
+    isv: "Interslavic", it_it: "Italian", ja_jp: "Japanese",
+    jbo_en: "Lojban", jv_id: "Javanese", ka_ge: "Georgian",
+    kk_kz: "Kazakh", kn_in: "Kannada", ko_kr: "Korean",
+    ksh: "Colognian Ripuarian", kw_gb: "Cornish", ky_kg: "Kyrgyz",
+    la_la: "Latin", lb_lu: "Luxembourgish", li_li: "Limburgish",
+    lmo: "Lombard", lo_la: "Lao", lol_us: "LOLCAT Lolspeak English",
+    lt_lt: "Lithuanian", lv_lv: "Latvian", lzh: "Classical Chinese Literary Chinese",
+    mk_mk: "Macedonian", mn_mn: "Mongolian", ms_my: "Malay",
+    mt_mt: "Maltese", nah: "Nahuatl", nds_de: "Low German",
+    nl_be: "Dutch Belgian Flemish", nl_nl: "Dutch", nn_no: "Norwegian Nynorsk",
+    no_no: "Norwegian Bokmal", oc_fr: "Occitan", ovd: "Elfdalian",
+    pl_pl: "Polish", pls: "Popoloca San Marcos Tlalcoyalco", pt_br: "Portuguese Brazilian Brazil",
+    pt_pt: "Portuguese Portugal European", qcb_es: "Cape Verdean Kabuverdianu Portuguese creole", qid: "Old Indonesian Indonesian",
+    qya_aa: "Quenya Elvish Tolkien", ro_ro: "Romanian", rpr: "Pre-reform Russian Old Russian",
+    ru_ru: "Russian", ry_ua: "Rusyn", sah_sah: "Yakut Sakha",
+    se_no: "Northern Sami Sámi", sk_sk: "Slovak", sl_si: "Slovenian",
+    so_so: "Somali", sq_al: "Albanian", sr_cs: "Serbian Latin",
+    sr_sp: "Serbian Cyrillic", sv_se: "Swedish", sxu: "Upper Saxon Saxon",
+    szl: "Silesian", ta_in: "Tamil", th_th: "Thai",
+    tl_ph: "Tagalog", tlh_aa: "Klingon", tok: "Toki Pona",
+    tr_tr: "Turkish", tt_ru: "Tatar", tzo_mx: "Tzotzil",
+    uk_ua: "Ukrainian", uz_uz: "Uzbek", val_es: "Valencian",
+    vec_it: "Venetian", vi_vn: "Vietnamese", vp_vl: "Viossa",
+    vro: "Võro Voro", yi_de: "Yiddish", yo_ng: "Yoruba",
+    zh_cn: "Chinese Simplified Mandarin", zh_hk: "Chinese Traditional Hong Kong Cantonese", zh_tw: "Chinese Traditional Taiwan Mandarin",
+    zlm_arab: "Malay Jawi Arabic script"
+};
 const INTL_LOCALES = { cbk_zam: "cbk", enws: "en-GB", esan: "es-ES", sah_sah: "sah" };
 export const DEFAULT_LANGUAGE = "en_us";
 export const localeOf = code => INTL_LOCALES[code] || code.split("_").map((part, i) => (i === 0 ? part : part.toUpperCase())).join("-");

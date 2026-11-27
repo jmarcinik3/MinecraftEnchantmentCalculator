@@ -12,7 +12,7 @@ const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path
     .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
 const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods, linkEdition, roman, MAX_PRIOR_WORK, applyRename, experienceFromLevel } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
-const { TEXT, LANGUAGES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
+const { TEXT, LANGUAGES, SEARCH_NAMES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
 const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
 setText(TEXTS.en_us, "en_us");
 const logic = createLogic(meta, TEXTS.en_us.names);
@@ -183,6 +183,7 @@ test("every language has the same text entries as English, of the same kind", ()
     });
     const english = shape(TEXTS.en_us).sort();
     assert.deepStrictEqual(Object.keys(TEXTS), Object.keys(LANGUAGES));
+    assert.deepStrictEqual(Object.keys(SEARCH_NAMES).sort(), Object.keys(LANGUAGES).sort(), "every language has English search names");
     for (const [language, text] of Object.entries(TEXTS)) {
         assert.ok(LANGUAGES[language], language);
         assert.deepStrictEqual(shape(text).sort(), english, language);

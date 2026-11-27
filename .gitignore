@@ -1,2 +1,5 @@
 # Research notes and the mod enchantment tables (kept locally, not part of the site)
 docs/
+
+# Local Claude Code settings and preview server config
+.claude/

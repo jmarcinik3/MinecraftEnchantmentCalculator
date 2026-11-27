@@ -1,6 +1,7 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
 import { cleanName, createLogic, editionMetadata, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
-import { CONFIDENCE, DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Text.js";
+import { DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Text.js";
+import { setupLanguagePicker } from "./Languages.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
 import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
@@ -290,22 +291,22 @@ function renderBadges() {
 
 // ---------- Language ----------
 
+let renderLanguagePicker = null;
 function renderLanguage() {
-    // Short codes ("EN", "EN-GB" where a language has several), so the picker stays small; each option's full name is its tooltip
-    // and what screen readers announce. The code's colour is how sure its translation is (Text.js CONFIDENCE); the picker's tooltip says so.
-    const codes = Object.keys(LANGUAGES);
-    const shortCode = code => {
-        const first = code.split("_")[0];
-        return codes.filter(other => other.split("_")[0] === first).length > 1 ? code.toUpperCase().replace("_", "-") : first.toUpperCase();
-    };
-    $("#language").replaceChildren(h("select", {
-        class: "language-select header-control confidence-" + CONFIDENCE[language],
-        "aria-label": TEXT.page.language_label,
-        title: TEXT.page.language_label + ": " + LANGUAGES[language] + "\n\n" + TEXT.page.language_confidence,
-        onchange: event => switchLanguage(event.target.value)
-    }, codes.map(code => h("option", {
-        value: code, selected: code === language, title: LANGUAGES[code], "aria-label": LANGUAGES[code], class: "confidence-" + CONFIDENCE[code]
-    }, shortCode(code)))));
+    // The picker (Languages.js) is built once; later calls redraw its labels in the page's language.
+    renderLanguagePicker ||= setupLanguagePicker($("#language"), {
+        suggested: suggestedLanguages, current: () => language, choose: code => switchLanguage(code)
+    });
+    renderLanguagePicker();
+}
+
+// Listed first in the picker: the browser's languages (each as its exact locale, else the first of its language), English, Spanish and the one in use.
+function suggestedLanguages() {
+    const browser = (navigator.languages?.length ? navigator.languages : [navigator.language || "en"]).map(tag => {
+        const code = tag.toLowerCase().replace("-", "_");
+        return Object.hasOwn(LANGUAGES, code) ? code : Object.keys(LANGUAGES).find(other => other.split("_")[0] === code.split("_")[0]);
+    });
+    return [...browser, DEFAULT_LANGUAGE, "es_es", language].filter(Boolean);
 }
 
 // The saved choice, else the browser's language if there is text for it, else English.
