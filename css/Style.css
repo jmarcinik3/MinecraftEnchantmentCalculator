@@ -658,6 +658,20 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     -webkit-box-orient: vertical;
     overflow: hidden;
 }
+/* Settings > Display > Show descriptions "On hover" (the default; "Always" is `<html data-descriptions="always">`): with a mouse, the line takes no room and
+   opens as a small bubble under the name while the row is hovered or has the keyboard focus, so the list doesn't move under the pointer. Touch screens,
+   with no hover, keep it under the name. */
+@media (hover: hover) {
+    html:not([data-descriptions="always"]) .ench-name { position: relative; align-items: center; } /* (the name alone beside its book: centred on it) */
+    html:not([data-descriptions="always"]) .ench-name > .ench-book { grid-row: 1; margin-top: 0; }
+    html:not([data-descriptions="always"]) .ench-name > .ench-desc {
+        position: absolute; z-index: 20; top: calc(100% + 2px); left: 29px; max-width: min(320px, calc(100% - 29px)); width: max-content;
+        margin: 0; padding: 4px 8px; border: 1px solid var(--border-strong); border-radius: 6px; background: var(--surface); color: var(--text-secondary);
+        box-shadow: var(--shadow-pop); pointer-events: none; visibility: hidden; opacity: 0; transition: opacity 0.12s, visibility 0s 0.12s;
+    }
+    html:not([data-descriptions="always"]) .ench-row:hover .ench-name > .ench-desc,
+    html:not([data-descriptions="always"]) .ench-row:focus-within .ench-name > .ench-desc { visibility: visible; opacity: 1; transition: opacity 0.12s 0.25s, visibility 0s 0.25s; }
+}
 
 /* The level bar: joined segments that fill up to the chosen level. Always five segments
    wide with its own from the left, so the I segments of every row share a column; levels past V
@@ -1550,9 +1564,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .order-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 0; }
 .order-levels { flex: none; color: var(--mc-green); white-space: nowrap; }
 .order-uses { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.order-caret { margin-left: auto; flex: none; color: var(--mc-gray-dim); transition: transform 0.2s; }
+.order-caret { margin: 0 4px 0 auto; color: var(--mc-gray-dim); --chev-size: 6px; --chev-line: 2px; } /* the page's fold chevron (.fold-chevron): right while closed, down while open */
 .order-toggle:hover .order-caret, .order-toggle:focus-visible .order-caret { color: var(--mc-white); }
-.order.open .order-caret { transform: rotate(180deg); }
 .order-panel { margin-top: 8px; padding: 11px; border-radius: var(--radius); background: var(--surface); box-shadow: inset 0 0 0 1px var(--border); } /* the outline is a shadow, not a border: a border never folds below 1px, so it would jump away at the end of the close */
 .order-panel-head { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; font-size: 12px; color: var(--text-secondary); }
 /* Result tiles, which are also the ranking (drag or use the arrows). */
@@ -2164,7 +2177,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .level-pop[hidden] { display: none; }
 .level-pop-title { margin-bottom: 8px; font-size: 13px; font-weight: 600; }
 
-/* Progress: the step hotbar, then "3 of 7 done", Set level and ↺ to untick them all. */
+/* Progress: the step hotbar, then Set level and ↺ to untick them all. */
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
 /* Level up: the hotbar flashes bright and a glow rises once, as when the XP bar fills in the game. */
 .step-hotbar.level-up { animation: level-up 0.9s ease-out; }
@@ -2181,10 +2194,8 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     15% { opacity: 1; }
     100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1); }
 }
-.step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .step-progress-main { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
 /* With room (not phones), the text stays on one line. */
-@media (min-width: 600px) { .step-progress-text { flex: none; white-space: nowrap; } }
 .step-reset {
     flex: none;
     width: 24px;
@@ -2231,7 +2242,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 @media (max-width: 600px) {
     .result-tools .step-progress, .result-tools .step-progress-main { display: contents; }
     .result-tools .step-hotbar { order: 1; flex-basis: 100%; }
-    .result-tools .step-progress-text, .result-tools .level-chip, .result-tools .step-reset { order: 2; }
+    .result-tools .level-chip, .result-tools .step-reset { order: 2; }
     .result-tools .result-icons { order: 3; align-self: center; }
     .result-tools .level-status { order: 4; flex-basis: 100%; }
 }
@@ -2628,7 +2639,9 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .hotbar-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .hotbar-slot.glint::after, .mini-slot.glint::after { content: ""; position: absolute; inset: 0; background: linear-gradient(115deg, transparent 30%, var(--glint-edge) 45%, var(--glint-core) 50%, transparent 65%); background-size: 250% 100%; mix-blend-mode: screen; animation: glint 3s linear infinite; pointer-events: none; }
 /* The selected slot: the game's white frame, with its dark outer edge. */
-.hotbar-slot.current { z-index: 1; box-shadow: 0 0 0 2px var(--mc-black), 0 0 0 4px var(--mc-white), 0 0 0 5px var(--mc-black); }
+.hotbar-slot.current { z-index: 1; }
+/* The selection frame, in the current step's purple (as on its circled number): its own element, so it can slide along the bar (Results.js slideHotbarRing). */
+.hotbar-ring { position: absolute; inset: -2px; pointer-events: none; box-shadow: 0 0 0 2px var(--mc-black), 0 0 0 4px var(--accent), 0 0 0 5px var(--mc-black); }
 .hotbar-slot.done .item-icon { opacity: 0.45; }
 @media (pointer: coarse) { .hotbar-slot::before { content: ""; position: absolute; inset: -4px 0; } }
 .hotbar-number { position: absolute; left: 1px; top: 0; font: 9px/1 "Minecraft", system-ui, sans-serif; color: var(--mc-white); text-shadow: 1px 1px 0 var(--mc-black); pointer-events: none; }
@@ -2729,7 +2742,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .copy-panel { top: calc(100% + 4px); display: grid; gap: 4px; padding: 6px; }
 .copy-panel .btn { white-space: nowrap; }
 /* The edition switch in the Game rules panel. */
-.edition-switch button { height: 32px; padding: 0 12px; }
+.edition-switch button, .descriptions-switch button { height: 32px; padding: 0 12px; }
 /* The Mods row of the Game rules menu: a switch for each mod, with where its numbers come from. */
 .mods-control { display: grid; gap: 6px; }
 .mod-row { display: grid; gap: 2px; }

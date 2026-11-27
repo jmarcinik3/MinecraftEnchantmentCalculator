@@ -135,6 +135,16 @@ export function setGlintsOn(on) {
     if (on) delete document.documentElement.dataset.glint;
     else document.documentElement.dataset.glint = "off";
 }
+// Section 2's enchantment descriptions: shown on hover (the default) or always, kept in this browser (`<html data-descriptions="always">`, set early by index.html).
+const DESCRIPTIONS_STORAGE_KEY = "enchantment-calculator-descriptions";
+let descriptions_always = readStorage(DESCRIPTIONS_STORAGE_KEY, "hover") === "always";
+export const descriptionsAlways = () => descriptions_always;
+export function setDescriptionsAlways(always) {
+    descriptions_always = always;
+    writeStorage(DESCRIPTIONS_STORAGE_KEY, always ? "always" : "hover");
+    if (always) document.documentElement.dataset.descriptions = "always";
+    else delete document.documentElement.dataset.descriptions;
+}
 export function setMotionIgnored(ignored) {
     motion_ignored = ignored;
     writeStorage(MOTION_STORAGE_KEY, ignored);

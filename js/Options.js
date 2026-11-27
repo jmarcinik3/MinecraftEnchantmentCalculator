@@ -2,7 +2,7 @@
 import { EDITIONS, MAX_NAME_LENGTH, MAX_STEP_LEVELS, MOD_IDS, applyRename, clampStepLimit, cleanName } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, mod_data, state } from "./Store.js";
-import { $, closeOnOutside, glintsOn, h, holdRepeat, segmented, motionIgnored, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
+import { $, closeOnOutside, descriptionsAlways, glintsOn, h, holdRepeat, segmented, motionIgnored, setDescriptionsAlways, setGlintsOn, readStorage, setMotionIgnored, writeStorage } from "./Dom.js";
 import { loadChecklist, orderKey, renderResults } from "./Results.js";
 import { keepResult, last_result, running, scheduleCalculation } from "./Calc.js";
 import { saveToUrl } from "./Link.js";
@@ -55,7 +55,8 @@ export function renderSettings() {
             h("div", { class: "settings-section-head" }, h("div", { class: "settings-section-title" }, TEXT.ranking.display)),
             h("div", { class: "options" },
                 optionRow([TEXT.ranking.show_motion, helpTip("motion-help", TEXT.ranking.show_motion_help_label, TEXT.ranking.show_motion_help)], null, motionSwitch()),
-                optionRow([TEXT.ranking.glints, helpTip("glint-help", TEXT.ranking.glints_help_label, TEXT.ranking.glints_help)], null, glintSwitch())))
+                optionRow([TEXT.ranking.glints, helpTip("glint-help", TEXT.ranking.glints_help_label, TEXT.ranking.glints_help)], null, glintSwitch()),
+                optionRow([TEXT.ranking.descriptions, helpTip("descriptions-help", TEXT.ranking.descriptions_help_label, TEXT.ranking.descriptions_help)], null, descriptionsControl())))
     );
     const summary = TEXT.ranking.settings + ": " + optionsSummary();
     $("#options-summary").textContent = TEXT.ranking.settings;
@@ -135,6 +136,17 @@ function motionSwitch() {
     const on = !motionIgnored();
     return h("div", { class: "rule-control" },
         ruleSwitch(on, onOff(on), () => { setMotionIgnored(on); renderSettings(); }, { "data-focus": "motion-on", "aria-label": TEXT.ranking.show_motion }));
+}
+
+// Enchantment descriptions in section 2: On hover (the default) | Always, kept in this browser (Dom.js).
+function descriptionsControl() {
+    const always = descriptionsAlways();
+    const choice = (value, content) => ({
+        selected: always === value, content, onclick: () => { setDescriptionsAlways(value); renderSettings(); },
+        attrs: { "data-focus": "descriptions-" + (value ? "always" : "hover") }
+    });
+    // (on its own, like the Java | Bedrock switch: in a rule-control box it stretched past its two words)
+    return segmented("descriptions-switch", TEXT.ranking.descriptions, [choice(false, TEXT.ranking.descriptions_hover), choice(true, TEXT.ranking.descriptions_always)]);
 }
 
 // Glints: an on/off switch, kept in this browser (Dom.js). Off, the slots' and chosen rows' sheen stops (slots keep a still band).

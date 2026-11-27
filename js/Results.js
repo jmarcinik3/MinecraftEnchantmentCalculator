@@ -118,6 +118,9 @@ function drawResults() {
     renderStepsSummary();
     updateLevelMeter();
     const box = $("#results");
+    // The hotbar's selection frame, where it was: it slides from there to the new current step (`slideHotbarRing`).
+    const old_ring = box.querySelector(".hotbar-ring");
+    const ring_from = old_ring ? { rect: old_ring.getBoundingClientRect(), key: hotbar_key } : null;
     const old_scroll = box.querySelector(".steps-scroll");
     if (old_scroll) steps_scroll.top = old_scroll.scrollTop;
     box.replaceChildren();
@@ -306,6 +309,7 @@ function drawResults() {
     steps_scroll = { key: scroll_key, top: scroller.scrollTop };
 
     if (change) morphView(scroller, content, change);
+    slideHotbarRing(ring_from);
     // Expand all / Collapse all: each step that opens or folds eases its height, so what is below moves with it.
     if (folding) {
         // A tree merge or step that folds keeps its contents on show while its box shrinks, so it is unfolding played backwards (the box clips them); then it hides them.
@@ -929,7 +933,7 @@ function jumpToStep(order_key, number) {
     flash(card);
 }
 
-// In the toolbar: the step hotbar (the progress), "3 of 7 done", Set level and ↺ to untick them all (shown once something is ticked; a toast's Undo brings the ticks back).
+// In the toolbar: the step hotbar (the progress; "3 of 7 done" is only said to screen readers, `announce`), Set level and ↺ to untick them all (shown once something is ticked; a toast's Undo brings the ticks back).
 function stepProgress(steps, done, levels, order_key) {
     const total = steps.length;
     const count = steps.filter(step => done.has(step.number)).length;
@@ -945,7 +949,6 @@ function stepProgress(steps, done, levels, order_key) {
     return h("div", { class: "step-progress" },
         stepHotbar(steps, done, order_key, level_up),
         h("div", { class: "step-progress-main" },
-            h("span", { class: "step-progress-text" }, summary),
             levelChip(),
             count ? h("button", {
                 type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
@@ -965,6 +968,7 @@ function stepProgress(steps, done, levels, order_key) {
 // Tree) and is the progress display. Its slots are not `.mc-slot`s, so the view morphs never take them.
 function stepHotbar(steps, done, order_key, level_up = false) {
     const current = steps.findIndex(step => !done.has(step.number));
+    hotbar_key = order_key;
     const slots = steps.map((step, index) => {
         const is_done = done.has(step.number);
         const label = (is_done ? TEXT.results.hotbar_slot_done : TEXT.results.hotbar_slot)({ number: step.number, name: nodeName(step.node) });
@@ -982,11 +986,24 @@ function stepHotbar(steps, done, order_key, level_up = false) {
             onpointerenter: event => placeHotbarTip(event.currentTarget), onfocus: event => placeHotbarTip(event.currentTarget),
             // Hovering or focusing it lights the Section 3 cards that went into this step's result, as a merged item does in Steps and Tree.
             ...sourcesHover(step.node)
-        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, "✓") : null, tip);
+        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, "✓") : null, tip,
+            index === current ? h("span", { class: "hotbar-ring", "aria-hidden": "true" }) : null);
     });
     return h("div", { class: "step-hotbar" + (level_up ? " level-up" : ""), role: "group", "aria-label": TEXT.results.hotbar_label },
         roving(slots, Math.max(0, current), { prev: ["ArrowLeft"], next: ["ArrowRight"] }),
         level_up && motionOk() ? orbBurst() : null);
+}
+
+// The selection frame (`.hotbar-ring`, in the current step's slot) slides along the hotbar from the slot it was in when the current step changes in the
+// same order (a tick, an untick, Uncheck all); a new order, or the first draw, just shows it.
+let hotbar_key = null;
+function slideHotbarRing(from) {
+    const ring = document.querySelector("#results .hotbar-ring");
+    if (!ring || !from || from.key !== hotbar_key || !motionOk()) return;
+    const to = ring.getBoundingClientRect();
+    const dx = from.rect.left - to.left, dy = from.rect.top - to.top;
+    if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
+    ring.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(.2,.7,.2,1)" });
 }
 
 // Places a hotbar slot's tooltip: fixed to the window (so no box around the hotbar, such as the card, can cut it off), under the slot and centred on it,

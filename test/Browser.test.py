@@ -2136,10 +2136,9 @@ def part_stage_hotbar(browser, base):
     _, ph, errs = open_page(browser, base, viewport={"width": 320, "height": 800}, is_mobile=True, has_touch=True)
     errors += errs
     pick_boots(ph)
-    text = ph.locator("#results .step-progress-text").inner_text()
-    check("on a phone the hotbar and the progress text show", ph.locator("#results .step-hotbar").is_visible() and "of 7 done" in text, text)
+    check("on a phone the hotbar shows, with no \"3 of 7 done\" text under it", ph.locator("#results .step-hotbar").is_visible() and ph.locator("#results .step-progress-text").count() == 0)
     check("the phone hotbar has a slot per step inside the card", ph.locator("#results .hotbar-slot").count() == ph.locator("#results .anvil-step").count() and ph.evaluate("(() => { const c = document.querySelector('.results-card').getBoundingClientRect(); return [...document.querySelectorAll('#results .hotbar-slot')].every(s => { const r = s.getBoundingClientRect(); return r.right <= c.right && r.left >= c.left; }); })()"))
-    check("the progress text has no levels-to-go part, and nothing overflows at 320px", "to go" not in text and ph.evaluate("document.documentElement.scrollWidth <= innerWidth"), text)
+    check("nothing overflows at 320px", ph.evaluate("document.documentElement.scrollWidth <= innerWidth"))
     ph.locator("#results .hotbar-slot").nth(4).click()
     settle(ph)
     check("a phone's slot jumps to its step", ph.evaluate("document.activeElement.closest('[data-step-card]')?.dataset.stepCard") == "5")
