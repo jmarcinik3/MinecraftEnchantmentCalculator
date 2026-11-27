@@ -14,6 +14,8 @@ const TYPES = {
     bug: { name: "Bug", labels: "bug" },
     comment: { name: "Comment", labels: "feedback" }
 };
+// The deploy puts "?v=<commit>" on every module's address (.github/stamp-version.sh), so this file's own tells which version of the site is running ("dev" when served from a folder).
+const VERSION = (new URL(import.meta.url).searchParams.get("v") || "dev").slice(0, 7);
 const CRITERIA_NAMES = { levels: "Levels", xp: "XP", max_step: "Max level", prior_work: "Prior work" };
 
 let type = "suggestion", about = "";
@@ -35,6 +37,8 @@ function setupLines() {
     lines.push("Level limit: " + (state.no_step_limit ? "None" : state.max_step));
     lines.push("Mods: " + (state.mods.length ? state.mods.join(", ") : "None"));
     if (state.rename && state.rename_to) lines.push("Rename: " + state.rename_to);
+    lines.push("Version: " + VERSION);
+    lines.push("Browser: " + navigator.userAgent);
     return lines;
 }
 
