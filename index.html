@@ -25,8 +25,6 @@
     </div>
     <header class="site-header">
         <h1 data-text="page.heading"></h1>
-        <!-- The four stages (App.js renderStepper): each says whether it is done and goes to its section. -->
-        <nav id="stages" class="stage-nav" data-text-label="page.stepper_label"></nav>
         <!-- One toolbar: every control the same height (.header-control). On phones it is a
              full-width row under the title, and Copy link shrinks to its icon. -->
         <div class="header-actions">
@@ -53,13 +51,13 @@
     <main class="layout">
         <!-- The item: a floating card beside the sections on wide windows, a sticky bar over them (condensed to one line once scrolled) on narrow ones.
              Not a section (no number, no collapse); Wanted.js renderItem fills it, and it is hidden until an item is picked. -->
-        <div id="item-dock" class="item-dock" hidden><div id="item"></div><div id="item-graph" class="item-graph"></div></div>
+        <div id="item-dock" class="item-dock" hidden><div id="item"></div></div>
         <div class="inputs">
             <!-- Each section can collapse from its heading (App.js setupCollapsing); the
                  summary says what is chosen while it is closed. -->
             <!-- 2: the enchantments (the item grid, numbered 1, until an item is picked; then the item has its own card). -->
             <section class="card collapsible" data-section="wanted">
-                <h2 aria-labelledby="wanted-title"><span class="step-badge" aria-hidden="true">2</span><span class="section-title" id="wanted-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
+                <h2 aria-labelledby="wanted-title"><span class="step-badge" aria-hidden="true">2</span><span class="sr-only badge-state" id="wanted-state"></span><span class="section-title" id="wanted-title" data-text="page.enchantments_heading"></span><span class="section-summary" id="wanted-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="wanted-body"></button></h2>
                 <div id="wanted-body" class="section-body"><div id="wanted"></div>
                     <!-- Phones only (the sections stack there, and Anvil uses comes before Books and items): the way down to the order. -->
                     <button type="button" class="btn jump-order" data-jump="steps" data-text="page.see_order"></button>
@@ -67,7 +65,7 @@
             </section>
 
             <section class="card collapsible" data-section="books">
-                <h2 aria-labelledby="books-title"><span class="step-badge" aria-hidden="true">3</span><span class="section-title" id="books-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
+                <h2 aria-labelledby="books-title"><span class="step-badge" aria-hidden="true">3</span><span class="sr-only badge-state" id="books-state"></span><span class="section-title" id="books-title" data-text="page.books_heading"></span><span id="books-alert"></span><span class="section-summary" id="books-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="books-body"></button></h2>
                 <div id="books-body" class="section-body"><div id="books"></div></div>
             </section>
 
@@ -77,7 +75,7 @@
              behind it, the four tiles that rank the orders (Ranking.js). -->
         <aside class="results-column">
             <section class="card collapsible results-card" data-section="steps">
-                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">4</span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary" id="steps-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
+                <h2 aria-labelledby="steps-title"><span class="step-badge" aria-hidden="true">4</span><span class="sr-only badge-state" id="steps-state"></span><span class="section-title" id="steps-title" data-text="page.steps_heading"></span><span class="section-summary" id="steps-summary"></span><button class="collapse-toggle" type="button" aria-expanded="true" aria-controls="steps-body"></button></h2>
                 <div id="steps-body" class="section-body">
                     <!-- The receipt (renderStepsSummary fills it): the levels, the anvil uses and the wear; the strip opens the ranking tiles under it. Hidden until there is an order. -->
                     <div id="order" class="order" hidden>

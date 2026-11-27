@@ -136,13 +136,15 @@ function drawResults() {
     }
 
     const result = last_result;
-    if (!result) return;
-
-    if (result.status === "empty") {
-        const message = !state.item ? TEXT.results.pick_item : TEXT.results.choose_enchantments;
-        box.append(h("div", { class: "empty" }, h("img", { src: "img/enchanting_table.svg", alt: "" }), h("p", {}, message)));
+    // Nothing to show yet (no item, or no enchantment chosen): the card is just its heading and one muted line, its number greyed.
+    const idle = result ? result.status === "empty" : !state.item;
+    box.closest(".card").classList.toggle("idle", idle);
+    if (idle) {
+        box.append(h("p", { class: "idle-line" }, !state.item ? TEXT.page.pick_item_first : TEXT.results.choose_enchantments));
         return;
     }
+    if (!result) return;
+
     if (result.status === "cancelled") {
         box.append(h("p", { class: "hint" }, TEXT.results.cancelled,
             h("button", { type: "button", class: "link", onclick: runCalculation }, TEXT.results.run_again)));
@@ -287,14 +289,10 @@ function drawResults() {
         if (done_steps.length) {
             const hidden = done_steps.some(number => foldedNow(number));
             scroller.append(h("button", {
-                type: "button", class: "link show-done", "aria-pressed": String(!hidden),
+                type: "button", class: "btn small show-done", "aria-pressed": String(!hidden),
                 onclick: () => foldSteps(done_steps, !hidden)
             }, hidden ? TEXT.results.show_done({ count: done_steps.length }) : TEXT.results.hide_done({ count: done_steps.length })));
         }
-        // The finished item, after the last step.
-        scroller.append(h("section", { class: "final-card" + (current == null ? " done" : "") },
-            h("div", { class: "final-title" }, current == null ? TEXT.results.final_done : TEXT.results.final_title),
-            anvilCell(node, null, "final", null, entryHover(node))));
         // The current step and a Done button stay at the bottom while scrolling (a bar on phones, a "Next step" card on wide windows).
         if (current != null) scroller.append(currentBar(steps, done, order_key, current));
         watchCurrentStep();
@@ -410,7 +408,7 @@ function mergeTree(root, steps, done, order_key) {
         ]);
         // A merge folds and unfolds like its step in the Steps view (the same fold state):
         // done ones start folded, hiding what went into them; a click on the line (but
-        // the tick) or its ▾/▴ button switches it.
+        // the tick) or its chevron button switches it.
         const folded = Boolean(number) && isFolded(order_key, number, done);
         const fold_label = folded ? TEXT.results.expand_step : TEXT.results.collapse_step;
         // Folded merges keep their inputs in the page, hidden (CSS), so printing can show them.
@@ -434,7 +432,7 @@ function mergeTree(root, steps, done, order_key) {
                 number ? h("button", {
                     type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
                     onclick: () => toggleFold(order_key, number, !folded)
-                }, folded ? "▾" : "▴") : null
+                }) : null
             ),
             node.left ? h("ul", { class: "tree-children" }, branch(node.left), branch(node.right)) : null
         );
@@ -574,10 +572,10 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
 
     const cost = step.node.merge_levels;
 
-    // Every step folds and unfolds the same way: a click anywhere on its head or its ▾/▴ button. Folded, the head says what the step does.
+    // Every step folds and unfolds the same way: a click anywhere on its head or its chevron button. Folded, the head says what the step does.
     // The step's circle on the rail ticks it (its checkbox is inside, hidden: the keyboard and screen readers use it).
     const fold_label = folded ? TEXT.results.expand_step : TEXT.results.collapse_step;
-    // Keys on the head's two controls (the tick, the ▾/▴ button), which are the step's tab stops: Space ticks and Enter or Space folds
+    // Keys on the head's two controls (the tick, the chevron button), which are the step's tab stops: Space ticks and Enter or Space folds
     // as for any checkbox or button, and Up and Down move the focus to the same control of the neighbouring step.
     const keys = event => {
         if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
@@ -598,7 +596,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
             onclick: () => toggleFold(order_key, number, !folded)
-        }, folded ? "▾" : "▴")
+        })
     );
 
     return h("li", {
@@ -826,15 +824,15 @@ function entryIndexOf(leaf) {
         (book.prior_work || 0) === (leaf.prior_work || 0) && same(book.enchantments, leaf.enchantments));
 }
 
-// The bar flashes once when the last step is ticked (like gaining a level); `celebrated`
+// The hotbar flashes once when the last step is ticked (like gaining a level); `celebrated`
 // remembers which order it flashed for, so redraws don't repeat it. Unticking resets it.
 let celebrated = null;
 
-// A few experience orbs that pop out of the bar (rising, drifting sideways, fading) when the last step is ticked, then remove themselves.
+// A few experience orbs that pop out of the hotbar (rising, drifting sideways, fading) when the last step is ticked, then remove themselves.
 const ORB_COUNT = 7;
 function orbBurst() {
     const orbs = Array.from({ length: ORB_COUNT }, (_, index) => {
-        const across = index / (ORB_COUNT - 1); // 0..1 along the bar
+        const across = index / (ORB_COUNT - 1); // 0..1 along the hotbar
         return h("img", {
             class: "pop-orb", src: "img/experience_orb.svg", alt: "", draggable: "false",
             style: `left: ${(8 + across * 84).toFixed(1)}%; --dx: ${Math.round((across - 0.5) * 70)}px; --dy: ${-(22 + (index % 3) * 9)}px; animation-delay: ${index * 45}ms`
@@ -863,7 +861,7 @@ function roundToggle(round, index, foldedNow, foldSteps) {
     return h("button", {
         type: "button", class: "round-toggle", "aria-expanded": String(!all_folded), title: label,
         onclick: () => foldSteps(round.map(step => step.number), !all_folded)
-    }, TEXT.results.round({ number: index + 1, steps: round.length }), h("span", { class: "round-chevron", "aria-hidden": "true" }, all_folded ? "\u25b8" : "\u25be"));
+    }, TEXT.results.round({ number: index + 1, steps: round.length }));
 }
 
 // Share: everything that hands the order on (copy it as text or a checklist, the link with your progress, print).
@@ -928,14 +926,13 @@ function jumpToStep(order_key, number) {
     flash(card);
 }
 
-// In the toolbar: "3 of 7 done · 18 levels to go" over a bar that fills as steps are
-// ticked, and ↺ to untick them all (shown once something is ticked; a toast's Undo brings the ticks back).
+// In the toolbar: the step hotbar (the progress), "3 of 7 done", Set level and ↺ to untick them all (shown once something is ticked; a toast's Undo brings the ticks back).
 function stepProgress(steps, done, levels, order_key) {
     const total = steps.length;
     const count = steps.filter(step => done.has(step.number)).length;
     const level_up = total > 0 && count === total && celebrated !== order_key;
     celebrated = count === total ? order_key : null;
-    const summary = count === total ? TEXT.results.progress_done({ total }) : TEXT.results.progress({ done: count, total, levels });
+    const summary = count === total ? TEXT.results.progress_done({ total }) : TEXT.results.progress({ done: count, total });
     announce(summary, order_key, count);
     // With "Your level" tracked: enough for what is left, or how many levels are missing.
     const level = activeLevel();
@@ -943,18 +940,10 @@ function stepProgress(steps, done, levels, order_key) {
         ? h("span", { class: "level-status " + (level >= levels ? "enough" : "short") },
             level >= levels ? TEXT.ranking.level_enough_now : TEXT.ranking.level_need_more({ short: levels - level })) : null;
     return h("div", { class: "step-progress" },
+        stepHotbar(steps, done, order_key, level_up),
         h("div", { class: "step-progress-main" },
-            h("div", { class: "step-progress-track" + (level_up ? " level-up" : ""), role: "group", "aria-label": summary },
-                // Drawn like the game's experience bar: one segment per step, filling from the left; each one jumps to its step.
-                // One tab stop (the next step's segment); Left and Right move along them.
-                roving(steps.map((step, index) => h("button", {
-                    type: "button", class: "step-progress-cell" + (index < count ? " filled" : ""),
-                    "aria-label": TEXT.results.jump_to_step({ number: step.number }), title: TEXT.results.jump_to_step({ number: step.number }),
-                    onclick: () => jumpToStep(order_key, step.number)
-                })), Math.min(count, total - 1), { prev: ["ArrowLeft"], next: ["ArrowRight"] }),
-                level_up && motionOk() ? orbBurst() : null),
-            levelChip(),
             h("span", { class: "step-progress-text" }, summary),
+            levelChip(),
             count ? h("button", {
                 type: "button", class: "step-reset", title: TEXT.results.uncheck_all_help, "aria-label": TEXT.results.uncheck_all,
                 onclick: () => {
@@ -964,15 +953,14 @@ function stepProgress(steps, done, levels, order_key) {
                     undoToast(TEXT.results.unticked({ count: before.size }), () => { saveChecklist(order_key, before); renderResults(); });
                 }
             }, "↺") : null),
-        stepHotbar(steps, done, order_key),
         level_status // (on its own row under the bar when there is a level to compare)
     );
 }
 
 // The inventory hotbar: one game slot per step showing its result (a glint when enchanted), the current step in the selection frame, done steps
 // dimmed with a check; a click goes to the step. One tab stop (the current step's slot), Left and Right move along. It shows in every view (Steps, Compact,
-// Tree), and on phones in place of the XP bar (CSS, the 600px rule). Its slots are not `.mc-slot`s, so the view morphs never take them.
-function stepHotbar(steps, done, order_key) {
+// Tree) and is the progress display. Its slots are not `.mc-slot`s, so the view morphs never take them.
+function stepHotbar(steps, done, order_key, level_up = false) {
     const current = steps.findIndex(step => !done.has(step.number));
     const slots = steps.map((step, index) => {
         const is_done = done.has(step.number);
@@ -993,8 +981,9 @@ function stepHotbar(steps, done, order_key) {
             ...sourcesHover(step.node)
         }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, "✓") : null, tip);
     });
-    return h("div", { class: "step-hotbar", role: "group", "aria-label": TEXT.results.hotbar_label },
-        roving(slots, Math.max(0, current), { prev: ["ArrowLeft"], next: ["ArrowRight"] }));
+    return h("div", { class: "step-hotbar" + (level_up ? " level-up" : ""), role: "group", "aria-label": TEXT.results.hotbar_label },
+        roving(slots, Math.max(0, current), { prev: ["ArrowLeft"], next: ["ArrowRight"] }),
+        level_up && motionOk() ? orbBurst() : null);
 }
 
 // Places a hotbar slot's tooltip: fixed to the window (so no box around the hotbar, such as the card, can cut it off), under the slot and centred on it,

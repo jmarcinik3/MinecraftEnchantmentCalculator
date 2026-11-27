@@ -75,7 +75,7 @@ export function renderItem() {
     box.replaceChildren();
     if (!state.item) return;
     // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
-    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title" }, h("span", { class: "step-badge", "aria-hidden": "true" }, "1"), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading),
+    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, "✓"), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading),
             h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, restartIcon(), TEXT.page.reset)),
         wantedHead(presetChips()), itemMini());
     if (old_height != null) {
@@ -97,7 +97,6 @@ export function renderItem() {
 function sectionHeading() {
     const card = document.querySelector('[data-section="wanted"]');
     const key = state.item ? "enchantments_heading" : "item_heading";
-    card.querySelector("h2 .step-badge").textContent = state.item ? "2" : "1";
     const title = card.querySelector("#wanted-title");
     title.dataset.text = "page." + key;
     title.textContent = TEXT.page[key];
@@ -153,11 +152,6 @@ export function setupItemDock() {
     const narrow = matchMedia("(max-width: 1359px)");
     const sync = () => document.documentElement.style.setProperty("--dock-h", narrow.matches && dock.classList.contains("condensed") && !dock.hidden ? $("#item").offsetHeight + 8 + "px" : "0px");
     narrow.addEventListener("change", sync);
-    WIDE_ITEM.addEventListener("change", () => {
-        const graph = document.querySelector(".graph-box");
-        if (graph) (WIDE_ITEM.matches ? $("#item-graph") : $("#wanted")).append(graph);
-        syncFoldToggle();
-    });
     // The sentinel's last answer: the observer only reports a crossing, so picking an item while the page is already scrolled
     // (Try an example, under the long item grid) re-checks from it (`syncDock`, called by renderItem).
     let sentinel_shown = true;
@@ -216,15 +210,15 @@ export function renderWanted() {
             // A first look without choosing anything: a fully enchanted helmet.
             h("button", { type: "button", class: "btn small example", onclick: tryExample }, TEXT.wanted.example)
         );
-        $("#item-graph").replaceChildren();
         restoreFocus(box, focus);
         restoreConflicts();
         return;
     }
 
-    const { list, mod_boxes, count } = wantedList();
-    box.append(...[wantedSearch(), listBox(list, count), ...mod_boxes].filter(Boolean)); // append(null) would print "null"
-    placeGraph(conflictGraph(searchMatcher()));
+    const { list, mod_boxes } = wantedList();
+    box.append(...[wantedSearch(), list, ...mod_boxes].filter(Boolean)); // append(null) would print "null"
+    const graph = conflictGraph(searchMatcher());
+    if (graph) box.append(graph); // the last box of the section, at every width
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
         growSmoothly(group, old_groups.get(group.dataset.group));
@@ -249,16 +243,7 @@ export function renderWanted() {
     syncFoldToggle();
 }
 
-// The conflict graph's box: in the item column under the item card on wide windows (where the item is a card of its own, with room to spare under it),
-// else the last box of section 2. Redrawn with the section, and moved when the window crosses the breakpoint (setupItemDock).
-const WIDE_ITEM = matchMedia("(min-width: 1360px)");
-function placeGraph(graph) {
-    const host = $("#item-graph");
-    host.replaceChildren();
-    if (!graph) return;
-    (WIDE_ITEM.matches ? host : $("#wanted")).append(graph);
-}
-const FOLDS = "#wanted details, #item-graph details"; // every fold-away box of section 2 (the graph's is in the item column when wide)
+const FOLDS = "#wanted details"; // every fold-away box of section 2
 
 // Eases a row's height from `from` to its new one (the box clips while it does). A row laid out as one grid row has that row
 // follow the box meanwhile, so what is in it (the level bar) moves with the box both ways: left to itself, a growing box would
@@ -411,7 +396,11 @@ function wantedList() {
         return [groupFold(title, key, h("div", { class: "pick-any-list", role: "group", "aria-label": TEXT.wanted.group_no_conflicts }, lone)), ...rest];
     };
     rows.push(...withPickAny(own, "pick-any"));
-    if (curses.length) rows.push(h("div", { class: "divider" }, TEXT.wanted.curses), ...byKind(curses).map(groupRow));
+    // The curses are a fold-away group like the others (its own closed state).
+    if (curses.length) {
+        const total = curses.reduce((sum, group) => sum + group.members.length, 0);
+        rows.push(groupFold(TEXT.wanted.group_titled({ label: TEXT.wanted.curses, count: total }), "curses", h("div", { class: "curse-list" }, byKind(curses).map(groupRow))));
+    }
     // A mod's own enchantments get a fold-away box of their own, beside the list's and the graph's, folded until opened (or one is chosen).
     const mod_boxes = [];
     for (const [mod, groups] of mods) {
@@ -434,18 +423,7 @@ function wantedList() {
             withPickAny(groups, "pick-any-" + mod)));
     }
     if (query && !rows.length && !mod_boxes.length) rows.push(h("p", { class: "hint" }, TEXT.wanted.search_none));
-    // The list's own enchantments (the game's, curses included), counted the way each mod's box counts its.
-    const count = [...own, ...curses].reduce((sum, group) => sum + group.members.length, 0);
-    return { list: h("div", { class: "wanted-list" }, rows), mod_boxes, count };
-}
-
-// The list of enchantments, in a fold-away box like the conflict graph's (the two ways to pick enchantments, one under the other).
-let list_open = true;
-const listTitle = count => TEXT.wanted.mod_group({ name: TEXT.wanted.list_title, count });
-function listBox(list, count) {
-    return h("details", { class: "fold-box list-box", open: list_open, ontoggle: event => { list_open = event.target.open; } },
-        h("summary", { onclick: foldClick(open => { list_open = open; }) }, listTitle(count)),
-        list);
+    return { list: h("div", { class: "wanted-list" }, rows), mod_boxes };
 }
 
 // What is typed in section 1's search box (kept across redraws and items), and the text without case or accents.
@@ -490,7 +468,7 @@ function watchFolds() {
     if (fold_sync_ready) return;
     fold_sync_ready = true;
     // `toggle` doesn't bubble, so the listener captures it on its way to each box.
-    for (const root of ["#wanted", "#item-graph"]) document.querySelector(root).addEventListener("toggle", syncFoldToggle, true);
+    document.querySelector("#wanted").addEventListener("toggle", syncFoldToggle, true);
 }
 
 // Expand all / Collapse all for section 1: every fold-away box and group subsection, and the folds of the plain conflict brackets.
@@ -544,11 +522,10 @@ function searchInput() {
         type: "search", class: "wanted-search", value: wanted_query, placeholder: TEXT.wanted.search, "aria-label": TEXT.wanted.search, "data-focus": "wanted-search",
         oninput: event => {
             wanted_query = event.target.value;
-            const { list, mod_boxes, count } = wantedList();
+            const { list, mod_boxes } = wantedList();
             document.querySelector("#wanted .wanted-list").replaceWith(list);
-            document.querySelector("#wanted > .list-box > summary").textContent = listTitle(count);
             for (const old of document.querySelectorAll("#wanted > .mod-section")) old.remove();
-            document.querySelector("#wanted > .list-box").after(...mod_boxes);
+            list.after(...mod_boxes);
             markGraphSearch(searchMatcher());
             restoreConflicts();
         }
@@ -671,8 +648,7 @@ function wantedHead(...controls) {
     return h("div", { class: "wanted-head" + (item_menu_open ? " menu-open" : "") },
         nameField(),
         h("div", { class: "wanted-controls" }, controls),
-        wantedPreview(),
-        item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null
+        wantedPreview()
     );
 }
 
@@ -703,7 +679,10 @@ function wantedPreview() {
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
     cell.querySelector(".mc-tooltip").append(costLine());
-    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label },
+        cell,
+        // The menu belongs to the slot: it opens under it wherever the card puts the preview (the name box and presets may be above).
+        item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null);
 }
 
 // The last line of the preview's tooltip: an XP orb and the anvil levels of the best order for the books

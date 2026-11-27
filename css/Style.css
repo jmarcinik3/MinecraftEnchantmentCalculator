@@ -194,36 +194,10 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .theme-toggle { justify-content: center; padding: 0 9px; }
 .theme-icon { width: 16px; height: 16px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 
-/* The progress stepper (App.js renderStepper): Item, Enchantments, Books, Order. Each chip is a numbered circle (a check once done) and its
-   name, joined by short rails; the first stage not done is the current one. Narrower than 1100px only the current chip keeps its name. */
-.stage-nav { min-width: 0; margin: 0 auto 0 8px; }
-.stage-nav ol { display: flex; align-items: center; margin: 0; padding: 0; list-style: none; }
-.stage-nav li { display: flex; align-items: center; }
-.stage-nav li + li::before { content: ""; width: 12px; height: 2px; margin: 0 2px; background: var(--border-strong); flex: none; }
-.stage-nav li:has(.stage-chip.done) + li::before { background: var(--success-text); }
-.stage-chip { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 8px 0 3px; border: 1px solid transparent; border-radius: 14px; background: transparent; color: var(--text-muted); font: 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap; cursor: pointer; position: relative; }
-.stage-chip::after { content: ""; position: absolute; inset: -6px -2px; } /* a taller target than the look */
-.stage-chip:hover { background: var(--surface-alt); color: var(--text); }
-.stage-chip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.stage-mark { display: inline-flex; align-items: center; justify-content: center; width: 20px; height: 20px; border: 1px solid var(--border-strong); border-radius: 50%; font-size: 11px; flex: none; }
-.stage-chip.current { color: var(--text); border-color: var(--accent); }
-.stage-chip.current .stage-mark { background: var(--accent-bg); border-color: var(--accent); color: var(--accent-text); }
-.stage-chip.done { color: var(--success-text); }
-.stage-chip.done .stage-mark { background: var(--success-bg); border-color: var(--success-text); color: var(--success-text); }
-.stage-chip.warn { color: var(--warning-text); border-color: var(--warning-text); background: var(--warning-bg); }
-.stage-chip.warn .stage-mark { background: var(--warning-bg); border-color: var(--warning-text); color: var(--warning-text); }
-.stage-nav li:has(.stage-chip.warn) + li::before { background: var(--warning-text); }
-/* Order while the search runs (or is about to, Calc.js sets <html data-search>): amber like a warning, until the result is in. */
-:root:is([data-search="running"], [data-search="pending"]) .stage-nav li:last-child .stage-chip { color: var(--warning-text); border-color: var(--warning-text); background: var(--warning-bg); }
-:root:is([data-search="running"], [data-search="pending"]) .stage-nav li:last-child .stage-mark { background: var(--warning-bg); border-color: var(--warning-text); color: var(--warning-text); }
-@media (max-width: 1099px) { .stage-chip:not(.current) { padding-right: 3px; } .stage-chip:not(.current) .stage-label { display: none; } }
-@media (pointer: coarse) { .stage-chip::after { inset: -8px -4px; } }
-
 /* Phones: the title on its own line, then the toolbar across the full width. */
 @media (max-width: 600px) {
     /* "header." raises these over the general .site-header rules further down. */
     header.site-header { flex-direction: column; align-items: stretch; gap: 10px; }
-    .stage-nav { margin: 0; }
     header .header-actions { justify-content: flex-start; position: relative; }
     #language { margin-left: auto; }
     /* The Saved menu opens across the whole toolbar, since its button is mid-row. */
@@ -262,6 +236,16 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     padding: 8px 16px 40px;
 }
 
+/* Before an item is picked the page is the item grid alone: Books and items, Anvil uses and their skip link are hidden, and section 1 is one centered
+   column (`has-item` is set by Wanted.js renderItem). */
+.layout:not(.has-item) .results-column, .layout:not(.has-item) [data-section="books"] { display: none; }
+.layout:not(.has-item) { grid-template-columns: minmax(0, 720px) !important; justify-content: center; }
+body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; }
+/* ...and the grid is not a section: no card, no heading or collapse arrow, always open (a stored "closed" is ignored until an item is picked). */
+.layout:not(.has-item) [data-section="wanted"] { background: none; border: none; padding: 0; box-shadow: none; }
+.layout:not(.has-item) [data-section="wanted"] > h2 { display: none; }
+.layout:not(.has-item) [data-section="wanted"] > .section-body { display: block !important; height: auto !important; }
+
 /* Sections 3 and 4 stack with the same gap as 1-2 (on desktop the column becomes a flex
    column with the same gap, below). */
 .results-column { display: grid; grid-template-columns: minmax(0, 1fr); gap: 16px; align-content: start; }
@@ -298,7 +282,18 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     background: var(--accent-bg);
     color: var(--accent-text);
     font-size: 12px;
+    position: relative;
 }
+/* A stage's state (App.js renderBadges): a check once done, amber "!" while Books has a problem, a spinning ring while a search is pending or running (<html data-search>). */
+.step-badge.done { background: var(--success-bg); color: var(--success-text); }
+.step-badge.warn { background: var(--warning-bg); color: var(--warning-text); box-shadow: 0 0 0 1px var(--warning-text); font-weight: 700; }
+:root:is([data-search="running"], [data-search="pending"]) [data-section="steps"]:not(.idle) .step-badge { background: var(--warning-bg); color: var(--warning-text); }
+:root:is([data-search="running"], [data-search="pending"]) [data-section="steps"] .step-badge::after {
+    content: ""; position: absolute; inset: -3px; border-radius: 50%;
+    border: 2px solid transparent; border-top-color: var(--warning-text);
+    animation: badge-spin 0.9s linear infinite;
+}
+@keyframes badge-spin { to { transform: rotate(360deg); } }
 
 
 .hint { color: var(--text-secondary); font-size: 14px; margin: 4px 0; }
@@ -397,7 +392,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
    layout the preview has a fixed width, so longer names never push the controls aside. */
 #wanted, #item { container: wanted / inline-size; }
 .wanted-head { position: relative; display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 4px; }
-.wanted-preview { flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
+.wanted-preview { position: relative; flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
 /* While its height slides (Motion.js growSmoothly), new lines show as the box opens. */
 .resizing { overflow: hidden; transition: height 0.25s ease-out; }
 .wanted-controls { flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
@@ -431,6 +426,14 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     .item-dock.condensed .mini-steps { display: inline-flex; }
     .item-dock.condensed .item-mini { display: flex; }
 }
+/* A wide item card (900 to 1359px, a bar over the sections): the item on the left, the name box and presets in a column beside it. The floating card
+   (1360px+, 272px) and phones are narrower and keep the stack. */
+@container wanted (min-width: 640px) {
+    #item > .wanted-head { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 0 24px; }
+    #item > .wanted-head > .wanted-preview { grid-column: 1; grid-row: 1 / span 2; margin-bottom: 4px; }
+    #item > .wanted-head > .anvil-name { grid-column: 2; grid-row: 1; max-width: 360px; }
+    #item > .wanted-head > .wanted-controls { grid-column: 2; grid-row: 2; margin-bottom: 4px; }
+}
 /* 900 to 1359px: the results column sticks under the bar too. */
 @media (min-width: 900px) and (max-width: 1359px) {
     /* (the column's top keeps clear of the bar through --column-top, which counts --dock-h) */
@@ -441,12 +444,6 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     .item-dock { grid-column: auto; top: 16px; align-self: start; padding: 0; background: none; }
     #item { border-color: var(--border-strong); box-shadow: var(--shadow-pop); }
     .item-dock .item-menu { width: 440px; }
-    /* The conflict graph sits under the item card, in the column's free space (Wanted.js placeGraph); its drawing fits the column and the window's height. */
-    .item-graph { margin-top: 12px; }
-    .item-graph:empty { display: none; }
-    .item-graph .graph-box { margin: 0; padding: 0 14px 12px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; }
-    .item-graph .graph-box[open] { padding-bottom: 12px; }
-    .item-graph .graph-canvas { max-height: min(300px, calc(100vh - 560px)); min-height: 160px; }
 }
 
 /* The slot is the item menu's button: a caret in its corner, a purple ring on hover. */
@@ -488,13 +485,13 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     box-shadow: var(--shadow-pop);
 }
 .item-menu {
-    top: 62px; /* under the slot */
+    top: 56px; /* under the slot (the preview starts at the slot) */
     width: min(440px, 100%);
     padding: 10px;
 }
 /* On phones the grid opens in the card's flow, full width, so its buttons stay big. */
 @media (max-width: 600px) {
-    .item-menu { position: static; flex: 1 1 100%; width: auto; margin: 0 0 12px; box-shadow: none; } /* (under the preview, its last child) */
+    .item-menu { position: static; width: auto; margin: 10px 0 0; box-shadow: none; } /* (under the preview, its last child) */
 }
 .anvil-cell.preview { flex-direction: row; align-items: flex-start; gap: 10px; }
 .anvil-cell.preview .mc-tooltip { width: auto; flex: 0 1 auto; min-width: 0; }
@@ -519,7 +516,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 
 /* One row, as a grid so every row lines up: the name (game font; curses red) with what it
    does under it, the rough cost once chosen, the level bar, and a × that clears it. A chosen
-   row is tinted with an accent bar on its left. */
+   row has an accent bar on its left (no tint). */
 .ench-row {
     position: relative;
     display: grid;
@@ -546,7 +543,6 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .ench-row.chosen {
     border-radius: 7px;
     border-top-color: transparent;
-    background: color-mix(in srgb, var(--accent-bg) 65%, transparent);
     box-shadow: inset 3px 0 0 var(--accent);
 }
 .ench-row.chosen + .ench-row { border-top-color: transparent; }
@@ -582,7 +578,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     cursor: pointer;
 }
 .ench-clear:hover, .ench-clear:focus-visible { background: var(--border); color: var(--text); }
-.wanted-list > .ench-row:first-child, .ench-group + .ench-row, .divider + .ench-row,
+.wanted-list > .ench-row:first-child, .ench-group + .ench-row,
 .ench-group-label + .ench-row, .group-switch + .ench-row { border-top: none; }
 .ench-name {
     min-width: 0;
@@ -741,13 +737,6 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .skip-link:focus { top: 8px; }
 .card[tabindex="-1"]:focus { outline: none; }
 
-.divider {
-    margin-top: 10px;
-    padding-top: 8px;
-    font-size: 12px;
-    color: var(--text-muted);
-    border-top: 1px dashed var(--border-strong);
-}
 
 /* Books and items: cards drawn like the game, in a grid (two to a row once the section
    is 440px wide; a container query, so it follows the card, not the window). */
@@ -844,7 +833,6 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .cover-best::before { content: "· "; }
 .cover-chip.summary { cursor: pointer; }
 .cover-chip.summary:hover, .cover-chip.summary:focus-visible { border-color: var(--success-text); }
-.cover-caret { font-size: 10px; }
 
 /* List view: one row per entry. */
 .entry-grid.list { grid-template-columns: minmax(0, 1fr); gap: 6px; }
@@ -1680,18 +1668,28 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     border-radius: var(--radius);
     color: var(--text-secondary);
 }
-.collapse-toggle::before {
+/* One fold marker for the whole page: a chevron pointing right when closed and down when open, always before the label it folds (a
+   summary, a round) or at the end of the line it folds (a section's heading, a step's head, the coverage chip). Bigger for a section (8px),
+   then a box (6px), then a group or step (5px). */
+:is(.collapse-toggle, .step-fold, .round-toggle, :is(.mod-section, .fold-box, .group-fold, .step-words) > summary)::before,
+.fold-chevron {
     content: "";
     display: inline-block;
-    width: 7px;
-    height: 7px;
-    border-right: 2px solid currentColor;
-    border-bottom: 2px solid currentColor;
-    /* Open: points up (click to close). Closed: points down (click to open). */
-    transform: translateY(1px) rotate(-135deg);
+    flex: none;
+    box-sizing: border-box;
+    width: var(--chev-size, 5px);
+    height: var(--chev-size, 5px);
+    border-right: var(--chev-line, 1.5px) solid currentColor;
+    border-bottom: var(--chev-line, 1.5px) solid currentColor;
+    transform: rotate(-45deg);
     transition: transform 0.15s;
 }
-.card.collapsed .collapse-toggle::before, .card.closing .collapse-toggle::before { transform: translateY(-2px) rotate(45deg); }
+.collapse-toggle { --chev-size: 8px; --chev-line: 2px; }
+:is(.mod-section, .fold-box) > summary { --chev-size: 6px; --chev-line: 2px; }
+/* Open: down. */
+.card:not(.collapsed):not(.closing) .collapse-toggle::before,
+.step-fold[aria-expanded="true"]::before, .round-toggle[aria-expanded="true"]::before, [aria-expanded="true"] > .fold-chevron,
+:is(.mod-section, .fold-box, .group-fold, .step-words)[open] > summary::before { transform: rotate(45deg); }
 .collapse-toggle:hover, .collapse-toggle:focus-visible { background: var(--surface-alt); color: var(--text); }
 .info-tip.alert { position: static; }
 .info-tip.alert .info-tip-bubble { max-width: min(320px, 100%); }
@@ -1743,6 +1741,11 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 
 .empty { text-align: center; padding: 24px 8px; color: var(--text-secondary); }
 .empty img { width: 48px; height: 48px; image-rendering: pixelated; opacity: 0.8; }
+/* Empty sections (Books and Anvil uses with nothing to show): the heading and one muted line, the badge grey. */
+.card.idle { padding-top: 12px; padding-bottom: 12px; }
+.card.idle > h2 { margin-bottom: 4px; }
+.card.idle .step-badge { background: var(--surface-alt); color: var(--text-muted); }
+.idle-line { margin: 0; font-size: 13px; color: var(--text-muted); }
 
 .btn.small { display: inline-flex; align-items: center; gap: 6px; }
 
@@ -1771,16 +1774,12 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     position: relative;
     z-index: 1;
     width: fit-content;
-    margin-left: -32px;
-    padding: 2px 9px;
-    border: 1px solid var(--border-strong);
-    border-radius: 10px;
-    background: var(--surface);
+    padding: 2px 0;
     font-size: 11px;
     font-weight: 600;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: var(--text-muted);
+    color: var(--text-secondary);
 }
 .step-node {
     position: absolute;
@@ -1823,14 +1822,16 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 /* The step's head: its title ("Step 3") and a folded step's line; the whole head folds the step. */
 .anvil-step:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .anvil-step.current { border-color: var(--accent); }
+/* An open step has no card of its own: the anvil panel is the card (the border stays, transparent, so folding never shifts anything). The current one rings the panel. */
+.anvil-step:not(.folded), .anvil-step.current:not(.folded) { border-color: transparent; background: none; }
+.anvil-step.current:not(.folded) .anvil-row { outline: 2px solid var(--accent); outline-offset: 2px; }
 .step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; cursor: pointer; }
 .step-title { flex: none; padding: 3px 0; font-size: 13px; font-weight: 600; color: var(--text); }
-/* The whole head (but the tick) folds and unfolds the step; ▾/▴ says which it will do. */
+/* The whole head (but the tick) folds and unfolds the step; the chevron says which it will do. */
 .step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .step-fold {
     border-radius: 6px;
     color: var(--text-muted);
-    font-size: 12px;
 }
 .step-head:hover .step-fold, .step-fold:focus-visible { background: var(--surface); color: var(--text); }
 .step-head:hover .step-summary { color: var(--text); }
@@ -1855,6 +1856,8 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     grid-template-areas: "left plus right arrow result";
     gap: 6px;
     align-items: start;
+    width: fit-content; /* only as wide as the slots need, not stretched across the column */
+    max-width: 100%;
 }
 .anvil-cell.left { grid-area: left; }
 .anvil-cell.right { grid-area: right; }
@@ -1883,6 +1886,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
    is squeezed into a 100px cell and broken mid-word. (The Slots view keeps its line of slots.) */
 @container steps (max-width: 360px) {
     .timeline:not(.slots-mode) .anvil-row {
+        width: 100%;
         grid-template-columns: minmax(0, 1fr);
         grid-template-areas: "left" "plus" "right" "arrow" "result";
         row-gap: 4px;
@@ -2106,26 +2110,17 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .level-pop[hidden] { display: none; }
 .level-pop-title { margin-bottom: 8px; font-size: 13px; font-weight: 600; }
 
-/* Progress: "3 of 7 done · 18 levels to go" over a bar, and ↺ to untick them all. */
+/* Progress: the step hotbar, then "3 of 7 done", Set level and ↺ to untick them all. */
 .step-progress { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; flex: 1 1 0; min-width: 0; }
-/* An experience bar: black frame, dark empty segments, bright green filled ones. */
-.step-progress-track { position: relative; display: flex; flex: 1 1 140px; max-width: 280px; min-width: 60px; gap: 1px; height: 24px; margin: -8px 0; padding: 0 1px; }
-/* The black frame: 9px, centred in the taller track. The segments are tall (a bigger hit area) and draw their bar in ::before. */
-.step-progress-track::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 9px; transform: translateY(-50%); background: var(--mc-black); }
-.step-progress-cell { position: relative; flex: 1; padding: 0; border: none; cursor: pointer; background: transparent; }
-.step-progress-cell::before { content: ""; position: absolute; left: 0; right: 0; top: 50%; height: 7px; transform: translateY(-50%); background: var(--mc-bar-empty); box-shadow: inset 0 1px 0 var(--mc-bar-edge); transition: background-color 0.25s ease-out; }
-.step-progress-cell.filled::before { background: linear-gradient(var(--mc-green-light), var(--mc-green) 40%, var(--mc-green-deep)); box-shadow: none; }
-.step-progress-cell:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; }
-@media (pointer: coarse) { .step-progress-track { height: 40px; margin: -16px 0; } }
-/* Level up: the bar flashes bright and a glow rises once, as when the XP bar fills in the game. */
-.step-progress-track.level-up { animation: level-up 0.9s ease-out; }
+/* Level up: the hotbar flashes bright and a glow rises once, as when the XP bar fills in the game. */
+.step-hotbar.level-up { animation: level-up 0.9s ease-out; }
 @keyframes level-up {
     0% { filter: brightness(1); }
     25% { filter: brightness(2.2) saturate(1.4); }
     100% { filter: brightness(1); }
 }
-/* The experience orbs that pop out of the bar on the last tick (Results.js orbBurst): they stay invisible until their animation runs (never, with motion off). */
-.orb-burst { position: absolute; left: 0; right: 0; top: 50%; height: 0; pointer-events: none; }
+/* The experience orbs that pop out of the hotbar on the last tick (Results.js orbBurst): they stay invisible until their animation runs (never, with motion off). */
+.orb-burst { position: absolute; left: 0; right: 0; top: 30%; height: 0; pointer-events: none; }
 .pop-orb { position: absolute; top: -7px; width: 14px; height: 14px; margin-left: -7px; image-rendering: pixelated; opacity: 0; animation: orb-pop 0.9s ease-out both; }
 @keyframes orb-pop {
     0% { opacity: 0; transform: translate(0, 0) scale(0.4); }
@@ -2134,7 +2129,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 }
 .step-progress-text { min-width: 0; font-size: 12px; color: var(--text-secondary); }
 .step-progress-main { display: flex; align-items: center; gap: 8px; flex: 1 1 auto; min-width: 0; }
-/* With room (not phones), the text stays on one line: the bar gives way first, then the icons wrap under it. */
+/* With room (not phones), the text stays on one line. */
 @media (min-width: 600px) { .step-progress-text { flex: none; white-space: nowrap; } }
 .step-reset {
     flex: none;
@@ -2176,10 +2171,16 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .result-tools .btn:disabled:not(.primary) { opacity: 1; }
 /* One row: the progress on the left, then the icons (Steps | Tree, Compact, fold all; Share) on the right. With no room the icons wrap under the progress. */
 .result-tools { flex-wrap: wrap; align-items: center; row-gap: 8px; }
-.result-icons { display: flex; align-items: center; gap: 6px; margin-left: auto; align-self: flex-start; } /* level with the XP bar's line, the hotbar under them */
+.result-icons { display: flex; align-items: center; gap: 6px; margin-left: auto; align-self: flex-start; padding-top: 4px; } /* level with the hotbar, whose text wraps under them */
 .view-group { display: flex; align-items: center; gap: 2px; }
-/* Phones: the progress takes the first line, the icons the next. */
-@media (max-width: 600px) { .result-tools .step-progress { flex-basis: 100%; } }
+/* Phones: two rows. The hotbar takes the first; the second holds the text, Set level and the icons (the progress box and its text row dissolve into the toolbar's own row). */
+@media (max-width: 600px) {
+    .result-tools .step-progress, .result-tools .step-progress-main { display: contents; }
+    .result-tools .step-hotbar { order: 1; flex-basis: 100%; }
+    .result-tools .step-progress-text, .result-tools .level-chip, .result-tools .step-reset { order: 2; }
+    .result-tools .result-icons { order: 3; align-self: center; }
+    .result-tools .level-status { order: 4; flex-basis: 100%; }
+}
 .view-group .segmented { margin-right: 4px; }
 /* Quiet icon buttons: no border until hovered or focused, lit while pressed (Compact on). */
 .icon-btn {
@@ -2223,10 +2224,9 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 @keyframes toast-in { from { opacity: 0; transform: translate(-50%, 8px); } }
 @media print { .toast, .show-done { display: none !important; } }
 /* A round's label folds its round (Results.js roundToggle). */
-.round-toggle { display: inline-flex; align-items: center; gap: 4px; padding: 0; border: none; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; }
+.round-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 0; border: none; background: none; font: inherit; letter-spacing: inherit; text-transform: inherit; color: inherit; cursor: pointer; }
 .round-toggle:hover { color: var(--text); }
 .round-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 4px; }
-.round-chevron { font-size: 9px; }
 /* Under the steps: show (or hide) the done steps, which fold by themselves. */
 .show-done { display: block; margin: 4px 0 10px 32px; font-size: 13px; }
 
@@ -2315,14 +2315,15 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     .print-only { display: block; margin: 0 0 10px; font-weight: 600; }
     body { font-size: 12px; }
     .inputs, .collapse-toggle, .section-summary,
-    .header-actions, .stage-nav, .order, .level-pop, .level-chip, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
+    .header-actions, .order, .level-pop, .level-chip, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
     .step-node input, .step-fold, .step-summary, .step-reset,
     .tree-step input, .mc-slot.glint::after, .tree-slot.glint::after { display: none !important; }
     /* On paper each step is its sentence (everything the slots show, in words), not the full-size cards. */
-    .anvil-step .anvil-row, .anvil-step .step-words, .anvil-step .step-caption, .step-progress-track { display: none !important; }
+    .anvil-step .anvil-row, .anvil-step .step-words, .anvil-step .step-caption { display: none !important; }
     .anvil-step .step-print { display: block !important; font-weight: normal; margin: 0 0 4px; }
     /* "You are here" is for the screen: on paper every step looks the same. */
     .anvil-step.current { border-color: var(--border-strong) !important; box-shadow: none !important; }
+    .anvil-step.current .anvil-row { outline: none !important; }
     .anvil-step.current .step-node { box-shadow: none !important; border-color: var(--border-strong) !important; color: var(--text) !important; }
     /* Folded merges print their inputs too. */
     .tree-node.folded > .tree-children { display: block !important; }
@@ -2340,17 +2341,6 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     /* Game colors on paper: keep the slots and tooltips as drawn. */
     .mc-slot, .mc-tooltip, .tree-slot, .anvil-cost { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 }
-/* The bar's ends round off in pixel steps, as in the game: the frame loses 2-pixel stair
-   corners, and the end segments 1-pixel ones, so the frame still shows all the way round. */
-.step-progress-track::before {
-    clip-path: polygon(2px 0, calc(100% - 2px) 0, calc(100% - 2px) 1px, calc(100% - 1px) 1px, calc(100% - 1px) 2px, 100% 2px,
-        100% calc(100% - 2px), calc(100% - 1px) calc(100% - 2px), calc(100% - 1px) calc(100% - 1px), calc(100% - 2px) calc(100% - 1px),
-        calc(100% - 2px) 100%, 2px 100%, 2px calc(100% - 1px), 1px calc(100% - 1px), 1px calc(100% - 2px), 0 calc(100% - 2px),
-        0 2px, 1px 2px, 1px 1px, 2px 1px);
-}
-.step-progress-cell:first-of-type::before { clip-path: polygon(1px 0, 100% 0, 100% 100%, 1px 100%, 1px calc(100% - 1px), 0 calc(100% - 1px), 0 1px, 1px 1px); }
-.step-progress-cell:last-of-type::before { clip-path: polygon(0 0, calc(100% - 1px) 0, calc(100% - 1px) 1px, 100% 1px, 100% calc(100% - 1px), calc(100% - 1px) calc(100% - 1px), calc(100% - 1px) 100%, 0 100%); }
-
 /* Very small phones (320px): a little tighter, so the header controls stay on one row and
    the enchantment names keep room beside their level bars. */
 @media (max-width: 359px) {
@@ -2514,10 +2504,8 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .anvil-step.folded .step-words { display: none; }
 /* "In words": the sentence behind a small disclosure, so the three slots lead. */
 .step-words { margin: 0 0 8px; }
-.step-words > summary { display: inline-flex; align-items: center; min-height: 24px; cursor: pointer; font-size: 12px; color: var(--text-secondary); list-style: none; }
+.step-words > summary { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; cursor: pointer; font-size: 12px; color: var(--text-secondary); list-style: none; }
 .step-words > summary::-webkit-details-marker { display: none; }
-.step-words > summary::before { content: "\25b8"; display: inline-block; margin-right: 4px; transition: transform 0.15s; }
-.step-words[open] > summary::before { transform: rotate(90deg); }
 .step-words > summary:hover { color: var(--text); }
 @media (pointer: coarse) { .step-words > summary { min-height: 40px; margin: -8px 0; } }
 .step-words > .step-instruction { margin: 4px 0 0; }
@@ -2559,13 +2547,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .cost-row { display: flex; align-items: center; gap: 6px; }
 .cost-row b { margin-left: auto; font-weight: 600; }
 .cost-dot { flex: none; width: 8px; height: 8px; border-radius: 2px; }
-.final-card { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 0 32px; padding: 10px 12px; border: 1px dashed var(--border-strong); border-radius: var(--radius); }
 .final-title { font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
-.final-card .anvil-cell { flex-direction: row; align-items: flex-start; gap: 10px; width: max-content; max-width: 100%; }
-.final-card .mc-slot { flex: none; } /* a wide tooltip must not squeeze the slot narrower than it is tall */
-.final-card.done { border-style: solid; border-color: var(--success-text); background: var(--success-bg); }
-.final-card.done .final-title { color: var(--success-text); }
-.final-card.done .mc-slot { box-shadow: 0 0 0 3px var(--mc-green); }
 /* The current step and Done, kept on screen while its own card is scrolled away (Results.js currentBar, watchCurrentStep tucks it while the step shows).
    Phones: a bar in the flow, sticky at the bottom of the page. Wide windows: a "Next step" card with the step's three slots, laid over the bottom of
    the steps' box by a zero-high sticky wrapper, so it never changes the scroller's size. */
@@ -2587,9 +2569,8 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .mini-slot { position: relative; display: flex; align-items: center; justify-content: center; width: 30px; height: 30px; background: var(--mc-slot-bg); border: 2px solid; border-color: var(--mc-slot-dark) var(--mc-white) var(--mc-white) var(--mc-slot-dark); overflow: hidden; box-sizing: border-box; flex: none; }
 .mini-slot .item-icon { width: 22px; height: 22px; }
 
-/* The step hotbar (Results.js stepHotbar): an inventory row, one slot per step, in every view; on phones it takes the XP bar's place. */
-.step-hotbar { display: flex; flex: 1 1 100%; flex-wrap: wrap; gap: 3px; max-width: 100%; padding: 5px 5px 4px; box-sizing: border-box; }
-@media (max-width: 600px) { .step-progress-track { display: none; } }
+/* The step hotbar (Results.js stepHotbar): an inventory row, one slot per step, in every view; it is the progress display. */
+.step-hotbar { position: relative; display: flex; flex: 0 1 auto; flex-wrap: wrap; gap: 3px; max-width: 100%; padding: 5px 5px 4px; box-sizing: border-box; }
 .hotbar-slot { position: relative; display: flex; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; box-sizing: border-box; background: var(--mc-slot-bg); border: 2px solid; border-color: var(--mc-slot-dark) var(--mc-white) var(--mc-white) var(--mc-slot-dark); cursor: pointer; overflow: visible; }
 .hotbar-slot .item-icon { width: 24px; height: 24px; }
 .hotbar-slot:hover { background: var(--mc-slot-hover); }
@@ -2651,7 +2632,9 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .rounds.timeline.no-rail::before { display: none; } /* the copy of the old view, when the new one has the same rail */
 .steps-scroll.morphing-view { position: relative; isolation: isolate; }
 .anvil-step.morphing, .anvil-step.morphing.current, .tree-line.morphing { position: relative; background: transparent; border-color: transparent; box-shadow: none; outline-color: transparent; }
-.anvil-row.morphing { position: relative; background: transparent; border-color: transparent; }
+/* (the old view's copy keeps no ring either: it stood at the old size until the end, then vanished) */
+.view-overlay .anvil-row, .view-overlay .anvil-step.current:not(.folded) .anvil-row { outline-color: transparent; }
+.anvil-row.morphing, .anvil-step.current:not(.folded) .anvil-row.morphing { position: relative; background: transparent; border-color: transparent; outline-color: transparent; } /* (the current step's ring goes with the panel's frame) */
 /* Layers inside the scroller while it morphs (Motion.js): the cards' boxes (frames, -3), the old view's copy (-2), the anvil panels (frames, -1), then everything else. */
 .card-ghost { position: absolute; z-index: 1; overflow: hidden; pointer-events: none; }
 .card-ghost > .entry-card { position: absolute; left: 0; top: 0; margin: 0; background: transparent; border-color: transparent; box-shadow: none; outline: none; }
@@ -2704,10 +2687,8 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 /* A mod's enchantments: folded under its name in section 1 and in the picker. */
 .mod-section { margin-top: 8px; border-top: 1px solid var(--border); }
 /* The fold-away boxes and group subsections of section 1: a small uppercase label with a turning arrow. */
-:is(.mod-section, .fold-box, .group-fold) > summary { cursor: pointer; padding: 8px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
+:is(.mod-section, .fold-box, .group-fold) > summary { display: flex; align-items: center; gap: 6px; cursor: pointer; padding: 8px 2px; font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-secondary); list-style: none; }
 :is(.mod-section, .fold-box, .group-fold) > summary::-webkit-details-marker { display: none; }
-:is(.mod-section, .fold-box, .group-fold) > summary::before { content: "\25b8"; display: inline-block; margin-right: 6px; transition: transform 0.15s; }
-:is(.mod-section, .fold-box, .group-fold)[open] > summary::before { transform: rotate(90deg); }
 .group-fold > summary { padding: 4px 2px; font-size: 11px; }
 .mod-section > summary:hover { color: var(--text); }
 .picker-search, .wanted-search { width: 100%; box-sizing: border-box; margin-bottom: 6px; padding: 6px 8px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text); font: inherit; }
@@ -2819,3 +2800,27 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 .search-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin: 8px 0 4px; }
 .search-row .wanted-search { flex: 1 1 200px; width: auto; margin: 0; }
 
+
+/* One small-button look (ghost): no fill, a subtle border, one height/radius/size, accent on hover and focus.
+   Start over, Try an example, See the order, Show N done steps, Set level, and every other small text button.
+   The primary Done/Raise buttons, the header controls and the true chips (presets, coverage, cost) keep their own looks. */
+.btn.small:not(.primary), .btn.example, .btn.jump-order, .reset-button, .level-chip, .show-done {
+    display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+    height: 26px; padding: 0 10px; box-sizing: border-box;
+    border: 1px solid var(--border); border-radius: var(--radius);
+    background: transparent; box-shadow: none; color: var(--text-secondary);
+    font: 500 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif;
+    text-decoration: none; white-space: nowrap; cursor: pointer;
+}
+.btn.small:not(.primary):not(:disabled):active { box-shadow: none; transform: none; }
+.btn.small:not(.primary):hover, .btn.example:hover, .btn.jump-order:hover, .reset-button:hover, .level-chip:hover, .show-done:hover,
+.btn.small:not(.primary):focus-visible, .btn.example:focus-visible, .btn.jump-order:focus-visible, .reset-button:focus-visible, .level-chip:focus-visible, .show-done:focus-visible,
+.level-chip[aria-expanded="true"] {
+    background: transparent; color: var(--accent-text); border-color: var(--accent);
+}
+.level-chip.on { background: var(--success-bg); color: var(--success-text); border-color: transparent; }
+.level-chip.on:hover, .level-chip.on:focus-visible { border-color: var(--accent); }
+.show-done { display: flex; width: max-content; }
+.btn.small:disabled:not(.primary) { color: var(--text-muted); border-style: dashed; border-color: var(--border-strong); }
+.btn.jump-order { display: none; }
+@media (max-width: 600px) { .layout.has-item .btn.jump-order { display: flex; width: 100%; } }

@@ -181,13 +181,13 @@ function render() {
     renderLanguage();
     renderTheme();
     renderSaved();
-    renderStepper();
     renderItem();
     renderWanted();
     renderBooks();
     renderSettings();
     renderLevelPop();
     renderResults();
+    renderBadges();
     if (scrollY !== scroll) scrollTo(scrollX, scroll);
 }
 
@@ -253,43 +253,30 @@ export function renderStepsSummary() {
         $("#order-uses").textContent = TEXT.ranking.order_uses({ uses });
     }
     $("#anvil-risk").replaceChildren(...(node ? [anvilRisk(uses)] : []));
-    renderStepper();
+    renderBadges();
 }
 
-// The header's progress stepper: Item, Enchantments, Books, Order. A chip is done when its stage is (an item is picked, an enchantment chosen,
-// books exist (Automatic counts), an order found) and goes to its section like a skip link; the first one not done is the current stage.
-const BOOKS_STAGE = 2;
-const STEPPER_STAGES = [
-    { name: "stepper_item", done: () => Boolean(state.item), target: () => ($("#item-dock").hidden ? document.querySelector('[data-section="wanted"]') : $("#item-dock")) },
-    { name: "stepper_enchantments", done: () => Object.keys(state.wanted).length > 0, target: () => document.querySelector('[data-section="wanted"]') },
-    { name: "stepper_books", done: () => state.auto_books || state.books.length > 0, target: () => document.querySelector('[data-section="books"]') },
-    { name: "stepper_order", done: () => Boolean(resultNode()), target: () => document.querySelector('[data-section="steps"]') }
-];
-
-function renderStepper() {
-    const nav = $("#stages");
-    if (!nav.firstElementChild) {
-        nav.append(h("ol", {}, STEPPER_STAGES.map(stage => h("li", {},
-            h("button", { type: "button", class: "stage-chip", onclick: () => goToSection(stage.target()) },
-                h("span", { class: "stage-mark", "aria-hidden": "true" }),
-                h("span", { class: "stage-label" })))
-        )));
+// Each section heading's number badge says its stage's state (replacing the header's old stepper): a check once done (an item is picked, an enchantment
+// chosen, books exist (Automatic counts), an order found), amber "!" while Books has a problem (its alert badge shows), and, for Anvil uses, a spinner
+// while a search is pending or running (CSS on <html data-search>). The state is also a visually hidden word in the heading's accessible name.
+function renderBadges() {
+    const books_problem = $("#books-alert").childElementCount > 0;
+    const stages = [
+        { section: "wanted", number: state.item ? "2" : "1", done: state.item && Object.keys(state.wanted).length > 0 },
+        { section: "books", number: "3", done: Boolean(state.item) && (state.auto_books || state.books.length > 0), problem: books_problem },
+        { section: "steps", number: "4", done: Boolean(resultNode()) }
+    ];
+    for (const stage of stages) {
+        const heading = document.querySelector(`[data-section="${stage.section}"] h2`);
+        const badge = heading.querySelector(".step-badge");
+        const word = stage.problem ? TEXT.page.badge_problem : stage.done ? TEXT.page.badge_done : "";
+        badge.classList.toggle("done", Boolean(stage.done) && !stage.problem);
+        badge.classList.toggle("warn", Boolean(stage.problem));
+        badge.textContent = stage.problem ? "!" : stage.done ? "✓" : stage.number;
+        const label = heading.querySelector(".badge-state");
+        label.textContent = word;
+        heading.setAttribute("aria-labelledby", heading.querySelector(".section-title").id + (word ? " " + label.id : ""));
     }
-    const flags = STEPPER_STAGES.map(stage => stage.done());
-    const current = flags.indexOf(false);
-    nav.querySelectorAll(".stage-chip").forEach((chip, index) => {
-        const name = TEXT.page[STEPPER_STAGES[index].name];
-        chip.classList.toggle("done", flags[index]);
-        chip.classList.toggle("current", index === current);
-        if (index === current) chip.setAttribute("aria-current", "step"); else chip.removeAttribute("aria-current");
-        // Books also warns while Section 3's alert badge shows (chosen enchantments the books can't reach): amber, and named so.
-        const warn = index === BOOKS_STAGE && $("#books-alert").childElementCount > 0;
-        chip.classList.toggle("warn", warn);
-        chip.setAttribute("aria-label", warn ? TEXT.page.stepper_problem({ name }) : flags[index] ? TEXT.page.stepper_done({ name }) : name);
-        chip.title = name;
-        chip.querySelector(".stage-mark").textContent = warn ? "!" : flags[index] ? "✓" : String(index + 1);
-        chip.querySelector(".stage-label").textContent = name;
-    });
 }
 
 // ---------- Language ----------
@@ -582,7 +569,7 @@ async function init() {
     setupTheme();
     setupInfoTip();
     setupSkipLinks();
-    new MutationObserver(renderStepper).observe($("#books-alert"), { childList: true }); // (Books.js draws and clears the alert badge)
+    new MutationObserver(renderBadges).observe($("#books-alert"), { childList: true }); // (Books.js draws and clears the alert badge)
     setupJumpButtons();
     setupResultsColumn();
     setupSavedMenu();

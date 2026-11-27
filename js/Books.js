@@ -45,7 +45,12 @@ export function renderBooks() {
     const scroll = scrollY;
     box.replaceChildren();
     $("#books-alert").replaceChildren();
-    if (!state.item) return;
+    // With no item the card is just its heading and one muted line, its number greyed.
+    box.closest(".card").classList.toggle("idle", !state.item);
+    if (!state.item) {
+        box.append(h("p", { class: "idle-line" }, TEXT.page.pick_item_first));
+        return;
+    }
 
     const books = logic.currentBooks(state);
     const custom = !state.auto_books;
@@ -404,7 +409,6 @@ function toggleCoverage(summary) {
     }
     coverage_closing = true;
     summary.setAttribute("aria-expanded", "false");
-    summary.querySelector(".cover-caret").textContent = "▾";
     rollChipsOut(summary.closest(".coverage"), () => {
         coverage_closing = false;
         coverage_open = false;
@@ -436,7 +440,7 @@ function coverageStrip() {
         type: "button", class: "cover-chip ok summary", "data-focus": "cover-summary", "aria-expanded": String(coverage_open),
         title: TEXT.books.cover_toggle, "aria-label": summary_text + ". " + TEXT.books.cover_toggle,
         onclick: event => toggleCoverage(event.currentTarget)
-    }, ring, summary_text, h("span", { class: "cover-caret", "aria-hidden": "true" }, coverage_open ? "▴" : "▾")) : null;
+    }, ring, summary_text, h("span", { class: "fold-chevron", "aria-hidden": "true" })) : null;
     return h("div", { class: "coverage", role: "group", "aria-label": TEXT.books.coverage_label },
         short.map(({ namespace: ns, level }) => {
             const name = logic.displayName(ns, level);

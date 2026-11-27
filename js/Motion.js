@@ -971,7 +971,7 @@ export function viewSnapshot(scroller) {
         const row = box.querySelector(":scope > .anvil-row");
         const panel = row ? rel(row) : null;
         const twin_row = twin.querySelector(":scope > .anvil-row");
-        if (twin_row) Object.assign(twin_row.style, { background: "transparent", borderColor: "transparent" });
+        if (twin_row) Object.assign(twin_row.style, { background: "transparent", borderColor: "transparent", outlineColor: "transparent" });
         // What the panel holds that only this view has (the slot labels, the tooltips, the prior-work line), as the copy's parts with where they were.
         const held = ".anvil-row .cell-label, .anvil-row .mc-tooltip, .anvil-row .cell-meta";
         const twin_held = [...twin.querySelectorAll(held)];
@@ -979,13 +979,13 @@ export function viewSnapshot(scroller) {
         const all_held = real(scroller, held);
         const parts = [...box.querySelectorAll(held)].map((part, i) => ({ el: kept[all_held.indexOf(part)], rect: rel(part), under: twin_held[i], icon: all_icons.indexOf((part.closest(".anvil-cell") || document.body).querySelector("[data-node]")) })).filter(part => part.rect.width >= 1 && part.rect.height >= 1);
         for (const part of parts) { part.under.style.visibility = "hidden"; part.el.style.visibility = "visible"; }
-        items.set(box.dataset.stepCard, { ...outline, parts, twin_bits, restoreRow: () => { if (twin_row) Object.assign(twin_row.style, { background: "", borderColor: "" }); }, classes: (scroller.querySelector(".rounds.timeline") || {}).className || "", chrome: chromeOf(getComputedStyle(box)), slots, twin, panel: panel && panel.width >= 1 ? { ...panel, chrome: chromeOf(getComputedStyle(row)) } : null });
+        items.set(box.dataset.stepCard, { ...outline, parts, twin_bits, restoreRow: () => { if (twin_row) Object.assign(twin_row.style, { background: "", borderColor: "", outlineColor: "" }); }, classes: (scroller.querySelector(".rounds.timeline") || {}).className || "", chrome: chromeOf(getComputedStyle(box)), slots, twin, panel: panel && panel.width >= 1 ? { ...panel, chrome: chromeOf(getComputedStyle(row)) } : null });
     });
     for (const part of [...copy.querySelectorAll("[data-step], [data-step-card], [data-entry-link], [data-view]"), ...held_copy.querySelectorAll("[data-step], [data-step-card], [data-entry-link], [data-view]")]) {
         for (const name of ["data-step", "data-step-card", "data-entry-link", "data-view"]) part.removeAttribute(name);
     }
     for (const tip of copy.querySelectorAll(".info-tip")) tip.classList.remove("floating");
-    const shared = real(scroller, ".round-label, .final-card").map(rel); // the parts both timeline views have, in order
+    const shared = real(scroller, ".round-label").map(rel); // the parts both timeline views have, in order
     return { copy, held_copy, slot_list, fly_list, caption_list, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
 }
 
@@ -1096,6 +1096,9 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
     let panel_frame = null;
     if (now_panel) {
         panel_frame = frameOf("-1");
+        // The current step's ring (an outline on the panel) is drawn by the frame, so it grows with it instead of standing at the new size from the start.
+        const ring = getComputedStyle(row);
+        if (ring.outlineStyle !== "none" && parseFloat(ring.outlineWidth) > 0) Object.assign(panel_frame.style, { outline: `${ring.outlineWidth} ${ring.outlineStyle} ${ring.outlineColor}`, outlineOffset: ring.outlineOffset });
         row.classList.add("morphing");
         animations.push(panel_frame.animate([looks(was.panel, was.panel.chrome), looks(now_panel, now_panel.chrome)], { ...timing, fill: "forwards" }));
     }
@@ -1121,17 +1124,15 @@ export function morphView(scroller, container, old) {
     // Steps and Slots share the rail, the round labels, the cards and the finished item: those stay as they are (no fading out and in);
     // only what one view has and the other lacks fades.
     const same = old.timeline && Boolean(scroller.querySelector(".rounds.timeline"));
-    // The scroll bar stays as it is for the whole switch (a bar that comes and goes narrows and widens every card, and the old text with it): shown if
-    // the old view or the new one has one, else never (the height easing below would bring one in).
-    const bar_before = old.rect.width - old.client[0] > 0.5;
-    const bar_after = scroller.scrollHeight > scroller.clientHeight + 1;
-    scroller.style.overflowY = bar_before || bar_after ? "scroll" : "hidden";
+    // The steps scroll with the page (they have no scroll bar of their own): while the height eases below, what overflows is clipped, never given a bar
+    // (one that came and went narrowed and widened every card).
+    scroller.style.overflowY = "hidden";
     // The scroller is made the container of everything laid over it before anything is: an absolute child of a scroller that is not positioned belongs
     // to something above it, and a flyer put there can lengthen the page and bring a scroll bar, narrowing everything by its width while the rest is measured.
     scroller.classList.add("morphing-view");
     const timing = { duration: MORPH_MS, easing: MORPH_EASING };
     if (same) {
-        for (const part of copy.querySelectorAll(".round-label, .final-card, .current-bar")) part.style.visibility = "hidden";
+        for (const part of copy.querySelectorAll(".round-label, .current-bar")) part.style.visibility = "hidden";
         copy.querySelector(".rounds.timeline").classList.add("no-rail");
     }
     growSmoothly(scroller, rect.height, timing); // first, so the boxes below are measured in the layout they are animated in
@@ -1312,7 +1313,7 @@ export function morphView(scroller, container, old) {
         if (was) finishers.push(morphStep(box, was, { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height, chrome: chromeOf(getComputedStyle(box)) }, origin, timing, same, follow, layer));
     }
     // Nothing new is faded in over the old copy (see COVER_FADE): the rail, the labels and the tree's branches and starting items are simply there under it.
-    const labels = real(scroller, ".round-label, .final-card");
+    const labels = real(scroller, ".round-label");
     // Between Steps and Slots the round labels and the finished item move to their new places (the old copy's are hidden).
     if (same) labels.forEach((label, index) => {
         const was = old.shared[index];
