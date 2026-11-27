@@ -73,6 +73,7 @@ export function renderItem() {
     const old_width = old_tip_rect ? old_tip_rect.width : null;
     const old_lines = old_tip ? snapshotLines(old_tip).lines : [];
     box.replaceChildren();
+    for (const tip of document.querySelectorAll("body > .compare-tip")) tip.remove(); // (a preset's tooltip lives on the page, not in the card)
     if (!state.item) return;
     // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
     box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, "✓"), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading)),
@@ -218,9 +219,10 @@ export function setupItemDock() {
         const list = P.item.querySelector(".item-mini .mini-list");
         const pairs = [[P.name, P.mini_name], [P.cost, P.mini_cost]];
         for (const line of P.item.querySelectorAll(".wanted-preview .mc-tooltip .mc-ench[data-ns]")) pairs.push([line, list && list.querySelector(`.mini-ench[data-ns="${line.dataset.ns}"]`)]);
-                for (const [el, to_el] of pairs) {
-            const in_tip = el.classList.contains("mc-ench"); // an enchantment line: kept inside the tooltip's box on the way
+        for (const [el, to_el] of pairs) {
+            // (no cost line with nothing chosen: the pair is skipped before anything reads it)
             if (!el || !to_el || !el.getClientRects().length || !to_el.getClientRects().length) continue;
+            const in_tip = el.classList.contains("mc-ench"); // an enchantment line: kept inside the tooltip's box on the way
             // Its colour (and shadow) go from the tooltip's to the bar's too (the words' own element: the cost line's text span).
             const words = node => node.querySelector(".cost-line-text") || node;
             const from_look = getComputedStyle(words(el)), to_look = getComputedStyle(words(to_el));
@@ -986,6 +988,9 @@ function fillCostMeter(line) {
     const before = line.getBoundingClientRect().height;
     const tooltip = line.closest(".mc-tooltip");
     const width_before = tooltip ? tooltip.getBoundingClientRect().width : null;
+    // In the condensed bar the line sits beside the name's tooltip box, which gives up (or takes back) its width as the line comes or goes.
+    const mini_text = line.closest(".item-dock.condensed .item-mini") ? line.closest(".item-mini").querySelector(".mini-text") : null;
+    const mini_before = mini_text ? mini_text.getBoundingClientRect().width : null;
     line.classList.toggle("stale", running);
     // Nothing chosen means nothing to cost: the line goes at once, not when the new search finishes.
     const nothing = Object.keys(state.wanted).length === 0;
@@ -998,6 +1003,13 @@ function fillCostMeter(line) {
     text.textContent = words;
     if (!line.isConnected || !motionOk()) return;
     slideWidth(tooltip, width_before); // the words can make the tooltip wider or narrower
+    if (mini_text) {
+        const after = mini_text.getBoundingClientRect().width;
+        if (Math.abs(after - mini_before) > 0.5) {
+            const fixed = width => ({ flexBasis: width + "px", flexGrow: 0, flexShrink: 0 });
+            mini_text.animate([fixed(mini_before), fixed(after)], { duration: 250, easing: "ease-out" });
+        }
+    }
     // New words flip in like the tooltip's rows (rollLines): the old ones leave through one edge of the row while the new come in
     // from the other, up for more levels, down for fewer.
     if (old_box) flipWords(line, text, old_words, words, old_box);
@@ -1094,7 +1106,7 @@ function presetChips() {
     // Hovering (or focusing) a preset shows what it would change, as a game tooltip: + for
     // what it adds or raises, - for what it takes away.
     let compare = null;
-    const hideCompare = () => { if (compare) { compare.remove(); compare = null; } };
+    const hideCompare = () => { if (compare) { compare.remove(); compare = null; removeEventListener("scroll", hideCompare); } };
     const showCompare = (chip, wanted) => {
         hideCompare();
         if (matchMedia("(hover: none)").matches) return;
@@ -1109,10 +1121,13 @@ function presetChips() {
         if (!lines.some(line => line.classList.contains("changed") || line.classList.contains("removed"))) lines.splice(0, lines.length, h("div", { class: "mc-ench" }, TEXT.wanted.compare_same));
         compare = h("div", { class: "mc-tooltip compare-tip", "aria-hidden": "true" },
             h("div", { class: nameClass("common") }, logic.itemName(state.item)), lines);
-        const box = chip.closest(".presets");
-        box.append(compare);
-        compare.style.top = chip.offsetTop + chip.offsetHeight + 4 + "px";
-        compare.style.left = Math.max(0, Math.min(chip.offsetLeft, box.clientWidth - compare.offsetWidth)) + "px";
+        // On the page itself, fixed under the chip: inside the card it would sit under the item's tooltip and be clipped while the card morphs into the
+        // sticky bar (Wanted.js setupItemDock). The chip moves when the page scrolls, so the tooltip goes then.
+        document.body.append(compare);
+        const at = chip.getBoundingClientRect();
+        compare.style.top = at.bottom + 4 + "px";
+        compare.style.left = Math.max(8, Math.min(at.left, innerWidth - compare.offsetWidth - 8)) + "px";
+        addEventListener("scroll", hideCompare, { passive: true });
     };
     const hover = wanted => ({
         onmouseenter: event => showCompare(event.currentTarget, wanted), onmouseleave: hideCompare,

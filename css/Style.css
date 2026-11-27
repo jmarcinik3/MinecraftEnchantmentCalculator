@@ -412,7 +412,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .item-dock[hidden] { display: none; }
 #item { padding: 12px 16px; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 .item-mini { display: none; align-items: center; gap: 10px; min-width: 0; }
-.item-mini { cursor: pointer; border-radius: 4px; }
+.item-mini { cursor: pointer; border-radius: 4px; overflow: clip; overflow-clip-margin: 4px; } /* (the cost line slides in from under its edge while the name's box narrows; the margin keeps the focus ring) */
 .item-mini:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .item-mini .mc-slot { flex: none; }
 /* The bar's name and enchantments sit in the game's tooltip, like the tall card's. */
@@ -424,6 +424,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .mini-list { font-family: "Minecraft", system-ui, sans-serif; font-size: 12px; color: var(--mc-gray); overflow: hidden; white-space: nowrap; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); } /* fades out at the right instead of "…" (the morph uses the same fade, Wanted.js setupItemDock) */
 .mini-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 .item-mini .cost-line { flex: none; margin: 0; }
+.item-mini .cost-line.idle { display: none; } /* (no cost yet, nothing chosen: it would take the bar's whole width) */
 .item-mini .cost-line-text { color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); font-family: "Minecraft", system-ui, sans-serif; } /* the tooltip's green */
 /* (screen only: on paper the item is always the full card, never the condensed bar) */
 @media screen and (max-width: 1359px) {
@@ -2440,7 +2441,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .cost-line.none .cost-line-orb { filter: grayscale(1); opacity: 0.5; }
 .cost-line.none .cost-line-text { color: var(--mc-gray); }
 .presets { position: relative; }
-.compare-tip { position: absolute; z-index: 30; width: auto; min-width: 120px; padding: 4px 8px; white-space: nowrap; pointer-events: none; }
+.compare-tip { position: fixed; z-index: 45; width: auto; min-width: 120px; padding: 4px 8px; white-space: nowrap; pointer-events: none; }
 .mc-ench.removed { color: var(--mc-red); text-decoration: line-through; text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 .mc-ench.removed::before { content: "- "; text-decoration: none; display: inline-block; }
 
