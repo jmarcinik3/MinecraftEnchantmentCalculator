@@ -443,8 +443,10 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .item-mini { cursor: pointer; border-radius: 4px; }
 .item-mini:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .item-mini .mc-slot { flex: none; }
-.mini-text { flex: 1 1 auto; min-width: 0; }
-.mini-name { font-weight: 700; font-size: 14px; white-space: nowrap; }
+.mini-text { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.mini-name { font-weight: 700; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* Very narrow: the bar keeps the name and the way to the steps; the cost is in the receipt below. */
+@media (max-width: 359px) { .item-mini .cost-line { display: none; } }
 .mini-list { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-mini .cost-line { flex: none; margin: 0; }
 .item-mini .cost-line-text { color: var(--success-text); }
@@ -455,6 +457,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     .item-dock.condensed .item-mini-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .item-dock.condensed .item-mini-row > .item-mini { flex: 1; min-width: 0; }
     .item-dock.condensed .mini-reset { display: inline-flex; }
+    .item-dock.condensed .mini-steps { display: inline-flex; }
     .item-dock.condensed .item-mini { display: flex; }
 }
 /* 900 to 1359px: the results column sticks under the bar too. */
@@ -2402,6 +2405,10 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .mini-reset { display: none; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-secondary); cursor: pointer; }
 .mini-reset:hover, .mini-reset:focus-visible { color: var(--text); border-color: var(--accent); }
 .mini-reset .reset-icon { width: 16px; height: 16px; }
+/* The condensed bar's way down to the steps (Anvil uses), at its right. */
+.mini-steps { display: none; flex: none; align-items: center; height: 32px; padding: 0 10px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-bg); color: var(--accent-text); font: 600 12px/1 system-ui, -apple-system, "Segoe UI", sans-serif; white-space: nowrap; cursor: pointer; }
+.mini-steps:hover, .mini-steps:focus-visible { border-color: var(--accent-text); }
+@media (pointer: coarse) { .mini-steps, .mini-reset { height: 40px; } }
 .reset-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .reset-button:hover, .reset-button:focus-visible { color: var(--text); border-color: var(--accent); }
 

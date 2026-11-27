@@ -131,7 +131,13 @@ function itemMini() {
         h("div", { class: "mini-text" },
             h("div", { class: "mini-name" }, logic.itemName(state.item)),
             h("div", { class: "mini-list" }, chosen.length ? logic.summary(chosen) : TEXT.wanted.item_mini_none)),
-        costLine()));
+        costLine()),
+        // Down to the steps (Anvil uses), from anywhere on the page.
+        h("button", {
+            type: "button", class: "mini-steps", title: TEXT.wanted.item_mini_steps_help, "aria-label": TEXT.wanted.item_mini_steps_help,
+            onclick: event => { event.stopPropagation(); scrollToView(document.querySelector('[data-section="steps"]'), "start"); },
+            onkeydown: event => event.stopPropagation()
+        }, TEXT.wanted.item_mini_steps));
 }
 
 // The bar condenses once the page is scrolled past the top of the sections (a sentinel at their top leaves the window), and the results column and the browser's scrolling keep clear of the bar's height (`--dock-h`, `scroll-padding-top`).

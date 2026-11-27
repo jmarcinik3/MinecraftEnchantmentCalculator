@@ -827,7 +827,9 @@ export function foldDetails(details, open, inside = []) {
     if (details.open === open) return;
     if (details.beforeFold) details.beforeFold(open);
     details.wantOpen = open; // where it is heading, for a second click mid-slide (foldTarget)
-    const settle = () => { details.open = open; if (!open) for (const nested of inside) nested.open = false; };
+    // The boxes inside close first, while this one is still drawn: iPhone browsers (WebKit) don't lay out a <details> closed while it is hidden in a closed
+    // one, so it kept its open height and reopened as an empty space.
+    const settle = () => { if (!open) for (const nested of inside) nested.open = false; details.open = open; };
     if (!motionOk()) return settle();
     const from = details.getBoundingClientRect().height;
     let to;

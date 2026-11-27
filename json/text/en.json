@@ -94,6 +94,8 @@
         "preset_plain": "Plain",
         "preset_plain_help": "No enchantments: the plain item",
         "presets": "Presets",
+        "item_mini_steps": "Steps ↓",
+        "item_mini_steps_help": "Go to the steps",
         "item_mini_top": "Back to the top",
         "item_mini_none": "No enchantments chosen",
         "preset_best": "God",

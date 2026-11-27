@@ -311,6 +311,31 @@ def part_section1(browser, base):
     return errors6
 
 
+def part_item_bar(browser, base):
+    """the phone's condensed Item bar: Start over at its left, the bar itself back to the top, and Steps down to Anvil uses"""
+    _, p, errors = open_page(browser, base, viewport={"width": 390, "height": 800})
+    p.click("#wanted .example")
+    settle(p)
+    p.evaluate("scrollTo(0, 900)")
+    p.wait_for_selector("#item-dock.condensed")
+    check("the condensed bar has a Steps button", p.locator("#item .mini-steps").is_visible())
+    p.click("#item .mini-steps")
+    p.wait_for_function("Math.abs(document.querySelector('[data-section=\"steps\"]').getBoundingClientRect().top - document.querySelector('#item .item-mini').getBoundingClientRect().bottom) < 40")
+    check("Steps scrolls to Anvil uses, just under the bar", p.locator('[data-section="steps"]').bounding_box()["y"] > 0)
+    p.click("#item .item-mini")
+    p.wait_for_function("scrollY === 0")
+    check("the bar itself goes back to the top", p.evaluate("scrollY") == 0)
+    _, n, errs = open_page(browser, base, viewport={"width": 320, "height": 700})
+    errors += errs
+    n.click("#wanted .example")
+    settle(n)
+    n.evaluate("scrollTo(0, 900)")
+    n.wait_for_selector("#item-dock.condensed")
+    overlap = n.evaluate("""(() => { const a = document.querySelector('#item .mini-text').getBoundingClientRect(), b = document.querySelector('#item .mini-steps').getBoundingClientRect(); return a.right > b.left + 1; })()""")
+    check("at 320px the bar's text never runs into the Steps button", not overlap and not n.evaluate("document.documentElement.scrollWidth > innerWidth"))
+    return errors
+
+
 def part_rerun(browser, base):
     """when the search runs again: only when what it is given changes (Automatic -> Custom, reordering cards: no; an edit: yes)"""
     _, p, errors = open_page(browser, base, viewport={"width": 1280, "height": 900})
@@ -2288,7 +2313,7 @@ def part_folds_motion(browser, base):
     return errors
 
 
-PARTS = [part_stage_hotbar, part_rerun, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
+PARTS = [part_stage_hotbar, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
 
 
 class PartBrowser:

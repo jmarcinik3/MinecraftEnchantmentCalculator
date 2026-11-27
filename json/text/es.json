@@ -95,6 +95,8 @@
         "preset_plain_help": "Sin encantamientos: el objeto sin más",
         "presets": "Preajustes",
         "preset_best": "Dios",
+        "item_mini_steps": "Pasos ↓",
+        "item_mini_steps_help": "Ir a los pasos",
         "item_mini_top": "Volver arriba",
         "item_mini_none": "Sin encantamientos elegidos",
         "preset_best_help": "Los mejores encantamientos habituales para este objeto, al nivel máximo y sin maldiciones",
