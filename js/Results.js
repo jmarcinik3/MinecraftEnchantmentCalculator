@@ -118,6 +118,10 @@ function drawResults() {
     renderStepsSummary();
     updateLevelMeter();
     const box = $("#results");
+    hideBarTip(); // (the Next step card is redrawn: its slot's tooltip goes with it)
+    // Every step's height and fold before the redraw, for one that folds or unfolds with no `fold_change` of its own (a hotbar jump, Uncheck all, Undo...).
+    const was_folded = !folding && !change ? new Map([...stepBoxes()].map(([number, el]) => [number, { height: el.getBoundingClientRect().height, folded: el.classList.contains("folded") }])) : null;
+    const was_key = drawn_key;
     // The hotbar's selection frame, where it was: it slides from there to the new current step (`slideHotbarRing`).
     const old_ring = box.querySelector(".hotbar-ring");
     const ring_from = old_ring ? { rect: old_ring.getBoundingClientRect(), key: hotbar_key } : null;
@@ -206,6 +210,7 @@ function drawResults() {
     content.append(h("p", { class: "print-only" }, TEXT.results.anvil_uses({ uses: steps.length }) + " · " + anvilRiskText(steps.length)));
 
     const order_key = orderKey(steps);
+    drawn_key = order_key;
     const done = loadChecklist(order_key);
 
     const left = steps.map(step => step.number).filter(number => !done.has(number));
@@ -311,11 +316,25 @@ function drawResults() {
     if (change) morphView(scroller, content, change);
     slideHotbarRing(ring_from);
     // Expand all / Collapse all: each step that opens or folds eases its height, so what is below moves with it.
-    if (folding) {
-        // A tree merge or step that folds keeps its contents on show while its box shrinks, so it is unfolding played backwards (the box clips them); then it hides them.
-        const keepBranch = el => el.matches("li.tree-node.folded, li.anvil-step.folded") ? () => { el.classList.add("folding"); return () => el.classList.remove("folding"); } : undefined;
-        for (const [number, el] of stepBoxes()) if (folding.has(number)) easeHeight(el, folding.get(number), { during: keepBranch(el), overhang: el.matches(".anvil-step") ? 40 : 0 }); // (a step's circle sits on the rail, outside its box)
+    if (folding) easeFolds(folding);
+    else if (was_folded && was_key === drawn_key && motionOk()) {
+        const changed = new Map();
+        for (const [number, el] of stepBoxes()) {
+            const before = was_folded.get(number);
+            if (before && before.folded !== el.classList.contains("folded")) changed.set(number, before.height);
+        }
+        if (changed.size) easeFolds(changed);
     }
+}
+
+// The order on screen (orderKey), so a fold that changes in a redraw of the same order eases (`drawResults`) and a new order just appears.
+let drawn_key = null;
+
+// Each step (or tree merge) in `heights` eases from that height to its new one, the way a section folds.
+function easeFolds(heights) {
+    // A tree merge or step that folds keeps its contents on show while its box shrinks, so it is unfolding played backwards (the box clips them); then it hides them.
+    const keepBranch = el => el.matches("li.tree-node.folded, li.anvil-step.folded") ? () => { el.classList.add("folding"); return () => el.classList.remove("folding"); } : undefined;
+    for (const [number, el] of stepBoxes()) if (heights.has(number)) easeHeight(el, heights.get(number), { during: keepBranch(el), overhang: el.matches(".anvil-step") ? 40 : 0 }); // (a step's circle sits on the rail, outside its box)
 }
 
 // The "?" in a round's label: why its steps can go in any order (a bubble that floats over the page).
@@ -682,7 +701,10 @@ function showCost(chip, bubble) {
     chip.classList.add("open");
     const box = chip.getBoundingClientRect();
     bubble.style.left = Math.max(8, Math.min(box.left + box.width / 2 - 100, innerWidth - 216)) + "px";
-    bubble.style.top = box.bottom + 6 + "px";
+    // Below the chip, or above it when the window has no room below (and there is room above).
+    const height = bubble.offsetHeight, margin = 8;
+    const below = box.bottom + 6;
+    bubble.style.top = (below + height > innerHeight - margin && box.top - 6 - height >= margin ? box.top - 6 - height : below) + "px";
 }
 
 // The bar stands in for the current step while that step is off screen; while any of it
@@ -727,7 +749,13 @@ function markStepDone(steps, done, order_key, number) {
 function currentBar(steps, done, order_key, current) {
     const step = steps.find(entry => entry.number === current);
     const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
-    const mini = node => h("span", { class: "mini-slot" + (node.enchantments.length ? " glint" : ""), title: nodeName(node) }, icon(node.item_namespace));
+    // Each slot shows the game's tooltip on hover (its name and enchantments), as the hotbar's do,
+    const mini = node => h("span", {
+        class: "mini-slot" + (node.enchantments.length ? " glint" : ""),
+        onpointerenter: event => showBarTip(event.currentTarget, node), onpointerleave: hideBarTip,
+        // and lights the Books and items cards that went into it, as the steps' and the hotbar's slots do
+        ...sourcesHover(node)
+    }, icon(node.item_namespace));
     // It starts as the bar on screen was (tucked when there was none): its observers answer only after the first frame, and an untucked start
     // flashed the card in and out each time a search finished.
     const shown = document.querySelector("#results .current-bar:not(.tucked)");
@@ -922,15 +950,18 @@ closeOnOutside({
 
 // Brings a step into view (unfolding it, in the Steps view) and flashes it.
 function jumpToStep(order_key, number) {
+    let opened = false;
     if (result_view !== "tree" && isFolded(order_key, number, loadChecklist(order_key), foldedByDefault(number))) {
         foldsFor(order_key).set(number, false);
-        renderResults();
+        renderResults(); // (the step eases open: drawResults sees its fold change)
+        opened = true;
     }
     const card = document.querySelector(`#results [data-step-card="${number}"]`);
     if (!card) return;
-    scrollToView(card, "center");
     (card.querySelector("input[data-step]") || card).focus({ preventScroll: true }); // (a step is not itself a tab stop)
     flash(card);
+    // A step that opens is brought to the top at once, so its opening plays in view (its top stays put while it grows); one already open is centred.
+    scrollToView(card, opened ? "start" : "center");
 }
 
 // In the toolbar: the step hotbar (the progress; "3 of 7 done" is only said to screen readers, `announce`), Set level and ↺ to untick them all (shown once something is ticked; a toast's Undo brings the ticks back).
@@ -972,13 +1003,13 @@ function stepHotbar(steps, done, order_key, level_up = false) {
     const slots = steps.map((step, index) => {
         const is_done = done.has(step.number);
         const label = (is_done ? TEXT.results.hotbar_slot_done : TEXT.results.hotbar_slot)({ number: step.number, name: nodeName(step.node) });
-        // The game's tooltip on hover or focus: the result's name (rarity colour, italic once renamed), its enchantments, then which step makes it.
+        // The game's tooltip on hover or focus: the result's name (rarity colour, italic once renamed) and its enchantments.
         const enchanted = step.node.enchantments.length > 0;
         const renamed = Boolean(step.node.renamed && state.rename_to.trim());
         const tip = h("div", { class: "hotbar-tip mc-tooltip", "aria-hidden": "true" },
             h("div", { class: nameClass(logic.rarity(step.node.item_namespace, enchanted), renamed ? " renamed" : "") }, nodeName(step.node)),
-            logic.tooltipSort(step.node.enchantments).map(e => enchLine(logic.displayName(e.namespace, e.level), logic.isCurse(e.namespace))),
-            h("div", { class: "hotbar-tip-step" }, TEXT.results.step_title({ number: step.number }) + (is_done ? " ✓" : "")));
+            logic.tooltipSort(step.node.enchantments).map(e => enchLine(logic.displayName(e.namespace, e.level), logic.isCurse(e.namespace))));
+        // (no "Step N" line: the slot shows its number, and a done step its check)
         return h("button", {
             type: "button", "aria-label": label, "aria-current": index === current ? "step" : null,
             class: "hotbar-slot" + (enchanted ? " glint" : "") + (is_done ? " done" : "") + (index === current ? " current" : ""),
@@ -1004,6 +1035,26 @@ function slideHotbarRing(from) {
     const dx = from.rect.left - to.left, dy = from.rect.top - to.top;
     if (Math.abs(dx) < 0.5 && Math.abs(dy) < 0.5) return;
     ring.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 260, easing: "cubic-bezier(.2,.7,.2,1)" });
+}
+
+// The Next step card's slot tooltip: on the page itself (fixed), since the card is a sticky box that clips and slides; placed like a hotbar slot's,
+// above the slot when there is no room below. It goes when the pointer leaves, or when the results redraw.
+function showBarTip(slot, node) {
+    hideBarTip();
+    if (matchMedia("(hover: none)").matches) return;
+    const enchanted = node.enchantments.length > 0;
+    const renamed = Boolean(node.renamed && state.rename_to.trim());
+    const tip = h("div", { class: "hotbar-tip mc-tooltip bar-tip", "aria-hidden": "true" },
+        h("div", { class: nameClass(logic.rarity(node.item_namespace, enchanted), renamed ? " renamed" : "") }, nodeName(node)),
+        logic.tooltipSort(node.enchantments).map(e => enchLine(logic.displayName(e.namespace, e.level), logic.isCurse(e.namespace))));
+    document.body.append(tip);
+    const at = slot.getBoundingClientRect(), box = tip.getBoundingClientRect(), margin = 8;
+    const below = at.bottom + 8;
+    tip.style.left = Math.max(margin, Math.min(at.left + at.width / 2 - box.width / 2, innerWidth - margin - box.width)) + "px";
+    tip.style.top = (below + box.height > innerHeight - margin && at.top - 8 - box.height >= margin ? at.top - 8 - box.height : below) + "px";
+}
+function hideBarTip() {
+    for (const tip of document.querySelectorAll("body > .bar-tip")) tip.remove();
 }
 
 // Places a hotbar slot's tooltip: fixed to the window (so no box around the hotbar, such as the card, can cut it off), under the slot and centred on it,

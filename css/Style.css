@@ -1868,7 +1868,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; cursor: pointer; }
 .step-title { flex: none; padding: 3px 0; font-size: 13px; font-weight: 600; color: var(--text); }
 /* The whole head (but the tick) folds and unfolds the step; the chevron says which it will do. */
-.step-summary { flex: 1; min-width: 0; overflow: hidden; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.step-summary { flex: 1; min-width: 0; overflow: hidden; font-family: "Minecraft", system-ui, sans-serif; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; } /* the game font for the enchantment names, like the tooltips */
 .step-fold {
     border-radius: 6px;
     color: var(--text-muted);
@@ -2617,7 +2617,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .current-bar-card { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border: 1px solid var(--accent); border-radius: 12px; background: var(--surface); box-shadow: var(--shadow-menu-deep); }
 .current-bar.tucked { opacity: 0; visibility: hidden; transform: translateY(8px); pointer-events: none; }
 .current-bar-text { display: flex; flex: 1; flex-direction: column; min-width: 0; font-size: 12px; }
-.current-bar-text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; color: var(--text-secondary); overflow-wrap: anywhere; }
+.current-bar-text span { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-family: "Minecraft", system-ui, sans-serif; color: var(--text-secondary); overflow-wrap: anywhere; } /* the step's line in the game font, like the folded steps */
 .current-bar-eyebrow, .current-bar-slots { display: none; }
 @media (max-width: 899px) { .current-bar { margin-top: 10px; } }
 @media (min-width: 900px) {
@@ -2649,8 +2649,8 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 /* A slot's game tooltip (Results.js stepHotbar): fixed to the window and placed by placeHotbarTip (under the slot, centred, inside the window); shown on hover or keyboard focus. */
 .hotbar-tip { display: none; position: fixed; z-index: 60; width: max-content; max-width: min(280px, calc(100vw - 16px)); text-align: left; white-space: nowrap; pointer-events: none; }
 .hotbar-slot:hover .hotbar-tip, .hotbar-slot:focus-visible .hotbar-tip { display: block; }
+.bar-tip { display: block; } /* (the Next step card's slot tooltip exists only while shown) */
 .hotbar-slot:hover, .hotbar-slot:focus-visible { z-index: 50; } /* above the round labels and steps below the row while its tooltip shows */
-.hotbar-tip-step { margin-top: 2px; color: var(--mc-gray); }
 @media (hover: none) { .hotbar-slot:hover .hotbar-tip { display: none; } }
 @media print { .current-bar, .density { display: none !important; } }
 /* The Slots view: a step is one line of slots; tooltips show on hover or focus. */
@@ -2662,7 +2662,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .slots-mode .anvil-cell.result { justify-self: start; width: auto; min-width: 0; }
 .slots-mode .anvil-cell { position: relative; }
 .slots-mode .cell-label, .slots-mode .cell-meta, .slots-mode .step-words, .slots-mode .anvil-cell .mc-tooltip { display: none; }
-.slots-mode .step-caption { display: block; margin: 6px 2px 0; font-size: 12px; color: var(--text-secondary); }
+.slots-mode .step-caption { display: block; margin: 6px 2px 0; font-family: "Minecraft", system-ui, sans-serif; font-size: 12px; color: var(--text-secondary); } /* the game font, like the folded step lines */
 /* Hover only where there is a mouse (on touch a tap leaves :hover stuck on), keyboard focus, or a tap (.tip-open). */
 .slots-mode .anvil-cell.tip-open .mc-tooltip, .slots-mode .anvil-cell:has(:focus-visible) .mc-tooltip { display: block; position: absolute; top: 54px; left: 0; z-index: 30; width: max-content; max-width: 240px; pointer-events: none; }
 @media (hover: hover) {
