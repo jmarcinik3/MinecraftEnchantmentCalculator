@@ -2,15 +2,15 @@
     "page": {
         "title": "Fortryllingskalkulator",
         "heading": "Fortryllingskalkulator",
-        "item_heading": "Gjenstand",
-        "enchantments_heading": "Fortryllingar",
-        "books_heading": "Bøker og gjenstandar",
+        "item_heading": "Vel ei gjenstand",
+        "enchantments_heading": "Vel fortryllingar",
+        "books_heading": "Legg til bøker",
         "pick_item_first": "Vel ein gjenstand først",
-        "skip_steps": "Hopp til Ambolt-bruk",
+        "skip_steps": "Hopp til stega",
         "badge_done": "ferdig",
         "badge_problem": "problem",
         "badge_searching": "søkjer",
-        "steps_heading": "Ambolt-bruk",
+        "steps_heading": "Følg stega",
         "theme_dark": "Byt til mørk modus",
         "theme_light": "Byt til lys modus",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Om lag {levels} nivå for å leggje dette til frå ei bok, før eventuelt tidlegare arbeid", "other": "Om lag {levels} nivå for å leggje dette til frå ei bok, før eventuelt tidlegare arbeid"},
         "preview_label": "Ferdig gjenstand",
-        "short_help": "Bøkene og gjenstandane dine i Bøker og gjenstandar-delen kan ikkje nå nivået som er valt her."
+        "short_help": "Bøkene og gjenstandane dine i del 3 kan ikkje nå nivået som er valt her."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Gøym dette steget",
         "progress": "{done} av {total} ferdig",
         "progress_done": "Alle {total} steg er ferdige",
-        "entry_link_label": "Vis {name} i Bøker og gjenstandar",
+        "entry_link_label": "Vis {name} i del 3",
         "from_step": "Frå steg {number}",
         "result_work": "Tidlegare arbeid {count}",
         "uncheck_all": "Fjern alle avkrysingar",

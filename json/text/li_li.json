@@ -2,15 +2,15 @@
     "page": {
         "title": "Betoverkesrekner",
         "heading": "Betoverkesrekner",
-        "item_heading": "Veurwerp",
-        "enchantments_heading": "Betoverkes",
-        "books_heading": "Booked en veurwerpe",
+        "item_heading": "Kees e veurwerp",
+        "enchantments_heading": "Kees betoverkes",
+        "books_heading": "Doe booked bie",
         "pick_item_first": "Kies ierst e veurwerp",
-        "skip_steps": "Gao nao Aambeeldgebruik",
+        "skip_steps": "Gao nao de sjtappe",
         "badge_done": "klaor",
         "badge_problem": "probleem",
         "badge_searching": "zeuk",
-        "steps_heading": "Aambeeldgebruik",
+        "steps_heading": "Volg de sjtappe",
         "theme_dark": "Umsjakkele nao dónkere modus",
         "theme_light": "Umsjakkele nao lechte modus",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Good {levels} nivo's óm dit oet e boek toe te veuge, veur eventueel vreuger wirk"
         },
         "preview_label": "Ut klaor veurwerp",
-        "short_help": "Dien booked en veurwerpe in 't deil Booked en veurwerpe kinne 't hie gekoze nivo neet bereike."
+        "short_help": "Dien booked en veurwerpe in 't deil 3 kinne 't hie gekoze nivo neet bereike."
     },
     "books": {
         "custom": "Eige",
@@ -494,7 +494,7 @@
         "collapse_step": "Dees sjtap dichdoen",
         "progress": "{done} van {total} klaor",
         "progress_done": "Alle {total} sjtappe klaor",
-        "entry_link_label": "Toon {name} óngér Booked en veurwerpe",
+        "entry_link_label": "Toon {name} óngér deil 3",
         "from_step": "Oet sjtap {number}",
         "result_work": "Vreuger wirk {count}",
         "uncheck_all": "Alles aafvinke",

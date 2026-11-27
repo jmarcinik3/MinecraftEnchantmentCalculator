@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzaubarungsrechna",
         "heading": "Verzaubarungsrechna",
-        "item_heading": "Gegnstand",
-        "enchantments_heading": "Verzaubarungen",
-        "books_heading": "Bücha und Gegnständ",
+        "item_heading": "Wähl a Gegnstand",
+        "enchantments_heading": "Wähl Verzaubarungen",
+        "books_heading": "Füg Bücha dazua",
         "pick_item_first": "Such ers an Gegnstand aus",
-        "skip_steps": "Zu de Amboss-Benutzunga springa",
+        "skip_steps": "Zu de Schritt springa",
         "badge_done": "fertich",
         "badge_problem": "Problem",
         "badge_searching": "sucht",
-        "steps_heading": "Amboss-Benutzunga",
+        "steps_heading": "Folg de Schritt",
         "theme_dark": "Zum dunkln Modus wechsln",
         "theme_light": "Zum helln Modus wechsln",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ungfährlich {levels} Level, um des aus an Buch dazu zu däun, vor dr Vorarbat", "other": "Ungfährlich {levels} Level, um des aus an Buch dazu zu däun, vor dr Vorarbat"},
         "preview_label": "Dr fertichn Gegnstand",
-        "short_help": "Dei Bücha und Gegnständ im Bereich Bücha und Gegnständ kenna des Level do ned erreichn."
+        "short_help": "Dei Bücha und Gegnständ im Bereich 3 kenna des Level do ned erreichn."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Dän Schritt zumachn",
         "progress": "{done} vo {total} fertich",
         "progress_done": "Alle {total} Schritt fertich",
-        "entry_link_label": "{name} unter Bücha und Gegnständ zeign",
+        "entry_link_label": "{name} im Bereich 3 zeign",
         "from_step": "Aus Schritt {number}",
         "result_work": "Vorarbat {count}",
         "uncheck_all": "Alle abwähln",

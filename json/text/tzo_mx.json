@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulador Enchantment",
         "heading": "Kalkulador enchantment",
-        "item_heading": "Ta'il",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Vunetik ta'il",
+        "item_heading": "Sa' ta'il",
+        "enchantments_heading": "Sa' enchantments",
+        "books_heading": "Yak' vunetik",
         "pick_item_first": "Mu xa x-ilan ta'il",
-        "skip_steps": "Ta sa' Yunke Pasos",
+        "skip_steps": "Ta sa' pasos",
         "badge_done": "k'ot",
         "badge_problem": "k'upil",
         "badge_searching": "ta xk'ot",
-        "steps_heading": "Yunke Pasos",
+        "steps_heading": "Xchi'uk pasos",
         "theme_dark": "Xchanjtesan ta k'ak'al",
         "theme_light": "Xchanjtesan ta sak",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ta ch'ay {levels} nivel ta ak'bil ta vun, mu ta k'ak'al ta antes", "other": "Ta ch'ay {levels} niveles ta ak'bil ta vun, mu ta k'ak'al ta antes"},
         "preview_label": "Ta'il ta k'ot",
-        "short_help": "Mu xa x-ilan ta vun xchi'uk ta'il ta sección Vun xchi'uk ta'il, ta ch'ayel nivel ta sventa."
+        "short_help": "Mu xa x-ilan ta vun xchi'uk ta'il ta sección 3, ta ch'ayel nivel ta sventa."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Sa' ta paso",
         "progress": "{done} ta {total} k'ot",
         "progress_done": "Todos {total} pasos k'ot",
-        "entry_link_label": "Muk'ul {name} ta Vun xchi'uk ta'il",
+        "entry_link_label": "Muk'ul {name} ta sección 3",
         "from_step": "Ta paso {number}",
         "result_work": "Lo'il ta antes {count}",
         "uncheck_all": "Xkoj todo marca",

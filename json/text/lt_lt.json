@@ -2,15 +2,15 @@
     "page": {
         "title": "Užkerėjimų skaičiuoklė",
         "heading": "Užkerėjimų skaičiuoklė",
-        "item_heading": "Daiktas",
-        "enchantments_heading": "Užkerėjimai",
-        "books_heading": "Knygos ir daiktai",
+        "item_heading": "Pasirinkite daiktą",
+        "enchantments_heading": "Pasirinkite užkerėjimus",
+        "books_heading": "Pridėkite knygų",
         "pick_item_first": "Pirmiausia pasirinkite daiktą",
-        "skip_steps": "Pereiti prie priekalo naudojimų",
+        "skip_steps": "Pereiti prie žingsnių",
         "badge_done": "atlikta",
         "badge_problem": "problema",
         "badge_searching": "ieškoma",
-        "steps_heading": "Priekalo naudojimai",
+        "steps_heading": "Sekite žingsnius",
         "theme_dark": "Perjungti į tamsų režimą",
         "theme_light": "Perjungti į šviesų režimą",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Apytiksliai {levels} lygis šiam pridėti iš knygos, prieš bet kokį ankstesnį darbą", "few": "Apytiksliai {levels} lygiai šiam pridėti iš knygos, prieš bet kokį ankstesnį darbą", "other": "Apytiksliai {levels} lygių šiam pridėti iš knygos, prieš bet kokį ankstesnį darbą"},
         "preview_label": "Baigtas daiktas",
-        "short_help": "Jūsų knygos ir daiktai skiltyje Knygos ir daiktai nepasiekia čia pasirinkto lygio."
+        "short_help": "Jūsų knygos ir daiktai 3 skiltyje nepasiekia čia pasirinkto lygio."
     },
 
     "books": {
@@ -379,7 +379,7 @@
         "collapse_step": "Suskleisti šį žingsnį",
         "progress": "Atlikta {done} iš {total}",
         "progress_done": "Visi {total} žingsniai atlikti",
-        "entry_link_label": "Rodyti {name} skiltyje Knygos ir daiktai",
+        "entry_link_label": "Rodyti {name} 3 skiltyje",
         "from_step": "Iš {number} žingsnio",
         "result_work": "Ankstesnis darbas {count}",
         "uncheck_all": "Nuimti visas žymes",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzauberungsrechner",
         "heading": "Verzauberungsrechner",
-        "item_heading": "Gegenstand",
-        "enchantments_heading": "Verzauberungen",
-        "books_heading": "Bücher und Gegenstände",
+        "item_heading": "Gegenstand wählen",
+        "enchantments_heading": "Verzauberungen wählen",
+        "books_heading": "Bücher hinzufügen",
         "pick_item_first": "Wähle zuerst einen Gegenstand",
-        "skip_steps": "Zu den Amboss-Benutzungen springen",
+        "skip_steps": "Zu den Schritten springen",
         "badge_done": "fertig",
         "badge_problem": "Problem",
         "badge_searching": "sucht",
-        "steps_heading": "Amboss-Benutzungen",
+        "steps_heading": "Den Schritten folgen",
         "theme_dark": "Zum dunklen Modus wechseln",
         "theme_light": "Zum hellen Modus wechseln",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Etwa {levels} Level, um dies aus einem Buch hinzuzufügen, vor Vorarbeit"
         },
         "preview_label": "Der fertige Gegenstand",
-        "short_help": "Deine Bücher und Gegenstände im Bereich Bücher und Gegenstände können das hier gewählte Level nicht erreichen."
+        "short_help": "Deine Bücher und Gegenstände im Bereich 3 können das hier gewählte Level nicht erreichen."
     },
     "books": {
         "custom": "Eigene",
@@ -494,7 +494,7 @@
         "collapse_step": "Diesen Schritt zuklappen",
         "progress": "{done} von {total} erledigt",
         "progress_done": "Alle {total} Schritte erledigt",
-        "entry_link_label": "{name} unter Bücher und Gegenstände zeigen",
+        "entry_link_label": "{name} in Bereich 3 zeigen",
         "from_step": "Aus Schritt {number}",
         "result_work": "Vorarbeit {count}",
         "uncheck_all": "Alle abwählen",

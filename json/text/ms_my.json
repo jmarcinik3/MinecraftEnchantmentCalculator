@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulator Sihiran",
         "heading": "Kalkulator sihiran",
-        "item_heading": "Item",
-        "enchantments_heading": "Sihiran",
-        "books_heading": "Buku dan item",
+        "item_heading": "Pilih item",
+        "enchantments_heading": "Pilih sihiran",
+        "books_heading": "Tambah buku",
         "pick_item_first": "Pilih item dahulu",
-        "skip_steps": "Langkau ke Penggunaan Landasan",
+        "skip_steps": "Langkau ke langkah",
         "badge_done": "siap",
         "badge_problem": "masalah",
         "badge_searching": "mencari",
-        "steps_heading": "Penggunaan Landasan",
+        "steps_heading": "Ikuti langkah",
         "theme_dark": "Tukar ke mod gelap",
         "theme_light": "Tukar ke mod cerah",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "Kira-kira {levels} tahap untuk menambah ini daripada buku, sebelum kerja terdahulu"},
         "preview_label": "Item siap",
-        "short_help": "Buku dan item anda dalam bahagian Buku dan item tidak dapat mencapai tahap yang dipilih di sini."
+        "short_help": "Buku dan item anda dalam bahagian 3 tidak dapat mencapai tahap yang dipilih di sini."
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "Lipat langkah ini",
         "progress": "{done} daripada {total} selesai",
         "progress_done": "Semua {total} langkah selesai",
-        "entry_link_label": "Tunjuk {name} dalam Buku dan item",
+        "entry_link_label": "Tunjuk {name} dalam bahagian 3",
         "from_step": "Dari langkah {number}",
         "result_work": "Kerja terdahulu {count}",
         "uncheck_all": "Nyahtanda semua",

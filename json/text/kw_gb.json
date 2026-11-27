@@ -2,15 +2,15 @@
     "page": {
         "title": "Kowlwyr Hus",
         "heading": "Kowlwyr hus",
-        "item_heading": "Tra",
-        "enchantments_heading": "Hussow",
-        "books_heading": "Lyvrow ha tra",
+        "item_heading": "Dewis tra",
+        "enchantments_heading": "Dewis hussow",
+        "books_heading": "Keworra lyvrow",
         "pick_item_first": "Dewis tra kynta",
-        "skip_steps": "Mos dhe Usyansow an Anwan",
+        "skip_steps": "Mos dhe'n stennow",
         "badge_done": "gorfennys",
         "badge_problem": "trobel",
         "badge_searching": "orth hwilas",
-        "steps_heading": "Usyansow an Anwan",
+        "steps_heading": "Holya an stennow",
         "theme_dark": "Newyd dhe fodh tewl",
         "theme_light": "Newyd dhe fodh golow",
         "theme_dark_label": "Dark",
@@ -195,7 +195,7 @@
             "many": "Tua {levels} lefel dhe ynwedhe hyn dhyworth lyver, kyns pub obar a-varr"
         },
         "preview_label": "An tra gorfennys",
-        "short_help": "Ny allow dha lyvrow ha tra y'n rann Lyvrow ha tra kevrinsa an lefel dewisys ma."
+        "short_help": "Ny allow dha lyvrow ha tra y'n rann 3 kevrinsa an lefel dewisys ma."
     },
     "books": {
         "custom": "Personol",
@@ -602,7 +602,7 @@
         "collapse_step": "Serra an steyn ma",
         "progress": "{done} a {total} gorfennys",
         "progress_done": "Oll an {total} stennow gorfennys",
-        "entry_link_label": "Diskwedhes {name} y'n Lyvrow ha tra",
+        "entry_link_label": "Diskwedhes {name} y'n rann 3",
         "from_step": "Dhyworth steyn {number}",
         "result_work": "Obar a-varr {count}",
         "uncheck_all": "Dismarkya oll",

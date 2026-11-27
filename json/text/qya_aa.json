@@ -2,15 +2,15 @@
     "page": {
         "title": "Enchantment-rúmë",
         "heading": "Enchantment-rúmë",
-        "item_heading": "Esta",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Parmar ar esti",
+        "item_heading": "Cilë esta",
+        "enchantments_heading": "Cilë enchantments",
+        "books_heading": "Napanë parmar",
         "pick_item_first": "Cara ciryata esta mana",
-        "skip_steps": "Lenda ar Anvil-hyarmar",
+        "skip_steps": "Lenda i hyarmar",
         "badge_done": "quanta",
         "badge_problem": "úcina",
         "badge_searching": "maquenda",
-        "steps_heading": "Anvil-hyarmar",
+        "steps_heading": "Hilya i hyarmar",
         "theme_dark": "Tanga mörë tyelë",
         "theme_light": "Tanga lóme tyelë",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Ca {levels} tarmë sí ya parma ulë, ær prior-work ú-ëa"
         },
         "preview_label": "I tyelë esta",
-        "short_help": "Parmar ar esti ya ëar i Parmar ar esti-hyarmë ú-mapar tulë i tarmë enyë."
+        "short_help": "Parmar ar esti ya ëar i 3-hyarmë ú-mapar tulë i tarmë enyë."
     },
     "books": {
         "custom": "Mécë",
@@ -494,7 +494,7 @@
         "collapse_step": "Ná hyarma lemya",
         "progress": "{done} ar {total} quanta",
         "progress_done": "Ilqa {total} hyarmar quanta",
-        "entry_link_label": "Tíra {name} i Parmar ar esti",
+        "entry_link_label": "Tíra {name} i 3-hyarmë",
         "from_step": "Ulya hyarma {number}",
         "result_work": "Prior-work {count}",
         "uncheck_all": "Ática ilqa",

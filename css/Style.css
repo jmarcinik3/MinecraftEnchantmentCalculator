@@ -425,7 +425,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 @media screen and (max-width: 1359px) {
     .item-dock.condensed { background: none; pointer-events: none; } /* it keeps the height it had (Wanted.js setupItemDock), so only the one line is solid */
     .item-dock.condensed #item { padding: 8px 14px; pointer-events: auto; }
-    .item-dock.condensed #item > .wanted-head, .item-dock.condensed #item > .item-heading { display: none; }
+    .item-dock.condensed #item > .wanted-head, .item-dock.condensed #item > .item-heading, .item-dock.condensed #item > .item-foot { display: none; }
     .item-dock.condensed .item-mini-row { display: flex; align-items: center; gap: 10px; min-width: 0; }
     .item-dock.condensed .item-mini-row > .item-mini { flex: 1; min-width: 0; }
     .item-dock.condensed .mini-reset { display: inline-flex; }
@@ -2392,9 +2392,10 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 }
 
 /* Start over, at the foot of the page. */
-/* Start over: a quiet button at the right of the Item card's heading, and a restart icon at the left of its sticky bar. */
+/* Start over: a quiet button at the foot of the Item card, and a restart icon at the left of its sticky bar. */
 .item-heading { display: flex; align-items: center; }
-.item-heading .reset-button { margin-left: auto; font: 400 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
+.item-foot { display: flex; justify-content: flex-end; margin-top: 12px; }
+.item-foot .reset-button { font: 400 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
 .reset-button { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); background: var(--surface); }
 .item-mini-row { display: contents; }
 .mini-reset { display: none; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-secondary); cursor: pointer; }

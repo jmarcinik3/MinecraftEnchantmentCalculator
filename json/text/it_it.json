@@ -2,15 +2,15 @@
     "page": {
         "title": "Calcolatore di incantesimi",
         "heading": "Calcolatore di incantesimi",
-        "item_heading": "Oggetto",
-        "enchantments_heading": "Incantesimi",
-        "books_heading": "Libri e oggetti",
+        "item_heading": "Scegli un oggetto",
+        "enchantments_heading": "Scegli gli incantesimi",
+        "books_heading": "Aggiungi libri",
         "pick_item_first": "Scegli prima un oggetto",
-        "skip_steps": "Vai agli usi dell'incudine",
+        "skip_steps": "Vai ai passaggi",
         "badge_done": "fatto",
         "badge_problem": "problema",
         "badge_searching": "ricerca in corso",
-        "steps_heading": "Usi dell'incudine",
+        "steps_heading": "Segui i passaggi",
         "theme_dark": "Passa alla modalità scura",
         "theme_light": "Passa alla modalità chiara",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Circa {levels} livello per aggiungerlo da un libro, senza contare il lavoro precedente", "other": "Circa {levels} livelli per aggiungerlo da un libro, senza contare il lavoro precedente"},
         "preview_label": "L'oggetto finito",
-        "short_help": "I tuoi libri e oggetti nella sezione Libri e oggetti non possono raggiungere il livello scelto qui."
+        "short_help": "I tuoi libri e oggetti nella sezione 3 non possono raggiungere il livello scelto qui."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Comprimi questo passaggio",
         "progress": "{done} di {total} fatti",
         "progress_done": "Tutti i {total} passaggi fatti",
-        "entry_link_label": "Mostra {name} in Libri e oggetti",
+        "entry_link_label": "Mostra {name} nella sezione 3",
         "from_step": "Dal passaggio {number}",
         "result_work": "Lavoro precedente {count}",
         "uncheck_all": "Deseleziona tutto",

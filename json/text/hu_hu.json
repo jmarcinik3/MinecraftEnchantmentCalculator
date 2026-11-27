@@ -2,15 +2,15 @@
     "page": {
         "title": "Varázslat-számológép",
         "heading": "Varázslat-számológép",
-        "item_heading": "Tárgy",
-        "enchantments_heading": "Varázslatok",
-        "books_heading": "Könyvek és tárgyak",
+        "item_heading": "Válassz egy tárgyat",
+        "enchantments_heading": "Válassz varázslatokat",
+        "books_heading": "Adj hozzá könyveket",
         "pick_item_first": "Előbb válassz tárgyat",
-        "skip_steps": "Ugrás az üllő használataihoz",
+        "skip_steps": "Ugrás a lépésekhez",
         "badge_done": "kész",
         "badge_problem": "probléma",
         "badge_searching": "keresés",
-        "steps_heading": "Üllő-használatok",
+        "steps_heading": "Kövesd a lépéseket",
         "theme_dark": "Váltás sötét módra",
         "theme_light": "Váltás világos módra",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Körülbelül {levels} szint, hogy ezt egy könyvből hozzáadd, bármilyen előzetes munka előtt", "other": "Körülbelül {levels} szint, hogy ezt egy könyvből hozzáadd, bármilyen előzetes munka előtt"},
         "preview_label": "A kész tárgy",
-        "short_help": "A Könyvek és tárgyak szakaszban lévő könyveid és tárgyaid nem érik el az itt választott szintet."
+        "short_help": "A 3. szakaszban lévő könyveid és tárgyaid nem érik el az itt választott szintet."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Ennek a lépésnek az összecsukása",
         "progress": "{done} / {total} kész",
         "progress_done": "Mind a {total} lépés kész",
-        "entry_link_label": "{name} megjelenítése a Könyvek és tárgyak szakaszban",
+        "entry_link_label": "{name} megjelenítése a 3. szakaszban",
         "from_step": "A(z) {number}. lépésből",
         "result_work": "Előzetes munka: {count}",
         "uncheck_all": "Összes kipipálás törlése",

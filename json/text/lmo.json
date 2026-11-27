@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculator di incantesim",
         "heading": "Calculator di incantesim",
-        "item_heading": "Ogett",
-        "enchantments_heading": "Incantesim",
-        "books_heading": "Liber e ogett",
+        "item_heading": "Sciel on ogett",
+        "enchantments_heading": "Sciel i incantesim",
+        "books_heading": "Zonta di liber",
         "pick_item_first": "Tria prima un ogett",
-        "skip_steps": "Va a i usi de l'incudin",
+        "skip_steps": "Va ai pass",
         "badge_done": "fai",
         "badge_problem": "problema",
         "badge_searching": "in serca",
-        "steps_heading": "Usi de l'incudin",
+        "steps_heading": "Segui i pass",
         "theme_dark": "Pass al mod scür",
         "theme_light": "Pass al mod ciar",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Circa {levels} livell per zontal da un liber, sensa el lavor precedent", "other": "Circa {levels} livej per zontal da un liber, sensa el lavor precedent"},
         "preview_label": "L'ogett finì",
-        "short_help": "I tò liber e ogett in la sezion Liber e ogett no riven al livell sceltu chi."
+        "short_help": "I tò liber e ogett in la sezion 3 no riven al livell sceltu chi."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Sera quest pass",
         "progress": "{done} de {total} fai",
         "progress_done": "Tücc i {total} pass fai",
-        "entry_link_label": "Mostra {name} in Liber e ogett",
+        "entry_link_label": "Mostra {name} in la sezion 3",
         "from_step": "Dal pass {number}",
         "result_work": "Lavor precedent {count}",
         "uncheck_all": "Desspunta tücc",

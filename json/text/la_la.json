@@ -2,15 +2,15 @@
     "page": {
         "title": "Computator Incantationum",
         "heading": "Computator incantationum",
-        "item_heading": "Res",
-        "enchantments_heading": "Incantationes",
-        "books_heading": "Libri et res",
+        "item_heading": "Elige rem",
+        "enchantments_heading": "Elige incantationes",
+        "books_heading": "Adde libros",
         "pick_item_first": "Prius res elige",
-        "skip_steps": "Ad usus incudis",
+        "skip_steps": "Ad gradus",
         "badge_done": "perfectum",
         "badge_problem": "difficultas",
         "badge_searching": "quaerens",
-        "steps_heading": "Usus incudis",
+        "steps_heading": "Sequere gradus",
         "theme_dark": "Ad modum obscurum muta",
         "theme_light": "Ad modum clarum muta",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Circa {levels} gradus ad hanc ab libro addendam, ante omne opus prius"
         },
         "preview_label": "Res perfecta",
-        "short_help": "Libri et res tui in parte Librorum et rerum hunc gradum electum attingere non possunt."
+        "short_help": "Libri et res tui in parte 3 hunc gradum electum attingere non possunt."
     },
     "books": {
         "custom": "Proprium",
@@ -494,7 +494,7 @@
         "collapse_step": "Hunc gradum claude",
         "progress": "{done} ex {total} facti",
         "progress_done": "Omnes {total} gradus facti",
-        "entry_link_label": "{name} in Libris et rebus ostende",
+        "entry_link_label": "{name} in parte 3 ostende",
         "from_step": "Ex gradu {number}",
         "result_work": "Opus prius {count}",
         "uncheck_all": "Omnia exsigna",

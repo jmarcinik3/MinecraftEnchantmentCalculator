@@ -2,15 +2,15 @@
     "page": {
         "title": "Калкулятор примовлїнь",
         "heading": "Калкулятор примовлїнь",
-        "item_heading": "Предмет",
-        "enchantments_heading": "Примовлїня",
-        "books_heading": "Книжки і предмети",
+        "item_heading": "Выберіт предмет",
+        "enchantments_heading": "Выберіт примовлїня",
+        "books_heading": "Додайте книжкы",
         "pick_item_first": "Наперед выберїть предмет",
-        "skip_steps": "До використаня ковадла",
+        "skip_steps": "До кроків",
         "badge_done": "готово",
         "badge_problem": "проблема",
         "badge_searching": "шуканю",
-        "steps_heading": "Використаня ковадла",
+        "steps_heading": "Сліджте кроки",
         "theme_dark": "Перемкнути на темну тему",
         "theme_light": "Перемкнути на ясну тему",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "other": "Коло {levels} рівнїв, жебы додати тото з книжкы, без уважаня попередной роботы"
         },
         "preview_label": "Готовый предмет",
-        "short_help": "Ваши книжкы і предметы в розділї «Книжки і предмети» не можуть дати рівень, выбраный тут."
+        "short_help": "Ваши книжкы і предметы в розділї 3 не можуть дати рівень, выбраный тут."
     },
     "books": {
         "custom": "Власны",
@@ -548,7 +548,7 @@
         "collapse_step": "Зложыти тот крок",
         "progress": "Готово: {done} з {total}",
         "progress_done": "Всі кроки ({total}) готові",
-        "entry_link_label": "Показати {name} в «Книжках і предметах»",
+        "entry_link_label": "Показати {name} в розділї 3",
         "from_step": "З кроку {number}",
         "result_work": "Попередня робота {count}",
         "uncheck_all": "Зняти всі відмічкы",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculadora de encantamiento",
         "heading": "Calculadora de encantamiento",
-        "item_heading": "Objeto",
-        "enchantments_heading": "Encantamientos",
-        "books_heading": "Libros y objetos",
+        "item_heading": "Escoge un objeto",
+        "enchantments_heading": "Escoge encantamientos",
+        "books_heading": "Agrega libros",
         "pick_item_first": "Escoge primero un objeto",
-        "skip_steps": "Ir pa los usos del yunque",
+        "skip_steps": "Ir pa los pasos",
         "badge_done": "ya hecho",
         "badge_problem": "problema",
         "badge_searching": "buscando",
-        "steps_heading": "Usos del yunque",
+        "steps_heading": "Sigue los pasos",
         "theme_dark": "Cambia pa modo oscuro",
         "theme_light": "Cambia pa modo claro",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Como {levels} nivel pa añadir esto de un libro, antes de cualquier trabajo previo", "other": "Como {levels} niveles pa añadir esto de un libro, antes de cualquier trabajo previo"},
         "preview_label": "El objeto acabado",
-        "short_help": "Tus libros y objetos de la sección Libros y objetos no llegan al nivel escogido aquí."
+        "short_help": "Tus libros y objetos de la sección 3 no llegan al nivel escogido aquí."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Pliega este paso",
         "progress": "{done} de {total} hechos",
         "progress_done": "Tudos los {total} pasos hechos",
-        "entry_link_label": "Ensenya {name} en Libros y objetos",
+        "entry_link_label": "Ensenya {name} en la sección 3",
         "from_step": "Del paso {number}",
         "result_work": "Trabajo previo {count}",
         "uncheck_all": "Desmarca tudo",

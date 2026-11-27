@@ -2,15 +2,15 @@
     "page": {
         "title": "Калкулатор на магии",
         "heading": "Калкулатор на магии",
-        "item_heading": "Предмет",
-        "enchantments_heading": "Магии",
-        "books_heading": "Книги и предмети",
+        "item_heading": "Изберете предмет",
+        "enchantments_heading": "Изберете магии",
+        "books_heading": "Добавете книги",
         "pick_item_first": "Първо изберете предмет",
-        "skip_steps": "Към използванията на наковалнята",
+        "skip_steps": "Към стъпките",
         "badge_done": "готово",
         "badge_problem": "проблем",
         "badge_searching": "търсене",
-        "steps_heading": "Използвания на наковалнята",
+        "steps_heading": "Следвайте стъпките",
         "theme_dark": "Превключи на тъмна тема",
         "theme_light": "Превключи на светла тема",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Около {levels} ниво, за да добавите това от книга, без предишна работа", "other": "Около {levels} нива, за да добавите това от книга, без предишна работа"},
         "preview_label": "Готовият предмет",
-        "short_help": "Книгите и предметите ви в раздел «Книги и предмети» не достигат до избраното тук ниво."
+        "short_help": "Книгите и предметите ви в раздел 3 не достигат до избраното тук ниво."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Свий тази стъпка",
         "progress": "{done} от {total} готови",
         "progress_done": "Всички {total} стъпки са готови",
-        "entry_link_label": "Покажи {name} в «Книги и предмети»",
+        "entry_link_label": "Покажи {name} в раздел 3",
         "from_step": "От стъпка {number}",
         "result_work": "Предишна работа {count}",
         "uncheck_all": "Махни всички отметки",

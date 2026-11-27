@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzaubarungsrechna",
         "heading": "Verzaubarungsrechna",
-        "item_heading": "Gegnstand",
-        "enchantments_heading": "Verzaubarungen",
-        "books_heading": "Buacha und Gegnständ",
+        "item_heading": "Wähl a Gegnstand",
+        "enchantments_heading": "Wähl Verzaubarungen",
+        "books_heading": "Füg Buacha dazua",
         "pick_item_first": "Wähl zerst an Gegnstand",
-        "skip_steps": "Zu de Amboss-Benutzungen springa",
+        "skip_steps": "Zu de Schritt springa",
         "badge_done": "fertig",
         "badge_problem": "Problem",
         "badge_searching": "suacht",
-        "steps_heading": "Amboss-Benutzungen",
+        "steps_heading": "Folg de Schritt",
         "theme_dark": "Zum dunklen Modus wechseln",
         "theme_light": "Zum hellen Modus wechseln",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ungfähr {levels} Level, um des aus an Buach dazua, vor da Vorarbeit", "other": "Ungfähr {levels} Level, um des aus an Buach dazua, vor da Vorarbeit"},
         "preview_label": "Da fertige Gegnstand",
-        "short_help": "Dei Buacha und Gegnständ im Bereich Buacha und Gegnständ kenna des Level do ned derreichn."
+        "short_help": "Dei Buacha und Gegnständ im Bereich 3 kenna des Level do ned derreichn."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Den Schritt zuamachn",
         "progress": "{done} vo {total} fertig",
         "progress_done": "Alle {total} Schritt fertig",
-        "entry_link_label": "{name} unta Buacha und Gegnständ zoagn",
+        "entry_link_label": "{name} im Bereich 3 zoagn",
         "from_step": "Aus Schritt {number}",
         "result_work": "Vorarbeit {count}",
         "uncheck_all": "Alle abwähln",

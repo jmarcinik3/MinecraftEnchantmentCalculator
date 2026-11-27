@@ -2,15 +2,15 @@
     "page": {
         "title": "Калкулятор забаянь",
         "heading": "Калкулятор забаянь",
-        "item_heading": "Предмет",
-        "enchantments_heading": "Забаяня",
-        "books_heading": "Кнїжкы и предметы",
+        "item_heading": "Выберіть предмет",
+        "enchantments_heading": "Выберіть забаяня",
+        "books_heading": "Додайте кнїжкы",
         "pick_item_first": "Наперед выберь предмет",
-        "skip_steps": "До використаня ковадла",
+        "skip_steps": "До крокив",
         "badge_done": "готово",
         "badge_problem": "проблема",
         "badge_searching": "шуканя",
-        "steps_heading": "Використаня ковадла",
+        "steps_heading": "Йдіть за кроками",
         "theme_dark": "Перекинути на темну тему",
         "theme_light": "Перекинути на світлу тему",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "other": "Коло {levels} рівнїв, жебы додати тото з кнїжкы, без уваженя предходней роботы"
         },
         "preview_label": "Готовый предмет",
-        "short_help": "Твої кнїжкы и предметы в розділї «Кнїжкы и предметы» не можуть дати рівень, выбраный тут."
+        "short_help": "Твої кнїжкы и предметы в розділї 3 не можуть дати рівень, выбраный тут."
     },
     "books": {
         "custom": "Власны",
@@ -548,7 +548,7 @@
         "collapse_step": "Зложыти тот крок",
         "progress": "Готово: {done} з {total}",
         "progress_done": "Вшыткы кроку ({total}) готовы",
-        "entry_link_label": "Показати {name} в «Кнїжках и предметах»",
+        "entry_link_label": "Показати {name} в розділї 3",
         "from_step": "З кроку {number}",
         "result_work": "Предходна робота {count}",
         "uncheck_all": "Зняти вшыткы відмічкы",

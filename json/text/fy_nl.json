@@ -2,15 +2,15 @@
     "page": {
         "title": "Betoveringsberekkener",
         "heading": "Betoveringsberekkener",
-        "item_heading": "Item",
-        "enchantments_heading": "Betoveringen",
-        "books_heading": "Boeken en items",
+        "item_heading": "Kies in item",
+        "enchantments_heading": "Kies betoveringen",
+        "books_heading": "Foegje boeken ta",
         "pick_item_first": "Kies earst in item",
-        "skip_steps": "Gean nei Anvilgebrûk",
+        "skip_steps": "Gean nei de stappen",
         "badge_done": "klear",
         "badge_problem": "probleem",
         "badge_searching": "sykje",
-        "steps_heading": "Anvilgebrûk",
+        "steps_heading": "Folgje de stappen",
         "theme_dark": "Wikselje nei donkere modus",
         "theme_light": "Wikselje nei ljochte modus",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Sawat {levels} nivo om dit út in boek ta te foegjen, foar eventueel eardere wurk", "other": "Sawat {levels} nivo's om dit út in boek ta te foegjen, foar eventueel eardere wurk"},
         "preview_label": "It ôfmakke item",
-        "short_help": "Jo boeken en items yn it diel Boeken en items kinne it hjir keazen nivo net berikke."
+        "short_help": "Jo boeken en items yn diel 3 kinne it hjir keazen nivo net berikke."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Dizze stap sluten",
         "progress": "{done} fan {total} klear",
         "progress_done": "Alle {total} stappen klear",
-        "entry_link_label": "{name} sjen litte yn Boeken en items",
+        "entry_link_label": "{name} sjen litte yn diel 3",
         "from_step": "Fan stap {number}",
         "result_work": "Eardere wurk {count}",
         "uncheck_all": "Alles ôfsette",

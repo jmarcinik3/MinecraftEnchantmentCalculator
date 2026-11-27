@@ -2,15 +2,15 @@
     "page": {
         "title": "Taikainonno-kalkulatore",
         "heading": "Taikainonno-kalkulatore",
-        "item_heading": "Ting",
-        "enchantments_heading": "Taikai",
-        "books_heading": "Libri au tingi",
+        "item_heading": "Valje ting",
+        "enchantments_heading": "Valje taikai",
+        "books_heading": "Tilfoj libri",
         "pick_item_first": "Sentake ting unta",
-        "skip_steps": "Suruk per Bigorna-ufne",
+        "skip_steps": "Suruk per stepi",
         "badge_done": "Owari",
         "badge_problem": "Problem",
         "badge_searching": "Sukale",
-        "steps_heading": "Bigorna-ufne",
+        "steps_heading": "Folge stepi",
         "theme_dark": "Ufne tasta fu dark",
         "theme_light": "Ufne tasta fu light",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Proksime {levels} atai per meta ci fu libre, antes kada prior-work"
         },
         "preview_label": "Owari ting",
-        "short_help": "Ci libri au tingi en Libri au tingi ne tana ci atai sentaken hie."
+        "short_help": "Ci libri au tingi en kapitel 3 ne tana ci atai sentaken hie."
     },
     "books": {
         "custom": "Eigena",
@@ -494,7 +494,7 @@
         "collapse_step": "Kiini ci stepo",
         "progress": "{done} fu {total} owari",
         "progress_done": "Kada {total} stepi owari",
-        "entry_link_label": "Ufne {name} en Libri au tingi",
+        "entry_link_label": "Ufne {name} en kapitel 3",
         "from_step": "Fu stepo {number}",
         "result_work": "Prior-work {count}",
         "uncheck_all": "Spaada kada marka",

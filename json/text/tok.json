@@ -2,15 +2,15 @@
     "page": {
         "title": "ilo pi wawa palisa",
         "heading": "ilo pi wawa palisa",
-        "item_heading": "ijo",
-        "enchantments_heading": "wawa",
-        "books_heading": "lipu en ijo",
+        "item_heading": "o alasa e ijo",
+        "enchantments_heading": "o alasa e wawa",
+        "books_heading": "o pana e lipu",
         "pick_item_first": "o wan e ijo open",
-        "skip_steps": "o tawa e pali pi supa",
+        "skip_steps": "o tawa lon pali",
         "badge_done": "pini",
         "badge_problem": "ike",
         "badge_searching": "o alasa",
-        "steps_heading": "pali pi supa",
+        "steps_heading": "o lukin e pali",
         "theme_dark": "o ante tawa lukin pimeja",
         "theme_light": "o ante tawa lukin pona",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "wawa lili {levels} la o wan e ni tan lipu, ken pi pali pi pini ala", "other": "wawa lili {levels} la o wan e ni tan lipu, ken pi pali pi pini ala"},
         "preview_label": "ijo pini",
-        "short_help": "lipu en ijo lon taso ni li ken ala tawa nanpa wan ni."
+        "short_help": "lipu en ijo lon ma tu wan li ken ala tawa nanpa wan ni."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "o len e pali ni",
         "progress": "pali {done} lon {total} li pini",
         "progress_done": "pali {total} ale li pini",
-        "entry_link_label": "o lukin e {name} lon lipu en ijo",
+        "entry_link_label": "o lukin e {name} lon ma tu wan",
         "from_step": "tan pali {number}",
         "result_work": "pali pi pini {count}",
         "uncheck_all": "o weka e kule ale",

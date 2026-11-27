@@ -2,15 +2,15 @@
     "page": {
         "title": "Enchantment qIm",
         "heading": "Enchantment qIm",
-        "item_heading": "Qu'",
-        "enchantments_heading": "tlheHmey",
-        "books_heading": "paqmey je Dochmey",
+        "item_heading": "Doch wIv",
+        "enchantments_heading": "tlheHmey wIv",
+        "books_heading": "paqmey chel",
         "pick_item_first": "pagh Qu' vIlegh",
-        "skip_steps": "Anvil uses DIch",
+        "skip_steps": "mIwmey Daq yIjaH",
         "badge_done": "tlhob",
         "badge_problem": "Qotlh",
         "badge_searching": "nIr",
-        "steps_heading": "'achme' lo'",
+        "steps_heading": "mIwmey yIghoS",
         "theme_dark": "Dark mode choSaH",
         "theme_light": "Light mode choSaH",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "paq vo' lo'chugh, tlheH wIvam 'ej {levels} patlh, prior work pagh qaSpa'"
         },
         "preview_label": "Doch pItlhta'",
-        "short_help": "paqmey je Dochmey Daq pagh patlh wIvlu'bogh Dachav."
+        "short_help": "'ay' 3 Daq pagh patlh wIvlu'bogh Dachav."
     },
     "books": {
         "custom": "ghaHDaj'e'",
@@ -494,7 +494,7 @@
         "collapse_step": "mIw yIQoy",
         "progress": "{total} Daq {done} pItlh",
         "progress_done": "mIw Hoch {total} pItlh",
-        "entry_link_label": "{name} paqmey je Dochmey Daq yIlegh",
+        "entry_link_label": "{name} 'ay' 3 Daq yIlegh",
         "from_step": "mIw {number} vo'",
         "result_work": "prior work {count}",
         "uncheck_all": "Hoch yIQaw'",

@@ -181,7 +181,7 @@ def part_steps(browser, base):
     page.keyboard.press("Enter")
     settle(page)
     check("Enter flashes the card", page.locator("#books .entry-card.flash").count() == 1)
-    check("a starting item has an accessible name", "Books and items" in (link.get_attribute("aria-label") or ""))
+    check("a starting item has an accessible name", "section 3" in (link.get_attribute("aria-label") or ""))
 
     # Screen readers: ticking is announced.
     check("ticking a step is announced", "done" in page.inner_text("#live"), page.inner_text("#live"))
@@ -248,9 +248,9 @@ def part_steps(browser, base):
     # Start over: one click clears the setup and bring the first screen back; saved setups stay.
     page.evaluate("localStorage.setItem('enchantment-calculator-saved', JSON.stringify([{name: 'Keep', item: 'sword', link: 'x'}]))")
     page.evaluate("window.scrollTo(0, 0)")
-    page.wait_for_selector("#item .item-heading .reset-button", state="visible")
+    page.wait_for_selector("#item .item-foot .reset-button", state="visible")
     with page.expect_navigation():
-        page.click("#item .item-heading .reset-button")
+        page.click("#item .item-foot .reset-button")
     page.wait_for_selector("#wanted .intro")
     check("Start over brings the first screen back", page.locator("#wanted .intro").count() == 1)
     check("Start over keeps saved setups", "Keep" in (page.evaluate("localStorage.getItem('enchantment-calculator-saved')") or ""))

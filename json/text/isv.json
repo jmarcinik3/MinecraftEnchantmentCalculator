@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulator začarovanja",
         "heading": "Kalkulator začarovanja",
-        "item_heading": "Predmet",
-        "enchantments_heading": "Začarovanja",
-        "books_heading": "Knigi i predmety",
+        "item_heading": "Izberi predmet",
+        "enchantments_heading": "Izberi začarovanja",
+        "books_heading": "Dodaj knigi",
         "pick_item_first": "Najprvo izberi predmet",
-        "skip_steps": "Idi do použitij kovadla",
+        "skip_steps": "Idi do korakov",
         "badge_done": "gotovo",
         "badge_problem": "problem",
         "badge_searching": "iskanje",
-        "steps_heading": "Použitja kovadla",
+        "steps_heading": "Slěduj koraky",
         "theme_dark": "Prěklučiti na temny režim",
         "theme_light": "Prěklučiti na světly režim",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Okolo {levels} urovnej, čtoby dodati to iz knigy, pred vsakoju prědňoju robotoju"
         },
         "preview_label": "Gotovy predmet",
-        "short_help": "Tvoje knigi i predmety v razdělu Knigi i predmety ne mogut dostignuti uroveń izbranu tut."
+        "short_help": "Tvoje knigi i predmety v razdělu 3 ne mogut dostignuti uroveń izbranu tut."
     },
     "books": {
         "custom": "Svoje",
@@ -494,7 +494,7 @@
         "collapse_step": "Zakryti ovaj krok",
         "progress": "{done} iz {total} gotovo",
         "progress_done": "Vse {total} krokov gotovo",
-        "entry_link_label": "Pokazati {name} v Knigah i predmetah",
+        "entry_link_label": "Pokazati {name} v razdělu 3",
         "from_step": "Iz kroka {number}",
         "result_work": "Prědnja robota {count}",
         "uncheck_all": "Odznačiti vse",

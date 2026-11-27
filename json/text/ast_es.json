@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculadora d'encantamientos",
         "heading": "Calculadora d'encantamientos",
-        "item_heading": "Oxetu",
-        "enchantments_heading": "Encantamientos",
-        "books_heading": "Llibros y oxetos",
+        "item_heading": "Escoyer un oxetu",
+        "enchantments_heading": "Escoyer encantamientos",
+        "books_heading": "Amestar llibros",
         "pick_item_first": "Escueye primero un oxetu",
-        "skip_steps": "Dir a los usos de la xuncla",
+        "skip_steps": "Dir a los pasos",
         "badge_done": "fecho",
         "badge_problem": "problema",
         "badge_searching": "buscando",
-        "steps_heading": "Usos de la xuncla",
+        "steps_heading": "Siguir los pasos",
         "theme_dark": "Cambiar al mou escuru",
         "theme_light": "Cambiar al mou claru",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Unos {levels} nivel pa amestar esto d'un llibru, enantes de cualquier trabayu previu", "other": "Unos {levels} niveles pa amestar esto d'un llibru, enantes de cualquier trabayu previu"},
         "preview_label": "L'oxetu terminao",
-        "short_help": "Los tos llibros y oxetos de la sección Llibros y oxetos nun pueden algamar el nivel escoyíu equí."
+        "short_help": "Los tos llibros y oxetos de la sección 3 nun pueden algamar el nivel escoyíu equí."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Plegar esti pasu",
         "progress": "{done} de {total} fechos",
         "progress_done": "Tolos {total} pasos fechos",
-        "entry_link_label": "Amosar {name} en Llibros y oxetos",
+        "entry_link_label": "Amosar {name} na sección 3",
         "from_step": "Del pasu {number}",
         "result_work": "Trabayu previu {count}",
         "uncheck_all": "Desmarcar too",

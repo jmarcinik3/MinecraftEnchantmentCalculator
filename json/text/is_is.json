@@ -2,15 +2,15 @@
     "page": {
         "title": "Reiknivél galdra",
         "heading": "Reiknivél galdra",
-        "item_heading": "Hlutur",
-        "enchantments_heading": "Galdrar",
-        "books_heading": "Bækur og hlutir",
+        "item_heading": "Veldu hlut",
+        "enchantments_heading": "Veldu galdra",
+        "books_heading": "Bættu við bókum",
         "pick_item_first": "Veldu hlut fyrst",
-        "skip_steps": "Fara í Notkun steðja",
+        "skip_steps": "Fara í skrefin",
         "badge_done": "lokið",
         "badge_problem": "vandamál",
         "badge_searching": "leitar",
-        "steps_heading": "Notkun steðja",
+        "steps_heading": "Fylgdu skrefunum",
         "theme_dark": "Skipta yfir í dökkan hátt",
         "theme_light": "Skipta yfir í ljósan hátt",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Um {levels} stig til að bæta þessu við úr bók, áður en fyrri vinna kemur til", "other": "Um {levels} stig til að bæta þessu við úr bók, áður en fyrri vinna kemur til"},
         "preview_label": "Fullgerði hluturinn",
-        "short_help": "Bækurnar og hlutirnir þínir í hlutanum Bækur og hlutir ná ekki stiginu sem valið er hér."
+        "short_help": "Bækurnar og hlutirnir þínir í hluta 3 ná ekki stiginu sem valið er hér."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Loka þessu skrefi",
         "progress": "{done} af {total} lokið",
         "progress_done": "Öll {total} skrefin lokið",
-        "entry_link_label": "Sýna {name} í Bækur og hlutir",
+        "entry_link_label": "Sýna {name} í hluta 3",
         "from_step": "Úr skrefi {number}",
         "result_work": "Fyrri vinna {count}",
         "uncheck_all": "Taka öll hök af",

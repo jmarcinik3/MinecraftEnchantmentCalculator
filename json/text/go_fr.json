@@ -2,15 +2,15 @@
     "page": {
         "title": "Calcuhowever d'enchantements",
         "heading": "Calcuhowever d'enchantements",
-        "item_heading": "Éthuffe",
-        "enchantments_heading": "Enchantements",
-        "books_heading": "Livres et éthuffes",
+        "item_heading": "Chouézi un éthuffe",
+        "enchantments_heading": "Chouézi des enchantements",
+        "books_heading": "Ajouter des livres",
         "pick_item_first": "Chouézis d'abord eune éthuffe",
-        "skip_steps": "Aller és ûs de l'enclume",
+        "skip_steps": "Aller és pas",
         "badge_done": "fini",
         "badge_problem": "embêtement",
         "badge_searching": "a chèrcher",
-        "steps_heading": "Ûs de l'enclume",
+        "steps_heading": "Suivre les pas",
         "theme_dark": "Passer en mode nouer",
         "theme_light": "Passer en mode clér",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Environ {levels} nivé pour l'ajouter d'un livre, sans le travail d'avant", "other": "Environ {levels} nivés pour l'ajouter d'un livre, sans le travail d'avant"},
         "preview_label": "L'éthuffe finie",
-        "short_help": "Vos livres et éthuffes dans Livres et éthuffes peuvent pas aller jusqu'au nivé chouézi ici."
+        "short_help": "Vos livres et éthuffes dans la section 3 peuvent pas aller jusqu'au nivé chouézi ici."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Replier ce pas",
         "progress": "{done} sus {total} faits",
         "progress_done": "Les {total} pas sont faits",
-        "entry_link_label": "Montrer {name} dans Livres et éthuffes",
+        "entry_link_label": "Montrer {name} dans la section 3",
         "from_step": "Du pas {number}",
         "result_work": "Travail d'avant {count}",
         "uncheck_all": "Tout décocher",

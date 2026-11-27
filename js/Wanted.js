@@ -75,9 +75,10 @@ export function renderItem() {
     box.replaceChildren();
     if (!state.item) return;
     // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
-    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, "✓"), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading),
-            h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, restartIcon(), TEXT.page.reset)),
-        wantedHead(presetChips()), itemMini());
+    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, "✓"), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading)),
+        wantedHead(presetChips()),
+        h("div", { class: "item-foot" }, h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, restartIcon(), TEXT.page.reset)),
+        itemMini());
     if (old_height != null) {
         const preview = box.querySelector(".wanted-preview");
         const same_size = Math.abs(preview.getBoundingClientRect().height - old_height) < 1; // before it slides

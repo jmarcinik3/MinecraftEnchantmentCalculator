@@ -2,15 +2,15 @@
     "page": {
         "title": "Enchantment Reckoner",
         "heading": "Enchantment reckoner",
-        "item_heading": "Item",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Tomes and Items",
+        "item_heading": "Choose an Item",
+        "enchantments_heading": "Choose Enchantments",
+        "books_heading": "Add Tomes",
         "pick_item_first": "Pick an item first, good sir",
-        "skip_steps": "Skip to Anvil Labours",
+        "skip_steps": "Skip to the Labours",
         "badge_done": "done",
         "badge_problem": "amiss",
         "badge_searching": "seeking",
-        "steps_heading": "Anvil Labours",
+        "steps_heading": "Follow the Labours",
         "theme_dark": "Turn to the dark of night",
         "theme_light": "Turn to the light of day",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "About {levels} levels to add this from a tome, before any prior work"
         },
         "preview_label": "The finished item",
-        "short_help": "Thy tomes and items in the Tomes and Items section cannot reach the level chosen here."
+        "short_help": "Thy tomes and items in section 3 cannot reach the level chosen here."
     },
     "books": {
         "custom": "Custom",
@@ -494,7 +494,7 @@
         "collapse_step": "Fold this step",
         "progress": "{done} of {total} done",
         "progress_done": "All {total} steps done",
-        "entry_link_label": "Show {name} in Tomes and Items",
+        "entry_link_label": "Show {name} in section 3",
         "from_step": "From step {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Uncheck all",

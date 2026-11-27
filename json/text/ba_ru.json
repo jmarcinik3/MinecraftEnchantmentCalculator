@@ -2,15 +2,15 @@
     "page": {
         "title": "Һихерләү калькуляторы",
         "heading": "Һихерләү калькуляторы",
-        "item_heading": "Нәрсә",
-        "enchantments_heading": "Һихерҙәр",
-        "books_heading": "Китаптар һәм нәрсәләр",
+        "item_heading": "Нәрсә һайларға",
+        "enchantments_heading": "Һихерҙәрҙе һайларға",
+        "books_heading": "Китаптар өҫтәргә",
         "pick_item_first": "Тәүҙә нәрсәне һайлағыҙ",
-        "skip_steps": "Һандал ҡулланыштарына күсергә",
+        "skip_steps": "Аҙымдарға күсергә",
         "badge_done": "әҙер",
         "badge_problem": "проблема",
         "badge_searching": "эҙләнә",
-        "steps_heading": "Һандал ҡулланыштары",
+        "steps_heading": "Аҙымдарҙы үтәргә",
         "theme_dark": "Ҡараңғы режимға күсергә",
         "theme_light": "Яҡты режимға күсергә",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Китаптан был өҫтәү өсөн тиҡриҡ {levels} кимәл, элекке эшкә бәйһеҙ", "other": "Китаптан был өҫтәү өсөн тиҡриҡ {levels} кимәл, элекке эшкә бәйһеҙ"},
         "preview_label": "Әҙер нәрсә",
-        "short_help": "Китаптар һәм нәрсәләр бүлегендәге китаптар һәм нәрсәләр бында һайланған кимәлгә етмәй."
+        "short_help": "3-сө бүлектәге китаптар һәм нәрсәләр бында һайланған кимәлгә етмәй."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Был аҙымды йыйырға",
         "progress": "{total} аҙымдың {done} башҡарылды",
         "progress_done": "Бөтә {total} аҙым башҡарылды",
-        "entry_link_label": "Китаптар һәм нәрсәләр бүлегендә {name} күрһәтергә",
+        "entry_link_label": "{name} 3-сө бүлектә күрһәтергә",
         "from_step": "{number}-се аҙымдан",
         "result_work": "Элекке эш {count}",
         "uncheck_all": "Барыһының билгеһен алырға",

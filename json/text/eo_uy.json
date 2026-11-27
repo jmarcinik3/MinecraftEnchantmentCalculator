@@ -2,15 +2,15 @@
     "page": {
         "title": "Sorĉa kalkulilo",
         "heading": "Sorĉa kalkulilo",
-        "item_heading": "Ero",
-        "enchantments_heading": "Sorĉoj",
-        "books_heading": "Libroj kaj eroj",
+        "item_heading": "Elektu eron",
+        "enchantments_heading": "Elektu sorĉojn",
+        "books_heading": "Aldonu librojn",
         "pick_item_first": "Unue elektu eron",
-        "skip_steps": "Iri al Amboso-uzoj",
+        "skip_steps": "Iri al la paŝoj",
         "badge_done": "farita",
         "badge_problem": "problemo",
         "badge_searching": "serĉata",
-        "steps_heading": "Amboso-uzoj",
+        "steps_heading": "Sekvu la paŝojn",
         "theme_dark": "Ŝalti malhelan reĝimon",
         "theme_light": "Ŝalti helan reĝimon",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Proksimume {levels} nivelo por aldoni tion el libro, antaŭ ajna antaŭa laboro", "other": "Proksimume {levels} niveloj por aldoni tion el libro, antaŭ ajna antaŭa laboro"},
         "preview_label": "La finita ero",
-        "short_help": "Viaj libroj kaj eroj en la sekcio Libroj kaj eroj ne povas atingi la nivelon elektitan ĉi tie."
+        "short_help": "Viaj libroj kaj eroj en la sekcio 3 ne povas atingi la nivelon elektitan ĉi tie."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Fermi ĉi tiun paŝon",
         "progress": "{done} el {total} farite",
         "progress_done": "Ĉiuj {total} paŝoj faritaj",
-        "entry_link_label": "Montri {name} en Libroj kaj eroj",
+        "entry_link_label": "Montri {name} en sekcio 3",
         "from_step": "El paŝo {number}",
         "result_work": "Antaŭa laboro {count}",
         "uncheck_all": "Malmarki ĉiujn",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulatur tat-Tisħir",
         "heading": "Kalkulatur tat-tisħir",
-        "item_heading": "Oġġett",
-        "enchantments_heading": "Tisħriet",
-        "books_heading": "Kotba u oġġetti",
+        "item_heading": "Agħżel oġġett",
+        "enchantments_heading": "Agħżel tisħriet",
+        "books_heading": "Żid kotba",
         "pick_item_first": "Agħżel oġġett l-ewwel",
-        "skip_steps": "Mur għall-Użi tal-Inkwina",
+        "skip_steps": "Mur għall-passi",
         "badge_done": "lest",
         "badge_problem": "problema",
         "badge_searching": "qed ifittex",
-        "steps_heading": "Użi tal-Inkwina",
+        "steps_heading": "Segwi l-passi",
         "theme_dark": "Ibdel għall-modalità skura",
         "theme_light": "Ibdel għall-modalità ċara",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "many": "Madwar {levels} livelli biex tiżied dan minn ktieb, qabel kwalunkwe xogħol ta' qabel"
         },
         "preview_label": "L-oġġett lest",
-        "short_help": "Il-kotba u l-oġġetti tiegħek fit-taqsima Kotba u oġġetti ma jistgħux jilħqu l-livell magħżul hawn."
+        "short_help": "Il-kotba u l-oġġetti tiegħek fit-taqsima 3 ma jistgħux jilħqu l-livell magħżul hawn."
     },
     "books": {
         "custom": "Personalizzat",
@@ -548,7 +548,7 @@
         "collapse_step": "Agħlaq dan il-pass",
         "progress": "{done} minn {total} lesti",
         "progress_done": "Il-passi {total} kollha lesti",
-        "entry_link_label": "Uri {name} fil-Kotba u l-oġġetti",
+        "entry_link_label": "Uri {name} fit-taqsima 3",
         "from_step": "Mill-pass {number}",
         "result_work": "Xogħol ta' qabel {count}",
         "uncheck_all": "Neħħi l-immarkar kollu",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Calcołatore de incantesimi",
         "heading": "Calcołatore de incantesimi",
-        "item_heading": "Oggeto",
-        "enchantments_heading": "Incantesimi",
-        "books_heading": "Libri e oggeti",
+        "item_heading": "Siegli un oggeto",
+        "enchantments_heading": "Siegli incantesimi",
+        "books_heading": "Zonta libri",
         "pick_item_first": "Sèrnighe prima un oggeto",
-        "skip_steps": "Va a i usi de l'incudene",
+        "skip_steps": "Va a i passi",
         "badge_done": "fato",
         "badge_problem": "problema",
         "badge_searching": "cerca in corso",
-        "steps_heading": "Usi de l'incudene",
+        "steps_heading": "Segui i passi",
         "theme_dark": "Pasa al modo scuro",
         "theme_light": "Pasa al modo ciaro",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Circa {levels} łivełi par zontarło da un libro, sença el lavoro precedente"
         },
         "preview_label": "L'oggeto finìo",
-        "short_help": "I tuoi libri e oggeti inte la sezion Libri e oggeti no riva al łivèło sèrnìo qua."
+        "short_help": "I tuoi libri e oggeti inte la sezion 3 no riva al łivèło sèrnìo qua."
     },
     "books": {
         "custom": "Personałizà",
@@ -494,7 +494,7 @@
         "collapse_step": "Sara sto passo",
         "progress": "{done} de {total} fati",
         "progress_done": "Tuti i {total} passi fati",
-        "entry_link_label": "Mostra {name} in Libri e oggeti",
+        "entry_link_label": "Mostra {name} inte la sezion 3",
         "from_step": "Dal passo {number}",
         "result_work": "Lavoro precedente {count}",
         "uncheck_all": "Desbarra tuto",

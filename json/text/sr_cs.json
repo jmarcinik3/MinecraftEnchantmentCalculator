@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulator začaranja",
         "heading": "Kalkulator začaranja",
-        "item_heading": "Predmet",
-        "enchantments_heading": "Začaranja",
-        "books_heading": "Knjige i predmeti",
+        "item_heading": "Izaberi predmet",
+        "enchantments_heading": "Izaberi začaranja",
+        "books_heading": "Dodaj knjige",
         "pick_item_first": "Prvo izaberi predmet",
-        "skip_steps": "Idi na korišćenja nakovnja",
+        "skip_steps": "Idi na korake",
         "badge_done": "gotovo",
         "badge_problem": "problem",
         "badge_searching": "traženje",
-        "steps_heading": "Korišćenja nakovnja",
+        "steps_heading": "Prati korake",
         "theme_dark": "Prebaci na tamni režim",
         "theme_light": "Prebaci na svetli režim",
         "theme_dark_label": "Dark",
@@ -177,7 +177,7 @@
             "other": "Oko {levels} nivoa za dodavanje iz knjige, pre bilo kojeg prethodnog rada"
         },
         "preview_label": "Gotov predmet",
-        "short_help": "Tvoje knjige i predmeti u odeljku Knjige i predmeti ne mogu dostići ovde izabrani nivo."
+        "short_help": "Tvoje knjige i predmeti u odeljku 3 ne mogu dostići ovde izabrani nivo."
     },
     "books": {
         "custom": "Prilagođeno",
@@ -521,7 +521,7 @@
         "collapse_step": "Sklopi ovaj korak",
         "progress": "{done} od {total} gotovo",
         "progress_done": "Svih {total} koraka gotovo",
-        "entry_link_label": "Prikaži {name} u Knjigama i predmetima",
+        "entry_link_label": "Prikaži {name} u odeljku 3",
         "from_step": "Iz koraka {number}",
         "result_work": "Prethodni rad {count}",
         "uncheck_all": "Odznači sve",

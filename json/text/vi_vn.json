@@ -2,15 +2,15 @@
     "page": {
         "title": "Máy tính phù phép",
         "heading": "Máy tính phù phép",
-        "item_heading": "Vật phẩm",
-        "enchantments_heading": "Phù phép",
-        "books_heading": "Sách và vật phẩm",
+        "item_heading": "Chọn vật phẩm",
+        "enchantments_heading": "Chọn phù phép",
+        "books_heading": "Thêm sách",
         "pick_item_first": "Chọn vật phẩm trước",
-        "skip_steps": "Đến Lần dùng đe",
+        "skip_steps": "Đến các bước",
         "badge_done": "xong",
         "badge_problem": "có vấn đề",
         "badge_searching": "đang tìm",
-        "steps_heading": "Lần dùng đe",
+        "steps_heading": "Làm theo các bước",
         "theme_dark": "Chuyển sang chế độ tối",
         "theme_light": "Chuyển sang chế độ sáng",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "Khoảng {levels} cấp để thêm phù phép này từ sách, chưa tính công việc trước đó"},
         "preview_label": "Vật phẩm hoàn thành",
-        "short_help": "Sách và vật phẩm trong mục Sách và vật phẩm không đạt được cấp đã chọn ở đây."
+        "short_help": "Sách và vật phẩm trong mục 3 không đạt được cấp đã chọn ở đây."
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "Thu gọn bước này",
         "progress": "{done} trên {total} đã xong",
         "progress_done": "Đã xong cả {total} bước",
-        "entry_link_label": "Hiện {name} trong Sách và vật phẩm",
+        "entry_link_label": "Hiện {name} trong mục 3",
         "from_step": "Từ bước {number}",
         "result_work": "Công việc trước {count}",
         "uncheck_all": "Bỏ tick tất cả",

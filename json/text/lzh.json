@@ -2,15 +2,15 @@
     "page": {
         "title": "淬靈算器",
         "heading": "淬靈算器",
-        "item_heading": "器",
-        "enchantments_heading": "淬靈",
-        "books_heading": "書與器",
+        "item_heading": "擇器",
+        "enchantments_heading": "擇淬靈",
+        "books_heading": "增書",
         "pick_item_first": "先擇器",
-        "skip_steps": "往鐵砧之用",
+        "skip_steps": "往諸步",
         "badge_done": "已畢",
         "badge_problem": "有誤",
         "badge_searching": "尋中",
-        "steps_heading": "鐵砧之用",
+        "steps_heading": "循諸步",
         "theme_dark": "改為暗色",
         "theme_light": "改為亮色",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "one": "由書加此淬靈約需{levels}階，未計前工"
         },
         "preview_label": "成器",
-        "short_help": "「書與器」中之書與器，不能至此所擇之階。"
+        "short_help": "「第三節」中之書與器，不能至此所擇之階。"
     },
     "books": {
         "custom": "自定",
@@ -494,7 +494,7 @@
         "collapse_step": "收此步",
         "progress": "{done}/{total}已畢",
         "progress_done": "{total}步皆畢",
-        "entry_link_label": "於「書與器」見{name}",
+        "entry_link_label": "於「第三節」見{name}",
         "from_step": "出於第{number}步",
         "result_work": "前工{count}",
         "uncheck_all": "盡去勾",

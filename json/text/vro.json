@@ -2,15 +2,15 @@
     "page": {
         "title": "Nõidmiskalkulaator",
         "heading": "Nõidmiskalkulaator",
-        "item_heading": "Esemi",
-        "enchantments_heading": "Nõidmiseq",
-        "books_heading": "Raamatud ja esemi",
+        "item_heading": "Valli esemi",
+        "enchantments_heading": "Valli nõidmiseq",
+        "books_heading": "Lisa raamatuid",
         "pick_item_first": "Valiq kõigepällä esemi",
-        "skip_steps": "Mine alasi kasutamisõ juure",
+        "skip_steps": "Mine sammu juure",
         "badge_done": "valmis",
         "badge_problem": "probleem",
         "badge_searching": "ottsi",
-        "steps_heading": "Alasi kasutamiseq",
+        "steps_heading": "Käü sammuq läbi",
         "theme_dark": "Vaihtõ tumma moodi",
         "theme_light": "Vaihtõ hele moodi",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Umbes {levels} tasõ tämä lisämisess raamatust, enne eellist tüüd", "other": "Umbes {levels} tasõ tämä lisämisess raamatust, enne eellist tüüd"},
         "preview_label": "Valmis esemi",
-        "short_help": "Sinu raamatuq ja esemiq jaotisõn Raamatud ja esemi ei ulatu siin valitud tasõni."
+        "short_help": "Sinu raamatuq ja esemiq jaotisõn 3 ei ulatu siin valitud tasõni."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Sulgõ sen samm",
         "progress": "{done} / {total} tehtü",
         "progress_done": "Kõik {total} sammu tehtü",
-        "entry_link_label": "Näitä {name} jaotisõn Raamatud ja esemi",
+        "entry_link_label": "Näitä {name} jaotisõn 3",
         "from_step": "Sammust {number}",
         "result_work": "Eellist tüü {count}",
         "uncheck_all": "Võta kõik märkmiseq ärä",

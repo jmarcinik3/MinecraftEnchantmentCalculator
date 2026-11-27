@@ -2,15 +2,15 @@
     "page": {
         "title": "Računalo začaranj",
         "heading": "Računalo začaranj",
-        "item_heading": "Predmet",
-        "enchantments_heading": "Začaranja",
-        "books_heading": "Knjige in predmeti",
+        "item_heading": "Izberi predmet",
+        "enchantments_heading": "Izberi začaranja",
+        "books_heading": "Dodaj knjige",
         "pick_item_first": "Najprej izberi predmet",
-        "skip_steps": "Pojdi na uporabe nakovala",
+        "skip_steps": "Pojdi na korake",
         "badge_done": "opravljeno",
         "badge_problem": "težava",
         "badge_searching": "iskanje",
-        "steps_heading": "Uporabe nakovala",
+        "steps_heading": "Sledi korakom",
         "theme_dark": "Preklopi na temni način",
         "theme_light": "Preklopi na svetli način",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "other": "Okoli {levels} ravni za dodajanje iz knjige, pred morebitnim prejšnjim delom"
         },
         "preview_label": "Končni predmet",
-        "short_help": "Tvoje knjige in predmeti v razdelku Knjige in predmeti ne dosežejo tukaj izbrane ravni."
+        "short_help": "Tvoje knjige in predmeti v razdelku 3 ne dosežejo tukaj izbrane ravni."
     },
     "books": {
         "custom": "Po meri",
@@ -548,7 +548,7 @@
         "collapse_step": "Zloži ta korak",
         "progress": "{done} od {total} opravljeno",
         "progress_done": "Vseh {total} korakov opravljenih",
-        "entry_link_label": "Pokaži {name} v Knjigah in predmetih",
+        "entry_link_label": "Pokaži {name} v razdelku 3",
         "from_step": "Iz koraka {number}",
         "result_work": "Prejšnje delo {count}",
         "uncheck_all": "Odznači vse",

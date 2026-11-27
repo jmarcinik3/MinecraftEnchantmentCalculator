@@ -2,15 +2,15 @@
     "page": {
         "title": "Сихерләү калькуляторы",
         "heading": "Сихерләү калькуляторы",
-        "item_heading": "Әйбер",
-        "enchantments_heading": "Сихерләр",
-        "books_heading": "Китаплар һәм әйберләр",
+        "item_heading": "Әйбер сайлау",
+        "enchantments_heading": "Сихерләр сайлау",
+        "books_heading": "Китаплар өстәү",
         "pick_item_first": "Беренче әйберне сайлагыз",
-        "skip_steps": "Сандал куллануларына күчү",
+        "skip_steps": "Адымнарга күчү",
         "badge_done": "әзер",
         "badge_problem": "проблема",
         "badge_searching": "эзләнә",
-        "steps_heading": "Сандал куллануы",
+        "steps_heading": "Адымнарны үтәү",
         "theme_dark": "Караңгы режимга күчү",
         "theme_light": "Якты режимга күчү",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Китаптан моны өстәү өчен якынча {levels} дәрәҗә, элекке эштән тыш", "other": "Китаптан моны өстәү өчен якынча {levels} дәрәҗә, элекке эштән тыш"},
         "preview_label": "Әзер әйбер",
-        "short_help": "Китаплар һәм әйберләр бүлегендәге китаплар һәм әйберләр монда сайланган дәрәҗәгә җитмиләр."
+        "short_help": "3-нче бүлектәге китаплар һәм әйберләр монда сайланган дәрәҗәгә җитмиләр."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Бу адымны җыю",
         "progress": "{total} адымның {done} башкарылды",
         "progress_done": "Барлык {total} адым башкарылды",
-        "entry_link_label": "Китаплар һәм әйберләр бүлегендә {name} күрсәтү",
+        "entry_link_label": "3-нче бүлектә {name} күрсәтү",
         "from_step": "{number} нче адымнан",
         "result_work": "Элекке эш {count}",
         "uncheck_all": "Барысының билгесен алу",

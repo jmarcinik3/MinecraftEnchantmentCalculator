@@ -2,15 +2,15 @@
     "page": {
         "title": "محاسبه‌گر افسون",
         "heading": "محاسبه‌گر افسون",
-        "item_heading": "آیتم",
-        "enchantments_heading": "افسون‌ها",
-        "books_heading": "کتاب‌ها و آیتم‌ها",
+        "item_heading": "یک آیتم انتخاب کنید",
+        "enchantments_heading": "افسون‌ها را انتخاب کنید",
+        "books_heading": "کتاب‌ها را اضافه کنید",
         "pick_item_first": "ابتدا یک آیتم انتخاب کنید",
-        "skip_steps": "پرش به کاربردهای سندان",
+        "skip_steps": "پرش به مراحل",
         "badge_done": "انجام شد",
         "badge_problem": "مشکل",
         "badge_searching": "در حال جستجو",
-        "steps_heading": "کاربردهای سندان",
+        "steps_heading": "مراحل را دنبال کنید",
         "theme_dark": "تغییر به حالت تیره",
         "theme_light": "تغییر به حالت روشن",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "حدود {levels} سطح برای افزودن این از کتاب، پیش از هر کار قبلی", "other": "حدود {levels} سطح برای افزودن این از کتاب، پیش از هر کار قبلی"},
         "preview_label": "آیتم نهایی",
-        "short_help": "کتاب‌ها و آیتم‌های بخش کتاب‌ها و آیتم‌ها نمی‌توانند به سطح انتخاب‌شده اینجا برسند."
+        "short_help": "کتاب‌ها و آیتم‌های بخش ۳ نمی‌توانند به سطح انتخاب‌شده اینجا برسند."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "بستن این مرحله",
         "progress": "{done} از {total} انجام شد",
         "progress_done": "همه {total} مرحله انجام شد",
-        "entry_link_label": "نمایش {name} در کتاب‌ها و آیتم‌ها",
+        "entry_link_label": "نمایش {name} در بخش ۳",
         "from_step": "از مرحله {number}",
         "result_work": "کار قبلی {count}",
         "uncheck_all": "برداشتن همه تیک‌ها",

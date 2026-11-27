@@ -2,15 +2,15 @@
     "page": {
         "title": "Noiddolaš rehkenastin",
         "heading": "Noiddolaš rehkenastin",
-        "item_heading": "Fidnu",
-        "enchantments_heading": "Noiddut",
-        "books_heading": "Girjjit ja fidnut",
+        "item_heading": "Vállje fidnu",
+        "enchantments_heading": "Vállje noidduid",
+        "books_heading": "Lasit girjjiid",
         "pick_item_first": "Vállje vuos fidnu",
-        "skip_steps": "Mana Ruovdeákšu-geavaheapmái",
+        "skip_steps": "Mana ádjáide",
         "badge_done": "gárvvis",
         "badge_problem": "váttis",
         "badge_searching": "gávnnahallá",
-        "steps_heading": "Ruovdeákšu-geavaheamit",
+        "steps_heading": "Čuovvu ádjáid",
         "theme_dark": "Vázzit čiekŋudan moddii",
         "theme_light": "Vázzit čiekŋalaš moddii",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Nu lassin {levels} dássi girjjis, ovdal ovdalaš bargu", "two": "Nu lassin {levels} dássi girjjis, ovdal ovdalaš bargu", "other": "Nu lassin {levels} dássi girjjis, ovdal ovdalaš bargu"},
         "preview_label": "Gárvvis fidnu",
-        "short_help": "Girjjit ja fidnut Girjjit ja fidnut -oasis eai beasat dán válljejuvvon dássái."
+        "short_help": "Girjjit ja fidnut 3. oasis eai beasat dán válljejuvvon dássái."
     },
 
     "books": {
@@ -379,7 +379,7 @@
         "collapse_step": "Vikk dán ádjá",
         "progress": "{done} {total}s gárvvis",
         "progress_done": "Buot {total} ádjá gárvvis",
-        "entry_link_label": "Čájet {name} Girjjit ja fidnut -oasis",
+        "entry_link_label": "Čájet {name} 3. oasis",
         "from_step": "Ádjás {number}",
         "result_work": "Ovdalaš bargu {count}",
         "uncheck_all": "Njulca buot merkemat",

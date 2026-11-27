@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulator zaklęć",
         "heading": "Kalkulator zaklęć",
-        "item_heading": "Przedmiot",
-        "enchantments_heading": "Zaklęcia",
-        "books_heading": "Książki i przedmioty",
+        "item_heading": "Wybierz przedmiot",
+        "enchantments_heading": "Wybierz zaklęcia",
+        "books_heading": "Dodaj książki",
         "pick_item_first": "Najpierw wybierz przedmiot",
-        "skip_steps": "Przejdź do użyć kowadła",
+        "skip_steps": "Przejdź do kroków",
         "badge_done": "gotowe",
         "badge_problem": "problem",
         "badge_searching": "szukam",
-        "steps_heading": "Użycia kowadła",
+        "steps_heading": "Postępuj zgodnie z krokami",
         "theme_dark": "Przełącz na tryb ciemny",
         "theme_light": "Przełącz na tryb jasny",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Około {levels} poziomu, by dodać to z książki, bez wcześniejszej pracy", "few": "Około {levels} poziomów, by dodać to z książki, bez wcześniejszej pracy", "many": "Około {levels} poziomów, by dodać to z książki, bez wcześniejszej pracy", "other": "Około {levels} poziomu, by dodać to z książki, bez wcześniejszej pracy"},
         "preview_label": "Gotowy przedmiot",
-        "short_help": "Twoje książki i przedmioty w sekcji Książki i przedmioty nie sięgają poziomu wybranego tutaj."
+        "short_help": "Twoje książki i przedmioty w sekcji 3 nie sięgają poziomu wybranego tutaj."
     },
 
     "books": {
@@ -382,7 +382,7 @@
         "collapse_step": "Zwiń ten krok",
         "progress": "{done} z {total} gotowe",
         "progress_done": "Wszystkie kroki gotowe ({total})",
-        "entry_link_label": "Pokaż {name} w Książkach i przedmiotach",
+        "entry_link_label": "Pokaż {name} w sekcji 3",
         "from_step": "Z kroku {number}",
         "result_work": "Wcześniejsza praca {count}",
         "uncheck_all": "Odznacz wszystko",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculadora d'encanteris",
         "heading": "Calculadora d'encanteris",
-        "item_heading": "Objecte",
-        "enchantments_heading": "Encanteris",
-        "books_heading": "Llibres i objectes",
+        "item_heading": "Tria un objecte",
+        "enchantments_heading": "Tria encanteris",
+        "books_heading": "Afegeix llibres",
         "pick_item_first": "Tria primer un objecte",
-        "skip_steps": "Vés als usos de l'enclusa",
+        "skip_steps": "Vés als passos",
         "badge_done": "fet",
         "badge_problem": "problema",
         "badge_searching": "cercant",
-        "steps_heading": "Usos de l'enclusa",
+        "steps_heading": "Segueix els passos",
         "theme_dark": "Canvia al mode fosc",
         "theme_light": "Canvia al mode clar",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Uns {levels} nivell per afegir-ho d'un llibre, abans de qualsevol treball previ", "other": "Uns {levels} nivells per afegir-ho d'un llibre, abans de qualsevol treball previ"},
         "preview_label": "L'objecte acabat",
-        "short_help": "Els teus llibres i objectes de la secció Llibres i objectes no arriben al nivell triat aquí."
+        "short_help": "Els teus llibres i objectes de la secció 3 no arriben al nivell triat aquí."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Plega aquest pas",
         "progress": "{done} de {total} fets",
         "progress_done": "Tots els {total} passos fets",
-        "entry_link_label": "Mostra {name} a Llibres i objectes",
+        "entry_link_label": "Mostra {name} a la secció 3",
         "from_step": "Del pas {number}",
         "result_work": "Treball previ {count}",
         "uncheck_all": "Desmarca-ho tot",

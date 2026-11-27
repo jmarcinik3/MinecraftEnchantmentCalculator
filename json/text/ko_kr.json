@@ -2,15 +2,15 @@
     "page": {
         "title": "마법 부여 계산기",
         "heading": "마법 부여 계산기",
-        "item_heading": "아이템",
-        "enchantments_heading": "마법 부여",
-        "books_heading": "책과 아이템",
+        "item_heading": "아이템 고르기",
+        "enchantments_heading": "마법 부여 고르기",
+        "books_heading": "책 추가하기",
         "pick_item_first": "먼저 아이템을 고르세요",
-        "skip_steps": "모루 사용 횟수로 건너뛰기",
+        "skip_steps": "단계로 건너뛰기",
         "badge_done": "완료",
         "badge_problem": "문제",
         "badge_searching": "검색 중",
-        "steps_heading": "모루 사용 횟수",
+        "steps_heading": "단계 따라하기",
         "theme_dark": "다크 모드로 전환",
         "theme_light": "라이트 모드로 전환",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "책에서 이 마법 부여를 추가하는 데 약 {levels}레벨 (작업 페널티 제외)"},
         "preview_label": "완성된 아이템",
-        "short_help": "\"책과 아이템\"의 책과 아이템으로는 여기서 고른 레벨에 도달할 수 없습니다."
+        "short_help": "3번 섹션의 책과 아이템으로는 여기서 고른 레벨에 도달할 수 없습니다."
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "이 단계 접기",
         "progress": "{done} / {total} 완료",
         "progress_done": "{total}단계 모두 완료",
-        "entry_link_label": "\"책과 아이템\"에서 {name} 보기",
+        "entry_link_label": "3번 섹션에서 {name} 보기",
         "from_step": "{number}단계에서 나옴",
         "result_work": "작업 페널티 {count}",
         "uncheck_all": "모두 체크 해제",

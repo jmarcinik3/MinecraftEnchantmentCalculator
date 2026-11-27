@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculateur d'enchantements",
         "heading": "Calculateur d'enchantements",
-        "item_heading": "Objet",
-        "enchantments_heading": "Enchantements",
-        "books_heading": "Livres et objets",
+        "item_heading": "Choisir un objet",
+        "enchantments_heading": "Choisir des enchantements",
+        "books_heading": "Ajouter des livres",
         "pick_item_first": "Choisissez d'abord un objet",
-        "skip_steps": "Aller aux utilisations de l'enclume",
+        "skip_steps": "Aller aux étapes",
         "badge_done": "terminé",
         "badge_problem": "problème",
         "badge_searching": "recherche",
-        "steps_heading": "Utilisations de l'enclume",
+        "steps_heading": "Suivre les étapes",
         "theme_dark": "Passer au mode sombre",
         "theme_light": "Passer au mode clair",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Environ {levels} niveaux pour l'ajouter depuis un livre, hors travail antérieur"
         },
         "preview_label": "L'objet terminé",
-        "short_help": "Vos livres et objets de la section Livres et objets ne peuvent pas atteindre le niveau choisi ici."
+        "short_help": "Vos livres et objets de la section 3 ne peuvent pas atteindre le niveau choisi ici."
     },
     "books": {
         "custom": "Personnalisée",
@@ -494,7 +494,7 @@
         "collapse_step": "Replier cette étape",
         "progress": "{done} sur {total} terminées",
         "progress_done": "Les {total} étapes sont terminées",
-        "entry_link_label": "Afficher {name} dans Livres et objets",
+        "entry_link_label": "Afficher {name} dans la section 3",
         "from_step": "De l'étape {number}",
         "result_work": "Travail antérieur {count}",
         "uncheck_all": "Tout décocher",

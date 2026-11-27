@@ -2,15 +2,15 @@
     "page": {
         "title": "Lumouslaskuri",
         "heading": "Lumouslaskuri",
-        "item_heading": "Esine",
-        "enchantments_heading": "Lumoukset",
-        "books_heading": "Kirjat ja esineet",
+        "item_heading": "Valitse esine",
+        "enchantments_heading": "Valitse lumoukset",
+        "books_heading": "Lisää kirjoja",
         "pick_item_first": "Valitse ensin esine",
-        "skip_steps": "Siirry alasimen käyttöihin",
+        "skip_steps": "Siirry vaiheisiin",
         "badge_done": "valmis",
         "badge_problem": "ongelma",
         "badge_searching": "haetaan",
-        "steps_heading": "Alasimen käytöt",
+        "steps_heading": "Seuraa vaiheita",
         "theme_dark": "Vaihda tummaan tilaan",
         "theme_light": "Vaihda vaaleaan tilaan",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Noin {levels} taso tämän lisäämiseen kirjasta ennen mahdollista aiempaa työtä", "other": "Noin {levels} tasoa tämän lisäämiseen kirjasta ennen mahdollista aiempaa työtä"},
         "preview_label": "Valmis esine",
-        "short_help": "Kirjasi ja esineesi Kirjat ja esineet -osiossa eivät yllä tässä valittuun tasoon."
+        "short_help": "Kirjasi ja esineesi osiossa 3 eivät yllä tässä valittuun tasoon."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Sulje tämä vaihe",
         "progress": "{done} / {total} valmis",
         "progress_done": "Kaikki {total} vaihetta valmiina",
-        "entry_link_label": "Näytä {name} Kirjat ja esineet -osiossa",
+        "entry_link_label": "Näytä {name} osiossa 3",
         "from_step": "Vaiheesta {number}",
         "result_work": "Aiempi työ {count}",
         "uncheck_all": "Poista kaikki ruksit",

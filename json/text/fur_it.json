@@ -2,15 +2,15 @@
     "page": {
         "title": "Calcolatôr di incantesims",
         "heading": "Calcolatôr di incantesims",
-        "item_heading": "Program",
-        "enchantments_heading": "Incjantesims",
-        "books_heading": "Libris e ogjets",
+        "item_heading": "Sielç un ogjet",
+        "enchantments_heading": "Sielç incjantesims",
+        "books_heading": "Zonte libris",
         "pick_item_first": "Sielç prin un ogjet",
-        "skip_steps": "Va ai ûs de incudine",
+        "skip_steps": "Va ai pas",
         "badge_done": "fat",
         "badge_problem": "problema",
         "badge_searching": "in cercje",
-        "steps_heading": "Ûs de incudine",
+        "steps_heading": "Segui i pas",
         "theme_dark": "Passe al mût scûr",
         "theme_light": "Passe al mût clâr",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Circa {levels} nivel par zontâlu di un libri, cence il lavôr prin", "other": "Circa {levels} nivei par zontâlu di un libri, cence il lavôr prin"},
         "preview_label": "Il program finît",
-        "short_help": "I tiei libris e ogjets te sezion Libris e ogjets no rivin al nivel sielt chi."
+        "short_help": "I tiei libris e ogjets te sezion 3 no rivin al nivel sielt chi."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Plee chest pas",
         "progress": "{done} di {total} fats",
         "progress_done": "Ducj i {total} pas fats",
-        "entry_link_label": "Mostre {name} in Libris e ogjets",
+        "entry_link_label": "Mostre {name} te sezion 3",
         "from_step": "Dal pas {number}",
         "result_work": "Lavôr prin {count}",
         "uncheck_all": "Dismape dut",

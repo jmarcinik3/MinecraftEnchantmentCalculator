@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkoelator Pesona",
         "heading": "Kalkoelator pesona",
-        "item_heading": "Item",
-        "enchantments_heading": "Pesona",
-        "books_heading": "Boekoe dan item",
+        "item_heading": "Pilih item",
+        "enchantments_heading": "Pilih pesona",
+        "books_heading": "Tambahkan boekoe",
         "pick_item_first": "Pilih item doeloe",
-        "skip_steps": "Lompat ke Pemakaian Landasan",
+        "skip_steps": "Lompat ke langkah",
         "badge_done": "selesai",
         "badge_problem": "masaalah",
         "badge_searching": "mentjari",
-        "steps_heading": "Pemakaian Landasan",
+        "steps_heading": "Ikoeti langkah",
         "theme_dark": "Ganti ke modus gelap",
         "theme_light": "Ganti ke modus terang",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Kira-kira {levels} level oentoek menambahkan ini dari boekoe, sebelom prior work"
         },
         "preview_label": "Item djadi",
-        "short_help": "Boekoe dan item anda di bagian Boekoe dan item tidak dapat mentjapai level jang dipilih di sini."
+        "short_help": "Boekoe dan item anda di bagian 3 tidak dapat mentjapai level jang dipilih di sini."
     },
     "books": {
         "custom": "Koestom",
@@ -494,7 +494,7 @@
         "collapse_step": "Toetoep langkah ini",
         "progress": "{done} dari {total} selesai",
         "progress_done": "Semoea {total} langkah selesai",
-        "entry_link_label": "Tampilkan {name} di Boekoe dan item",
+        "entry_link_label": "Tampilkan {name} di bagian 3",
         "from_step": "Dari langkah {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Hapoes semoea tjentang",

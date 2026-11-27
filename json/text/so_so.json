@@ -2,15 +2,15 @@
     "page": {
         "title": "Xisaabiyaha Sixirka",
         "heading": "Xisaabiyaha sixirka",
-        "item_heading": "Shay",
-        "enchantments_heading": "Sixirro",
-        "books_heading": "Buugaag iyo shayad",
+        "item_heading": "Dooro shay",
+        "enchantments_heading": "Dooro sixirro",
+        "books_heading": "Ku dar buugaag",
         "pick_item_first": "Marka hore dooro shay",
-        "skip_steps": "Aad Isticmaalka Anvil",
+        "skip_steps": "Aad tillaabooyinka",
         "badge_done": "dhammaaday",
         "badge_problem": "dhib",
         "badge_searching": "raadinaya",
-        "steps_heading": "Isticmaalka Anvil",
+        "steps_heading": "Raac tillaabooyinka",
         "theme_dark": "Beddel si aad u noqoto habka madow",
         "theme_light": "Beddel si aad u noqoto habka caddaan",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Qiyaastii {levels} heer si loogu daro tan buug, ka hor shaqada hore"
         },
         "preview_label": "Shayga dhammaadka",
-        "short_help": "Buugaagtaadda iyo shayadaada qaybta Buugaag iyo shayad ma gaari karaan heerka halkan lagu doortay."
+        "short_help": "Buugaagtaadda iyo shayadaada qaybta 3 ma gaari karaan heerka halkan lagu doortay."
     },
     "books": {
         "custom": "Gaar ah",
@@ -494,7 +494,7 @@
         "collapse_step": "Xir tallaabadan",
         "progress": "{done} ee {total} waa dhammaatay",
         "progress_done": "Dhammaan {total} tallaabo waa dhammaatay",
-        "entry_link_label": "Muuji {name} Buugaag iyo shayad",
+        "entry_link_label": "Muuji {name} qaybta 3",
         "from_step": "Tallaabada {number} ka timid",
         "result_work": "Shaqada hore {count}",
         "uncheck_all": "Ka saar calaamadaha oo dhan",

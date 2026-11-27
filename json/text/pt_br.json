@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculadora de Encantamentos",
         "heading": "Calculadora de encantamentos",
-        "item_heading": "Item",
-        "enchantments_heading": "Encantamentos",
-        "books_heading": "Livros e itens",
+        "item_heading": "Escolha um item",
+        "enchantments_heading": "Escolha encantamentos",
+        "books_heading": "Adicione livros",
         "pick_item_first": "Escolha um item primeiro",
-        "skip_steps": "Ir para Usos da bigorna",
+        "skip_steps": "Ir para os passos",
         "badge_done": "concluído",
         "badge_problem": "problema",
         "badge_searching": "buscando",
-        "steps_heading": "Usos da bigorna",
+        "steps_heading": "Siga os passos",
         "theme_dark": "Mudar para o modo escuro",
         "theme_light": "Mudar para o modo claro",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Cerca de {levels} nível para adicionar isto de um livro, antes de qualquer trabalho anterior", "other": "Cerca de {levels} níveis para adicionar isto de um livro, antes de qualquer trabalho anterior"},
         "preview_label": "O item pronto",
-        "short_help": "Seus livros e itens na seção Livros e itens não alcançam o nível escolhido aqui."
+        "short_help": "Seus livros e itens na seção 3 não alcançam o nível escolhido aqui."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Recolher este passo",
         "progress": "{done} de {total} concluídos",
         "progress_done": "Todos os {total} passos concluídos",
-        "entry_link_label": "Mostrar {name} em Livros e itens",
+        "entry_link_label": "Mostrar {name} na seção 3",
         "from_step": "Do passo {number}",
         "result_work": "Trabalho anterior {count}",
         "uncheck_all": "Desmarcar tudo",

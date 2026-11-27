@@ -2,15 +2,15 @@
     "page": {
         "title": "Fertryllaðsrêknari",
         "heading": "Fertryllaðsrêknari",
-        "item_heading": "Tyng",
-        "enchantments_heading": "Fertryllingar",
-        "books_heading": "Buokar og tyngar",
+        "item_heading": "Vel eitt tyng",
+        "enchantments_heading": "Vel fertryllingar",
+        "books_heading": "Legg til buokar",
         "pick_item_first": "Vel tyng fyrst",
-        "skip_steps": "Gå te Aambeeld-brúk",
+        "skip_steps": "Gå te stegini",
         "badge_done": "gjord",
         "badge_problem": "trubbel",
         "badge_searching": "leitar",
-        "steps_heading": "Aambeeld-brúk",
+        "steps_heading": "Fylg stegini",
         "theme_dark": "Breit te mýrk háttur",
         "theme_light": "Breit te ljus háttur",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Um {levels} nivå at leggja hetta til frå eina buok, fyr ei fyrra vinnu", "other": "Um {levels} nivå at leggja hetta til frå eina buok, fyr ei fyrra vinnu"},
         "preview_label": "Ta ferdiga tyngin",
-        "short_help": "Dínar buokar og tyngar í partinum Buokar og tyngar kunnu ei nå nivåið sum er valt her."
+        "short_help": "Dínar buokar og tyngar í part 3 kunnu ei nå nivåið sum er valt her."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Ló aftur hetta steg",
         "progress": "{done} av {total} gjørd",
         "progress_done": "Allar {total} steg gjørd",
-        "entry_link_label": "Vis {name} undir Buokar og tyngar",
+        "entry_link_label": "Vis {name} undir part 3",
         "from_step": "Frá steg {number}",
         "result_work": "Fyrra vinna {count}",
         "uncheck_all": "Kryss alt av",

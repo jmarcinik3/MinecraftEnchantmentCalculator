@@ -2,15 +2,15 @@
     "page": {
         "title": "Kompezer an enchantamantoù",
         "heading": "Kompezer an enchantamantoù",
-        "item_heading": "Traezh",
-        "enchantments_heading": "Enchantamantoù",
-        "books_heading": "Levrioù hag traezhioù",
+        "item_heading": "Dibab un traezh",
+        "enchantments_heading": "Dibab enchantamantoù",
+        "books_heading": "Ouzhpennañ levrioù",
         "pick_item_first": "Dibab ur traezh a-raok",
-        "skip_steps": "Mont d'an implijoù a-enep ar c'houde",
+        "skip_steps": "Mont d'ar pazennoù",
         "badge_done": "graet",
         "badge_problem": "kudenn",
         "badge_searching": "o klask",
-        "steps_heading": "Implijoù a-enep ar c'houde",
+        "steps_heading": "Heuliañ ar pazennoù",
         "theme_dark": "Mont d'ar mod teñval",
         "theme_light": "Mont d'ar mod sklaer",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Tro-dro {levels} live evit ouzhpennañ an enchantamant-mañ eus ul levr, hep al labour a-raok", "two": "Tro-dro {levels} live evit ouzhpennañ an enchantamant-mañ eus ul levr, hep al labour a-raok", "few": "Tro-dro {levels} live evit ouzhpennañ an enchantamant-mañ eus ul levr, hep al labour a-raok", "other": "Tro-dro {levels} live evit ouzhpennañ an enchantamant-mañ eus ul levr, hep al labour a-raok"},
         "preview_label": "Ar traezh echuet",
-        "short_help": "Ho levrioù hag ho traezhioù en rann Levrioù hag traezhioù n'int ket evit tizhout al live dibabet amañ."
+        "short_help": "Ho levrioù hag ho traezhioù er rann 3 n'int ket evit tizhout al live dibabet amañ."
     },
 
     "books": {
@@ -382,7 +382,7 @@
         "collapse_step": "Serriñ ar pazenn-mañ",
         "progress": "{done} eus {total} graet",
         "progress_done": "An {total} pazenn graet",
-        "entry_link_label": "Diskouez {name} en Levrioù hag traezhioù",
+        "entry_link_label": "Diskouez {name} er rann 3",
         "from_step": "Eus ar pazenn {number}",
         "result_work": "Labour a-raok {count}",
         "uncheck_all": "Dilemel an holl",

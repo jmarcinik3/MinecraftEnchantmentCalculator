@@ -2,15 +2,15 @@
     "page": {
         "title": "ເຄື່ອງຄິດໄລ່ການຮວາຍມົນ",
         "heading": "ເຄື່ອງຄິດໄລ່ການຮວາຍມົນ",
-        "item_heading": "ໄອເທັມ",
-        "enchantments_heading": "ການຮວາຍມົນ",
-        "books_heading": "ປຶ້ມ ແລະ ໄອເທັມ",
+        "item_heading": "ເລືອກໄອເທັມ",
+        "enchantments_heading": "ເລືອກການຮວາຍມົນ",
+        "books_heading": "ເພີ່ມປຶ້ມ",
         "pick_item_first": "ເລືອກໄອເທັມກ່ອນ",
-        "skip_steps": "ໄປທີ່ການໃຊ້ໂຕະເຫຼັກ",
+        "skip_steps": "ໄປທີ່ຂັ້ນຕອນ",
         "badge_done": "ສຳເລັດ",
         "badge_problem": "ມີບັນຫາ",
         "badge_searching": "ກຳລັງຊອກຫາ",
-        "steps_heading": "ການໃຊ້ໂຕະເຫຼັກ",
+        "steps_heading": "ເຮັດຕາມຂັ້ນຕອນ",
         "theme_dark": "ປ່ຽນເປັນໂໝດມືດ",
         "theme_light": "ປ່ຽນເປັນໂໝດສະຫວ່າງ",
         "theme_dark_label": "Dark",
@@ -165,7 +165,7 @@
             "other": "ປະມານ {levels} ລະດັບເພື່ອເພີ່ມອັນນີ້ຈາກປຶ້ມ, ກ່ອນງານກ່ອນໜ້າ"
         },
         "preview_label": "ໄອເທັມທີ່ສຳເລັດແລ້ວ",
-        "short_help": "ປຶ້ມ ແລະ ໄອເທັມຂອງທ່ານໃນສ່ວນປຶ້ມ ແລະ ໄອເທັມບໍ່ສາມາດໄປເຖິງລະດັບທີ່ເລືອກໄວ້ທີ່ນີ້ໄດ້."
+        "short_help": "ປຶ້ມ ແລະ ໄອເທັມຂອງທ່ານໃນສ່ວນທີ 3 ບໍ່ສາມາດໄປເຖິງລະດັບທີ່ເລືອກໄວ້ທີ່ນີ້ໄດ້."
     },
     "books": {
         "custom": "ກຳນົດເອງ",
@@ -467,7 +467,7 @@
         "collapse_step": "ພັບຂັ້ນນີ້",
         "progress": "ສຳເລັດ {done} ຈາກ {total}",
         "progress_done": "ສຳເລັດທັງ {total} ຂັ້ນຕອນແລ້ວ",
-        "entry_link_label": "ສະແດງ {name} ໃນປຶ້ມ ແລະ ໄອເທັມ",
+        "entry_link_label": "ສະແດງ {name} ໃນສ່ວນທີ 3",
         "from_step": "ຈາກຂັ້ນທີ່ {number}",
         "result_work": "ງານກ່ອນໜ້າ {count}",
         "uncheck_all": "ຍົກເລີກການຕິກທັງໝົດ",

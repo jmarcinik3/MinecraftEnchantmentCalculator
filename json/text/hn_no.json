@@ -2,15 +2,15 @@
     "page": {
         "title": "Galdrekalkulator",
         "heading": "Galdrekalkulator",
-        "item_heading": "Hlut",
-        "enchantments_heading": "Galdrar",
-        "books_heading": "Bøker og hluti",
+        "item_heading": "Vel ein hlut",
+        "enchantments_heading": "Vel galdrar",
+        "books_heading": "Legg til bøker",
         "pick_item_first": "Vel ein hlut fyrst",
-        "skip_steps": "Hopp til Ambolt-bruk",
+        "skip_steps": "Hopp til steg",
         "badge_done": "ferdig",
         "badge_problem": "vanskelegt",
         "badge_searching": "leitar",
-        "steps_heading": "Ambolt-bruk",
+        "steps_heading": "Følg steg",
         "theme_dark": "Skift til mørk modus",
         "theme_light": "Skift til ljos modus",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Um lag {levels} nivå fyri at leggja hetta til úr eini bók, áðrenn ætlað arbeiði"
         },
         "preview_label": "Ferdigur hlutur",
-        "short_help": "Bøkurnar og hlutirnir tínir í Bøker og hluti kunnu ikki náa nivåið sum er valt her."
+        "short_help": "Bøkurnar og hlutirnir tínir í deild 3 kunnu ikki náa nivåið sum er valt her."
     },
     "books": {
         "custom": "Sersniðið",
@@ -494,7 +494,7 @@
         "collapse_step": "Fjul hetta steget",
         "progress": "{done} av {total} liðugt",
         "progress_done": "Øll {total} steg liðug",
-        "entry_link_label": "Vís {name} í Bøker og hluti",
+        "entry_link_label": "Vís {name} í deild 3",
         "from_step": "Frá steg {number}",
         "result_work": "Ætlað arbeiði {count}",
         "uncheck_all": "Tak alt kryssið av",

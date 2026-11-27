@@ -2,15 +2,15 @@
     "page": {
         "title": "ɹoʇɐꞁnɔꞁɐƆ ʇuǝɯʇuɐɥɔuƎ",
         "heading": "ɹoʇɐꞁnɔꞁɐɔ ʇuǝɯʇuɐɥɔuƎ",
-        "item_heading": "ɯǝʇI",
-        "enchantments_heading": "sʇuǝɯʇuɐɥɔuƎ",
-        "books_heading": "sɯǝʇᴉ puɐ sʞooᗺ",
+        "item_heading": "ɯǝʇᴉ uɐ ʞɔᴉԀ",
+        "enchantments_heading": "sʇuǝɯʇuɐɥɔuǝ ʞɔᴉԀ",
+        "books_heading": "sʞooq pp∀",
         "pick_item_first": "ʇsɹᴉɟ ɯǝʇᴉ uɐ ʞɔᴉԀ",
-        "skip_steps": "sǝsn ꞁᴉʌu∀ oʇ dᴉʞS",
+        "skip_steps": "sdǝʇs ǝɥʇ oʇ dᴉʞS",
         "badge_done": "ǝuop",
         "badge_problem": "ɯǝꞁqoɹd",
         "badge_searching": "ᵷuᴉɥɔɹɐǝs",
-        "steps_heading": "sǝsn ꞁᴉʌu∀",
+        "steps_heading": "sdǝʇs ǝɥʇ ʍoꞁꞁoℲ",
         "theme_dark": "ǝpoɯ ʞɹɐp oʇ ɥɔʇᴉʍS",
         "theme_light": "ǝpoɯ ʇɥᵷᴉꞁ oʇ ɥɔʇᴉʍS",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "ʞɹoʍ ɹoᴉɹd ʎuɐ ǝɹoɟǝq 'ʞooq ɐ ɯoɹɟ sᴉɥʇ ppɐ oʇ sꞁǝʌǝꞁ {levels} ʇnoq∀"
         },
         "preview_label": "ɯǝʇᴉ pǝɥsᴉuᴉɟ ǝɥ⟘",
-        "short_help": "˙ǝɹǝɥ uǝsoɥɔ ꞁǝʌǝꞁ ǝɥʇ ɥɔɐǝɹ ʇ,uɐɔ uoᴉʇɔǝs sɯǝʇᴉ puɐ sʞooᗺ ǝɥʇ uᴉ sɯǝʇᴉ puɐ sʞooq ɹno⅄"
+        "short_help": "˙ǝɹǝɥ uǝsoɥɔ ꞁǝʌǝꞁ ǝɥʇ ɥɔɐǝɹ ʇ,uɐɔ Ɛ uoᴉʇɔǝs uᴉ sɯǝʇᴉ puɐ sʞooq ɹno⅄"
     },
     "books": {
         "custom": "ɯoʇsnƆ",
@@ -494,7 +494,7 @@
         "collapse_step": "dǝʇs sᴉɥʇ pꞁoℲ",
         "progress": "ǝuop {total} ɟo {done}",
         "progress_done": "ǝuop sdǝʇs {total} ꞁꞁ∀",
-        "entry_link_label": "sɯǝʇᴉ puɐ sʞooᗺ uᴉ {name} ʍoɥS",
+        "entry_link_label": "Ɛ uoᴉʇɔǝs uᴉ {name} ʍoɥS",
         "from_step": "{number} dǝʇs ɯoɹℲ",
         "result_work": "{count} ʞɹoʍ ɹoᴉɹԀ",
         "uncheck_all": "ꞁꞁɐ ʞɔǝɥɔu∩",

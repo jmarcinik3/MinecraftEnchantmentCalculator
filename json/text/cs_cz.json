@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulátor očarování",
         "heading": "Kalkulátor očarování",
-        "item_heading": "Předmět",
-        "enchantments_heading": "Očarování",
-        "books_heading": "Knihy a předměty",
+        "item_heading": "Vyber předmět",
+        "enchantments_heading": "Vyber očarování",
+        "books_heading": "Přidej knihy",
         "pick_item_first": "Nejdřív vyber předmět",
-        "skip_steps": "Přejít na použití kovadliny",
+        "skip_steps": "Přejít na kroky",
         "badge_done": "hotovo",
         "badge_problem": "problém",
         "badge_searching": "hledání",
-        "steps_heading": "Použití kovadliny",
+        "steps_heading": "Postupuj podle kroků",
         "theme_dark": "Přepnout na tmavý režim",
         "theme_light": "Přepnout na světlý režim",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "other": "Asi {levels} úrovní k přidání z knihy, před jakoukoli předchozí prací"
         },
         "preview_label": "Hotový předmět",
-        "short_help": "Tvoje knihy a předměty v sekci Knihy a předměty nemohou dosáhnout zde zvolené úrovně."
+        "short_help": "Tvoje knihy a předměty v sekci 3 nemohou dosáhnout zde zvolené úrovně."
     },
     "books": {
         "custom": "Vlastní",
@@ -548,7 +548,7 @@
         "collapse_step": "Sbalit tento krok",
         "progress": "{done} z {total} hotovo",
         "progress_done": "Všech {total} kroků hotovo",
-        "entry_link_label": "Zobrazit {name} v Knihách a předmětech",
+        "entry_link_label": "Zobrazit {name} v sekci 3",
         "from_step": "Z kroku {number}",
         "result_work": "Předchozí práce {count}",
         "uncheck_all": "Odškrtnout vše",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculadoira d'encantaments",
         "heading": "Calculadoira d'encantaments",
-        "item_heading": "Objècte",
-        "enchantments_heading": "Encantaments",
-        "books_heading": "Libres e objèctes",
+        "item_heading": "Causir un objècte",
+        "enchantments_heading": "Causir d'encantaments",
+        "books_heading": "Apondre de libres",
         "pick_item_first": "Causís un objècte d'abord",
-        "skip_steps": "Anar a las utilizacions de l'enclusa",
+        "skip_steps": "Anar a las etapas",
         "badge_done": "fach",
         "badge_problem": "problèma",
         "badge_searching": "recèrca",
-        "steps_heading": "Utilizacions de l'enclusa",
+        "steps_heading": "Seguir las etapas",
         "theme_dark": "Passar al mòde escur",
         "theme_light": "Passar al mòde clar",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Environ {levels} nivèl per ajustar aquò d'un libre, abans cap de trabalh previ", "other": "Environ {levels} nivèls per ajustar aquò d'un libre, abans cap de trabalh previ"},
         "preview_label": "L'objècte acabat",
-        "short_help": "Vòstres libres e objèctes de la seccion Libres e objèctes arriban pas al nivèl causit aicí."
+        "short_help": "Vòstres libres e objèctes de la seccion 3 arriban pas al nivèl causit aicí."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Plegar aqueste pas",
         "progress": "{done} de {total} acabats",
         "progress_done": "Totes los {total} passes acabats",
-        "entry_link_label": "Mostrar {name} dins Libres e objèctes",
+        "entry_link_label": "Mostrar {name} dins la seccion 3",
         "from_step": "Del pas {number}",
         "result_work": "Trabalh previ {count}",
         "uncheck_all": "Desmarcar tot",

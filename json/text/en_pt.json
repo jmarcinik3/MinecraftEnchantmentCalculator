@@ -2,15 +2,15 @@
     "page": {
         "title": "Enchantment Reckonin'",
         "heading": "Enchantment reckonin'",
-        "item_heading": "Item",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Logbooks an' items",
+        "item_heading": "Pick yer item",
+        "enchantments_heading": "Pick yer enchantments",
+        "books_heading": "Add logbooks",
         "pick_item_first": "Pick an item first, matey",
-        "skip_steps": "Skip to Anvil wallops",
+        "skip_steps": "Skip to the steps",
         "badge_done": "done",
         "badge_problem": "trouble",
         "badge_searching": "searchin'",
-        "steps_heading": "Anvil wallops",
+        "steps_heading": "Follow the steps",
         "theme_dark": "Switch to dark waters",
         "theme_light": "Switch to light waters",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "About {levels} levels to add this from a book, before any prior work"
         },
         "preview_label": "The finished item",
-        "short_help": "Yer logbooks an' items in the Logbooks an' items section can't reach the level chosen here."
+        "short_help": "Yer logbooks an' items in section 3 can't reach the level chosen here."
     },
     "books": {
         "custom": "Custom",
@@ -494,7 +494,7 @@
         "collapse_step": "Stow this step",
         "progress": "{done} of {total} done",
         "progress_done": "All {total} steps be done",
-        "entry_link_label": "Show {name} in Logbooks an' items",
+        "entry_link_label": "Show {name} in section 3",
         "from_step": "From step {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Uncheck all",

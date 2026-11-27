@@ -2,15 +2,15 @@
     "page": {
         "title": "Sehrləmə hesablayıcısı",
         "heading": "Sehrləmə hesablayıcısı",
-        "item_heading": "Əşya",
-        "enchantments_heading": "Sehrlər",
-        "books_heading": "Kitablar və əşyalar",
+        "item_heading": "Əşya seç",
+        "enchantments_heading": "Sehrlər seç",
+        "books_heading": "Kitablar əlavə et",
         "pick_item_first": "Əvvəlcə əşya seçin",
-        "skip_steps": "Dəmirçi zindanı istifadələrinə keç",
+        "skip_steps": "Addımlara keç",
         "badge_done": "bitdi",
         "badge_problem": "problem",
         "badge_searching": "axtarılır",
-        "steps_heading": "Dəmirçi zindanı istifadələri",
+        "steps_heading": "Addımları izlə",
         "theme_dark": "Qaranlıq rejimə keç",
         "theme_light": "İşıqlı rejimə keç",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Kitabdan bunu əlavə etmək üçün təxminən {levels} səviyyə, əvvəlki işdən asılı olmayaraq", "other": "Kitabdan bunu əlavə etmək üçün təxminən {levels} səviyyə, əvvəlki işdən asılı olmayaraq"},
         "preview_label": "Hazır əşya",
-        "short_help": "Kitablar və əşyalar bölməsindəki kitab və əşyalar burada seçilmiş səviyyəyə çatmır."
+        "short_help": "3-cü bölmədəki kitab və əşyalar burada seçilmiş səviyyəyə çatmır."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Bu addımı yığ",
         "progress": "{total} addımdan {done} bitdi",
         "progress_done": "Bütün {total} addım bitdi",
-        "entry_link_label": "Kitablar və əşyalar bölməsində {name} göstər",
+        "entry_link_label": "{name} 3-cü bölmədə göstər",
         "from_step": "{number} nömrəli addımdan",
         "result_work": "Əvvəlki iş {count}",
         "uncheck_all": "Hamısının işarəsini qaldır",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzauberungs-Rechner",
         "heading": "Verzauberungs-Rechner",
-        "item_heading": "Geigesstand",
-        "enchantments_heading": "Verzauberungen",
-        "books_heading": "Bicher an Geigestänn",
+        "item_heading": "Geigestand wielen",
+        "enchantments_heading": "Verzauberungen wielen",
+        "books_heading": "Bicher derbäisetzen",
         "pick_item_first": "Wiel fir d'éischt en Geigestand eraus",
-        "skip_steps": "Bei d'Amboss-Benotzungen sprangen",
+        "skip_steps": "Bei d'Schrëtt sprangen",
         "badge_done": "fäerdeg",
         "badge_problem": "Problem",
         "badge_searching": "sicht",
-        "steps_heading": "Amboss-Benotzungen",
+        "steps_heading": "D'Schrëtt follegen",
         "theme_dark": "Op den däischteren Modus wiesselen",
         "theme_light": "Op den hellen Modus wiesselen",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Ongeféier {levels} Niveauen, fir dat aus engem Buch dobäi ze bréngen, virun der Virarbecht"
         },
         "preview_label": "De fäerdege Geigestand",
-        "short_help": "Är Bicher an Geigestänn am Beräich Bicher an Geigestänn kënnen dat hei gewielt Niveau net erreechen."
+        "short_help": "Är Bicher an Geigestänn am Beräich 3 kënnen dat hei gewielt Niveau net erreechen."
     },
     "books": {
         "custom": "Eegen",
@@ -494,7 +494,7 @@
         "collapse_step": "Dëse Schrëtt zoumaachen",
         "progress": "{done} vun {total} fäerdeg",
         "progress_done": "All {total} Schrëtt fäerdeg",
-        "entry_link_label": "{name} ënner Bicher an Geigestänn weisen",
+        "entry_link_label": "{name} am Beräich 3 weisen",
         "from_step": "Vum Schrëtt {number}",
         "result_work": "Virarbecht {count}",
         "uncheck_all": "All ofhuelen",

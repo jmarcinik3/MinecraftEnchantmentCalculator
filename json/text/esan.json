@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculadora de encantamientô",
         "heading": "Calculadora de encantamientô",
-        "item_heading": "Ôhheto",
-        "enchantments_heading": "Encantamientô",
-        "books_heading": "Librô y ôhhetô",
+        "item_heading": "Elegih un ôhheto",
+        "enchantments_heading": "Elegih encantamientô",
+        "books_heading": "Añadih librô",
         "pick_item_first": "Elige un ôhheto primeh",
-        "skip_steps": "Ih a Usô der yunque",
+        "skip_steps": "Ih a lô pasô",
         "badge_done": "hecho",
         "badge_problem": "problema",
         "badge_searching": "buscando",
-        "steps_heading": "Usô der yunque",
+        "steps_heading": "Sigih lô pasô",
         "theme_dark": "Cambiâh al modo oscuro",
         "theme_light": "Cambiâh al modo claro",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Cerca de {levels} nibêh pa añadirlo con un libro, sin contâ el trabaho anteriô", "other": "Cerca de {levels} nibelê pa añadirlo con un libro, sin contâ el trabaho anteriô"},
         "preview_label": "El ôhheto terminao",
-        "short_help": "Tuh librô y ôhhetô de la seççión Librô y ôhhetô no llegan al nibêh elegío aquí."
+        "short_help": "Tuh librô y ôhhetô de la seççión 3 no llegan al nibêh elegío aquí."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Plegâh este paso",
         "progress": "{done} de {total} hecho",
         "progress_done": "Hechô lô {total} pasô",
-        "entry_link_label": "Mostrâh {name} en Librô y ôhhetô",
+        "entry_link_label": "Mostrâh {name} en la seççión 3",
         "from_step": "Der paso {number}",
         "result_work": "Trabaho anteriô {count}",
         "uncheck_all": "Desmarcâh toh",

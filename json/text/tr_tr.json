@@ -2,15 +2,15 @@
     "page": {
         "title": "Büyü Hesaplayıcı",
         "heading": "Büyü hesaplayıcı",
-        "item_heading": "Eşya",
-        "enchantments_heading": "Büyüler",
-        "books_heading": "Kitaplar ve eşyalar",
+        "item_heading": "Bir eşya seç",
+        "enchantments_heading": "Büyüleri seç",
+        "books_heading": "Kitap ekle",
         "pick_item_first": "Önce bir eşya seç",
-        "skip_steps": "Örs kullanımlarına git",
+        "skip_steps": "Adımlara git",
         "badge_done": "tamam",
         "badge_problem": "sorun",
         "badge_searching": "aranıyor",
-        "steps_heading": "Örs kullanımları",
+        "steps_heading": "Adımları izle",
         "theme_dark": "Koyu moda geç",
         "theme_light": "Açık moda geç",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Bunu bir kitaptan eklemek için yaklaşık {levels} seviye, önceki çalışmalardan önce", "other": "Bunu bir kitaptan eklemek için yaklaşık {levels} seviye, önceki çalışmalardan önce"},
         "preview_label": "Bitmiş eşya",
-        "short_help": "Kitaplar ve eşyalar bölümündeki kitap ve eşyaların burada seçilen seviyeye ulaşamıyor."
+        "short_help": "3. bölümdeki kitap ve eşyaların burada seçilen seviyeye ulaşamıyor."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Bu adımı kapat",
         "progress": "{total} adımdan {done} tamam",
         "progress_done": "Tüm {total} adım tamam",
-        "entry_link_label": "{name} öğesini Kitaplar ve eşyalar bölümünde göster",
+        "entry_link_label": "{name} öğesini 3. bölümde göster",
         "from_step": "{number}. adımdan",
         "result_work": "Önceki çalışma {count}",
         "uncheck_all": "Tümünün işaretini kaldır",

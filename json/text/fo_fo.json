@@ -2,15 +2,15 @@
     "page": {
         "title": "Trylliutreikningur",
         "heading": "Trylliutreikningur",
-        "item_heading": "Evni",
-        "enchantments_heading": "Trylli",
-        "books_heading": "Bøkur og evni",
+        "item_heading": "Vel eitt evni",
+        "enchantments_heading": "Vel trylli",
+        "books_heading": "Legg bøkur afturat",
         "pick_item_first": "Vel fyrst eitt evni",
-        "skip_steps": "Far til Stilaból-nýtslu",
+        "skip_steps": "Far til stigini",
         "badge_done": "liðugt",
         "badge_problem": "trupulleiki",
         "badge_searching": "leitar",
-        "steps_heading": "Stilaból-nýtsla",
+        "steps_heading": "Fylg stigunum",
         "theme_dark": "Skift til myrkt snið",
         "theme_light": "Skift til ljóst snið",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Umleið {levels} stig at leggja hetta afturat úr eini bók, áðrenn ætlað arbeiði", "other": "Umleið {levels} stig at leggja hetta afturat úr eini bók, áðrenn ætlað arbeiði"},
         "preview_label": "Liðugt evni",
-        "short_help": "Bøkurnar og evnini tíni í partinum Bøkur og evni nágva ikki stigið, sum er valt her."
+        "short_help": "Bøkurnar og evnini tíni í partinum 3 nágva ikki stigið, sum er valt her."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Fjal hetta steggið",
         "progress": "{done} av {total} liðugt",
         "progress_done": "Øll {total} stigini liðug",
-        "entry_link_label": "Vís {name} í Bøkur og evni",
+        "entry_link_label": "Vís {name} í parti 3",
         "from_step": "Frá steg {number}",
         "result_work": "Ætlað arbeiði {count}",
         "uncheck_all": "Taka øll høkini av",

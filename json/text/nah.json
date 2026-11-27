@@ -2,15 +2,15 @@
     "page": {
         "title": "Tlaxōchiwiltiliztli Xīmōlli",
         "heading": "Tlaxōchiwiltiliztli xīmōlli",
-        "item_heading": "Tlaxōtli",
-        "enchantments_heading": "Tlaxōchiwilli",
-        "books_heading": "Āmoxtli īwān tlaxōtli",
+        "item_heading": "Xicpehpena tlaxōtli",
+        "enchantments_heading": "Xicpehpena tlaxōchiwilli",
+        "books_heading": "Xictlalili āmoxtli",
         "pick_item_first": "Xiquiltis tlaxōtli achtopa",
-        "skip_steps": "Xiyaz Tlapōhualli Tepōstlatsonalōni",
+        "skip_steps": "Xiyaz in tlapōhualli",
         "badge_done": "pōhuac",
         "badge_problem": "tlatlakualli",
         "badge_searching": "tlachīhua",
-        "steps_heading": "Tlapōhualli Tepōstlatsonalōni",
+        "steps_heading": "Xictoca in tlapōhualli",
         "theme_dark": "Xitlaquetza tlilli ītōnal",
         "theme_light": "Xitlaquetza iztac ītōnal",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Achi {levels} tlapōhualli ītlamachiliz, āmoxtli īpan, ahmo īpan achtopa tlachīhualiztli", "other": "Achi {levels} tlapōhualli ītlamachiliz, āmoxtli īpan, ahmo īpan achtopa tlachīhualiztli"},
         "preview_label": "In tlaxōtli tlapōhualtia",
-        "short_help": "Ītlaxōtli īwān āmoxtli īpan in Āmoxtli īwān tlaxōtli ahmo quimpehua in tlapōhualli ca tiquiltih."
+        "short_help": "Ītlaxōtli īwān āmoxtli īpan in tlamantli 3 ahmo quimpehua in tlapōhualli ca tiquiltih."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Xitlapiyaz inin tlapōhualli",
         "progress": "{done} īpan {total} ōtlapōhua",
         "progress_done": "Mochi {total} tlapōhualli ōtlapōhua",
-        "entry_link_label": "Xitlachiaz {name} īpan Āmoxtli īwān tlaxōtli",
+        "entry_link_label": "Xitlachiaz {name} īpan tlamantli 3",
         "from_step": "Tlapōhualli {number} ītech",
         "result_work": "Tlachīhualiztli achtopa {count}",
         "uncheck_all": "Xitlapōwa mochi tlapatzcaltin",

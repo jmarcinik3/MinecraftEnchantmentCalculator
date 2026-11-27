@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulátor očarovania",
         "heading": "Kalkulátor očarovania",
-        "item_heading": "Predmet",
-        "enchantments_heading": "Očarovania",
-        "books_heading": "Knihy a predmety",
+        "item_heading": "Vyber predmet",
+        "enchantments_heading": "Vyber očarovania",
+        "books_heading": "Pridaj knihy",
         "pick_item_first": "Najprv vyber predmet",
-        "skip_steps": "Prejsť na použitia kovadliny",
+        "skip_steps": "Prejsť na kroky",
         "badge_done": "hotovo",
         "badge_problem": "problém",
         "badge_searching": "hľadanie",
-        "steps_heading": "Použitia kovadliny",
+        "steps_heading": "Postupuj podľa krokov",
         "theme_dark": "Prepnúť na tmavý režim",
         "theme_light": "Prepnúť na svetlý režim",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "other": "Asi {levels} úrovní na pridanie z knihy, pred akoukoľvek predchádzajúcou prácou"
         },
         "preview_label": "Hotový predmet",
-        "short_help": "Tvoje knihy a predmety v sekcii Knihy a predmety nemôžu dosiahnuť tu zvolenú úroveň."
+        "short_help": "Tvoje knihy a predmety v sekcii 3 nemôžu dosiahnuť tu zvolenú úroveň."
     },
     "books": {
         "custom": "Vlastné",
@@ -548,7 +548,7 @@
         "collapse_step": "Zbaliť tento krok",
         "progress": "{done} z {total} hotovo",
         "progress_done": "Všetkých {total} krokov hotových",
-        "entry_link_label": "Zobraziť {name} v Knihách a predmetoch",
+        "entry_link_label": "Zobraziť {name} v sekcii 3",
         "from_step": "Z kroku {number}",
         "result_work": "Predchádzajúca práca {count}",
         "uncheck_all": "Odškrtnúť všetko",

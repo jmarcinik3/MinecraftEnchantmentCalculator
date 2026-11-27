@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulator zaklinanio",
         "heading": "Kalkulator zaklinanio",
-        "item_heading": "Rzecz",
-        "enchantments_heading": "Zaklinanie",
-        "books_heading": "Ksiōnżki a rzeczy",
+        "item_heading": "Wybier rzecz",
+        "enchantments_heading": "Wybier zaklinanie",
+        "books_heading": "Dodej ksiōnżki",
         "pick_item_first": "Najpierw wybier rzecz",
-        "skip_steps": "Idź do użyć ambosa",
+        "skip_steps": "Idź do krokōw",
         "badge_done": "zrobione",
         "badge_problem": "problym",
         "badge_searching": "szukanie",
-        "steps_heading": "Użycia ambosa",
+        "steps_heading": "Idź za krokami",
         "theme_dark": "Przełōncz na ciymny tryb",
         "theme_light": "Przełōncz na jasny tryb",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Kole {levels} poziōmu, coby to dodać z ksiōnżki, bez roboty przedtym", "other": "Kole {levels} poziōmōw, coby to dodać z ksiōnżki, bez roboty przedtym"},
         "preview_label": "Gotowo rzecz",
-        "short_help": "Twoje ksiōnżki i rzeczy w sekcyji Ksiōnżki a rzeczy niy dajōm rady dojś do tuż wybranego poziōmu."
+        "short_help": "Twoje ksiōnżki i rzeczy w sekcyji 3 niy dajōm rady dojś do tuż wybranego poziōmu."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Zwiń ten krok",
         "progress": "{done} z {total} zrobiōne",
         "progress_done": "Wszyskie {total} kroki zrobione",
-        "entry_link_label": "Pokoż {name} w Ksiōnżkach a rzeczach",
+        "entry_link_label": "Pokoż {name} w sekcyji 3",
         "from_step": "Z kroku {number}",
         "result_work": "Robota przedtym {count}",
         "uncheck_all": "Odhacz wszystko",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulador ng Enchantment",
         "heading": "Kalkulador ng enchantment",
-        "item_heading": "Item",
-        "enchantments_heading": "Mga Enchantment",
-        "books_heading": "Mga aklat at item",
+        "item_heading": "Pumili ng item",
+        "enchantments_heading": "Pumili ng mga enchantment",
+        "books_heading": "Magdagdag ng mga aklat",
         "pick_item_first": "Pumili muna ng item",
-        "skip_steps": "Lumaktaw sa Mga Gamit ng Yunan",
+        "skip_steps": "Lumaktaw sa mga hakbang",
         "badge_done": "tapos na",
         "badge_problem": "may problema",
         "badge_searching": "naghahanap",
-        "steps_heading": "Mga Gamit ng Yunan",
+        "steps_heading": "Sundin ang mga hakbang",
         "theme_dark": "Lumipat sa madilim na tema",
         "theme_light": "Lumipat sa maliwanag na tema",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Mga {levels} level para idagdag ito mula sa aklat, bago ang prior work", "other": "Mga {levels} level para idagdag ito mula sa aklat, bago ang prior work"},
         "preview_label": "Ang tapos na item",
-        "short_help": "Hindi maaabot ng mga aklat at item mo sa Mga aklat at item ang level na pinili dito."
+        "short_help": "Hindi maaabot ng mga aklat at item mo sa seksyon 3 ang level na pinili dito."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Itiklop ang hakbang na ito",
         "progress": "{done} sa {total} ang tapos na",
         "progress_done": "Tapos na ang lahat ng {total} hakbang",
-        "entry_link_label": "Ipakita ang {name} sa Mga aklat at item",
+        "entry_link_label": "Ipakita ang {name} sa seksyon 3",
         "from_step": "Mula sa hakbang {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Alisin lahat ng marka",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Sorgindutako Kalkulagailua",
         "heading": "Sorgindutako kalkulagailua",
-        "item_heading": "Objektua",
-        "enchantments_heading": "Sorginkeriak",
-        "books_heading": "Liburuak eta objektuak",
+        "item_heading": "Aukeratu objektu bat",
+        "enchantments_heading": "Aukeratu sorginkeriak",
+        "books_heading": "Gehitu liburuak",
         "pick_item_first": "Aukeratu lehenik objektu bat",
-        "skip_steps": "Joan Yunkearen erabilerara",
+        "skip_steps": "Joan urratsetara",
         "badge_done": "eginda",
         "badge_problem": "arazoa",
         "badge_searching": "bilatzen",
-        "steps_heading": "Yunkearen erabilerak",
+        "steps_heading": "Jarraitu urratsei",
         "theme_dark": "Aldatu modu ilunera",
         "theme_light": "Aldatu modu argira",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Gutxi gorabehera {levels} maila liburu batetik hau gehitzeko, aurreko lanik kontuan hartu gabe", "other": "Gutxi gorabehera {levels} maila liburu batetik hau gehitzeko, aurreko lanik kontuan hartu gabe"},
         "preview_label": "Amaitutako objektua",
-        "short_help": "Liburuak eta objektuak atalean dituzun liburu eta objektuek ezin dute hemen aukeratutako maila lortu."
+        "short_help": "3. atalean dituzun liburu eta objektuek ezin dute hemen aukeratutako maila lortu."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Tolestu urrats hau",
         "progress": "{total}tik {done} eginda",
         "progress_done": "{total} urrats guztiak eginda",
-        "entry_link_label": "Erakutsi {name} Liburuak eta objektuak atalean",
+        "entry_link_label": "Erakutsi {name} 3. atalean",
         "from_step": "{number}. urratsetik",
         "result_work": "Aurreko lana {count}",
         "uncheck_all": "Desmarkatu dena",

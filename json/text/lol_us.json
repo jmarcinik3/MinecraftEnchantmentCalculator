@@ -2,15 +2,15 @@
     "page": {
         "title": "Enchantmint Kalkulator",
         "heading": "Enchantmint kalkulator",
-        "item_heading": "Itemz",
-        "enchantments_heading": "Enchantmints",
-        "books_heading": "Bookz an' itemz",
+        "item_heading": "Pik an item",
+        "enchantments_heading": "Pik enchantmints",
+        "books_heading": "Add bookz",
         "pick_item_first": "Pik an item first plz",
-        "skip_steps": "Skip to Anvil uzes",
+        "skip_steps": "Skip to teh stepz",
         "badge_done": "dun",
         "badge_problem": "uh oh",
         "badge_searching": "lookin",
-        "steps_heading": "Anvil uzes",
+        "steps_heading": "Folow teh stepz",
         "theme_dark": "Mak it dark",
         "theme_light": "Mak it lite",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "About {levels} levulz to add dis from a book, befor eny prior work"
         },
         "preview_label": "Teh finishd item",
-        "short_help": "Ur bookz an itemz in teh Bookz an itemz section kant reech teh levul pikd hear."
+        "short_help": "Ur bookz an itemz in section 3 kant reech teh levul pikd hear."
     },
     "books": {
         "custom": "Kustom",
@@ -494,7 +494,7 @@
         "collapse_step": "Hid dis step",
         "progress": "{done} ov {total} dun",
         "progress_done": "All {total} stepz dun",
-        "entry_link_label": "Shoe {name} in Bookz an itemz",
+        "entry_link_label": "Shoe {name} in section 3",
         "from_step": "Frum step {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Untik all",

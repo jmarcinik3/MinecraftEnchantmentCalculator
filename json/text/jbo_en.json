@@ -2,15 +2,15 @@
     "page": {
         "title": "sorcu sinxa",
         "heading": "sorcu sinxa",
-        "item_heading": "jdini",
-        "enchantments_heading": "sorcu",
-        "books_heading": "cukta je jdini",
+        "item_heading": "cuxna lo jdini",
+        "enchantments_heading": "cuxna lo sorcu",
+        "books_heading": "jmina lo cukta",
         "pick_item_first": "ro nu cuxna pa jdini",
-        "skip_steps": "bu nu ba'o mudri pa jimda'izbe",
+        "skip_steps": "klama lo mudri",
         "badge_done": "ba'o",
         "badge_problem": "cinba",
         "badge_searching": "sisti",
-        "steps_heading": "jimda'izbe mudri",
+        "steps_heading": "fanza lo mudri",
         "theme_dark": "nu fa'a lo nu sorta",
         "theme_light": "nu fa'a lo nu blanu",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "ka'e {levels} nivelo ke'a sinxa lo cukta, pa'u lo nu prior work"
         },
         "preview_label": "lo mudri jdini",
-        "short_help": "lo cukta je jdini ca lo nu cukta je jdini na'e ka'e lo nu nivelo cuxna ca'e."
+        "short_help": "lo cukta je jdini ne lo kuspe be 3 na'e ka'e lo nu nivelo cuxna ca'e."
     },
     "books": {
         "custom": "sinxa",
@@ -494,7 +494,7 @@
         "collapse_step": "nu benji ri mudri",
         "progress": "{done} de {total} ba'o",
         "progress_done": "ro {total} mudri ba'o",
-        "entry_link_label": "nu viska {name} ca lo cukta je jdini",
+        "entry_link_label": "nu viska {name} ne lo kuspe be 3",
         "from_step": "pa mudri {number}",
         "result_work": "prior work {count}",
         "uncheck_all": "nu co'a marki",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Llogaritësi i përforcimeve",
         "heading": "Llogaritësi i përforcimeve",
-        "item_heading": "Objekti",
-        "enchantments_heading": "Përforcimet",
-        "books_heading": "Librat dhe objektet",
+        "item_heading": "Zgjidh një objekt",
+        "enchantments_heading": "Zgjidh përforcime",
+        "books_heading": "Shto libra",
         "pick_item_first": "Zgjidh së pari një objekt",
-        "skip_steps": "Shko te përdorimet e kudhrës",
+        "skip_steps": "Shko te hapat",
         "badge_done": "gati",
         "badge_problem": "problem",
         "badge_searching": "duke kërkuar",
-        "steps_heading": "Përdorimet e kudhrës",
+        "steps_heading": "Ndiq hapat",
         "theme_dark": "Kalo në modalitetin e errët",
         "theme_light": "Kalo në modalitetin e ndritshëm",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Afërsisht {levels} nivel për ta shtuar nga një libër, para çdo pune të mëparshme", "other": "Afërsisht {levels} nivele për ta shtuar nga një libër, para çdo pune të mëparshme"},
         "preview_label": "Objekti i përfunduar",
-        "short_help": "Librat dhe objektet e tua te seksioni Librat dhe objektet nuk arrijnë nivelin e zgjedhur këtu."
+        "short_help": "Librat dhe objektet e tua te seksioni 3 nuk arrijnë nivelin e zgjedhur këtu."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Palos këtë hap",
         "progress": "{done} nga {total} të bëra",
         "progress_done": "Të gjithë {total} hapat u bënë",
-        "entry_link_label": "Shfaq {name} te Librat dhe objektet",
+        "entry_link_label": "Shfaq {name} te seksioni 3",
         "from_step": "Nga hapi {number}",
         "result_work": "Puna e mëparshme {count}",
         "uncheck_all": "Hiq të gjitha shenjat",

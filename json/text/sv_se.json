@@ -2,15 +2,15 @@
     "page": {
         "title": "Förtrollningsräknare",
         "heading": "Förtrollningsräknare",
-        "item_heading": "Föremål",
-        "enchantments_heading": "Förtrollningar",
-        "books_heading": "Böcker och föremål",
+        "item_heading": "Välj ett föremål",
+        "enchantments_heading": "Välj förtrollningar",
+        "books_heading": "Lägg till böcker",
         "pick_item_first": "Välj ett föremål först",
-        "skip_steps": "Hoppa till Städsel-användningar",
+        "skip_steps": "Hoppa till stegen",
         "badge_done": "klar",
         "badge_problem": "problem",
         "badge_searching": "söker",
-        "steps_heading": "Städsel-användningar",
+        "steps_heading": "Följ stegen",
         "theme_dark": "Byt till mörkt läge",
         "theme_light": "Byt till ljust läge",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ungefär {levels} nivå för att lägga till detta från en bok, före eventuellt tidigare arbete", "other": "Ungefär {levels} nivåer för att lägga till detta från en bok, före eventuellt tidigare arbete"},
         "preview_label": "Det färdiga föremålet",
-        "short_help": "Dina böcker och föremål i avsnittet Böcker och föremål kan inte nå nivån som valts här."
+        "short_help": "Dina böcker och föremål i avsnitt 3 kan inte nå nivån som valts här."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Vik ihop det här steget",
         "progress": "{done} av {total} klara",
         "progress_done": "Alla {total} steg klara",
-        "entry_link_label": "Visa {name} under Böcker och föremål",
+        "entry_link_label": "Visa {name} under avsnitt 3",
         "from_step": "Från steg {number}",
         "result_work": "Tidigare arbete {count}",
         "uncheck_all": "Avbocka alla",

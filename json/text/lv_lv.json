@@ -2,15 +2,15 @@
     "page": {
         "title": "Burvestību kalkulators",
         "heading": "Burvestību kalkulators",
-        "item_heading": "Priekšmets",
-        "enchantments_heading": "Burvestības",
-        "books_heading": "Grāmatas un priekšmeti",
+        "item_heading": "Izvēlieties priekšmetu",
+        "enchantments_heading": "Izvēlieties burvestības",
+        "books_heading": "Pievienojiet grāmatas",
         "pick_item_first": "Vispirms izvēlieties priekšmetu",
-        "skip_steps": "Pāriet uz laktas lietojumiem",
+        "skip_steps": "Pāriet uz soļiem",
         "badge_done": "gatavs",
         "badge_problem": "problēma",
         "badge_searching": "meklē",
-        "steps_heading": "Laktas lietojumi",
+        "steps_heading": "Sekojiet soļiem",
         "theme_dark": "Pārslēgt uz tumšo režīmu",
         "theme_light": "Pārslēgt uz gaišo režīmu",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "zero": "Aptuveni {levels} līmeņu, lai to pievienotu no grāmatas, pirms jebkura iepriekšējā darba", "one": "Aptuveni {levels} līmenis, lai to pievienotu no grāmatas, pirms jebkura iepriekšējā darba", "other": "Aptuveni {levels} līmeņi, lai to pievienotu no grāmatas, pirms jebkura iepriekšējā darba"},
         "preview_label": "Gatavais priekšmets",
-        "short_help": "Jūsu grāmatas un priekšmeti sadaļā Grāmatas un priekšmeti nesasniedz šeit izvēlēto līmeni."
+        "short_help": "Jūsu grāmatas un priekšmeti sadaļā 3 nesasniedz šeit izvēlēto līmeni."
     },
 
     "books": {
@@ -379,7 +379,7 @@
         "collapse_step": "Sakļaut šo soli",
         "progress": "Gatavs {done} no {total}",
         "progress_done": "Visi {total} soļi gatavi",
-        "entry_link_label": "Rādīt {name} sadaļā Grāmatas un priekšmeti",
+        "entry_link_label": "Rādīt {name} sadaļā 3",
         "from_step": "No {number}. soļa",
         "result_work": "Iepriekšējais darbs {count}",
         "uncheck_all": "Noņemt visas atzīmes",

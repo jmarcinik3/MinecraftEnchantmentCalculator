@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzauberungsrekener",
         "heading": "Verzauberungsrekener",
-        "item_heading": "Ding",
-        "enchantments_heading": "Verzauberungen",
-        "books_heading": "Böker un Dingen",
+        "item_heading": "Wähl en Ding",
+        "enchantments_heading": "Wähl Verzauberungen",
+        "books_heading": "Föög Böker to",
         "pick_item_first": "Söök eerst en Ding ut",
-        "skip_steps": "Na de Amboss-Bruukens springen",
+        "skip_steps": "Spring na de Stegen",
         "badge_done": "fardig",
         "badge_problem": "Problem",
         "badge_searching": "söcht",
-        "steps_heading": "Amboss-Bruukens",
+        "steps_heading": "Folg de Stegen",
         "theme_dark": "Na den dunklen Modus wessseln",
         "theme_light": "Na den hellen Modus wessseln",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Ungefähr {levels} Level, um dat ut en Book dortoto doon, vör de Vörarbeit"
         },
         "preview_label": "Dat fardige Ding",
-        "short_help": "Jo Böker un Dingen in den Afscnitt Böker un Dingen kunnt dat hier wählte Level nich erreichen."
+        "short_help": "Jo Böker un Dingen in Afscnitt 3 kunnt dat hier wählte Level nich erreichen."
     },
     "books": {
         "custom": "Egen",
@@ -494,7 +494,7 @@
         "collapse_step": "Disen Steg toomaken",
         "progress": "{done} vun {total} fardig",
         "progress_done": "All {total} Steg fardig",
-        "entry_link_label": "{name} ünner Böker un Dingen wiesen",
+        "entry_link_label": "{name} in Afscnitt 3 wiesen",
         "from_step": "Ut Steg {number}",
         "result_work": "Vörarbeit {count}",
         "uncheck_all": "All aftrecken",

@@ -2,15 +2,15 @@
     "page": {
         "title": "کالکولاتور سيهيرن",
         "heading": "کالکولاتور سيهيرن",
-        "item_heading": "ايتم",
-        "enchantments_heading": "سيهيرن",
-        "books_heading": "بوکو دان ايتم",
+        "item_heading": "ڤيليه ايتم",
+        "enchantments_heading": "ڤيليه سيهيرن",
+        "books_heading": "تمبه بوکو",
         "pick_item_first": "ڤيليه ايتم دahulu",
-        "skip_steps": "ڤرݢي ککڤد ڤڠݢوناan لندسن",
+        "skip_steps": "ڤرݢي ککڤد لڠکه",
         "badge_done": "سلساي",
         "badge_problem": "مساله",
         "badge_searching": "منچاري",
-        "steps_heading": "ڤڠݢوناan لندسن",
+        "steps_heading": "ايکوتي لڠکه",
         "theme_dark": "توکر ککمود ݢلڤ",
         "theme_light": "توکر ککمود تراڠ",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "لببيه کورڠ {levels} تاهاڤ اونتوق منمباه Ø§ÙÙ داري بوکو، سبلوم ڤکرجاءن ترداهولو"
         },
         "preview_label": "ايتم سلساي",
-        "short_help": "بوکو دan ايتم اندا دalam بهاݢين بوکو دan ايتم تيدق داڤت ماچاي تاهاڤ یڠ دڤيليه دi sini."
+        "short_help": "بوکو دان ايتم اندا دالم بهاݢين 3 تيدق داڤت ماچاي تاهاڤ يڠ دڤيليه دسيني."
     },
     "books": {
         "custom": "سواي",
@@ -494,7 +494,7 @@
         "collapse_step": "لیڤتکن لڠکه Ø§ÙÙ",
         "progress": "{done} داري {total} سلساي",
         "progress_done": "سموا {total} لڠکه سلساي",
-        "entry_link_label": "تونجوقکن {name} دalam بوکو دan ايتم",
+        "entry_link_label": "تونجوقکن {name} دالم بهاݢين 3",
         "from_step": "داري لڠکه {number}",
         "result_work": "ڤکرجاءن ترداهولو {count}",
         "uncheck_all": "نيراتاندا سموا",

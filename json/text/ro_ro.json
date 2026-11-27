@@ -2,15 +2,15 @@
     "page": {
         "title": "Calculator de vrăji",
         "heading": "Calculator de vrăji",
-        "item_heading": "Obiect",
-        "enchantments_heading": "Vrăji",
-        "books_heading": "Cărți și obiecte",
+        "item_heading": "Alege un obiect",
+        "enchantments_heading": "Alege vrăji",
+        "books_heading": "Adaugă cărți",
         "pick_item_first": "Alege mai întâi un obiect",
-        "skip_steps": "Mergi la folosirile nicovalei",
+        "skip_steps": "Mergi la pași",
         "badge_done": "gata",
         "badge_problem": "problemă",
         "badge_searching": "se caută",
-        "steps_heading": "Folosirile nicovalei",
+        "steps_heading": "Urmează pașii",
         "theme_dark": "Comută pe modul întunecat",
         "theme_light": "Comută pe modul luminos",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Aproximativ {levels} nivel pentru a adăuga asta dintr-o carte, înainte de orice muncă anterioară", "few": "Aproximativ {levels} niveluri pentru a adăuga asta dintr-o carte, înainte de orice muncă anterioară", "other": "Aproximativ {levels} de niveluri pentru a adăuga asta dintr-o carte, înainte de orice muncă anterioară"},
         "preview_label": "Obiectul terminat",
-        "short_help": "Cărțile și obiectele tale din secțiunea Cărți și obiecte nu pot ajunge la nivelul ales aici."
+        "short_help": "Cărțile și obiectele tale din secțiunea 3 nu pot ajunge la nivelul ales aici."
     },
 
     "books": {
@@ -379,7 +379,7 @@
         "collapse_step": "Restrânge acest pas",
         "progress": "{done} din {total} gata",
         "progress_done": "Toți cei {total} pași sunt gata",
-        "entry_link_label": "Arată {name} în Cărți și obiecte",
+        "entry_link_label": "Arată {name} în secțiunea 3",
         "from_step": "Din pasul {number}",
         "result_work": "Muncă anterioară {count}",
         "uncheck_all": "Debifează tot",

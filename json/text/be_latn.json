@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulatar začarawańniaŭ",
         "heading": "Kalkulatar začarawańniaŭ",
-        "item_heading": "Pradmiet",
-        "enchantments_heading": "Začarawańni",
-        "books_heading": "Knihi i pradmiety",
+        "item_heading": "Vybrać pradmiet",
+        "enchantments_heading": "Vybrać začarawańni",
+        "books_heading": "Dadać knihi",
         "pick_item_first": "Spačatku abjarycie pradmiet",
-        "skip_steps": "Da vykarystańniaŭ kavadła",
+        "skip_steps": "Da krokaŭ",
         "badge_done": "hatova",
         "badge_problem": "prablema",
         "badge_searching": "pošuk",
-        "steps_heading": "Vykarystańni kavadła",
+        "steps_heading": "Vykanać kroki",
         "theme_dark": "Piaraklučyć na ciomnuju temu",
         "theme_light": "Piaraklučyć na śvietlaju temu",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Kala {levels} ŭzroŭniu, kab dadać heta z knihi, bez ulku papiaredniaj pracy", "few": "Kala {levels} ŭzroŭniaŭ, kab dadać heta z knihi, bez ulku papiaredniaj pracy", "many": "Kala {levels} ŭzroŭniaŭ, kab dadać heta z knihi, bez ulku papiaredniaj pracy", "other": "Kala {levels} ŭzroŭniaŭ, kab dadać heta z knihi, bez ulku papiaredniaj pracy"},
         "preview_label": "Hatovy pradmiet",
-        "short_help": "Vašy knihi i pradmiety ŭ raździeli «Knihi i pradmiety» nie mohuć dać ŭzroŭień, abrany tut."
+        "short_help": "Vašy knihi i pradmiety ŭ raździeli 3 nie mohuć dać ŭzroŭień, abrany tut."
     },
 
     "books": {
@@ -382,7 +382,7 @@
         "collapse_step": "Zhharnuć hety krok",
         "progress": "Hatova: {done} z {total}",
         "progress_done": "Usie kroki ({total}) hatovyja",
-        "entry_link_label": "Pakazać {name} u «Knihach i pradmietach»",
+        "entry_link_label": "Pakazać {name} u raździele 3",
         "from_step": "Z kroku {number}",
         "result_work": "Papiaredniaja praca {count}",
         "uncheck_all": "Źniać usie adznaki",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Enchantement-kalkulilo",
         "heading": "Enchantement-kalkulilo",
-        "item_heading": "Objekto",
-        "enchantments_heading": "Enchantementi",
-        "books_heading": "Libri e objekti",
+        "item_heading": "Selektez objekto",
+        "enchantments_heading": "Selektez enchantementi",
+        "books_heading": "Adjuntez libri",
         "pick_item_first": "Unesme elektez objekto",
-        "skip_steps": "Irez a Inkudi-uzi",
+        "skip_steps": "Irez a la stupi",
         "badge_done": "finita",
         "badge_problem": "problemo",
         "badge_searching": "serchanta",
-        "steps_heading": "Inkudi-uzi",
+        "steps_heading": "Sequez la stupi",
         "theme_dark": "Ganjar a malhela modo",
         "theme_light": "Ganjar a clara modo",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Circa {levels} nivelii por adjuntar to de libro, ante irga prioritaria laboro"
         },
         "preview_label": "La finita objekto",
-        "short_help": "Vosa libri e objekti en la sekco Libri e objekti ne povas atingar la nivelo elektita hike."
+        "short_help": "Vosa libri e objekti en sekco 3 ne povas atingar la nivelo elektita hike."
     },
     "books": {
         "custom": "Propra",
@@ -494,7 +494,7 @@
         "collapse_step": "Kolapsar ca stupo",
         "progress": "{done} de {total} finita",
         "progress_done": "Omna {total} stupi finita",
-        "entry_link_label": "Montrar {name} en Libri e objekti",
+        "entry_link_label": "Montrar {name} en sekco 3",
         "from_step": "De stupo {number}",
         "result_work": "Prioritaria laboro {count}",
         "uncheck_all": "Desmarkar omna",

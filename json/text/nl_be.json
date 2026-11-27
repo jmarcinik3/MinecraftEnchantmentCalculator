@@ -2,15 +2,15 @@
     "page": {
         "title": "Betoveringscalculator",
         "heading": "Betoveringscalculator",
-        "item_heading": "Voorwerp",
-        "enchantments_heading": "Betoveringen",
-        "books_heading": "Boeken en voorwerpen",
+        "item_heading": "Kies een voorwerp",
+        "enchantments_heading": "Kies betoveringen",
+        "books_heading": "Voeg boeken toe",
         "pick_item_first": "Kies eerst een voorwerp",
-        "skip_steps": "Ga naar Aambeeldgebruik",
+        "skip_steps": "Ga naar de stappen",
         "badge_done": "klaar",
         "badge_problem": "probleem",
         "badge_searching": "zoeken",
-        "steps_heading": "Aambeeldgebruik",
+        "steps_heading": "Volg de stappen",
         "theme_dark": "Schakel naar donkere modus",
         "theme_light": "Schakel naar lichte modus",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ongeveer {levels} level om dit uit een boek toe te voegen, zonder eerder werk", "other": "Ongeveer {levels} levels om dit uit een boek toe te voegen, zonder eerder werk"},
         "preview_label": "Het afgewerkte voorwerp",
-        "short_help": "Je boeken en voorwerpen in het gedeelte Boeken en voorwerpen kunnen het hier gekozen level niet bereiken."
+        "short_help": "Je boeken en voorwerpen in gedeelte 3 kunnen het hier gekozen level niet bereiken."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Deze stap sluiten",
         "progress": "{done} van {total} klaar",
         "progress_done": "Alle {total} stappen klaar",
-        "entry_link_label": "{name} tonen bij Boeken en voorwerpen",
+        "entry_link_label": "{name} tonen bij gedeelte 3",
         "from_step": "Uit stap {number}",
         "result_work": "Eerder werk {count}",
         "uncheck_all": "Alles uitvinken",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Ẹrọ Iṣiro Enchantment",
         "heading": "Ẹrọ iṣiro enchantment",
-        "item_heading": "Ohun",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Àwọn iwe àti ohun",
+        "item_heading": "Yan ohun",
+        "enchantments_heading": "Yan Enchantments",
+        "books_heading": "Fi àwọn iwe kún",
         "pick_item_first": "Yan ohun kan kọkọ",
-        "skip_steps": "Lọ sí Lílo Anvil",
+        "skip_steps": "Lọ sí àwọn ìgbésẹ̀",
         "badge_done": "ti parí",
         "badge_problem": "ìṣòro",
         "badge_searching": "ń wá",
-        "steps_heading": "Àwọn Ìgbésẹ̀ Anvil",
+        "steps_heading": "Tẹ̀lé àwọn ìgbésẹ̀",
         "theme_dark": "Yí sí ipo dudu",
         "theme_light": "Yí sí ipo imọlẹ",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Nǹkan bí ipele {levels} láti fi èyí kún láti inú iwe, ṣáájú iṣẹ́ àtijọ́ kankan"
         },
         "preview_label": "Ohun tí ó ti parí",
-        "short_help": "Àwọn iwe àti ohun rẹ nínú apá Àwọn iwe àti ohun kò lè dé ipele tí a yàn níhìn-ín."
+        "short_help": "Àwọn iwe àti ohun rẹ nínú apá 3 kò lè dé ipele tí a yàn níhìn-ín."
     },
     "books": {
         "custom": "Ti ara ẹni",
@@ -494,7 +494,7 @@
         "collapse_step": "Pa ìgbésẹ̀ yìí",
         "progress": "{done} nínú {total} ti parí",
         "progress_done": "Gbogbo ìgbésẹ̀ {total} ti parí",
-        "entry_link_label": "Fi {name} hàn nínú Àwọn iwe àti ohun",
+        "entry_link_label": "Fi {name} hàn nínú apá 3",
         "from_step": "Láti ìgbésẹ̀ {number}",
         "result_work": "Iṣẹ́ àtijọ́ {count}",
         "uncheck_all": "Yọ gbogbo àmì kúrò",

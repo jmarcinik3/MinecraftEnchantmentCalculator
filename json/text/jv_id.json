@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulator Enchantment",
         "heading": "Kalkulator enchantment",
-        "item_heading": "Item",
-        "enchantments_heading": "Enchantment",
-        "books_heading": "Buku lan item",
+        "item_heading": "Pilih item",
+        "enchantments_heading": "Pilih enchantment",
+        "books_heading": "Tambah buku",
         "pick_item_first": "Pilih item dhisik",
-        "skip_steps": "Lompat menyang Panggunaan Landasan",
+        "skip_steps": "Lompat menyang langkah",
         "badge_done": "rampung",
         "badge_problem": "ana masalah",
         "badge_searching": "lagi goleki",
-        "steps_heading": "Panggunaan Landasan",
+        "steps_heading": "Tindakake langkah",
         "theme_dark": "Ganti menyang mode peteng",
         "theme_light": "Ganti menyang mode padhang",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "Kira-kira {levels} level kanggo nambahake iki saka buku, sadurunge prior work"},
         "preview_label": "Item rampung",
-        "short_help": "Buku lan item sampeyan ing bagian Buku lan item ora bisa tekan level sing dipilih ing kene."
+        "short_help": "Buku lan item sampeyan ing bagian 3 ora bisa tekan level sing dipilih ing kene."
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "Lipet langkah iki",
         "progress": "{done} saka {total} rampung",
         "progress_done": "Kabeh {total} langkah rampung",
-        "entry_link_label": "Tampilake {name} ing Buku lan item",
+        "entry_link_label": "Tampilake {name} ing bagian 3",
         "from_step": "Saka langkah {number}",
         "result_work": "Prior work {count}",
         "uncheck_all": "Copot kabeh centang",

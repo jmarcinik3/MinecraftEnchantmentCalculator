@@ -2,15 +2,15 @@
     "page": {
         "title": "Betoweringsberekenaar",
         "heading": "Betoweringsberekenaar",
-        "item_heading": "Voorwerp",
-        "enchantments_heading": "Betoweringe",
-        "books_heading": "Boeke en voorwerpe",
+        "item_heading": "Kies 'n voorwerp",
+        "enchantments_heading": "Kies betoweringe",
+        "books_heading": "Voeg boeke by",
         "pick_item_first": "Kies eers 'n voorwerp",
-        "skip_steps": "Spring na Aambeeldgebruike",
+        "skip_steps": "Spring na die stappe",
         "badge_done": "klaar",
         "badge_problem": "probleem",
         "badge_searching": "soek",
-        "steps_heading": "Aambeeldgebruike",
+        "steps_heading": "Volg die stappe",
         "theme_dark": "Skakel na donker modus",
         "theme_light": "Skakel na lig modus",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ongeveer {levels} vlak om dit uit 'n boek by te voeg, voor enige vorige werk", "other": "Ongeveer {levels} vlakke om dit uit 'n boek by te voeg, voor enige vorige werk"},
         "preview_label": "Die klaar voorwerp",
-        "short_help": "Jou boeke en voorwerpe in die afdeling Boeke en voorwerpe kan nie die vlak wat hier gekies is bereik nie."
+        "short_help": "Jou boeke en voorwerpe in afdeling 3 kan nie die vlak wat hier gekies is bereik nie."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Maak hierdie stap toe",
         "progress": "{done} van {total} klaar",
         "progress_done": "Alle {total} stappe klaar",
-        "entry_link_label": "Wys {name} in Boeke en voorwerpe",
+        "entry_link_label": "Wys {name} in afdeling 3",
         "from_step": "Uit stap {number}",
         "result_work": "Vorige werk {count}",
         "uncheck_all": "Haal alles af",

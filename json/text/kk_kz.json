@@ -2,15 +2,15 @@
     "page": {
         "title": "Дуа калькуляторы",
         "heading": "Дуа калькуляторы",
-        "item_heading": "Зат",
-        "enchantments_heading": "Дуалар",
-        "books_heading": "Кітаптар мен заттар",
+        "item_heading": "Зат таңдаңыз",
+        "enchantments_heading": "Дуаларды таңдаңыз",
+        "books_heading": "Кітаптар қосыңыз",
         "pick_item_first": "Алдымен затты таңдаңыз",
-        "skip_steps": "Төс қолданыстарына өту",
+        "skip_steps": "Қадамдарға өту",
         "badge_done": "дайын",
         "badge_problem": "мәселе",
         "badge_searching": "іздеуде",
-        "steps_heading": "Төс қолданыстары",
+        "steps_heading": "Қадамдарды орындаңыз",
         "theme_dark": "Қараңғы режимге ауысу",
         "theme_light": "Жарық режимге ауысу",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Кітаптан осыны қосу үшін шамамен {levels} деңгей, бұрынғы жұмыстан бұрын", "other": "Кітаптан осыны қосу үшін шамамен {levels} деңгей, бұрынғы жұмыстан бұрын"},
         "preview_label": "Дайын зат",
-        "short_help": "Кітаптар мен заттар бөліміндегі кітаптар мен заттар мұнда таңдалған деңгейге жете алмайды."
+        "short_help": "3-бөлімдегі кітаптар мен заттар мұнда таңдалған деңгейге жете алмайды."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Бұл қадамды жию",
         "progress": "{total} қадамның {done} орындалды",
         "progress_done": "Барлық {total} қадам орындалды",
-        "entry_link_label": "Кітаптар мен заттар бөлімінде {name} көрсету",
+        "entry_link_label": "{name} 3-бөлімде көрсету",
         "from_step": "{number}-қадамнан",
         "result_work": "Бұрынғы жұмыс {count}",
         "uncheck_all": "Барлығының белгісін алу",

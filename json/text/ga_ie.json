@@ -2,15 +2,15 @@
     "page": {
         "title": "Áireamhán Draíochta",
         "heading": "Áireamhán draíochta",
-        "item_heading": "Mír",
-        "enchantments_heading": "Draíochtaí",
-        "books_heading": "Leabhair agus míreanna",
+        "item_heading": "Roghnaigh mír",
+        "enchantments_heading": "Roghnaigh draíochtaí",
+        "books_heading": "Cuir leabhair leis",
         "pick_item_first": "Roghnaigh mír ar dtús",
-        "skip_steps": "Téigh go Úsáidí an Innealtóra",
+        "skip_steps": "Téigh go dtí na céimeanna",
         "badge_done": "críochnaithe",
         "badge_problem": "fadhb",
         "badge_searching": "ag cuardach",
-        "steps_heading": "Úsáidí an Innealtóra",
+        "steps_heading": "Lean na céimeanna",
         "theme_dark": "Athraigh go modh dorcha",
         "theme_light": "Athraigh go modh geal",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Thart ar {levels} leibhéal chun é seo a chur leis ó leabhar, roimh aon obair roimhe", "two": "Thart ar {levels} leibhéal chun é seo a chur leis ó leabhar, roimh aon obair roimhe", "few": "Thart ar {levels} leibhéal chun é seo a chur leis ó leabhar, roimh aon obair roimhe", "many": "Thart ar {levels} leibhéal chun é seo a chur leis ó leabhar, roimh aon obair roimhe", "other": "Thart ar {levels} leibhéal chun é seo a chur leis ó leabhar, roimh aon obair roimhe"},
         "preview_label": "An mhír chríochnaithe",
-        "short_help": "Ní féidir leis na leabhair agus na míreanna sa chuid Leabhair agus míreanna an leibhéal atá roghnaithe anseo a bhaint amach."
+        "short_help": "Ní féidir leis na leabhair agus na míreanna sa chuid 3 an leibhéal atá roghnaithe anseo a bhaint amach."
     },
 
     "books": {
@@ -385,7 +385,7 @@
         "collapse_step": "Dún an chéim seo",
         "progress": "{done} as {total} críochnaithe",
         "progress_done": "Gach {total} céim críochnaithe",
-        "entry_link_label": "Taispeáin {name} sa chuid Leabhair agus míreanna",
+        "entry_link_label": "Taispeáin {name} sa chuid 3",
         "from_step": "Ó chéim {number}",
         "result_work": "Obair roimhe {count}",
         "uncheck_all": "Díthic gach ceann",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Àireamhair Geas",
         "heading": "Àireamhair geas",
-        "item_heading": "Nì",
-        "enchantments_heading": "Geasan",
-        "books_heading": "Leabhraichean is nithean",
+        "item_heading": "Tagh nì",
+        "enchantments_heading": "Tagh geasan",
+        "books_heading": "Cuir leabhraichean ris",
         "pick_item_first": "Tagh nì an toiseach",
-        "skip_steps": "Rach gu Cleachdaidhean an innealtair",
+        "skip_steps": "Rach dha na ceumannan",
         "badge_done": "deiseil",
         "badge_problem": "duilgheadas",
         "badge_searching": "a' lorg",
-        "steps_heading": "Cleachdaidhean an innealtair",
+        "steps_heading": "Lean na ceumannan",
         "theme_dark": "Atharraich gu modh dorcha",
         "theme_light": "Atharraich gu modh soilleir",
         "theme_dark_label": "Dark",
@@ -183,7 +183,7 @@
             "other": "Mu {levels} ìre airson seo a chur ris bho leabhar, mus cuir obair roimhe ris"
         },
         "preview_label": "An nì deiseil",
-        "short_help": "Chan urrainn dha na leabhraichean is nithean agad san earrann Leabhraichean is nithean an ìre a tha taghte an seo a ruigsinn."
+        "short_help": "Chan urrainn dha na leabhraichean is nithean agad ann an earrann 3 an ìre a tha taghte an seo a ruigsinn."
     },
     "books": {
         "custom": "Gnàthaichte",
@@ -548,7 +548,7 @@
         "collapse_step": "Dùin an ceum seo",
         "progress": "{done} à {total} deiseil",
         "progress_done": "Tha na {total} ceumannan deiseil",
-        "entry_link_label": "Seall {name} san earrann Leabhraichean is nithean",
+        "entry_link_label": "Seall {name} ann an earrann 3",
         "from_step": "Bho cheum {number}",
         "result_work": "Obair roimhe {count}",
         "uncheck_all": "Thoir na comharran uile air falbh",

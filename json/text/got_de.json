@@ -2,15 +2,15 @@
     "page": {
         "title": "𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐍂𐌹𐌻𐌰𐌿𐍃𐌿",
         "heading": "𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐍂𐌹𐌻𐌰𐌿𐍃𐌿",
-        "item_heading": "𐍅𐌰𐌹𐍃𐍉",
-        "enchantments_heading": "𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐍂𐌹𐌻𐍉",
-        "books_heading": "𐌱𐉍𐌺𐍉𐍃 𐌾𐌰𐌷 𐍅𐌰𐌹𐍃𐌾𐌰",
+        "item_heading": "𐌺𐌹𐌿𐍃 𐍅𐌰𐌹𐍃𐍉",
+        "enchantments_heading": "𐌺𐌹𐌿𐍃 𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐍂𐌹𐌻𐍉",
+        "books_heading": "𐌲𐌰𐌻𐌰𐌲𐌴𐌹 𐌱𐉍𐌺𐍉𐍃",
         "pick_item_first": "𐌵𐌹𐌽𐍃 𐍅𐌰𐌹𐍃𐍉 𐍆𐍂𐌰𐌿𐍃𐌺𐌰𐌽",
-        "skip_steps": "𐌲𐌰𐌿𐌸 𐌹𐌽 𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐍂𐌹𐌻𐌰𐌿𐍃𐍉",
+        "skip_steps": "𐌲𐌰𐌲𐌲 𐌹𐌽 𐍃𐍄𐌰𐌿𐌸𐍉",
         "badge_done": "𐌰𐍅𐌰𐌷𐌹𐍃𐍄",
         "badge_problem": "𐌰𐍂𐌸𐍉",
         "badge_searching": "𐍃𐌹𐌻𐌽𐌰𐌽𐌳𐌰",
-        "steps_heading": "𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐍂𐌹𐌻𐌰𐌿𐍃𐌿 𐍃𐍄𐌰𐌿𐌸𐍉",
+        "steps_heading": "𐌲𐌰𐌲𐌲 𐌰𐍆𐍄𐍂𐌰 𐍃𐍄𐌰𐌿𐌸𐍉",
         "theme_dark": "𐌹𐌽𐌽𐌰 𐍃𐌿𐌻𐌽𐌴𐌹𐌽 𐌷𐌰𐌹𐍂𐌻𐌰𐌿𐍃𐌿𐌽",
         "theme_light": "𐌹𐌽𐌽𐌰 𐌱𐌰𐌷𐍄𐌹𐌽𐍃 𐌷𐌰𐌹𐍂𐌻𐌰𐌿𐍃𐌿𐌽",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "𐌰𐌽𐌰𐌽 {levels} ·𐌱·, 𐌷𐌰𐌹𐌸𐌰𐌿𐌽 𐌱𐌹 𐌱𐌿𐌺𐌰, 𐌲𐌹𐌺𐌹𐌽 𐌾𐌹 𐌿𐌽𐌰𐌽𐌳𐌹 𐌰𐌼𐌼𐌰𐍅𐌴𐌹𐍃𐌰"
         },
         "preview_label": "𐌸𐌰 𐌲𐌰𐌺𐌿𐌻𐌽𐌰 𐍅𐌰𐌹𐍃𐍉",
-        "short_help": "𐌸𐌰𐌹𐌽𐌴𐌸𐌰 𐌱𐉍𐌺𐍉𐍃 𐌾𐌰𐌷 𐍅𐌰𐌹𐍃𐌾𐌰 𐌹𐌽 𐌱𐉍𐌺𐍉𐍃 𐌾𐌰𐌷 𐍅𐌰𐌹𐍃𐌾𐌰 𐌽𐌹𐌺𐌹𐌽𐌰𐌼 𐌹𐌽 𐍅𐌰𐌹𐌻𐌻𐌰𐌽 𐌼𐌹𐌲 𐌿𐍃𐌺𐌰𐌽𐌽𐌰 𐌸𐌰𐌹𐌷 𐌻𐌰𐌽𐌳𐌰 𐌸𐌰𐌹 𐌰𐌽𐌳𐌰𐌽𐌰𐌿𐌷 𐌴𐌹𐌽."
+        "short_help": "𐌸𐌰𐌹𐌽𐌴𐌸𐌰 𐌱𐉍𐌺𐍉𐍃 𐌾𐌰𐌷 𐍅𐌰𐌹𐍃𐌾𐌰 𐌹𐌽 𐌳𐌰𐌹𐌻𐌰 3 𐌽𐌹𐌺𐌹𐌽𐌰𐌼 𐌹𐌽 𐍅𐌰𐌹𐌻𐌻𐌰𐌽 𐌼𐌹𐌲 𐌿𐍃𐌺𐌰𐌽𐌽𐌰 𐌸𐌰𐌹𐌷 𐌻𐌰𐌽𐌳𐌰 𐌸𐌰𐌹 𐌰𐌽𐌳𐌰𐌽𐌰𐌿𐌷 𐌴𐌹𐌽."
     },
     "books": {
         "custom": "𐌰𐌽𐌰𐌽 𐌰𐌽𐌽𐌰𐌽",
@@ -494,7 +494,7 @@
         "collapse_step": "𐌷𐌹𐌽𐌳𐌰 𐌸𐌰𐌹 𐍃𐌿𐌼𐌰",
         "progress": "{done} 𐌹𐌽 {total} 𐌰𐌽𐌰𐍅𐌰𐌷𐌹𐍃𐍄",
         "progress_done": "𐌰𐌻𐌻𐌰 {total} 𐍃𐌿𐌼𐌰𐌽𐌰 𐌰𐌽𐌰𐍅𐌰𐌷𐌹𐍃𐍄",
-        "entry_link_label": "𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐌽 {name} 𐌹𐌽 𐌱𐉍𐌺𐍉𐌼 𐌾𐌰𐌷 𐍅𐌰𐌹𐍃𐌾𐌰𐌼",
+        "entry_link_label": "𐌰𐌽𐌰𐌿𐍅𐌰𐌹𐌽 {name} 𐌹𐌽 𐌳𐌰𐌹𐌻𐌰 3",
         "from_step": "𐌸𐌰𐌹𐌽𐌰 𐍃𐌿𐌼𐌰 {number}",
         "result_work": "𐍆𐍂𐌰𐌿𐌰𐌽 𐌰𐍆𐍄𐌰𐌽 {count}",
         "uncheck_all": "𐌽𐌹𐌺𐌹𐌽 𐌰𐌻𐌻𐌰",

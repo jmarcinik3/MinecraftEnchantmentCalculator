@@ -2,15 +2,15 @@
     "page": {
         "title": "附魔計算機",
         "heading": "附魔計算機",
-        "item_heading": "物品",
-        "enchantments_heading": "附魔",
-        "books_heading": "書籍及物品",
+        "item_heading": "揀選物品",
+        "enchantments_heading": "揀選附魔",
+        "books_heading": "加入書籍",
         "pick_item_first": "請先選擇物品",
-        "skip_steps": "跳到鐵砧使用",
+        "skip_steps": "跳到步驟",
         "badge_done": "已完成",
         "badge_problem": "有問題",
         "badge_searching": "搜尋中",
-        "steps_heading": "鐵砧使用",
+        "steps_heading": "跟住步驟做",
         "theme_dark": "切換至深色模式",
         "theme_light": "切換至淺色模式",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "由書加入呢個附魔大約需要 {levels} 級（未計先前工作）"},
         "preview_label": "完成嘅物品",
-        "short_help": "「書籍及物品」入面嘅書同物品，未能達到呢度揀選嘅等級。"
+        "short_help": "第 3 節入面嘅書同物品，未能達到呢度揀選嘅等級。"
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "收埋呢一步",
         "progress": "已完成 {done}/{total}",
         "progress_done": "全部 {total} 步已完成",
-        "entry_link_label": "喺「書籍及物品」顯示{name}",
+        "entry_link_label": "喺第 3 節顯示{name}",
         "from_step": "嚟自第 {number} 步",
         "result_work": "先前工作 {count}",
         "uncheck_all": "全部取消打勾",

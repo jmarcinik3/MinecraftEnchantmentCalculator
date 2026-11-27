@@ -2,15 +2,15 @@
     "page": {
         "title": "Sehrlash kalkulyatori",
         "heading": "Sehrlash kalkulyatori",
-        "item_heading": "Buyum",
-        "enchantments_heading": "Sehrlar",
-        "books_heading": "Kitoblar va buyumlar",
+        "item_heading": "Buyumni tanlash",
+        "enchantments_heading": "Sehrlarni tanlash",
+        "books_heading": "Kitoblarni qo'shish",
         "pick_item_first": "Avval buyumni tanlang",
-        "skip_steps": "Sandon ishlatilishlariga o'tish",
+        "skip_steps": "Qadamlarga o'tish",
         "badge_done": "tayyor",
         "badge_problem": "muammo",
         "badge_searching": "qidirilmoqda",
-        "steps_heading": "Sandon ishlatilishlari",
+        "steps_heading": "Qadamlarga amal qilish",
         "theme_dark": "Qorong'i rejimga o'tish",
         "theme_light": "Yorug' rejimga o'tish",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Kitobdan buni qo'shish uchun taxminan {levels} daraja, oldingi ishdan qat'i nazar", "other": "Kitobdan buni qo'shish uchun taxminan {levels} daraja, oldingi ishdan qat'i nazar"},
         "preview_label": "Tayyor buyum",
-        "short_help": "Kitoblar va buyumlar bo'limidagi kitoblar va buyumlar bu yerda tanlangan darajaga yeta olmaydi."
+        "short_help": "3-bo'limdagi kitoblar va buyumlar bu yerda tanlangan darajaga yeta olmaydi."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Bu qadamni yig'ish",
         "progress": "{total} qadamning {done} tasi bajarildi",
         "progress_done": "Barcha {total} qadam bajarildi",
-        "entry_link_label": "Kitoblar va buyumlar bo'limida {name} ni ko'rsatish",
+        "entry_link_label": "3-bo'limda {name} ni ko'rsatish",
         "from_step": "{number}-qadamdan",
         "result_work": "Oldingi ish {count}",
         "uncheck_all": "Hammasini belgisini olib tashlash",

@@ -2,15 +2,15 @@
     "page": {
         "title": "मंत्र गणक",
         "heading": "मंत्र गणक (एन्चेंटमेंट कैलकुलेटर)",
-        "item_heading": "वस्तु",
-        "enchantments_heading": "मंत्र",
-        "books_heading": "पुस्तकें और वस्तुएँ",
+        "item_heading": "एक वस्तु चुनें",
+        "enchantments_heading": "मंत्र चुनें",
+        "books_heading": "पुस्तकें जोड़ें",
         "pick_item_first": "पहले एक वस्तु चुनें",
-        "skip_steps": "निहाई के उपयोग पर जाएँ",
+        "skip_steps": "चरणों पर जाएँ",
         "badge_done": "पूरा",
         "badge_problem": "समस्या",
         "badge_searching": "खोज जारी",
-        "steps_heading": "निहाई के उपयोग",
+        "steps_heading": "चरणों का पालन करें",
         "theme_dark": "गहरे रंग के मोड में बदलें",
         "theme_light": "हल्के रंग के मोड में बदलें",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "पुस्तक से इसे जोड़ने में लगभग {levels} स्तर, किसी भी पिछले कार्य से पहले", "other": "पुस्तक से इसे जोड़ने में लगभग {levels} स्तर, किसी भी पिछले कार्य से पहले"},
         "preview_label": "तैयार वस्तु",
-        "short_help": "पुस्तकें और वस्तुएँ अनुभाग की आपकी पुस्तकें और वस्तुएँ यहाँ चुने गए स्तर तक नहीं पहुँच सकतीं।"
+        "short_help": "अनुभाग 3 की आपकी पुस्तकें और वस्तुएँ यहाँ चुने गए स्तर तक नहीं पहुँच सकतीं।"
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "इस चरण को बंद करें",
         "progress": "{total} में से {done} पूरे",
         "progress_done": "सभी {total} चरण पूरे",
-        "entry_link_label": "पुस्तकें और वस्तुएँ में {name} दिखाएँ",
+        "entry_link_label": "अनुभाग 3 में {name} दिखाएँ",
         "from_step": "चरण {number} से",
         "result_work": "पिछला कार्य {count}",
         "uncheck_all": "सभी का निशान हटाएँ",

@@ -2,15 +2,15 @@
     "page": {
         "title": "エンチャント計算機",
         "heading": "エンチャント計算機",
-        "item_heading": "アイテム",
-        "enchantments_heading": "エンチャント",
-        "books_heading": "本とアイテム",
+        "item_heading": "アイテムを選ぶ",
+        "enchantments_heading": "エンチャントを選ぶ",
+        "books_heading": "本を追加する",
         "pick_item_first": "先にアイテムを選んでください",
-        "skip_steps": "金床の使用回数へ",
+        "skip_steps": "手順へ",
         "badge_done": "完了",
         "badge_problem": "問題あり",
         "badge_searching": "検索中",
-        "steps_heading": "金床の使用回数",
+        "steps_heading": "手順に従う",
         "theme_dark": "ダークモードに切り替え",
         "theme_light": "ライトモードに切り替え",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "本からこのエンチャントを追加するのに約 {levels} レベル（作業ペナルティを除く）"},
         "preview_label": "完成したアイテム",
-        "short_help": "「本とアイテム」の本やアイテムでは、ここで選んだレベルに届きません。"
+        "short_help": "セクション3の本やアイテムでは、ここで選んだレベルに届きません。"
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "このステップを閉じる",
         "progress": "{done}／{total} 完了",
         "progress_done": "{total} ステップすべて完了",
-        "entry_link_label": "「本とアイテム」で {name} を表示",
+        "entry_link_label": "セクション3で {name} を表示",
         "from_step": "ステップ {number} から",
         "result_work": "作業ペナルティ {count}",
         "uncheck_all": "すべてのチェックを外す",

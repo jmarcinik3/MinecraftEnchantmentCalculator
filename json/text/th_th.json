@@ -2,15 +2,15 @@
     "page": {
         "title": "เครื่องคำนวณการร่ายมนตร์",
         "heading": "เครื่องคำนวณการร่ายมนตร์",
-        "item_heading": "ไอเทม",
-        "enchantments_heading": "คาถาร่ายมนตร์",
-        "books_heading": "หนังสือและไอเทม",
+        "item_heading": "เลือกไอเทม",
+        "enchantments_heading": "เลือกคาถาร่ายมนตร์",
+        "books_heading": "เพิ่มหนังสือ",
         "pick_item_first": "เลือกไอเทมก่อน",
-        "skip_steps": "ไปที่ครั้งการใช้ทั่ง",
+        "skip_steps": "ไปที่ขั้นตอน",
         "badge_done": "เสร็จแล้ว",
         "badge_problem": "มีปัญหา",
         "badge_searching": "กำลังค้นหา",
-        "steps_heading": "ครั้งการใช้ทั่ง",
+        "steps_heading": "ทำตามขั้นตอน",
         "theme_dark": "เปลี่ยนเป็นโหมดมืด",
         "theme_light": "เปลี่ยนเป็นโหมดสว่าง",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "other": "ประมาณ {levels} เลเวลเพื่อเพิ่มคาถานี้จากหนังสือ ยังไม่รวมงานก่อนหน้า"},
         "preview_label": "ไอเทมที่เสร็จแล้ว",
-        "short_help": "หนังสือและไอเทมในส่วนหนังสือและไอเทมของคุณไม่สามารถถึงเลเวลที่เลือกไว้ที่นี่ได้"
+        "short_help": "หนังสือและไอเทมในส่วนที่ 3 ของคุณไม่สามารถถึงเลเวลที่เลือกไว้ที่นี่ได้"
     },
 
     "books": {
@@ -373,7 +373,7 @@
         "collapse_step": "พับขั้นนี้",
         "progress": "เสร็จ {done} จาก {total}",
         "progress_done": "เสร็จทั้ง {total} ขั้นตอนแล้ว",
-        "entry_link_label": "แสดง {name} ในหนังสือและไอเทม",
+        "entry_link_label": "แสดง {name} ในส่วนที่ 3",
         "from_step": "จากขั้นที่ {number}",
         "result_work": "งานก่อนหน้า {count}",
         "uncheck_all": "ยกเลิกการติ๊กทั้งหมด",

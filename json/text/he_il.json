@@ -2,15 +2,15 @@
     "page": {
         "title": "מחשבון כישופים",
         "heading": "מחשבון כישופים",
-        "item_heading": "פריט",
-        "enchantments_heading": "כישופים",
-        "books_heading": "ספרים ופריטים",
+        "item_heading": "בחר פריט",
+        "enchantments_heading": "בחר כישופים",
+        "books_heading": "הוסף ספרים",
         "pick_item_first": "בחר קודם פריט",
-        "skip_steps": "מעבר לשימושי הסדן",
+        "skip_steps": "מעבר לשלבים",
         "badge_done": "הושלם",
         "badge_problem": "בעיה",
         "badge_searching": "מחפש",
-        "steps_heading": "שימושי הסדן",
+        "steps_heading": "עקוב אחר השלבים",
         "theme_dark": "מעבר למצב כהה",
         "theme_light": "מעבר למצב בהיר",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "בערך רמה אחת כדי להוסיף את זה מספר, לפני כל עבודה קודמת", "two": "בערך שתי רמות כדי להוסיף את זה מספר, לפני כל עבודה קודמת", "many": "בערך {levels} רמות כדי להוסיף את זה מספר, לפני כל עבודה קודמת", "other": "בערך {levels} רמות כדי להוסיף את זה מספר, לפני כל עבודה קודמת"},
         "preview_label": "הפריט המוגמר",
-        "short_help": "הספרים והפריטים בקטע ספרים ופריטים לא מסוגלים להגיע לרמה שנבחרה כאן."
+        "short_help": "הספרים והפריטים בקטע 3 לא מסוגלים להגיע לרמה שנבחרה כאן."
     },
 
     "books": {
@@ -382,7 +382,7 @@
         "collapse_step": "קפל את השלב הזה",
         "progress": "{done} מתוך {total} הושלמו",
         "progress_done": "כל {total} השלבים הושלמו",
-        "entry_link_label": "הצג את {name} בספרים ופריטים",
+        "entry_link_label": "הצג את {name} בקטע 3",
         "from_step": "משלב {number}",
         "result_work": "עבודה קודמת {count}",
         "uncheck_all": "בטל את כל הסימונים",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Ihe Mgbakọ Enchantment",
         "heading": "Ihe mgbakọ enchantment",
-        "item_heading": "Ihe",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Akwụkwọ na ihe",
+        "item_heading": "Họrọ ihe",
+        "enchantments_heading": "Họrọ enchantments",
+        "books_heading": "Tinye akwụkwọ",
         "pick_item_first": "Họrọ ihe mbụ",
-        "skip_steps": "Gaa na Ọrụ Anvil",
+        "skip_steps": "Gaa na usoro",
         "badge_done": "emechala",
         "badge_problem": "nsogbu",
         "badge_searching": "na-achọ",
-        "steps_heading": "Ọrụ Anvil",
+        "steps_heading": "Soro usoro",
         "theme_dark": "Gbanwee ka ọ bụrụ ọnọdụ ojii",
         "theme_light": "Gbanwee ka ọ bụrụ ọnọdụ ọcha",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "Ihe dị ka {levels} ọkwa iji tinye nke a site na akwụkwọ, tupu ọrụ ndị gara aga"
         },
         "preview_label": "Ihe emechara",
-        "short_help": "Akwụkwọ na ihe gị n'akụkụ Akwụkwọ na ihe enweghị ike ịru ọkwa a ahọrọ ebe a."
+        "short_help": "Akwụkwọ na ihe gị n'akụkụ 3 enweghị ike ịru ọkwa a ahọrọ ebe a."
     },
     "books": {
         "custom": "Nke onwe",
@@ -494,7 +494,7 @@
         "collapse_step": "Mechie usoro a",
         "progress": "{done} n'ime {total} emechara",
         "progress_done": "Usoro {total} niile emechara",
-        "entry_link_label": "Gosi {name} na Akwụkwọ na ihe",
+        "entry_link_label": "Gosi {name} na akụkụ 3",
         "from_step": "Site na usoro {number}",
         "result_work": "Ọrụ mbụ {count}",
         "uncheck_all": "Wepụ akara niile",

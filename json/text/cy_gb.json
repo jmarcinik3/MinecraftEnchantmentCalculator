@@ -2,15 +2,15 @@
     "page": {
         "title": "Cyfrifiannell Hudoliaethau",
         "heading": "Cyfrifiannell hudoliaethau",
-        "item_heading": "Eitem",
-        "enchantments_heading": "Hudoliaethau",
-        "books_heading": "Llyfrau ac eitemau",
+        "item_heading": "Dewiswch eitem",
+        "enchantments_heading": "Dewiswch hudoliaethau",
+        "books_heading": "Ychwanegwch lyfrau",
         "pick_item_first": "Dewiswch eitem yn gyntaf",
-        "skip_steps": "Neidio i Ddefnyddiau'r Einion",
+        "skip_steps": "Neidio i'r camau",
         "badge_done": "wedi'i wneud",
         "badge_problem": "problem",
         "badge_searching": "yn chwilio",
-        "steps_heading": "Defnyddiau'r Einion",
+        "steps_heading": "Dilynwch y camau",
         "theme_dark": "Newid i'r modd tywyll",
         "theme_light": "Newid i'r modd golau",
         "theme_dark_label": "Dark",
@@ -195,7 +195,7 @@
             "many": "Tua {levels} lefel i ychwanegu hwn o lyfr, cyn unrhyw waith blaenorol"
         },
         "preview_label": "Yr eitem orffenedig",
-        "short_help": "Ni all eich llyfrau ac eitemau yn yr adran Llyfrau ac eitemau gyrraedd y lefel a ddewiswyd yma."
+        "short_help": "Ni all eich llyfrau ac eitemau yn adran 3 gyrraedd y lefel a ddewiswyd yma."
     },
     "books": {
         "custom": "Personol",
@@ -602,7 +602,7 @@
         "collapse_step": "Cau'r cam hwn",
         "progress": "{done} o {total} wedi'u gwneud",
         "progress_done": "Pob {total} cam wedi'u gwneud",
-        "entry_link_label": "Dangos {name} yn Llyfrau ac eitemau",
+        "entry_link_label": "Dangos {name} yn adran 3",
         "from_step": "O gam {number}",
         "result_work": "Gwaith blaenorol {count}",
         "uncheck_all": "Dad-ticio popeth",

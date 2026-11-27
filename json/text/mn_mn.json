@@ -2,15 +2,15 @@
     "page": {
         "title": "Шидийн тооцоолуур",
         "heading": "Шидийн тооцоолуур",
-        "item_heading": "Эд зүйл",
-        "enchantments_heading": "Шид",
-        "books_heading": "Ном ба эд зүйлс",
+        "item_heading": "Эд зүйл сонгох",
+        "enchantments_heading": "Шид сонгох",
+        "books_heading": "Ном нэмэх",
         "pick_item_first": "Эхлээд эд зүйлээ сонгоно уу",
-        "skip_steps": "Дөшний хэрэглээ рүү очих",
+        "skip_steps": "Алхмууд руу очих",
         "badge_done": "дууссан",
         "badge_problem": "асуудал",
         "badge_searching": "хайж байна",
-        "steps_heading": "Дөшний хэрэглээ",
+        "steps_heading": "Алхмуудыг дагах",
         "theme_dark": "Харанхуй горим руу шилжих",
         "theme_light": "Гэрэлтэй горим руу шилжих",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Номноос үүнийг нэмэхэд ойролцоогоор {levels} түвшин, өмнөх ажлаас үл хамааран", "other": "Номноос үүнийг нэмэхэд ойролцоогоор {levels} түвшин, өмнөх ажлаас үл хамааран"},
         "preview_label": "Бэлэн эд зүйл",
-        "short_help": "Ном ба эд зүйлс хэсгийн ном ба эд зүйлс энд сонгосон түвшинд хүрэхгүй."
+        "short_help": "3-р хэсгийн ном ба эд зүйлс энд сонгосон түвшинд хүрэхгүй."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Энэ алхмыг хаах",
         "progress": "{total}-ын {done} дууссан",
         "progress_done": "Бүх {total} алхам дууссан",
-        "entry_link_label": "Ном ба эд зүйлс хэсэгт {name}-ийг харуулах",
+        "entry_link_label": "3-р хэсэгт {name}-ийг харуулах",
         "from_step": "{number} дүгээр алхмаас",
         "result_work": "Өмнөх ажил {count}",
         "uncheck_all": "Бүгдийн тэмдгийг арилгах",

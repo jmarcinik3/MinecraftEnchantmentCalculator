@@ -2,15 +2,15 @@
     "page": {
         "title": "Fortryllelsesberegner",
         "heading": "Fortryllelsesberegner",
-        "item_heading": "Genstand",
-        "enchantments_heading": "Fortryllelser",
-        "books_heading": "Bøger og genstande",
+        "item_heading": "Vælg en genstand",
+        "enchantments_heading": "Vælg fortryllelser",
+        "books_heading": "Tilføj bøger",
         "pick_item_first": "Vælg først en genstand",
-        "skip_steps": "Gå til Ambolt-brug",
+        "skip_steps": "Gå til trinene",
         "badge_done": "færdig",
         "badge_problem": "problem",
         "badge_searching": "søger",
-        "steps_heading": "Ambolt-brug",
+        "steps_heading": "Følg trinene",
         "theme_dark": "Skift til mørk tilstand",
         "theme_light": "Skift til lys tilstand",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ca. {levels} niveau for at tilføje dette fra en bog, før eventuelt tidligere arbejde", "other": "Ca. {levels} niveauer for at tilføje dette fra en bog, før eventuelt tidligere arbejde"},
         "preview_label": "Den færdige genstand",
-        "short_help": "Dine bøger og genstande i afsnittet Bøger og genstande kan ikke nå det niveau, der er valgt her."
+        "short_help": "Dine bøger og genstande i afsnit 3 kan ikke nå det niveau, der er valgt her."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Fold dette trin sammen",
         "progress": "{done} af {total} færdige",
         "progress_done": "Alle {total} trin færdige",
-        "entry_link_label": "Vis {name} under Bøger og genstande",
+        "entry_link_label": "Vis {name} under afsnit 3",
         "from_step": "Fra trin {number}",
         "result_work": "Tidligere arbejde {count}",
         "uncheck_all": "Fjern alle krydser",

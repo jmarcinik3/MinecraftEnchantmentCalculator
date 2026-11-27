@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzauberungs-Renger",
         "heading": "Verzauberungs-Renger",
-        "item_heading": "Dinge",
-        "enchantments_heading": "Verzauberunge",
-        "books_heading": "Böcher un Dinge",
+        "item_heading": "Wähl e Ding",
+        "enchantments_heading": "Wähl Verzauberunge",
+        "books_heading": "Donn Böcher dobei",
         "pick_item_first": "Söök eesch e Ding ut",
-        "skip_steps": "Zo de Amboss-Bruchunge sprenge",
+        "skip_steps": "Zo de Schredte sprenge",
         "badge_done": "klaar",
         "badge_problem": "Problem",
         "badge_searching": "söök",
-        "steps_heading": "Amboss-Bruchunge",
+        "steps_heading": "Follg de Schredte",
         "theme_dark": "Op dunkel Modus ömschalde",
         "theme_light": "Op hell Modus ömschalde",
         "theme_dark_label": "Dark",
@@ -177,7 +177,7 @@
             "other": "Eundefähr {levels} Levels, öm dat us enem Booch dobeizedonn, vör dä Vürarbeit"
         },
         "preview_label": "Dat fäädije Ding",
-        "short_help": "Dinge Böcher un Dinge em Bereich Böcher un Dinge kenne et hee jesaate Level nit erreiche."
+        "short_help": "Dinge Böcher un Dinge em Bereich 3 kenne et hee jesaate Level nit erreiche."
     },
     "books": {
         "custom": "Eije",
@@ -521,7 +521,7 @@
         "collapse_step": "Dä Schredt zomaache",
         "progress": "{done} vun {total} klaar",
         "progress_done": "Alle {total} Schredte klaar",
-        "entry_link_label": "{name} unger Böcher un Dinge zeije",
+        "entry_link_label": "{name} em Bereich 3 zeije",
         "from_step": "Vun Schredt {number}",
         "result_work": "Vürarbeit {count}",
         "uncheck_all": "Alles avhäcke",

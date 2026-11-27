@@ -2,15 +2,15 @@
     "page": {
         "title": "Kalkulador Enchantment",
         "heading": "Kalkulador enchantment",
-        "item_heading": "Ntsakjan",
-        "enchantments_heading": "Enchantments",
-        "books_heading": "Xrùun īkjan ntsakjan",
+        "item_heading": "Dàkjo ntsakjan",
+        "enchantments_heading": "Dàkjo enchantments",
+        "books_heading": "Ngaꞌa xrùun",
         "pick_item_first": "Chrjaꞌa ntsakjan kjaꞌan",
-        "skip_steps": "Chjaa Juadunthaꞌin Yuunke",
+        "skip_steps": "Chjaa pasos",
         "badge_done": "chrjá",
         "badge_problem": "juaxaꞌín",
         "badge_searching": "nthoꞌo",
-        "steps_heading": "Juadunthaꞌin Yuunke",
+        "steps_heading": "Dàkjo pasos",
         "theme_dark": "Chjìnda ngaꞌa ngàchin",
         "theme_light": "Chjìnda ngaꞌa tsa",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Achi {levels} nivel chrjaꞌa xrùun, ngaꞌa tsa trabajo", "other": "Achi {levels} niveles chrjaꞌa xrùun, ngaꞌa tsa trabajo"},
         "preview_label": "Ntsakjan chrjá",
-        "short_help": "Xrùun ngaꞌa ntsakjan ngaꞌa Xrùun īkjan ntsakjan thù juaꞌan nivel chrjaꞌa halkan."
+        "short_help": "Xrùun ngaꞌa ntsakjan ngaꞌa sección 3 thù juaꞌan nivel chrjaꞌa halkan."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Chjuanthu paso",
         "progress": "{done} de {total} chrjá",
         "progress_done": "Chrjá todos {total} pasos",
-        "entry_link_label": "Juanthaꞌa {name} Xrùun y ntsakjan",
+        "entry_link_label": "Juanthaꞌa {name} sección 3",
         "from_step": "Ngaꞌa paso {number}",
         "result_work": "Trabajo tsa {count}",
         "uncheck_all": "Chjuanthu todo",

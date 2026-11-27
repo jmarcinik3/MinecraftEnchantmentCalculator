@@ -2,15 +2,15 @@
     "page": {
         "title": "Kīkā Hoʻokalakupua",
         "heading": "Kīkā hoʻokalakupua",
-        "item_heading": "Mea",
-        "enchantments_heading": "Nā hoʻokalakupua",
-        "books_heading": "Nā puke a me nā mea",
+        "item_heading": "E koho i mea",
+        "enchantments_heading": "E koho i nā hoʻokalakupua",
+        "books_heading": "E hoʻohui i nā puke",
         "pick_item_first": "E koho i kekahi mea mua",
-        "skip_steps": "E hele i nā Hana Kua Hao",
+        "skip_steps": "E hele i nā hana",
         "badge_done": "pau",
         "badge_problem": "pilikia",
         "badge_searching": "ke huli nei",
-        "steps_heading": "Nā Hana Kua Hao",
+        "steps_heading": "E hahai i nā hana",
         "theme_dark": "E hoʻololi i ke ʻano pō",
         "theme_light": "E hoʻololi i ke ʻano mālamalama",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ma kahi o {levels} pae e hoʻohui ai i kēia mai kekahi puke, ma mua o kekahi hana mua", "other": "Ma kahi o {levels} pae e hoʻohui ai i kēia mai kekahi puke, ma mua o kekahi hana mua"},
         "preview_label": "Ka mea i hoʻopau ʻia",
-        "short_help": "ʻAʻole hiki i kāu mau puke a me nā mea ma ka pauku Nā puke a me nā mea ke hiki i ka pae i koho ʻia ma aneʻi."
+        "short_help": "ʻAʻole hiki i kāu mau puke a me nā mea ma ka pauku 3 ke hiki i ka pae i koho ʻia ma aneʻi."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "E hūnā i kēia hana",
         "progress": "Pau {done} o {total}",
         "progress_done": "Pau nā hana {total} a pau",
-        "entry_link_label": "E hōʻike iā {name} ma Nā puke a me nā mea",
+        "entry_link_label": "E hōʻike iā {name} ma ka pauku 3",
         "from_step": "Mai ka hana {number} mai",
         "result_work": "Hana mua {count}",
         "uncheck_all": "E holoi i nā mākaʻi a pau",

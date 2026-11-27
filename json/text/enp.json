@@ -2,15 +2,15 @@
     "page": {
         "title": "Galement Reckoner",
         "heading": "Galement reckoner",
-        "item_heading": "Thing",
-        "enchantments_heading": "Galements",
-        "books_heading": "Books and things",
+        "item_heading": "Pick a thing",
+        "enchantments_heading": "Pick galements",
+        "books_heading": "Add books",
         "pick_item_first": "Pick a thing first",
-        "skip_steps": "Skip to Anvil uses",
+        "skip_steps": "Skip to the steps",
         "badge_done": "done",
         "badge_problem": "trouble",
         "badge_searching": "seeking",
-        "steps_heading": "Anvil uses",
+        "steps_heading": "Follow the steps",
         "theme_dark": "Turn to the dark hue",
         "theme_light": "Turn to the light hue",
         "theme_dark_label": "Dark",
@@ -171,7 +171,7 @@
             "other": "About {levels} ranks to add this from a book, before any earlier work"
         },
         "preview_label": "The finished thing",
-        "short_help": "Your books and things in the Books and things section cannot reach the rank chosen here."
+        "short_help": "Your books and things in section 3 cannot reach the rank chosen here."
     },
     "books": {
         "custom": "Own",
@@ -494,7 +494,7 @@
         "collapse_step": "Fold this step",
         "progress": "{done} of {total} done",
         "progress_done": "All {total} steps done",
-        "entry_link_label": "Show {name} in Books and things",
+        "entry_link_label": "Show {name} in section 3",
         "from_step": "From step {number}",
         "result_work": "Earlier work {count}",
         "uncheck_all": "Untick all",

@@ -2,15 +2,15 @@
     "page": {
         "title": "Verzaubborungsrechnor",
         "heading": "Verzaubborungsrechnor",
-        "item_heading": "Gegenstand",
-        "enchantments_heading": "Verzaubborungen",
-        "books_heading": "Bücher und Gegenständ",
+        "item_heading": "Gegenstand auswähln",
+        "enchantments_heading": "Verzaubborungen auswähln",
+        "books_heading": "Bücher hinzufüchn",
         "pick_item_first": "Such zuerscht an Gegenstand aus",
-        "skip_steps": "Zu de Amboss-Benutzungen springn",
+        "skip_steps": "Zu de Schritte springn",
         "badge_done": "fertsch",
         "badge_problem": "Problem",
         "badge_searching": "sucht",
-        "steps_heading": "Amboss-Benutzungen",
+        "steps_heading": "Den Schritten folgn",
         "theme_dark": "Zum dunglen Modus wechseln",
         "theme_light": "Zum helln Modus wechseln",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Ungefähr {levels} Level, um des aus enem Buch dazuzugeben, vor Vorarbeit", "other": "Ungefähr {levels} Level, um des aus enem Buch dazuzugeben, vor Vorarbeit"},
         "preview_label": "Der fertsche Gegenstand",
-        "short_help": "Deine Bücher und Gegenstände im Bereich Bücher und Gegenstände kenn des hier gewählte Level nich erreichen."
+        "short_help": "Deine Bücher und Gegenstände im Bereich 3 kenn des hier gewählte Level nich erreichen."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Diesen Schritt zumachen",
         "progress": "{done} von {total} fertsch",
         "progress_done": "Alle {total} Schritte fertsch",
-        "entry_link_label": "{name} unter Bücher und Gegenstände zeechn",
+        "entry_link_label": "{name} in Bereich 3 zeechn",
         "from_step": "Aus Schritt {number}",
         "result_work": "Vorarbeit {count}",
         "uncheck_all": "Alle abwählen",

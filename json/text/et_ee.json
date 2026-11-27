@@ -2,15 +2,15 @@
     "page": {
         "title": "Lummamiskalkulaator",
         "heading": "Lummamiskalkulaator",
-        "item_heading": "Ese",
-        "enchantments_heading": "Lummamised",
-        "books_heading": "Raamatud ja esemed",
+        "item_heading": "Vali ese",
+        "enchantments_heading": "Vali lummamised",
+        "books_heading": "Lisa raamatuid",
         "pick_item_first": "Vali kõigepealt ese",
-        "skip_steps": "Mine alasi kasutustele",
+        "skip_steps": "Mine sammudele",
         "badge_done": "valmis",
         "badge_problem": "probleem",
         "badge_searching": "otsib",
-        "steps_heading": "Alasi kasutused",
+        "steps_heading": "Järgi samme",
         "theme_dark": "Lülitu tumedale režiimile",
         "theme_light": "Lülitu heledale režiimile",
         "theme_dark_label": "Dark",
@@ -142,7 +142,7 @@
         "cost": "+{levels}",
         "cost_help": {"plural": "levels", "one": "Umbes {levels} tase selle lisamiseks raamatust, enne eelnevat tööd", "other": "Umbes {levels} taset selle lisamiseks raamatust, enne eelnevat tööd"},
         "preview_label": "Valmis ese",
-        "short_help": "Sinu raamatud ja esemed jaotises Raamatud ja esemed ei ulatu siin valitud tasemeni."
+        "short_help": "Sinu raamatud ja esemed jaotises 3 ei ulatu siin valitud tasemeni."
     },
 
     "books": {
@@ -376,7 +376,7 @@
         "collapse_step": "Sulge see samm",
         "progress": "{done} / {total} tehtud",
         "progress_done": "Kõik {total} sammu tehtud",
-        "entry_link_label": "Näita {name} jaotises Raamatud ja esemed",
+        "entry_link_label": "Näita {name} jaotises 3",
         "from_step": "Sammust {number}",
         "result_work": "Eelnev töö {count}",
         "uncheck_all": "Eemalda kõik märkimised",
