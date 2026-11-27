@@ -333,6 +333,11 @@ def part_item_bar(browser, base):
     n.wait_for_selector("#item-dock.condensed")
     overlap = n.evaluate("""(() => { const a = document.querySelector('#item .mini-text').getBoundingClientRect(), b = document.querySelector('#item .mini-steps').getBoundingClientRect(); return a.right > b.left + 1; })()""")
     check("at 320px the bar's text never runs into the Steps button", not overlap and not n.evaluate("document.documentElement.scrollWidth > innerWidth"))
+    # On paper the item is the full card in the flow, even when the phone's screen was showing the condensed sticky bar.
+    n.emulate_media(media="print")
+    printed = n.evaluate("(() => { const d = document.querySelector('#item-dock'); return [getComputedStyle(d).position, getComputedStyle(document.querySelector('#item .wanted-head')).display !== 'none', getComputedStyle(document.querySelector('#item .item-mini')).display]; })()")
+    check("printing from a phone shows the full Item card, not the sticky condensed bar", printed == ["static", True, "none"], printed)
+    n.emulate_media(media="screen")
     # Try an example is under the long item grid: the page is already scrolled when the item appears, so the bar must condense then too.
     _, e, errs = open_page(browser, base, viewport={"width": 1100, "height": 700})
     errors += errs

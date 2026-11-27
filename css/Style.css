@@ -422,7 +422,8 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .mini-list { font-size: 12px; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .item-mini .cost-line { flex: none; margin: 0; }
 .item-mini .cost-line-text { color: var(--success-text); }
-@media (max-width: 1359px) {
+/* (screen only: on paper the item is always the full card, never the condensed bar) */
+@media screen and (max-width: 1359px) {
     .item-dock.condensed { background: none; pointer-events: none; } /* it keeps the height it had (Wanted.js setupItemDock), so only the one line is solid */
     .item-dock.condensed #item { padding: 8px 14px; pointer-events: auto; }
     .item-dock.condensed #item > .wanted-head, .item-dock.condensed #item > .item-heading { display: none; }
@@ -2319,6 +2320,8 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
         color-scheme: light;
     }
     .print-only { display: block; margin: 0 0 10px; font-weight: 600; }
+    /* The item card in full and in the flow, whatever the screen was showing (the condensed sticky bar on a phone keeps an inline height). */
+    .item-dock { position: static !important; height: auto !important; background: none; }
     body { font-size: 12px; }
     .inputs, .collapse-toggle, .section-summary,
     .header-actions, .order, .level-pop, .level-chip, .options-menu, .info-tip, .rank-move, .result-tools, .progress,
