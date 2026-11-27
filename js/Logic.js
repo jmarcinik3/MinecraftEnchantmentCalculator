@@ -130,7 +130,9 @@ export function withMods(meta, mods) {
 
 // The mods' names and descriptions in one language (English where a mod has none in it), shaped like `names`.
 export function modNames(mods, language) {
-    const pick = (mod, kind) => ({ ...(mod[kind] && mod[kind].en), ...(mod[kind] && mod[kind][language]) });
+    // A mod file's names are keyed by language ("en", "es"), or by a full locale code; English fills in what a language lacks.
+    const base = String(language).split("_")[0];
+    const pick = (mod, kind) => ({ ...(mod[kind] && mod[kind].en), ...(mod[kind] && mod[kind][base]), ...(mod[kind] && mod[kind][language]) });
     return {
         enchantments: Object.assign({}, ...mods.map(mod => pick(mod, "names"))),
         descriptions: Object.assign({}, ...mods.map(mod => pick(mod, "descriptions")))

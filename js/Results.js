@@ -1,7 +1,7 @@
 // Section 4: the steps and the tree, ticking and folding, progress, and the text of the steps.
 import { updateCostMeter } from "./Wanted.js";
 import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searchSize } from "./Logic.js";
-import { TEXT } from "./Text.js";
+import { TEXT, localeOf } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
 import { $, closeOnOutside, copyText, enchLine, flash, h, icon, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
 import { svgIcon } from "./Books.js";
@@ -378,7 +378,7 @@ function anvilRiskText(uses) {
 // 0.04 as "4%" in the page's language; tiny chances as "under 1%" rather than "0%".
 function percentText(chance) {
     if (chance > 0 && chance < 0.01) return TEXT.results.under_one_percent;
-    return new Intl.NumberFormat(language, { style: "percent", maximumFractionDigits: 0 }).format(chance);
+    return new Intl.NumberFormat(localeOf(language), { style: "percent", maximumFractionDigits: 0 }).format(chance);
 }
 
 // The name an anvil slot shows: the new name on a renamed result, "Enchanted Book" for
@@ -477,7 +477,7 @@ function stepsText(root, steps) {
     const part = side => sideText(side, "text");
     const lines = [
         text.text_wanted({ item: logic.itemName(state.item), enchantments: logic.summary(root.enchantments) }),
-        text.text_totals({ levels: root.cumulative_levels, xp: Math.round(root.cumulative_xp).toLocaleString(language), max_step: root.max_step })
+        text.text_totals({ levels: root.cumulative_levels, xp: Math.round(root.cumulative_xp).toLocaleString(localeOf(language)), max_step: root.max_step })
     ];
     logic.stepRounds(steps).forEach((round, index) => {
         lines.push("", text.round({ number: index + 1, steps: round.length }));

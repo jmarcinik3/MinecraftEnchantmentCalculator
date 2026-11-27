@@ -33,14 +33,14 @@ order for combining enchanted books/items. Serve over HTTP (Workers fail on `fil
   Criteria: `levels`, `xp`, `max_step`, `prior_work` (`CRITERIA` in both Logic.js and Engine.js; a test keeps them equal).
   Recalc is debounced (`CALC_DELAY_MS`); cancel = terminate worker and start a new one. A search runs only when what it would be given changes: Calc.js `searchKey` (the entries, sorted, plus ranking, limit, edition, rename and mods) is kept for the result on screen (`result_key`), and `scheduleCalculation` keeps that result, and stops a search for another setup, when the key is the same (Automatic -> Custom, reordering cards, a change undone); `keepResult` marks a result changed in place (a rename) as current. A slow search's badge (hover) says the time so far, then
   an estimate of what is left (Calc.js `progressLabel`, refreshed every second; the engine reports every 1/2000 of the splits).
-- `json/text/<language>.json` (`en`, `es`): every string the page shows (labels, tooltips, messages), grouped by
+- `json/text/<code>.json`, named by the game's own locale codes as the Minecraft Wiki's Language page lists them (`en_us`, `es_es`; 145 files, all of the wiki's Java languages, but only English and Spanish are offered yet, the rest are drafts not wired in: subagent translations from the game's own lang files (names) and best guesses (the rest), several needing a native speaker, Klingon and Gothic most): every string the page shows (labels, tooltips, messages), grouped by
   section, plus `names: { items, enchantments, descriptions }` (the only place item and enchantment names live, English
   included; `descriptions`: what each enchantment does, in a few words).
   Templates use `{placeholder}` (arrays join as a localized list); number-dependent text is
   `{ "plural": "<value>", "one": ..., "other": ... }` (Intl.PluralRules forms). index.html headings use
   `data-text="section.key"`. Add new UI text there, in every language, not inline in App.js. Tests check each
-  language has the same entries, kinds and placeholders as English, and every item/enchantment name.
-- `js/Text.js` (ES module): the loader. `LANGUAGES` (code -> name; add a language here and as a JSON file),
+  language has the same entries, kinds and placeholders as English, and every item/enchantment name. `node test/TextCheck.mjs [codes]` runs the same check on any file in json/text, wired in or not (plural forms needed: those Intl gives whole numbers 0-1000 in that locale; `WARN=1` lists values identical to English); the Logic test only requires the offered languages in ServiceWorker.js `FILES`.
+- `js/Text.js` (ES module): the loader. `LANGUAGES` (game locale code -> name; add a language here, in ServiceWorker.js `FILES`, and as a JSON file; `DEFAULT_LANGUAGE` = `en_us`), `localeOf(code)` (`en_us` -> `en-US`: what Intl, `toLocaleString` and `<html lang>` get; the picker shows the code's first part, "EN"; the browser's language picks its exact locale, else the first of its language; mod files' names stay keyed `en`/`es`, Logic `modNames` falls back to the code's first part; pre-reform Russian, Halychian, Rusyn and Yakut have no Intl plural rules and will need a mapped locale when wired in),
   `loadLanguage(code)` fetches and compiles into `TEXT` in place, so templates are called with named values:
   `TEXT.wanted.replaces({ name })`. `compileText`/`setText` are the pure parts (used by tests).
   App.js `useEdition` passes `TEXT.names` to `createLogic(meta, names)`.

@@ -1,6 +1,6 @@
 // The page: state changes, rendering, collapsing sections, language, saved setups, theme, and start-up.
 import { cleanName, createLogic, editionMetadata, linkMods, modNames, withMods, MOD_IDS } from "./Logic.js";
-import { LANGUAGES, TEXT, loadLanguage } from "./Text.js";
+import { DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Text.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
 import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
@@ -300,15 +300,17 @@ function renderLanguage() {
         onchange: event => switchLanguage(event.target.value)
     }, Object.entries(LANGUAGES).map(([code, label]) => h("option", {
         value: code, selected: code === language, title: label, "aria-label": label
-    }, code.toUpperCase()))));
+    }, code.split("_")[0].toUpperCase()))));
 }
 
 // The saved choice, else the browser's language if there is text for it, else English.
 function startingLanguage() {
     const saved = readStorage(LANGUAGE_STORAGE_KEY, null);
     if (typeof saved === "string" && Object.hasOwn(LANGUAGES, saved)) return saved;
-    const browser = (navigator.language || "en").slice(0, 2).toLowerCase();
-    return Object.hasOwn(LANGUAGES, browser) ? browser : "en";
+    // The browser's exact locale (es-MX -> es_mx) if there is text for it, else the first of its language (es -> es_es), else English.
+    const browser = (navigator.language || "en").toLowerCase().replace("-", "_");
+    if (Object.hasOwn(LANGUAGES, browser)) return browser;
+    return Object.keys(LANGUAGES).find(code => code.split("_")[0] === browser.split("_")[0]) || DEFAULT_LANGUAGE;
 }
 
 // Loads a language's text (json/text/<code>.json), falling back to English if it
@@ -318,9 +320,9 @@ async function applyLanguage(code) {
         setLanguage(await loadLanguage(code));
     } catch (error) {
         console.warn(error);
-        setLanguage(await loadLanguage("en"));
+        setLanguage(await loadLanguage(DEFAULT_LANGUAGE));
     }
-    document.documentElement.lang = language;
+    document.documentElement.lang = localeOf(language);
     fillPageText();
     applyCollapsed(); // the toggles' labels
 }

@@ -13,7 +13,7 @@ let next_book_id = 1;
 export let item_menu_open = false; // section 1's item menu (on the item's slot)
 export let conflicts_toggled = false; // the next redraw follows "Allow conflicts" changing, so it animates the groups
 
-export let language = "en";
+export let language = "en_us"; // a key of Text.js LANGUAGES (the game's locale code)
 function defaultState() {
     return {
         item: null,

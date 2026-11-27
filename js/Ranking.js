@@ -1,6 +1,6 @@
 // The order's tiles: the results and the ranking (drag to reorder), in the panel under Section 4's receipt (setupOrderPanel).
 import { movePriority } from "./Logic.js";
-import { TEXT } from "./Text.js";
+import { TEXT, localeOf } from "./Text.js";
 import { language, state } from "./Store.js";
 import { $, afterAnimation, h, motionOk, readStorage, writeStorage } from "./Dom.js";
 import { FOLD_EASING, FOLD_MS } from "./Motion.js";
@@ -117,7 +117,7 @@ export function renderMetrics(rebuild = false) {
     const node = resultNode(); // nothing to show without a step
     const values = node && {
         levels: node.cumulative_levels,
-        xp: Math.round(node.cumulative_xp).toLocaleString(language),
+        xp: Math.round(node.cumulative_xp).toLocaleString(localeOf(language)),
         max_step: node.max_step,
         prior_work: node.prior_work
     };

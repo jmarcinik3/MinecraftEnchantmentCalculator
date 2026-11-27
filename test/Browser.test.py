@@ -580,11 +580,11 @@ def part_books_tail(browser, base):
     settle(page4) # a result arriving would redraw (and close) the menu
     page4.click("#results .share-menu summary")
     page4.click(".copy-steps")
-    page4.locator("#language select").select_option("es")
-    page4.wait_for_function("document.documentElement.lang === 'es'")
+    page4.locator("#language select").select_option("es_es")
+    page4.wait_for_function("document.documentElement.lang === 'es-ES'")
     check("Spanish changes the heading", "encantamientos" in page4.inner_text("h1").lower(), page4.inner_text("h1"))
-    page4.locator("#language select").select_option("en")
-    page4.wait_for_function("document.documentElement.lang === 'en'")
+    page4.locator("#language select").select_option("en_us")
+    page4.wait_for_function("document.documentElement.lang === 'en-US'")
     page4.wait_for_selector("#results .anvil-step", timeout=8000)
     return errors4
 
@@ -805,7 +805,7 @@ def part_offline(browser, base):
     check("the service worker registers and activates", ready)
     page.evaluate("() => new Promise(done => { const look = () => navigator.serviceWorker.controller ? done() : setTimeout(look, 50); look(); })")  # (it claims the page when it activates)
     cached = page.evaluate("caches.keys().then(async names => { const cache = await caches.open(names[0]); return (await cache.keys()).map(r => new URL(r.url).pathname); })")
-    wanted = {"/js/App.js", "/js/Engine.js", "/json/metadata.json", "/json/text/en.json", "/css/Style.css", "/font/minecraft.woff"}
+    wanted = {"/js/App.js", "/js/Engine.js", "/json/metadata.json", "/json/text/en_us.json", "/css/Style.css", "/font/minecraft.woff"}
     check("the first visit saves the site's files", wanted <= set(cached), sorted(wanted - set(cached)))
     page.reload()
     page.wait_for_selector("#wanted .item-grid")

@@ -1,6 +1,6 @@
 // The search: the worker, requests and results.
 import { MAX_GROUPS, searchSize } from "./Logic.js";
-import { TEXT } from "./Text.js";
+import { TEXT, localeOf } from "./Text.js";
 import { engineMeta, language, logic, state } from "./Store.js";
 import { stepLimit } from "./Options.js";
 import { renderResults } from "./Results.js";
@@ -83,7 +83,7 @@ export function progressLabel() {
     // Under 10%, one decimal, so a slow search still moves ("0.4%").
     const share = Math.min(100, progress_share * 100);
     const shown = share < 10 ? Math.floor(share * 10) / 10 : Math.floor(share);
-    const percent = shown.toLocaleString(language, { maximumFractionDigits: 1 });
+    const percent = shown.toLocaleString(localeOf(language), { maximumFractionDigits: 1 });
     const elapsed = (performance.now() - started_at) / 1000;
     if (elapsed < ESTIMATE_AFTER_S) return TEXT.results.search_percent({ percent });
     if (progress_share < ESTIMATE_FROM_SHARE) return TEXT.results.search_elapsed({ percent, time: duration(elapsed) });
@@ -94,7 +94,7 @@ function duration(seconds) {
     const [value, unit] = seconds >= 5400 ? [Math.round(seconds / 3600), "hour"]
         : seconds >= 90 ? [Math.round(seconds / 60), "minute"]
             : [Math.max(1, Math.round(seconds)), "second"];
-    return new Intl.NumberFormat(language, { style: "unit", unit, unitDisplay: "long" }).format(value);
+    return new Intl.NumberFormat(localeOf(language), { style: "unit", unit, unitDisplay: "long" }).format(value);
 }
 
 // Section 4's number badge is the search's progress: its ring fills with how far the search has got (CSS `--search-share`, 0 to 1, on the

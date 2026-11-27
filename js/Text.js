@@ -17,7 +17,11 @@
 // Every language has the same entries as English (a test checks they match).
 
 // Each language's name in its own language. Add a language here and as a JSON file.
-export const LANGUAGES = { en: "English", es: "Español" };
+// Keyed by the game's own locale codes (json/text/<code>.json, as the Minecraft Wiki lists them); `localeOf` turns one into the BCP 47 tag
+// Intl and <html lang> take (en_us -> en-US, bar -> bar).
+export const LANGUAGES = { en_us: "English", es_es: "Español" };
+export const DEFAULT_LANGUAGE = "en_us";
+export const localeOf = code => code.split("_").map((part, i) => (i === 0 ? part : part.toUpperCase())).join("-");
 
 const TEXT_FOLDER = "json/text/";
 const TEXT_VERSION = ""; // deploy sets this to "?v=<commit>" (.github/stamp-version.sh)
@@ -31,8 +35,8 @@ export const TEXT = {};
 
 // Turns a language's JSON into TEXT's shape: templates become functions.
 export function compileText(data, language) {
-    const plural_rules = new Intl.PluralRules(language);
-    const lists = new Intl.ListFormat(language, { type: "conjunction" });
+    const plural_rules = new Intl.PluralRules(localeOf(language));
+    const lists = new Intl.ListFormat(localeOf(language), { type: "conjunction" });
     const fill = (template, values = {}) => template.replace(PLACEHOLDER, (match, key) => {
         const value = values[key];
         if (value == null) return match;
@@ -61,7 +65,7 @@ export function setText(data, language) {
 
 // Loads a language (English if there is no such language) and returns its code.
 export async function loadLanguage(language) {
-    const chosen = LANGUAGES[language] ? language : "en";
+    const chosen = LANGUAGES[language] ? language : DEFAULT_LANGUAGE;
     const response = await fetch(TEXT_FOLDER + chosen + ".json" + TEXT_VERSION);
     if (!response.ok) throw new Error("Couldn't load the " + chosen + " text: " + response.status);
     setText(await response.json(), chosen);

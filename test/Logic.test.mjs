@@ -14,8 +14,8 @@ const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, M
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT, LANGUAGES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
 const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
-setText(TEXTS.en, "en");
-const logic = createLogic(meta, TEXTS.en.names);
+setText(TEXTS.en_us, "en_us");
+const logic = createLogic(meta, TEXTS.en_us.names);
 
 let passed = 0;
 function test(name, fn) {
@@ -181,7 +181,7 @@ test("every language has the same text entries as English, of the same kind", ()
         }
         return shape(value, path + key + ".");
     });
-    const english = shape(TEXTS.en).sort();
+    const english = shape(TEXTS.en_us).sort();
     assert.deepStrictEqual(Object.keys(TEXTS), Object.keys(LANGUAGES));
     for (const [language, text] of Object.entries(TEXTS)) {
         assert.ok(LANGUAGES[language], language);
@@ -194,7 +194,7 @@ test("every language has the same text entries as English, of the same kind", ()
 });
 
 test("text templates fill in values, plurals and lists in the language's way", () => {
-    const english = compileText(TEXTS.en, "en"), spanish = compileText(TEXTS.es, "es");
+    const english = compileText(TEXTS.en_us, "en_us"), spanish = compileText(TEXTS.es_es, "es_es");
     assert.strictEqual(english.books.add_book, "Add book");
     assert.strictEqual(english.wanted.replaces({ name: "Smite" }), "Replaces Smite");
     assert.strictEqual(english.results.text_totals({ levels: 1, xp: 1, max_step: 1 }), "1 level in total (1 XP), at most 1 in one step");
@@ -207,14 +207,14 @@ test("text templates fill in values, plurals and lists in the language's way", (
     assert.strictEqual(english.names.items.boots, "Boots"); // names are kept as they are
     // TEXT is filled in place, so modules holding it see the language change.
     const held = TEXT;
-    setText(TEXTS.es, "es");
+    setText(TEXTS.es_es, "es_es");
     assert.strictEqual(held.books.add_book, "Añadir libro");
-    setText(TEXTS.en, "en");
+    setText(TEXTS.en_us, "en_us");
     assert.strictEqual(held.books.add_book, "Add book");
 });
 
 test("names come from the language's text, in every helper", () => {
-    const spanish = createLogic(meta, TEXTS.es.names);
+    const spanish = createLogic(meta, TEXTS.es_es.names);
     assert.strictEqual(spanish.displayName("protection", 4), "Protección IV");
     assert.strictEqual(spanish.itemName("boots"), "Botas");
     assert.strictEqual(logic.displayName("protection", 4), "Protection IV");
@@ -275,7 +275,7 @@ test("search size counts identical entries once, matching the engine", () => {
 
 test("editions: Bedrock has no Sweeping Edge and cheaper Impaling", () => {
     assert.deepStrictEqual(EDITIONS, createRequire(import.meta.url)("../js/Engine.js").EDITIONS);
-    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en_us.names);
     assert.ok(logic.applicable("sword").includes("sweeping"));
     assert.ok(!bedrock.applicable("sword").includes("sweeping"));
     assert.strictEqual(editionMetadata(meta, "bedrock").enchantments.impaling.weight, 1);
@@ -549,7 +549,7 @@ test("presets: the best set, then each well-known swap the item can take", () =>
     assert.ok(!("loyalty" in trident) && !("channeling" in trident));
     assert.strictEqual(logic.bookCost("thorns", 3), 12);
     assert.strictEqual(logic.bookCost("sharpness", 5), 5);
-    assert.strictEqual(logic.describe("mending"), TEXTS.en.names.descriptions.mending);
+    assert.strictEqual(logic.describe("mending"), TEXTS.en_us.names.descriptions.mending);
 });
 
 test("typed books: names from their start, levels, commas between books and + within one", () => {
@@ -561,7 +561,7 @@ test("typed books: names from their start, levels, commas between books and + wi
     assert.deepStrictEqual(read("curse vanish").books, [{ vanishing_curse: 1 }]); // every word a start
     assert.deepStrictEqual(read("soul_speed 1").books, [{ soul_speed: 1 }]); // namespaces too
     assert.deepStrictEqual(read("mending, sharpness 5 + unb"), { books: [{ mending: 1 }], unknown: ["sharpness 5"] }); // not on boots
-    const spanish = createLogic(meta, TEXTS.es.names);
+    const spanish = createLogic(meta, TEXTS.es_es.names);
     assert.deepStrictEqual(spanish.parseBooks("proteccion 3, reparacion", "boots").books, [{ protection: 3 }, { mending: 1 }]);
 });
 
@@ -597,7 +597,7 @@ test("a share link can carry the ticked steps, and plain links carry none", () =
 });
 
 test("the recovery compass takes Curse of Vanishing in Bedrock only", () => {
-    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en_us.names);
     assert.ok(!logic.enchantableItems().includes("recovery_compass"));
     assert.ok(bedrock.enchantableItems().includes("recovery_compass"));
 });
@@ -628,7 +628,7 @@ test("withMods adds the mods' enchantments after the game's own, tagged with the
     assert.strictEqual(withMods(meta, []), meta);
     assert.strictEqual(Object.keys(merged.enchantments).length, Object.keys(meta.enchantments).length + Object.keys(fancy.enchantments).length);
     assert.deepStrictEqual(merged.tooltip_order.slice(0, meta.tooltip_order.length), meta.tooltip_order);
-    const modded = createLogic(merged, { ...TEXTS.en.names, ...modNames([fancy], "en") });
+    const modded = createLogic(merged, { ...TEXTS.en_us.names, ...modNames([fancy], "en") });
     assert.strictEqual(modded.modOf("fancyenchantments:advanced_sharpness"), "Fancy Enchantments");
     assert.strictEqual(modded.modOf("sharpness"), null);
     assert.ok(modded.conflicts("sharpness", "fancyenchantments:advanced_sharpness"));
@@ -662,7 +662,7 @@ test("conflictTree splits a bracket again and again, with as few strays as it ta
     const path16 = make(Object.fromEntries([...letters].slice(0, 15).map((ns, i) => [ns, [letters[i + 1]]])));
     assert.strictEqual(path16.conflictTree([...letters]), null);
     // Fancy Enchantments' chestplate: Pyromaniac is the one stray; the protections and the shields split around it.
-    const fancy = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
+    const fancy = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en_us.names, ...modNames([MODS.fancy_enchantments], "en") });
     const group = fancy.enchantmentGroups("chestplate").find(each => each.members.length > 6 && !each.exclusive);
     assert.deepStrictEqual(fancy.conflictTree(group.members).strays, ["fancyenchantments:pyromaniac"]);
     // A clique is a Pick one: a side of leaves.
@@ -670,7 +670,7 @@ test("conflictTree splits a bracket again and again, with as few strays as it ta
 });
 
 test("Max all and the presets never add a mod's enchantments, but typed books can name them", () => {
-    const modded = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en.names, ...modNames([MODS.fancy_enchantments], "en") });
+    const modded = createLogic(withMods(meta, [MODS.fancy_enchantments]), { ...TEXTS.en_us.names, ...modNames([MODS.fancy_enchantments], "en") });
     assert.deepStrictEqual(modded.maxAll("sword", {}), logic.maxAll("sword", {}));
     for (const preset of modded.presets("sword")) assert.ok(Object.keys(preset.wanted).every(ns => !modded.modOf(ns)));
     assert.ok("fancyenchantments:air_attack" in modded.parseBooks("air attack 2", "sword").books[0]);
@@ -679,7 +679,7 @@ test("Max all and the presets never add a mod's enchantments, but typed books ca
 
 test("a share link carries the mods, and reads their enchantments only with them", () => {
     const fancy = MODS.fancy_enchantments;
-    const modded = createLogic(withMods(meta, [fancy]), { ...TEXTS.en.names, ...modNames([fancy], "en") });
+    const modded = createLogic(withMods(meta, [fancy]), { ...TEXTS.en_us.names, ...modNames([fancy], "en") });
     const state = { ...baseState("sword"), mods: ["fancy_enchantments"], wanted: { sharpness: 5, "fancyenchantments:air_attack": 2 } };
     const link = modded.serialize(state);
     assert.deepStrictEqual(linkMods(link), ["fancy_enchantments"]);
@@ -713,13 +713,13 @@ test("a fix's book takes conflicting enchantments off the other entries, unless 
 });
 
 test("a link is read in its own edition: Bedrock's Curse of Vanishing on a recovery compass survives", () => {
-    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en.names);
+    const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en_us.names);
     const state = { ...baseState("recovery_compass"), edition: "bedrock", wanted: { vanishing_curse: 1 } };
     const link = bedrock.serialize(state);
     assert.strictEqual(linkEdition(link), "bedrock");
     assert.strictEqual(linkEdition(logic.serialize(baseState("sword"))), "java");
     assert.strictEqual(linkEdition("not a link"), "java");
-    assert.deepStrictEqual(createLogic(editionMetadata(meta, linkEdition(link)), TEXTS.en.names).deserialize(link, () => 0).wanted, { vanishing_curse: 1 });
+    assert.deepStrictEqual(createLogic(editionMetadata(meta, linkEdition(link)), TEXTS.en_us.names).deserialize(link, () => 0).wanted, { vanishing_curse: 1 });
 });
 
 test("links with odd fields: edition only by index, broken entries skipped, prior work capped", () => {
@@ -738,7 +738,7 @@ test("typed books: level 0 can't be read, and Roman numerals go past V", () => {
     assert.deepStrictEqual(logic.parseBooks("sharpness 0", "sword"), { books: [], unknown: ["sharpness 0"] });
     assert.deepStrictEqual(logic.parseBooks("sharpness v, unbreaking iii, smite iiii", "sword").books, [{ sharpness: 5 }, { unbreaking: 3 }]);
     const spellbound = MODS.spellbound;
-    const modded = createLogic(withMods(meta, [spellbound]), { ...TEXTS.en.names, ...modNames([spellbound], "en") });
+    const modded = createLogic(withMods(meta, [spellbound]), { ...TEXTS.en_us.names, ...modNames([spellbound], "en") });
     const dullness = Object.keys(spellbound.enchantments).find(ns => ns.endsWith(":dullness"));
     const item = spellbound.enchantments[dullness].items[0];
     assert.deepStrictEqual(modded.parseBooks("dullness x", item).books, [{ [dullness]: 10 }]);
@@ -778,7 +778,8 @@ test("the service worker's file list holds every script, style, data file and la
     const onDisk = [
         ...readdirSync(new URL("../js/", import.meta.url)).map(file => "js/" + file),
         ...readdirSync(new URL("../css/", import.meta.url)).map(file => "css/" + file),
-        ...readdirSync(new URL("../json/text/", import.meta.url)).map(file => "json/text/" + file),
+        // (only the languages the page offers: json/text also holds translations not wired in yet, which the page never loads)
+        ...readdirSync(new URL("../json/text/", import.meta.url)).filter(file => LANGUAGES[file.replace(/\.json$/, "")]).map(file => "json/text/" + file),
         ...readdirSync(new URL("../json/mods/", import.meta.url)).map(file => "json/mods/" + file),
         "json/metadata.json"
     ];

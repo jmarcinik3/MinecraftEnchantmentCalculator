@@ -27,17 +27,34 @@
         "delete_saved_label": "Remove {name}",
         "collapse_label": "Hide {section}",
         "expand_label": "Show {section}",
-        "summary_item": {"plural": "count", "one": "{item} · {count} enchantment", "other": "{item} · {count} enchantments"},
+        "summary_item": {
+            "plural": "count",
+            "one": "{item} · {count} enchantment",
+            "other": "{item} · {count} enchantments"
+        },
         "summary_none": "None chosen",
         "summary_automatic": "Automatic",
-        "summary_steps": {"plural": "count", "one": "{count} step", "other": "{count} steps"},
-        "summary_entries": {"plural": "count", "one": "{count} entry", "other": "{count} entries"},
+        "summary_steps": {
+            "plural": "count",
+            "one": "{count} step",
+            "other": "{count} steps"
+        },
+        "summary_entries": {
+            "plural": "count",
+            "one": "{count} entry",
+            "other": "{count} entries"
+        },
         "editions": {
-            "java": { "label": "Java", "help": "Java Edition anvil rules" },
-            "bedrock": { "label": "Bedrock", "help": "Bedrock Edition: each enchantment costs only the levels it adds, Impaling is cheaper, and there is no Sweeping Edge" }
+            "java": {
+                "label": "Java",
+                "help": "Java Edition anvil rules"
+            },
+            "bedrock": {
+                "label": "Bedrock",
+                "help": "Bedrock Edition: each enchantment costs only the levels it adds, Impaling is cheaper, and there is no Sweeping Edge"
+            }
         }
     },
-
     "wanted": {
         "intro": "Find the cheapest anvil order to put enchanted books on an item. Pick an item and its enchantments, then follow the steps.",
         "example": "Try an example: Depth Strider boots",
@@ -77,8 +94,16 @@
         "legend_stray": "Also conflicts with something in another side or part (hover it to see what).",
         "legend_badges": "Badges that number the sides and parts of a group.",
         "replaces": "Replaces {name}",
-        "item_takes": {"plural": "count", "one": "Takes {count} enchantment", "other": "Takes {count} enchantments"},
-        "cost_meter": {"plural": "levels", "one": "{levels} Level", "other": "{levels} Levels"},
+        "item_takes": {
+            "plural": "count",
+            "one": "Takes {count} enchantment",
+            "other": "Takes {count} enchantments"
+        },
+        "cost_meter": {
+            "plural": "levels",
+            "one": "{levels} Level",
+            "other": "{levels} Levels"
+        },
         "cost_meter_help": "Anvil levels for the best order with the books below",
         "cost_meter_none": "No valid order",
         "compare_same": "Already chosen",
@@ -99,11 +124,14 @@
         "level_label": "{name} level",
         "level_none": "None",
         "cost": "+{levels}",
-        "cost_help": {"plural": "levels", "one": "About {levels} level to add this from a book, before any prior work", "other": "About {levels} levels to add this from a book, before any prior work"},
+        "cost_help": {
+            "plural": "levels",
+            "one": "About {levels} level to add this from a book, before any prior work",
+            "other": "About {levels} levels to add this from a book, before any prior work"
+        },
         "preview_label": "The finished item",
         "short_help": "Your books and items in the Books and items section can't reach the level chosen here."
     },
-
     "books": {
         "custom": "Custom",
         "mode_label": "How the books are chosen",
@@ -112,8 +140,16 @@
         "switch_to_book": "Switch to a book",
         "switch_to_item": "Switch to {item}",
         "count_help": "Change prior work",
-        "work_badge": {"plural": "count", "one": "Prior work: used {count} time", "other": "Prior work: used {count} times"},
-        "prior_work_cost": {"plural": "levels", "one": "Its prior work adds {levels} level to each merge it's in.", "other": "Its prior work adds {levels} levels to each merge it's in."},
+        "work_badge": {
+            "plural": "count",
+            "one": "Prior work: used {count} time",
+            "other": "Prior work: used {count} times"
+        },
+        "prior_work_cost": {
+            "plural": "levels",
+            "one": "Its prior work adds {levels} level to each merge it's in.",
+            "other": "Its prior work adds {levels} levels to each merge it's in."
+        },
         "prior_work_none": "Never used on an anvil, so no extra cost.",
         "edit_line": "Change enchantments, or drag onto another entry to move it",
         "picker_label": "Enchantments on this entry",
@@ -125,8 +161,16 @@
         "done": "Done",
         "coverage_label": "Enchantments chosen in the Enchantments section, reached or not",
         "cover_ok": "{name} is reached",
-        "cover_all": {"plural": "count", "one": "{count} enchantment reached", "other": "All {count} reached"},
-        "cover_some": {"plural": "count", "one": "{count} of {total} reached", "other": "{count} of {total} reached"},
+        "cover_all": {
+            "plural": "count",
+            "one": "{count} enchantment reached",
+            "other": "All {count} reached"
+        },
+        "cover_some": {
+            "plural": "count",
+            "one": "{count} of {total} reached",
+            "other": "{count} of {total} reached"
+        },
         "cover_toggle": "Show or hide the enchantments already reached",
         "chip_drag_hint": "Drag onto an entry to put it there",
         "add_enchantment_label": "Add enchantment",
@@ -137,10 +181,18 @@
         "view_label": "How the entries are shown",
         "view_cards": "Cards",
         "view_list": "List",
-        "copies_edit": {"plural": "count", "one": "Copies: {count}. Use − and +, or scroll over it", "other": "Copies: {count}. Use − and +, or scroll over it"},
+        "copies_edit": {
+            "plural": "count",
+            "one": "Copies: {count}. Use − and +, or scroll over it",
+            "other": "Copies: {count}. Use − and +, or scroll over it"
+        },
         "view_slots": "Slots",
-        "merge_levels": {"plural": "levels", "one": "{levels} level to merge", "other": "{levels} levels to merge"},
-        "merge_too_expensive": "Too expensive!",
+        "merge_levels": {
+            "plural": "levels",
+            "one": "{levels} level to merge",
+            "other": "{levels} levels to merge"
+        },
+        "merge_too_expensive": "Too Expensive!",
         "merge_impossible": "Can't merge these",
         "duplicate_short": "Duplicate",
         "remove_short": "Remove",
@@ -180,27 +232,70 @@
         "unwanted_label": "Not chosen",
         "unwanted_help": "Not chosen in Enchantments. It will still go on the item and cost levels."
     },
-
     "ranking": {
         "rank_by": "The best order is picked by the four tiles below: the order with the lowest value in the first tile wins, and the next tiles break ties. Drag a tile, or use its ‹ › arrows, to change which counts most.",
         "order_title": "Ranked by",
-        "order_uses": {"plural": "uses", "one": "{uses} use", "other": "{uses} uses"},
+        "order_uses": {
+            "plural": "uses",
+            "one": "{uses} use",
+            "other": "{uses} uses"
+        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Set level",
         "rank_help_label": "How the best order is chosen",
         "no_value": "–",
         "criteria": {
-            "levels": { "label": "Levels", "help": "Total levels spent", "unit": {"plural": "value", "one": "level", "other": "levels"}, "note": "in total" },
-            "xp": { "label": "XP", "help": "Total XP points spent. Higher levels cost more XP each.", "unit": {"plural": "value", "one": "point", "other": "points"}, "note": "in total" },
-            "max_step": { "label": "Max level", "help": "Most levels spent on one anvil use", "unit": {"plural": "value", "one": "level", "other": "levels"}, "note": "in one step" },
-            "prior_work": { "label": "Prior work", "help": "Prior work on the result: the lower it is, the cheaper later anvil use on it will be", "unit": {"plural": "value", "one": "use", "other": "uses"}, "note": "on the result" }
+            "levels": {
+                "label": "Levels",
+                "help": "Total levels spent",
+                "unit": {
+                    "plural": "value",
+                    "one": "level",
+                    "other": "levels"
+                },
+                "note": "in total"
+            },
+            "xp": {
+                "label": "XP",
+                "help": "Total XP points spent. Higher levels cost more XP each.",
+                "unit": {
+                    "plural": "value",
+                    "one": "point",
+                    "other": "points"
+                },
+                "note": "in total"
+            },
+            "max_step": {
+                "label": "Max level",
+                "help": "Most levels spent on one anvil use",
+                "unit": {
+                    "plural": "value",
+                    "one": "level",
+                    "other": "levels"
+                },
+                "note": "in one step"
+            },
+            "prior_work": {
+                "label": "Prior work",
+                "help": "Prior work on the result: the lower it is, the cheaper later anvil use on it will be",
+                "unit": {
+                    "plural": "value",
+                    "one": "use",
+                    "other": "uses"
+                },
+                "note": "on the result"
+            }
         },
         "rank_higher_label": "Rank {label} higher",
         "rank_lower_label": "Rank {label} lower",
         "rank_caption": "Lowest {first} wins; ties go to {rest}.",
         "max_step_limited": "in one step (limit {limit})",
         "track_level": "Track my level",
-        "level_need_more": {"plural": "short", "one": "Need {short} more level", "other": "Need {short} more levels"},
+        "level_need_more": {
+            "plural": "short",
+            "one": "Need {short} more level",
+            "other": "Need {short} more levels"
+        },
         "level_enough_now": "Enough for this order",
         "set_needed_none": "Set to what you need",
         "settings": "Settings",
@@ -249,11 +344,14 @@
         "set_needed_help": "Set your level to exactly what the steps not yet ticked need",
         "use_level_help": "Follow your level through the steps: the level before and after each one",
         "level_enough": "Enough: this order needs {needed}",
-        "level_short_of": {"plural": "short", "one": "{short} level short: this order needs {needed}", "other": "{short} levels short: this order needs {needed}"},
+        "level_short_of": {
+            "plural": "short",
+            "one": "{short} level short: this order needs {needed}",
+            "other": "{short} levels short: this order needs {needed}"
+        },
         "name_count": "{count} / {max}",
         "name_count_label": "{count} of {max} characters"
     },
-
     "results": {
         "slow_search": "{count} entries: this may take a while.",
         "search_percent": "{percent}%",
@@ -261,13 +359,13 @@
         "search_left": "{percent}% · about {time} left",
         "too_many_different": "Too many different entries. Repeated books are fine, but at most 20 different ones.",
         "cancel": "Cancel",
-        "cancelled": "Cancelled. ",
+        "cancelled": "Canceled. ",
         "run_again": "Run again",
         "choose_enchantments": "Choose enchantments",
         "no_valid_order": "No valid order: these can't be combined.",
         "no_valid_order_within": "No valid order within the {limit}-level limit.",
         "limit_lowered_hint": "Every order has a step above your limit.",
-        "too_expensive_hint": "Every order has a step of 40 levels or more, which the game refuses (“Too expensive!”). Books with less prior work, or fewer enchantments per book, may help.",
+        "too_expensive_hint": "Every order has a step of 40 levels or more, which the game refuses (“Too Expensive!”). Books with less prior work, or fewer enchantments per book, may help.",
         "break_looking": "Looking for where it breaks…",
         "break_title": "Where it breaks",
         "break_step": "Without a limit the best order has {steps} steps, and step {number} costs {levels} levels: over your limit of {limit}.",
@@ -291,7 +389,11 @@
         "step_done_help": "Tick off steps as you do them. Kept in this browser.",
         "enchanted_book": "Enchanted Book",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} anvil use", "other": "{uses} anvil uses"},
+        "anvil_uses": {
+            "plural": "uses",
+            "one": "{uses} anvil use",
+            "other": "{uses} anvil uses"
+        },
         "anvil_break": "{chance} chance a new anvil breaks",
         "anvil_safe": "A new anvil won't break",
         "anvil_safe_short": "Safe",
@@ -308,10 +410,18 @@
         "slot_right": "Right slot",
         "slot_result": "Result",
         "words_result_of": "the result of step {number}",
-        "step_instruction": {"plural": "levels", "one": "Put {left} in the left slot and {right} in the right slot. Take the result: it costs {levels} level.", "other": "Put {left} in the left slot and {right} in the right slot. Take the result: it costs {levels} levels."},
+        "step_instruction": {
+            "plural": "levels",
+            "one": "Put {left} in the left slot and {right} in the right slot. Take the result: it costs {levels} level.",
+            "other": "Put {left} in the left slot and {right} in the right slot. Take the result: it costs {levels} levels."
+        },
         "step_rename_note": "Type “{name}” in the name box first.",
         "round_tip_label": "What is a round?",
-        "cost_breakdown_title": {"plural": "levels", "one": "Where the {levels} level comes from", "other": "Where the {levels} levels come from"},
+        "cost_breakdown_title": {
+            "plural": "levels",
+            "one": "Where the {levels} level comes from",
+            "other": "Where the {levels} levels come from"
+        },
         "cost_part_enchants": "Enchantments",
         "cost_part_left": "Left slot's prior work",
         "cost_part_right": "Right slot's prior work",
@@ -323,14 +433,22 @@
         "hotbar_slot": "Step {number}: {name}",
         "hotbar_slot_done": "Step {number}: {name}, done",
         "bar_show": "Show this step",
-        "checkpoint": {"plural": "count", "one": "Gain {count} level first: you need level {level}", "other": "Gain {count} levels first: you need level {level}"},
+        "checkpoint": {
+            "plural": "count",
+            "one": "Gain {count} level first: you need level {level}",
+            "other": "Gain {count} levels first: you need level {level}"
+        },
         "tree_step": {
             "plural": "levels",
             "one": "Step {number} · {levels} level",
             "other": "Step {number} · {levels} levels"
         },
         "step_title": "Step {number}",
-        "step_line": {"plural": "levels", "one": "{left} + {right} · {levels} level", "other": "{left} + {right} · {levels} levels"},
+        "step_line": {
+            "plural": "levels",
+            "one": "{left} + {right} · {levels} level",
+            "other": "{left} + {right} · {levels} levels"
+        },
         "expand_step": "Unfold this step",
         "collapse_step": "Fold this step",
         "progress": "{done} of {total} done",
@@ -356,13 +474,29 @@
         "copy_link": "Copy link",
         "copy_link_help": "Copy a link to this setup, with the steps you have ticked",
         "undo": "Undo",
-        "unticked": {"plural": "count", "one": "Unticked {count} step", "other": "Unticked {count} steps"},
+        "unticked": {
+            "plural": "count",
+            "one": "Unticked {count} step",
+            "other": "Unticked {count} steps"
+        },
         "round_fold": "Fold this round",
         "round_unfold": "Unfold this round",
-        "show_done": {"plural": "count", "one": "Show {count} done step", "other": "Show {count} done steps"},
-        "hide_done": {"plural": "count", "one": "Hide {count} done step", "other": "Hide {count} done steps"},
+        "show_done": {
+            "plural": "count",
+            "one": "Show {count} done step",
+            "other": "Show {count} done steps"
+        },
+        "hide_done": {
+            "plural": "count",
+            "one": "Hide {count} done step",
+            "other": "Hide {count} done steps"
+        },
         "text_wanted": "{item}: {enchantments}",
-        "text_totals": {"plural": "levels", "one": "{levels} level in total ({xp} XP), at most {max_step} in one step", "other": "{levels} levels in total ({xp} XP), at most {max_step} in one step"},
+        "text_totals": {
+            "plural": "levels",
+            "one": "{levels} level in total ({xp} XP), at most {max_step} in one step",
+            "other": "{levels} levels in total ({xp} XP), at most {max_step} in one step"
+        },
         "text_entry": "{name} ({enchantments})",
         "text_result_of": "result of step {number}",
         "text_step": {
@@ -374,7 +508,6 @@
         "worker_failed": "The calculator failed to load. Check the browser console for details.",
         "metadata_failed": "Couldn't load the enchantment data. Serve this folder over HTTP instead of opening the file directly."
     },
-
     "names": {
         "items": {
             "book": "Book",
@@ -390,7 +523,7 @@
             "fishing_rod": "Fishing Rod",
             "bow": "Bow",
             "shears": "Shears",
-            "flint_and_steel": "Flint & Steel",
+            "flint_and_steel": "Flint and Steel",
             "compass": "Compass",
             "recovery_compass": "Recovery Compass",
             "carrot_on_a_stick": "Carrot on a Stick",
@@ -411,7 +544,7 @@
             "binding_curse": "Curse of Binding",
             "blast_protection": "Blast Protection",
             "breach": "Breach",
-            "channeling": "Channeling",
+            "channeling": "Channelling",
             "density": "Density",
             "depth_strider": "Depth Strider",
             "efficiency": "Efficiency",
@@ -455,7 +588,7 @@
             "bane_of_arthropods": "Extra damage to spiders, bees, silverfish and endermites",
             "binding_curse": "Can't be taken off once worn",
             "blast_protection": "Less damage and knockback from explosions",
-            "breach": "Hits ignore some of the target's armor",
+            "breach": "Hits ignore some of the target's armour",
             "channeling": "Thrown in a thunderstorm, it calls lightning down on the target",
             "density": "Smash attacks do more damage the farther you fall",
             "depth_strider": "Walk faster underwater",
