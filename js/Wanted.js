@@ -666,12 +666,12 @@ function setModOpen(mod, open) {
     if (open) { mod_open.add(mod); mod_closed.delete(mod); } else { mod_open.delete(mod); mod_closed.add(mod); }
 }
 
-// The top of section 1: the preview, with `controls` (the presets) beside it
-// where the card is wide enough, else under it.
+// The top of the item card: the rename box (the anvil's name bar, Options.js nameField), `controls` (the presets), then the preview.
 function wantedHead(...controls) {
     return h("div", { class: "wanted-head" + (item_menu_open ? " menu-open" : "") },
-        wantedPreview(),
+        nameField(),
         h("div", { class: "wanted-controls" }, controls),
+        wantedPreview(),
         item_menu_open ? h("div", { class: "item-menu", id: "item-menu" }, itemGrid()) : null
     );
 }
@@ -703,8 +703,7 @@ function wantedPreview() {
     slot.replaceWith(button);
     button.append(slot, h("span", { class: "item-menu-caret", "aria-hidden": "true" }, "▾"));
     cell.querySelector(".mc-tooltip").append(costLine());
-    // The anvil's name bar sits above the slot (Rename: Options.js nameField); the condensed bar hides it with the rest of the head.
-    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, nameField(), cell);
+    return h("div", { class: "wanted-preview", role: "group", "aria-label": TEXT.wanted.preview_label }, cell);
 }
 
 // The last line of the preview's tooltip: an XP orb and the anvil levels of the best order for the books

@@ -400,11 +400,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 .wanted-preview { flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
 /* While its height slides (Motion.js growSmoothly), new lines show as the box opens. */
 .resizing { overflow: hidden; transition: height 0.25s ease-out; }
-.wanted-controls { flex: 1 1 100%; min-width: 0; }
-@container wanted (min-width: 460px) {
-    .wanted-preview { flex: 0 0 250px; }
-    .wanted-controls { flex: 1 1 0; }
-}
+.wanted-controls { flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
 #wanted > .hint { margin: 0 0 10px; }
 
 /* The item (not a section): a floating card beside the sections on wide windows, a sticky bar over them on narrow ones, condensed to one line once the
@@ -498,8 +494,7 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 }
 /* On phones the grid opens in the card's flow, full width, so its buttons stay big. */
 @media (max-width: 600px) {
-    .item-menu { position: static; order: -1; flex: 1 1 100%; width: auto; margin: 0 0 12px; box-shadow: none; }
-    .wanted-preview { order: -2; }
+    .item-menu { position: static; flex: 1 1 100%; width: auto; margin: 0 0 12px; box-shadow: none; } /* (under the preview, its last child) */
 }
 .anvil-cell.preview { flex-direction: row; align-items: flex-start; gap: 10px; }
 .anvil-cell.preview .mc-tooltip { width: auto; flex: 0 1 auto; min-width: 0; }
@@ -1496,7 +1491,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     border-radius: 6px;
     background: var(--mc-black);
 }
-.wanted-preview > .anvil-name { max-width: none; margin-bottom: 6px; } /* the anvil's name bar, above the item's slot */
+.wanted-head > .anvil-name { flex: 1 1 100%; box-sizing: border-box; min-width: 0; max-width: none; margin-bottom: 10px; } /* the anvil's name bar, at the top of the item card */
 .anvil-name:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; border-color: var(--accent); }
 .anvil-name-input {
     flex: 1;
