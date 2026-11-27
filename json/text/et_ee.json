@@ -18,6 +18,7 @@
         "copy_link": "Kopeeri link",
         "edition_label": "Väljaanne",
         "language_label": "Keel",
+        "language_confidence": "Koodi värv näitab, kui kindel tõlge on: roheline, väga kindel; kollane, keskmine; punane, nõrk (kontrollimata mustand).",
         "saved": "Salvestatud",
         "saved_help": "Selles brauseris salvestatud seadistused",
         "save": "Salvesta",

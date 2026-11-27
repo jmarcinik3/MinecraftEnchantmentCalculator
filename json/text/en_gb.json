@@ -18,6 +18,7 @@
         "copy_link": "Copy link",
         "edition_label": "Edition",
         "language_label": "Language",
+        "language_confidence": "The code’s colour shows how sure the translation is: green, high confidence; amber, moderate; red, poor (an unchecked draft).",
         "saved": "Saved",
         "saved_help": "Setups saved in this browser",
         "save": "Save",

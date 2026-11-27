@@ -18,6 +18,7 @@
         "copy_link": "Kopier lenke",
         "edition_label": "Utgave",
         "language_label": "Språk",
+        "language_confidence": "Fargen på koden viser hvor sikker oversettelsen er: grønn, høy sikkerhet; gul, middels; rød, dårlig (et ukontrollert utkast).",
         "saved": "Lagret",
         "saved_help": "Oppsett lagret i denne nettleseren",
         "save": "Lagre",

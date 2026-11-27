@@ -18,6 +18,7 @@
         "copy_link": "Copia el enlace",
         "edition_label": "Edición",
         "language_label": "Idioma",
+        "language_confidence": "El color del código ta mostrá cuánto nosotros ta confiá na traducción: verde, mucho; amarillo, algo; rojo, poco (borrador sin revisá).",
         "saved": "Guardados",
         "saved_help": "Configuraciones guardadas en esta navegador",
         "save": "Guarda",

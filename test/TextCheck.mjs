@@ -12,7 +12,9 @@ const placeholders = text => [...new Set([...String(text).matchAll(PLACEHOLDER)]
 const isPlural = value => value && typeof value === "object" && "plural" in value;
 
 // The BCP 47 tag the page would hand Intl for a file name: de_de -> de-DE, bar -> bar, zh_hk -> zh-HK.
-export const bcp47 = code => code.split("_").map((part, i) => (i === 0 ? part : part.toUpperCase())).join("-");
+// Text.js's own exceptions (codes Intl does not take), read from its source since Node loads js/*.js as CommonJS.
+const INTL_LOCALES = JSON.parse(/const INTL_LOCALES = (\{[^}]*\})/.exec(readFileSync(new URL("../js/Text.js", import.meta.url), "utf8"))[1].replace(/(\w+):/g, '"$1":'));
+export const bcp47 = code => INTL_LOCALES[code] || code.split("_").map((part, i) => (i === 0 ? part : part.toUpperCase())).join("-");
 
 export function checkLanguage(code, text) {
     const errors = [], warnings = [];

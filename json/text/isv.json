@@ -18,6 +18,7 @@
         "copy_link": "Kopirovati ssylku",
         "edition_label": "Izdanje",
         "language_label": "Język",
+        "language_confidence": "Barva koda pokazuje, koliko jest prěvod pewny: zelena, velika pewnosť; žuta, sredńa; črvena, mala (neproverjeny čorny proekt).",
         "saved": "Sohranjeno",
         "saved_help": "Izbory sohranjene v tom brauzeru",
         "save": "Sohraniti",

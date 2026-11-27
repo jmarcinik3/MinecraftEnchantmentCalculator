@@ -18,6 +18,7 @@
         "copy_link": "Dèan lethbhreac den cheangal",
         "edition_label": "Deasachadh",
         "language_label": "Cànan",
+        "language_confidence": "Tha dath a' chòd a' sealltainn cho cinnteach 's a tha an eadar-theangachadh: uaine, gu mòr; buidhe, gu meadhanach; dearg, gu lag (dreach gun sgrùdadh).",
         "saved": "Sàbhailte",
         "saved_help": "Setups sàbhailte san bhrobhsair seo",
         "save": "Sàbhail",

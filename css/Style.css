@@ -2016,7 +2016,12 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 }
 
 /* Language picker and the Saved menu in the header */
-.language-select { padding: 0 6px; background: var(--surface); }
+.language-select { padding: 0 6px; background: var(--surface); font-weight: 600; }
+/* The code's colour: how sure its translation is (Text.js CONFIDENCE). */
+.confidence-3 { color: var(--success-text); }
+.confidence-2 { color: var(--warning-text); }
+.confidence-1 { color: var(--danger-text); }
+.language-select option { background: var(--surface); }
 .saved-menu { position: relative; }
 .saved-menu > summary { list-style: none; }
 .saved-menu > summary::-webkit-details-marker { display: none; }

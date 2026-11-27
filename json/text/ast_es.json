@@ -18,6 +18,7 @@
         "copy_link": "Copiar enllaz",
         "edition_label": "Edición",
         "language_label": "Llingua",
+        "language_confidence": "El color del códigu amuesa cuánto ye de segura la traducción: verde, mui segura; amarellu, mediana; roxu, poca (borrador ensin revisar).",
         "saved": "Guardao",
         "saved_help": "Configuraciones guardaes nel restolador",
         "save": "Guardar",

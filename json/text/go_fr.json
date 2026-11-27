@@ -18,6 +18,7 @@
         "copy_link": "Copier le lien",
         "edition_label": "Édition",
         "language_label": "Lengue",
+        "language_confidence": "La coleur du côde mostre cen qu'on est sûr de la traduccion : vèrt, bien sûr ; jaune, mouyen ; rouge, pas bien (un broullon pas revu).",
         "saved": "Enregistrées",
         "saved_help": "Mises en place enregistrées dans ce navigateur",
         "save": "Enregistrer",

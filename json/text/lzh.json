@@ -18,6 +18,7 @@
         "copy_link": "錄連結",
         "edition_label": "版",
         "language_label": "言",
+        "language_confidence": "碼之色示譯之可信：綠為甚信，黃為略信，赤為不信（未校之草稿）。",
         "saved": "已存",
         "saved_help": "存於此瀏覽器之設",
         "save": "存",

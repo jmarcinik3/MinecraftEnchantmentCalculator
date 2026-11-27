@@ -18,6 +18,7 @@
         "copy_link": "Kopiér link",
         "edition_label": "Udgave",
         "language_label": "Sprog",
+        "language_confidence": "Kodens farve viser, hvor sikker oversættelsen er: grøn, høj sikkerhed; gul, middel; rød, ringe (et ukontrolleret udkast).",
         "saved": "Gemt",
         "saved_help": "Opsætninger gemt i denne browser",
         "save": "Gem",

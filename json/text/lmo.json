@@ -18,6 +18,7 @@
         "copy_link": "Copia el link",
         "edition_label": "Edizion",
         "language_label": "Lengua",
+        "language_confidence": "El color del còdes el mostra quanta confidènza gh'è in la traduzion: verde, tanta; giald, mediocre; ross, pòca (bozza no verificada).",
         "saved": "Salvaa",
         "saved_help": "Configurazion salvaa in questo browser",
         "save": "Salva",

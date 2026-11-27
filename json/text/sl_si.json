@@ -18,6 +18,7 @@
         "copy_link": "Kopiraj povezavo",
         "edition_label": "Izdaja",
         "language_label": "Jezik",
+        "language_confidence": "Barva kode pokaže, kako zanesljiv je prevod: zelena, visoka zanesljivost; rumena, zmerna; rdeča, slaba (nepreverjen osnutek).",
         "saved": "Shranjeno",
         "saved_help": "Postavitve, shranjene v tem brskalniku",
         "save": "Shrani",

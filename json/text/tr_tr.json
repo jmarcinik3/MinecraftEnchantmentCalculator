@@ -18,6 +18,7 @@
         "copy_link": "Bağlantıyı kopyala",
         "edition_label": "Sürüm",
         "language_label": "Dil",
+        "language_confidence": "Kodun rengi çevirinin ne kadar güvenilir olduğunu gösterir: yeşil, yüksek güven; sarı, orta; kırmızı, düşük (denetlenmemiş taslak).",
         "saved": "Kayıtlılar",
         "saved_help": "Bu tarayıcıda kaydedilen kurulumlar",
         "save": "Kaydet",

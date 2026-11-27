@@ -18,6 +18,7 @@
         "copy_link": "Link kopiern",
         "edition_label": "Edition",
         "language_label": "Sprach",
+        "language_confidence": "De Farb vo am Kürzl zoagt, wia sicher de Übersetzung is: grün, sehr sicher; gelb, mittelmäßig; rot, schlecht (an ungschaugtn Entwurf).",
         "saved": "Gspeichert",
         "saved_help": "In dem Browser gspeichert",
         "save": "Speichern",

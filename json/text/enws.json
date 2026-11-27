@@ -18,6 +18,7 @@
         "copy_link": "Copy link",
         "edition_label": "Edition",
         "language_label": "Tongue",
+        "language_confidence": "The code's hue showeth how sure the rendering is: green, high trust; yellow, middling trust; red, poor (an unchecked draft).",
         "saved": "Saved",
         "saved_help": "Setups saved in this browser",
         "save": "Save",

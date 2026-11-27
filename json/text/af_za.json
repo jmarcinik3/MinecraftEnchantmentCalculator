@@ -18,6 +18,7 @@
         "copy_link": "Kopieer skakel",
         "edition_label": "Uitgawe",
         "language_label": "Taal",
+        "language_confidence": "Die kode se kleur wys hoe seker die vertaling is: groen, hoë vertroue; geel, redelik; rooi, swak (’n ongekontroleerde konsep).",
         "saved": "Gestoor",
         "saved_help": "Opstellings wat in hierdie blaaier gestoor is",
         "save": "Stoor",

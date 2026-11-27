@@ -18,6 +18,7 @@
         "copy_link": "Sao chép liên kết",
         "edition_label": "Phiên bản",
         "language_label": "Ngôn ngữ",
+        "language_confidence": "Màu của mã cho biết bản dịch đáng tin đến đâu: xanh lá, rất tin cậy; vàng, trung bình; đỏ, kém (bản nháp chưa kiểm tra).",
         "saved": "Đã lưu",
         "saved_help": "Các thiết lập được lưu trong trình duyệt này",
         "save": "Lưu",

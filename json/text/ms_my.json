@@ -18,6 +18,7 @@
         "copy_link": "Salin pautan",
         "edition_label": "Edisi",
         "language_label": "Bahasa",
+        "language_confidence": "Warna kod menunjukkan sejauh mana terjemahan itu yakin: hijau, yakin tinggi; kuning, sederhana; merah, lemah (draf yang belum disemak).",
         "saved": "Disimpan",
         "saved_help": "Susunan yang disimpan dalam pelayar ini",
         "save": "Simpan",

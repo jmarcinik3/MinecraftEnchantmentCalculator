@@ -18,6 +18,7 @@
         "copy_link": "Ikkopja l-link",
         "edition_label": "Edizzjoni",
         "language_label": "Lingwa",
+        "language_confidence": "Il-kulur tal-kodiċi juri kemm hi ċerta t-traduzzjoni: aħdar, fiduċja għolja; isfar, moderata; aħmar, baxxa (abbozz mhux ivverifikat).",
         "saved": "Salvat",
         "saved_help": "Setups salvati f'dan il-browser",
         "save": "Salva",

@@ -18,6 +18,7 @@
         "copy_link": "複製連結",
         "edition_label": "版本",
         "language_label": "語言",
+        "language_confidence": "代碼的顏色表示翻譯的可靠程度：綠色，高度可靠；黃色，中等；紅色，低（未經檢查的草稿）。",
         "saved": "已儲存",
         "saved_help": "儲存在此瀏覽器中的配置",
         "save": "儲存",

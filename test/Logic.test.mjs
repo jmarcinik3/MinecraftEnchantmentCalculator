@@ -2,7 +2,7 @@
 // js/Logic.js is a browser ES module in a folder without "type": "module",
 // so load its source through a data: URL instead of a normal import.
 import assert from "assert";
-import { readFileSync, readdirSync } from "fs";
+import { existsSync, readFileSync, readdirSync } from "fs";
 import { createRequire } from "module";
 
 const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
@@ -176,8 +176,8 @@ test("every language has the same text entries as English, of the same kind", ()
         if (typeof value === "string") return [path + key + " " + (placeholders(value) ? "template:" + placeholders(value) : "plain")];
         if (value && "plural" in value) {
             assert.ok(value.other, path + key + " needs an \"other\" form");
-            const forms = Object.keys(value).filter(form => form !== "plural");
-            return [path + key + " plural:" + value.plural + ":" + [...new Set(forms.map(form => placeholders(value[form])))].join("|")];
+            // The "other" form's values: other forms may leave the number out (Arabic's "two", Japanese has only "other"); TextCheck checks them.
+            return [path + key + " plural:" + value.plural + ":" + placeholders(value.other)];
         }
         return shape(value, path + key + ".");
     });
@@ -778,14 +778,14 @@ test("the service worker's file list holds every script, style, data file and la
     const onDisk = [
         ...readdirSync(new URL("../js/", import.meta.url)).map(file => "js/" + file),
         ...readdirSync(new URL("../css/", import.meta.url)).map(file => "css/" + file),
-        // (only the languages the page offers: json/text also holds translations not wired in yet, which the page never loads)
-        ...readdirSync(new URL("../json/text/", import.meta.url)).filter(file => LANGUAGES[file.replace(/\.json$/, "")]).map(file => "json/text/" + file),
+        // (only English and Spanish are precached: the other languages are saved the first time they are used, so a phone never downloads all of them)
+        "json/text/en_us.json", "json/text/es_es.json",
         ...readdirSync(new URL("../json/mods/", import.meta.url)).map(file => "json/mods/" + file),
         "json/metadata.json"
     ];
     assert.deepStrictEqual(onDisk.filter(file => !listed.has(file)), [], "on disk but not in FILES");
     assert.deepStrictEqual([...listed].filter(file => !onDisk.includes(file)), [], "in FILES but not on disk");
-    for (const code of Object.keys(LANGUAGES)) assert.ok(listed.has(`json/text/${code}.json`), code);
+    for (const code of Object.keys(LANGUAGES)) assert.ok(existsSync(new URL(`../json/text/${code}.json`, import.meta.url)), code);
     const html = read("../index.html");
     for (const [, file] of html.matchAll(/(?:href|src)="((?:css|js)\/[^"?]+)/g)) assert.ok(listed.has(file), file + " is in index.html but not in FILES");
 });

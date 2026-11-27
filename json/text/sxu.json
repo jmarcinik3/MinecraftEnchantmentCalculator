@@ -18,6 +18,7 @@
         "copy_link": "Link kopiern",
         "edition_label": "Edition",
         "language_label": "Sprache",
+        "language_confidence": "De Farb vum Kood zeicht, wie sicher de Iwwersetzung is: grien, hoch Vertraue; gält, mittel; rot, schwach (en nich nachgekuckter Entwurf).",
         "saved": "Gespeichert",
         "saved_help": "In diesem Browser gespeichert",
         "save": "Speichern",

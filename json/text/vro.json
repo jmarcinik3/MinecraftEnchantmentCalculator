@@ -18,6 +18,7 @@
         "copy_link": "Kopeeri link",
         "edition_label": "Väljaanne",
         "language_label": "Kiil",
+        "language_confidence": "Koodi värv näütäs, kuivõi kindel tõlgõ om: roheline, süvä kindlus; kollane, keskmine; punane, nõrk (kontrollimata mustand).",
         "saved": "Salvestetud",
         "saved_help": "Sis brauserin salvestetud seadistuseq",
         "save": "Salvesta",

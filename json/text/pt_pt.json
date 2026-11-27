@@ -18,6 +18,7 @@
         "copy_link": "Copiar ligação",
         "edition_label": "Edição",
         "language_label": "Idioma",
+        "language_confidence": "A cor do código mostra o grau de confiança na tradução: verde, confiança alta; amarelo, moderada; vermelho, fraca (rascunho não revisto).",
         "saved": "Guardados",
         "saved_help": "Configurações guardadas neste navegador",
         "save": "Guardar",

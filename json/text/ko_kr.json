@@ -18,6 +18,7 @@
         "copy_link": "링크 복사",
         "edition_label": "에디션",
         "language_label": "언어",
+        "language_confidence": "코드의 색은 번역을 얼마나 믿을 수 있는지 보여 줍니다: 초록, 높음; 노랑, 보통; 빨강, 낮음 (검토되지 않은 초안).",
         "saved": "저장됨",
         "saved_help": "이 브라우저에 저장된 설정",
         "save": "저장",

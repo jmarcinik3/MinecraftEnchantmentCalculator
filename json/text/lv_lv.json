@@ -18,6 +18,7 @@
         "copy_link": "Kopēt saiti",
         "edition_label": "Izdevums",
         "language_label": "Valoda",
+        "language_confidence": "Koda krāsa rāda, cik pārliecināts ir tulkojums: zaļa, liela pārliecība; dzeltena, vidēja; sarkana, zema (nepārbaudīts melnraksts).",
         "saved": "Saglabātie",
         "saved_help": "Šajā pārlūkprogrammā saglabātās izvēles",
         "save": "Saglabāt",

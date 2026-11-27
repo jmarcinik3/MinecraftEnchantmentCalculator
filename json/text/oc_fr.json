@@ -18,6 +18,7 @@
         "copy_link": "Copiar lo ligam",
         "edition_label": "Edicion",
         "language_label": "Lenga",
+        "language_confidence": "La color del còde indica quant es segura la traduccion: verd, plan segura; gaug, mejana; roge, febla (esbòs pas verificat).",
         "saved": "Salvats",
         "saved_help": "Configuracions salvadas dins aqueste navigador",
         "save": "Salvar",

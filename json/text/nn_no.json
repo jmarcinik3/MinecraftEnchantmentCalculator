@@ -18,6 +18,7 @@
         "copy_link": "Kopier lenkje",
         "edition_label": "Utgåve",
         "language_label": "Språk",
+        "language_confidence": "Fargen på koden viser kor sikker omsetjinga er: grøn, høg tillit; gul, middels; raud, låg (eit ukontrollert utkast).",
         "saved": "Lagra",
         "saved_help": "Oppsett lagra i denne nettlesaren",
         "save": "Lagre",

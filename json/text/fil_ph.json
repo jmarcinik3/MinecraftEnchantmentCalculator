@@ -18,6 +18,7 @@
         "copy_link": "Kopyahin ang link",
         "edition_label": "Edisyon",
         "language_label": "Wika",
+        "language_confidence": "Ipinapakita ng kulay ng code kung gaano katiyak ang salin: berde, mataas; dilaw, katamtaman; pula, mahina (draft na hindi pa nasisiyasat).",
         "saved": "Naka-save",
         "saved_help": "Mga setup na naka-save sa browser na ito",
         "save": "I-save",

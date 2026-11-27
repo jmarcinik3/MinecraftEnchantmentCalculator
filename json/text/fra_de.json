@@ -18,6 +18,7 @@
         "copy_link": "Link kobiern",
         "edition_label": "Edition",
         "language_label": "Sprooch",
+        "language_confidence": "D Farb vom Code zeigt, wie sicher die Iwwersetzung is: grün, hoh Sicherheit; gelb, mittel; rot, schlecht (ungeprieft Entwurf).",
         "saved": "Gspeichert",
         "saved_help": "Im Browser gspeichert",
         "save": "Speichern",

@@ -18,6 +18,7 @@
         "copy_link": "Linki kopyala",
         "edition_label": "Nəşr",
         "language_label": "Dil",
+        "language_confidence": "Kodun rəngi tərcümənin nə dərəcədə etibarlı olduğunu göstərir: yaşıl, yüksək etibar; sarı, orta; qırmızı, zəif (yoxlanılmamış layihə).",
         "saved": "Saxlanılanlar",
         "saved_help": "Bu brauzerdə saxlanılan quraşdırmalar",
         "save": "Saxla",

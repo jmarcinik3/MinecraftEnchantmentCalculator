@@ -18,6 +18,7 @@
         "copy_link": "Afrita tengil",
         "edition_label": "Útgáfa",
         "language_label": "Tungumál",
+        "language_confidence": "Litur kóðans sýnir hversu örugg þýðingin er: grænt, mikil vissa; gult, miðlungs; rautt, lítil (óyfirfarin drög).",
         "saved": "Vistað",
         "saved_help": "Uppsetningar vistaðar í þessum vafra",
         "save": "Vista",

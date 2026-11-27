@@ -18,6 +18,7 @@
         "copy_link": "Link kopeeren",
         "edition_label": "Utgaav",
         "language_label": "Spraak",
+        "language_confidence": "De Kleur vun den Koden wiest, wo seker de Översetten is: gröön, heel seker; geel, mittelmatig; rood, slecht (en nich nakeken Entwurf).",
         "saved": "Spiekert",
         "saved_help": "Opstellen, de in disen Browser spiekert sünd",
         "save": "Spiekern",

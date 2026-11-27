@@ -18,6 +18,7 @@
         "copy_link": "Copia link",
         "edition_label": "Edizione",
         "language_label": "Lingua",
+        "language_confidence": "Il colore del codice indica quanto è sicura la traduzione: verde, alta affidabilità; giallo, media; rosso, scarsa (bozza non verificata).",
         "saved": "Salvate",
         "saved_help": "Configurazioni salvate in questo browser",
         "save": "Salva",

@@ -18,6 +18,7 @@
         "copy_link": "Kopiuj link",
         "edition_label": "Edycja",
         "language_label": "Język",
+        "language_confidence": "Kolor kodu pokazuje, jak pewne jest tłumaczenie: zielony, wysoka pewność; żółty, średnia; czerwony, słaba (niesprawdzony szkic).",
         "saved": "Zapisane",
         "saved_help": "Konfiguracje zapisane w tej przeglądarce",
         "save": "Zapisz",

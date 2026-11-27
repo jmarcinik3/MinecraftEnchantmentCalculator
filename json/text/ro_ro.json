@@ -18,6 +18,7 @@
         "copy_link": "Copiază linkul",
         "edition_label": "Ediție",
         "language_label": "Limbă",
+        "language_confidence": "Culoarea codului arată cât de sigură este traducerea: verde, încredere mare; galben, moderată; roșu, slabă (o schiță nerevizuită).",
         "saved": "Salvate",
         "saved_help": "Configurații salvate în acest browser",
         "save": "Salvează",

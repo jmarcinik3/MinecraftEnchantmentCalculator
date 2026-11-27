@@ -18,6 +18,7 @@
         "copy_link": "Avrita leinki",
         "edition_label": "Útgáva",
         "language_label": "Mál",
+        "language_confidence": "Litur kotans vísir, hvussu álítandi umsetingin er: grønt, stór vissa; gult, miðal; reytt, lítil vissa (ókannað uppkast).",
         "saved": "Goymt",
         "saved_help": "Uppsetingar goymdar í hesum kagaranum",
         "save": "Goym",

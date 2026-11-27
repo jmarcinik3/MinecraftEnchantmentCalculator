@@ -18,6 +18,7 @@
         "copy_link": "Copia el link",
         "edition_label": "Edission",
         "language_label": "Lengua",
+        "language_confidence": "El colór del còdeze mostra quanto che la tradusion la xe sicura: verde, sicurezza alta; zàlo, media; rosso, bassa (bozza no controlà).",
         "saved": "Salvàe",
         "saved_help": "Configurassion salvàe in sto browser",
         "save": "Salva",

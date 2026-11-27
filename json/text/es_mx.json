@@ -18,6 +18,7 @@
         "copy_link": "Copiar enlace",
         "edition_label": "Edición",
         "language_label": "Idioma",
+        "language_confidence": "El color del código indica qué tan segura es la traducción: verde, mucha; amarillo, algo; rojo, poca (borrador sin revisar).",
         "saved": "Guardados",
         "saved_help": "Configuraciones guardadas en este navegador",
         "save": "Guardar",

@@ -18,6 +18,7 @@
         "copy_link": "Xitētzōliz tlatzīnāli",
         "edition_label": "Tlatzitzīnkalistli",
         "language_label": "Tlahtōlli",
+        "language_confidence": "Īxīuhyotl in code tlahtōlli tlamatiliztli in tlahtolpoloa: xoxoctic, yectli tlamatiliztli; cozauhqui, mochi; chichiltic, ahmo yectli (ahmo tlachīhualiztli in tlahtolpoloa).",
         "saved": "Tlapōhualtia",
         "saved_help": "Tlapowalli ya tlapōhualtia īnin tlachīhualiztli",
         "save": "Xiquipōhua",
@@ -99,7 +100,7 @@
         "level_label": "Tlapōhualli {name}",
         "level_none": "Ahmo",
         "cost": "+{levels}",
-        "cost_help": {"plural": "levels", "one": "Achi cemmeh tlapōhualli ītlamachiliz, āmoxtli īpan, ahmo īpan achtopa tlachīhualiztli", "other": "Achi cemmeh tlapōhualli ītlamachiliz, āmoxtli īpan, ahmo īpan achtopa tlachīhualiztli"},
+        "cost_help": {"plural": "levels", "one": "Achi {levels} tlapōhualli ītlamachiliz, āmoxtli īpan, ahmo īpan achtopa tlachīhualiztli", "other": "Achi {levels} tlapōhualli ītlamachiliz, āmoxtli īpan, ahmo īpan achtopa tlachīhualiztli"},
         "preview_label": "In tlaxōtli tlapōhualtia",
         "short_help": "Ītlaxōtli īwān āmoxtli īpan in Āmoxtli īwān tlaxōtli ahmo quimpehua in tlapōhualli ca tiquiltih."
     },

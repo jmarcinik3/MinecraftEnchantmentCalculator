@@ -18,6 +18,7 @@
         "copy_link": "Kopírovať odkaz",
         "edition_label": "Edícia",
         "language_label": "Jazyk",
+        "language_confidence": "Farba kódu ukazuje, nakoľko si je preklad istý: zelená, vysoká istota; žltá, stredná; červená, nízka (neoverený návrh).",
         "saved": "Uložené",
         "saved_help": "Nastavenia uložené v tomto prehliadači",
         "save": "Uložiť",

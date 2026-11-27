@@ -18,6 +18,7 @@
         "copy_link": "Kopjo lidhjen",
         "edition_label": "Edicioni",
         "language_label": "Gjuha",
+        "language_confidence": "Ngjyra e kodit tregon sa e sigurt është përkthimi: jeshile, besueshmëri e lartë; e verdhë, e mesme; e kuqe, e dobët (skicë e pakontrolluar).",
         "saved": "Të ruajtura",
         "saved_help": "Konfigurime të ruajtura në këtë shfletues",
         "save": "Ruaj",

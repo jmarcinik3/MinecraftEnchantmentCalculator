@@ -18,6 +18,7 @@
         "copy_link": "Copy link",
         "edition_label": "Edition",
         "language_label": "Lingo",
+        "language_confidence": "The code's colour shows how sure the translation be, matey: green, aye sure; yellow, so-so; red, poor (an unchecked scribble, arr).",
         "saved": "Stashed",
         "saved_help": "Setups stashed in this browser",
         "save": "Stash",

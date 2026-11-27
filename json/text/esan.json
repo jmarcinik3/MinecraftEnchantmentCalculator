@@ -18,6 +18,7 @@
         "copy_link": "Copiâh enlaçe",
         "edition_label": "Ediçión",
         "language_label": "Idioma",
+        "language_confidence": "El color der código endica cuánto nos fiamo de la traducción: verde, mucho; amarillo, argo; rojo, poco (borrador sin revisá).",
         "saved": "Guardá",
         "saved_help": "Configuraçionê guardá en este navegadô",
         "save": "Guardâh",

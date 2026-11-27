@@ -18,6 +18,7 @@
         "copy_link": "Kopyahin ang link",
         "edition_label": "Edisyon",
         "language_label": "Wika",
+        "language_confidence": "Ang kulay ng code ay nagpapakita kung gaano kasigurado ang salin: berde, mataas ang tiwala; dilaw, katamtaman; pula, mahina (hindi pa nasusuring draft).",
         "saved": "Naka-save",
         "saved_help": "Mga setup na naka-save sa browser na ito",
         "save": "I-save",

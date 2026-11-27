@@ -18,6 +18,7 @@
         "copy_link": "Kopiatu esteka",
         "edition_label": "Edizioa",
         "language_label": "Hizkuntza",
+        "language_confidence": "Kodearen koloreak itzulpenaren fidagarritasuna adierazten du: berdea, konfiantza handia; horia, ertaina; gorria, txarra (berrikusi gabeko zirriborroa).",
         "saved": "Gordeak",
         "saved_help": "Nabigatzaile honetan gordetako konfigurazioak",
         "save": "Gorde",

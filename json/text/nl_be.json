@@ -18,6 +18,7 @@
         "copy_link": "Link kopiëren",
         "edition_label": "Editie",
         "language_label": "Taal",
+        "language_confidence": "De kleur van de code toont hoe zeker de vertaling is: groen, hoog vertrouwen; geel, matig; rood, slecht (een niet-nagekeken concept).",
         "saved": "Opgeslagen",
         "saved_help": "Opstellingen die in deze browser zijn opgeslagen",
         "save": "Opslaan",

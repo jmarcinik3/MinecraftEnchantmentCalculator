@@ -18,6 +18,7 @@
         "copy_link": "Hivatkozás másolása",
         "edition_label": "Kiadás",
         "language_label": "Nyelv",
+        "language_confidence": "A kód színe azt mutatja, mennyire biztos a fordítás: zöld, magas bizonyosság; sárga, közepes; piros, gyenge (ellenőrizetlen vázlat).",
         "saved": "Mentve",
         "saved_help": "Ebben a böngészőben mentett beállítások",
         "save": "Mentés",

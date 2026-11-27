@@ -18,6 +18,7 @@
         "copy_link": "Kopy link",
         "edition_label": "Edishun",
         "language_label": "Lang",
+        "language_confidence": "Teh kode colr shoz how shur teh translashun iz: grean, hi konfidence; yello, meh; red, pooar (an unchekt draft).",
         "saved": "Savd",
         "saved_help": "Setupz savd in dis browzer",
         "save": "Sav",

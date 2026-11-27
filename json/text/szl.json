@@ -18,6 +18,7 @@
         "copy_link": "Kopiyruj łōncz",
         "edition_label": "Edycyjo",
         "language_label": "Język",
+        "language_confidence": "Farba kodu pokazuje, jako pewno je tłumaczynie: zielōno, wysoko pewność; żōłto, średnio; czerwōno, słabo (niesprawdzōny szkic).",
         "saved": "Zapisane",
         "saved_help": "Konfiguracyje zapisane w tyj przeglōndarce",
         "save": "Zapisz",

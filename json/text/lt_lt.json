@@ -18,6 +18,7 @@
         "copy_link": "Kopijuoti nuorodą",
         "edition_label": "Leidimas",
         "language_label": "Kalba",
+        "language_confidence": "Kodo spalva rodo, kiek užtikrintas vertimas: žalia – didelis patikimumas; geltona – vidutinis; raudona – menkas (nepatikrintas juodraštis).",
         "saved": "Išsaugota",
         "saved_help": "Sąrankos, išsaugotos šioje naršyklėje",
         "save": "Išsaugoti",

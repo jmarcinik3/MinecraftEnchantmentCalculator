@@ -18,6 +18,7 @@
         "copy_link": "Kopiraj link",
         "edition_label": "Izdanje",
         "language_label": "Jezik",
+        "language_confidence": "Boja koda pokazuje koliko je prevod pouzdan: zelena, visoka pouzdanost; žuta, srednja; crvena, slaba (neproveren nacrt).",
         "saved": "Sačuvano",
         "saved_help": "Rasporedi sačuvani u ovom pretraživaču",
         "save": "Sačuvaj",

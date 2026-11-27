@@ -18,6 +18,7 @@
         "copy_link": "Link kopieren",
         "edition_label": "Edition",
         "language_label": "Sprache",
+        "language_confidence": "Die Farbe des Kürzels zeigt, wie sicher die Übersetzung ist: grün, hoch; gelb, mittel; rot, schlecht (ungeprüfter Entwurf).",
         "saved": "Gespeichert",
         "saved_help": "In diesem Browser gespeicherte Konfigurationen",
         "save": "Speichern",

@@ -18,6 +18,7 @@
         "copy_link": "Copier le lien",
         "edition_label": "Édition",
         "language_label": "Langue",
+        "language_confidence": "La couleur du code indique le degré de certitude de la traduction : vert, bonne confiance ; jaune, moyenne ; rouge, faible (brouillon non vérifié).",
         "saved": "Enregistrées",
         "saved_help": "Configurations enregistrées dans ce navigateur",
         "save": "Enregistrer",

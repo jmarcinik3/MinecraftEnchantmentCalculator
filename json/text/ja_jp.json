@@ -18,6 +18,7 @@
         "copy_link": "リンクをコピー",
         "edition_label": "エディション",
         "language_label": "言語",
+        "language_confidence": "コードの色は翻訳の確かさを示します。緑は確度が高く、黄色は中程度、赤は低い（未確認の下書き）。",
         "saved": "保存済み",
         "saved_help": "このブラウザに保存された設定",
         "save": "保存",

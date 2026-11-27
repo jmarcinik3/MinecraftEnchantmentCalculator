@@ -18,6 +18,7 @@
         "copy_link": "Kopioi linkki",
         "edition_label": "Versio",
         "language_label": "Kieli",
+        "language_confidence": "Koodin väri kertoo, kuinka varma käännös on: vihreä, korkea varmuus; keltainen, kohtalainen; punainen, heikko (tarkistamaton luonnos).",
         "saved": "Tallennetut",
         "saved_help": "Tässä selaimessa tallennetut asetelmat",
         "save": "Tallenna",

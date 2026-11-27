@@ -18,6 +18,7 @@
         "copy_link": "Copiar enllaz",
         "edition_label": "Edición",
         "language_label": "Llingua",
+        "language_confidence": "Colu del códigu amuesa cuánto nos fiemos de la traducción: verde, muncho; amariellu, daqué; colloráu, pocu (borrador ensin revisar).",
         "saved": "Guardao",
         "saved_help": "Config guardaes nesti navegador",
         "save": "Guardar",

@@ -18,6 +18,7 @@
         "copy_link": "Kopiera leinkju",
         "edition_label": "Útgáva",
         "language_label": "Mál",
+        "language_confidence": "Litt fi kodi vísar huru vísi umsatninga er: grøn, hag vísnen; gul, míðal; rauð, lág (ókannað uppkast).",
         "saved": "Gemt",
         "saved_help": "Uppsetningar gemda í þessum vafra",
         "save": "Gem",

@@ -18,6 +18,7 @@
         "copy_link": "Kopiera länk",
         "edition_label": "Utgåva",
         "language_label": "Språk",
+        "language_confidence": "Kodens färg visar hur säker översättningen är: grönt, hög säkerhet; gult, måttlig; rött, låg (ett okontrollerat utkast).",
         "saved": "Sparade",
         "saved_help": "Uppsättningar sparade i den här webbläsaren",
         "save": "Spara",
