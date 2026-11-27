@@ -198,20 +198,23 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
     /* "header." raises these over the general .site-header rules further down. */
     header.site-header { flex-direction: column; align-items: stretch; gap: 10px; }
     header .header-actions { justify-content: flex-start; position: relative; }
+    /* The Presets menu opens across the whole toolbar, since its button is mid-row (anchored to the button, it ran off the left edge). */
+    .header-actions .presets-menu { position: static; }
+    .header-actions .presets-panel { left: 0; right: 0; width: auto; }
     #language { margin-left: auto; }
-    /* The Saved menu opens across the whole toolbar, since its button is mid-row. */
-    .header-actions .saved-menu { position: static; }
-    .header-actions .saved-panel { left: 0; right: 0; width: auto; }
 }
-/* Small phones: Copy link is just its icon (the label returns while it says "Copied"). */
+/* Narrow windows (600px, where Settings becomes its gear): every header button is just its icon (Copy link's label returns while it says
+   "Copied"); each keeps its name as its label for screen readers and its hover title. */
+@media (max-width: 600px) {
+    .copy-link:not(.copied) .copy-label, .theme-label, .feedback-open .feedback-label, .presets-button-label { display: none; }
+    .copy-link, .feedback-open, .theme-toggle, .presets-button { width: 32px; padding: 0; justify-content: center; }
+    .presets-button .fold-chevron, .options-button .fold-chevron { display: none; }
+}
 @media (max-width: 440px) {
-    .copy-link:not(.copied) .copy-label, .theme-label { display: none; }
-    .copy-link { padding: 0 9px; }
+    .copy-link, .feedback-open, .theme-toggle, .presets-button { width: 28px; }
     /* A little tighter, so the toolbar (with the sun/moon) stays on one row on a 375px phone,
        in Spanish too. */
     header .header-actions { gap: 5px; }
-    .copy-link, .feedback-open, .theme-toggle { padding: 0 8px; }
-    .header-actions .saved-menu > .header-control { padding: 0 8px; }
 }
 
 .site-header {
@@ -526,6 +529,10 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 /* Presets: a small label, then the choices (wrapping). */
 .presets { margin-bottom: 10px; }
 .presets-label { margin-bottom: 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+/* The Presets row and Your saved setups fold from their label (Wanted.js presetsFold): the page's chevron before it, right when closed, down when open. */
+.presets-toggle { display: inline-flex; align-items: center; gap: 6px; padding: 2px 4px 2px 0; border: none; background: none; cursor: pointer; font-family: inherit; }
+.presets-toggle:hover, .presets-toggle:focus-visible { color: var(--text); }
+.presets-toggle .fold-chevron { --chev-size: 5px; }
 .preset-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .preset {
     height: 26px;
@@ -2077,11 +2084,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .confidence-3 { color: var(--success-text); }
 .confidence-2 { color: var(--warning-text); }
 .confidence-1 { color: var(--danger-text); }
-.saved-menu { position: relative; }
-.saved-menu > summary { list-style: none; }
-.saved-menu > summary::-webkit-details-marker { display: none; }
-.saved-menu > summary::after { content: "▾"; font-size: 10px; color: var(--text-secondary); }
-.saved-panel, .copy-panel {
+.copy-panel {
     position: absolute;
     right: 0;
     z-index: 20;
@@ -2090,13 +2093,51 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     background: var(--surface);
     box-shadow: var(--shadow-menu);
 }
-.saved-panel {
-    top: calc(100% + 6px);
-    width: min(300px, calc(100vw - 32px));
-    padding: 10px;
-    font-size: 13px;
-}
-.saved-form { display: flex; gap: 6px; }
+/* Saved setups (Wanted.js presetChips, savedList): ★ chips after the game's presets, "+ Save" and "More saved (n)", the name box under the row,
+   the lists (other items' setups under the row, all of them on the first screen) and the note of what a loaded setup left out. */
+/* Remove all, beside the fold toggle in section 2's search row. */
+.clear-all .clear-icon { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; }
+.clear-all:disabled { opacity: 0.4; cursor: default; }
+.saved-chip { display: inline-flex; align-items: stretch; }
+.saved-chip > .preset.mine { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none; }
+.preset.mine::before { content: "★"; margin-right: 4px; color: var(--warning-text); }
+.saved-chip-x { padding: 0 7px; border: 1px solid var(--border-strong); border-left: 1px solid var(--border); border-radius: 0 13px 13px 0; background: none; color: var(--text-muted); font: 13px/1 system-ui, sans-serif; cursor: pointer; }
+.saved-chip.selected > .saved-chip-x { border-color: var(--accent); }
+.saved-chip-x:hover, .saved-chip-x:focus-visible { color: var(--danger-text); border-color: var(--danger-text); }
+.preset.add { border-style: dashed; color: var(--text-muted); }
+.saved-warning { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-bg); color: var(--accent-text); font-size: 12px; } /* (a note of the rules a loaded setup changed) */
+.saved-warning > span { flex: 1; min-width: 0; }
+.saved-warning-x { flex: none; padding: 0 4px; border: none; background: none; color: inherit; font: 15px/1 system-ui, sans-serif; cursor: pointer; }
+.compare-warn { margin-top: 4px; max-width: 260px; color: var(--mc-gray); font: 11px/1.3 system-ui, sans-serif; white-space: normal; }
+.saved-form { display: flex; gap: 6px; margin-top: 8px; }
+.saved-form-error { margin: 4px 0 0; color: var(--danger-text); font-size: 12px; }
+.saved-form .rename-input[aria-invalid="true"] { border-color: var(--danger-text); }
+/* The header's Presets menu (Wanted.js renderPresetsMenu): this item's presets, then every saved setup and "Save current…". */
+.presets-menu { position: relative; }
+.presets-menu > summary { list-style: none; }
+.presets-menu > summary::-webkit-details-marker { display: none; }
+.presets-button { display: inline-flex; align-items: center; gap: 6px; }
+.presets-icon { width: 15px; height: 15px; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linejoin: round; }
+.presets-button.active .presets-icon { fill: currentColor; } /* (solid while a saved preset is the setup on screen: Wanted.js presetChips) */
+/* The page's fold chevron: right while the menu is closed, down while it is open. */
+.presets-button .fold-chevron, .options-button .fold-chevron { --chev-size: 6px; --chev-line: 1.5px; margin-left: 2px; color: var(--text-secondary); }
+.presets-menu[open] > summary .fold-chevron, .options-menu[open] > summary .fold-chevron { transform: rotate(45deg); }
+.presets-panel { position: absolute; top: calc(100% + 6px); right: 0; z-index: 45; width: min(320px, calc(100vw - 32px)); padding: 10px; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-menu); font-size: 13px; }
+.presets-menu-title { margin: 10px 4px 2px; font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.presets-menu-title:first-child { margin-top: 0; }
+.presets-panel .saved-list { margin-top: 2px; max-height: 40vh; }
+/* Saved presets by item: the item's icon and name over its presets (whose rows then leave out the icon). */
+.presets-menu-groups { max-height: 50vh; overflow-y: auto; overflow-x: hidden; }
+.presets-menu-item { display: flex; align-items: center; gap: 6px; width: 100%; margin: 2px 0 0; padding: 4px 6px; border: none; border-radius: var(--radius); background: none; font: 600 12px system-ui, sans-serif; color: var(--text-secondary); text-align: left; cursor: pointer; }
+.presets-menu-item:hover, .presets-menu-item:focus-visible { background: var(--surface-alt); color: var(--text); }
+.presets-menu-item .fold-chevron { --chev-size: 5px; }
+.presets-menu-item .item-icon.small { width: 18px; height: 18px; }
+.presets-panel .saved-list.grouped { max-height: none; margin-top: 0; }
+.saved-list.grouped .saved-load .item-icon { display: none; }
+.saved-list.grouped .saved-load { padding-left: 28px; }
+.presets-panel .saved-load.selected { color: var(--accent-text); }
+.presets-panel > .btn { margin-top: 10px; }
+.presets-panel .hint { margin: 4px 4px 0; font-size: 13px; }
 .saved-form .rename-input { flex: 1; width: auto; min-width: 0; }
 .saved-form button:disabled { opacity: 0.5; cursor: default; }
 .saved-list { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 2px; max-height: 50vh; overflow-x: hidden; overflow-y: auto; }
@@ -2131,7 +2172,10 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     cursor: pointer;
 }
 .saved-delete:hover, .saved-delete:focus-visible { border-color: var(--danger-text); background: var(--danger-bg); color: var(--danger-text); }
-.saved-panel .hint { margin: 8px 0 0; font-size: 13px; }
+.saved-load:disabled { opacity: 0.5; cursor: not-allowed; }
+.saved-load:disabled:hover { background: none; color: var(--text); }
+.saved-count { margin-left: auto; flex: none; color: var(--text-muted); font-size: 12px; }
+.saved-first { margin-top: 16px; max-width: 520px; }
 
 /* "Your level" and what it shows on each step */
 .level-track {
@@ -2917,6 +2961,4 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 .feedback-translation h4 { margin: 0; font-size: 13px; }
 .feedback-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .feedback-row select { flex: 1; min-width: 160px; width: auto; }
-@media (max-width: 440px) {
-    .feedback-open .feedback-label { display: none; }
-}
+

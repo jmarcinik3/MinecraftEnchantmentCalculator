@@ -599,8 +599,11 @@ test("a share link can carry the ticked steps, and plain links carry none", () =
 
 test("the recovery compass takes Curse of Vanishing in Bedrock only", () => {
     const bedrock = createLogic(editionMetadata(meta, "bedrock"), TEXTS.en_us.names);
-    assert.ok(!logic.enchantableItems().includes("recovery_compass"));
-    assert.ok(bedrock.enchantableItems().includes("recovery_compass"));
+    assert.deepEqual(logic.applicable("recovery_compass"), []);
+    assert.deepEqual(bedrock.applicable("recovery_compass"), ["vanishing_curse"]);
+    // ...and the item grid offers it in both, so both editions show the same items.
+    assert.ok(logic.enchantableItems().includes("recovery_compass") && bedrock.enchantableItems().includes("recovery_compass"));
+    assert.deepEqual(logic.enchantableItems(), bedrock.enchantableItems());
 });
 
 // ---------- Mods (json/mods/<id>.json) ----------

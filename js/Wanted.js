@@ -1,15 +1,15 @@
 // Section 1: the item and the enchantments it should end up with.
-import { roman } from "./Logic.js";
-import { TEXT } from "./Text.js";
-import { conflicts_toggled, item_menu_open, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
-import { $, closeOnOutside, enchLine, h, icon, motionOk, nameClass, plain, roving, scrollToView, scrubber } from "./Dom.js";
+import { EDITIONS, roman } from "./Logic.js";
+import { TEXT, localeOf } from "./Text.js";
+import { conflicts_toggled, item_menu_open, language, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
+import { $, closeOnOutside, enchLine, h, icon, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, writeStorage } from "./Dom.js";
 import { last_result, running } from "./Calc.js";
 import { changeLines, closeRow, easeHeight, foldClick, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
 import { anvilCell, foldIcon } from "./Results.js";
 import { nameField } from "./Options.js";
 import { floatBubble, infoTip } from "./Tips.js";
 import { conflictGraph, markGraphSearch } from "./Graph.js";
-import { clashes, commit, openSection, resetEverything, selectItem, setWanted, tryExample } from "./App.js";
+import { applySetup, clashes, commit, defaultSetupName, deleteSetup, loadSavedMods, MAX_SETUP_NAME, openSection, readSaved, resetEverything, saveSetup, selectItem, setEdition, setupFit, setWanted, tryExample } from "./App.js";
 
 // What section 1's preview showed last, so a redraw can grow it smoothly and fade in
 // the enchantments that are new.
@@ -73,6 +73,7 @@ export function renderItem() {
     const old_width = old_tip_rect ? old_tip_rect.width : null;
     const old_lines = old_tip ? snapshotLines(old_tip).lines : [];
     box.replaceChildren();
+    $("#presets-menu > summary")?.classList.remove("active"); // (presetChips lights the header's star again if a preset is the setup on screen)
     for (const tip of document.querySelectorAll("body > .compare-tip")) tip.remove(); // (a preset's tooltip lives on the page, not in the card)
     if (!state.item) return;
     // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
@@ -487,11 +488,26 @@ export function renderWanted() {
             // A first look without choosing anything: a fully enchanted helmet.
             h("button", { type: "button", class: "btn small example", onclick: tryExample }, TEXT.wanted.example)
         );
+        // Your saved setups, under the grid: one click loads one's item and enchantments.
+        const saved = readSaved();
+        if (saved.length) {
+            askSavedMods();
+            box.append(h("div", { class: "saved-first", "data-presets-fold": "first" }, ...presetsFold("first", TEXT.wanted.saved_first, savedList(saved))));
+        }
         restoreFocus(box, focus);
         restoreConflicts();
         return;
     }
 
+    // An item this edition gives nothing (a recovery compass takes Curse of Vanishing in Bedrock only): it says so, with the way to the edition that does.
+    if (!logic.applicable(state.item).length) {
+        const other = EDITIONS.find(edition => edition !== state.edition);
+        box.append(h("p", { class: "hint takes-none" }, TEXT.wanted.takes_none({ item: logic.itemName(state.item), edition: TEXT.page.editions[state.edition].label }), " ",
+            h("button", { type: "button", class: "btn small", "data-focus": "takes-none-switch", onclick: () => setEdition(other) }, TEXT.wanted.use_edition({ edition: TEXT.page.editions[other].label }))));
+        restoreFocus(box, focus);
+        syncFoldToggle();
+        return;
+    }
     const { list, mod_boxes } = wantedList();
     box.append(...[wantedSearch(), list, ...mod_boxes].filter(Boolean)); // append(null) would print "null"
     const graph = state.allow_incompatible ? null : conflictGraph(searchMatcher()); // (with conflicts allowed nothing conflicts)
@@ -797,8 +813,26 @@ function groupLegend() {
 function wantedSearch() {
     watchFolds();
     const toggle = h("button", { type: "button", class: "icon-btn fold-toggle", "data-focus": "wanted-fold", onclick: () => foldWanted(mostFolded()) });
+    // Remove all: clears every chosen enchantment (the plain item), disabled while nothing is chosen.
+    const none = Object.keys(state.wanted).length === 0;
+    const clear = h("button", {
+        type: "button", class: "icon-btn clear-all", "data-focus": "wanted-clear-all", disabled: none,
+        title: TEXT.wanted.clear_all, "aria-label": TEXT.wanted.clear_all,
+        onclick: () => { state.wanted = {}; commit(); }
+    }, clearIcon());
     return h("div", { class: "search-row" }, searchInput(),
-        h("span", { class: "fold-buttons" }, toggle, groupLegend()));
+        h("span", { class: "fold-buttons" }, clear, toggle, groupLegend()));
+}
+
+// A small × in a circle: Remove all.
+function clearIcon() {
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 16 16"); svg.setAttribute("aria-hidden", "true"); svg.setAttribute("class", "clear-icon");
+    for (const d of ["M8 1.5a6.5 6.5 0 1 0 0 13a6.5 6.5 0 1 0 0-13", "M5.5 5.5l5 5M10.5 5.5l-5 5"]) {
+        const path = document.createElementNS(ns, "path"); path.setAttribute("d", d); svg.append(path);
+    }
+    return svg;
 }
 
 function searchInput() {
@@ -1088,26 +1122,14 @@ export function setupItemMenu() {
 // one set of conflicting enchantments, "Best" is named after its pick from that set
 // ("Fortune · Silk Touch", "Channeling + Loyalty · Riptide"); with several, from the one the other presets swap a member of ("Depth Strider · Frost Walker").
 function presetChips() {
-    const presets = logic.presets(state.item);
-    if (!presets.length) return null;
-    // Only the game's own enchantments count, so a mod being on never renames "God" (its conflicts add sets and link them).
-    const conflict_sets = logic.enchantmentGroups(state.item, true).filter(group => group.members.length > 1);
-    // "Best" is named after its pick from the one set of conflicting enchantments the presets are about: the only set the item has, or else the one the other
-    // presets swap a member of (boots: Depth Strider, whose swap is Frost Walker). With several such sets, or none, it stays "God".
-    const swapped = presets.filter(preset => preset.key !== "best").map(preset => preset.key);
-    const swap_sets = conflict_sets.filter(group => group.members.some(ns => swapped.includes(ns)));
-    const named_set = conflict_sets.length === 1 ? conflict_sets[0] : swap_sets.length === 1 ? swap_sets[0] : null;
-    const bestName = wanted => {
-        if (!named_set) return TEXT.wanted.preset_best;
-        const picks = named_set.members.filter(ns => wanted[ns]);
-        return picks.length ? picks.map(ns => logic.enchName(ns)).join(" + ") : TEXT.wanted.preset_best;
-    };
+    // An item this edition gives nothing has no presets (section 1 says so), but a saved setup that left everything out still says what.
+    if (!logic.applicable(state.item).length) return savedWarning();
     const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);
     // Hovering (or focusing) a preset shows what it would change, as a game tooltip: + for
     // what it adds or raises, - for what it takes away.
     let compare = null;
     const hideCompare = () => { if (compare) { compare.remove(); compare = null; removeEventListener("scroll", hideCompare); } };
-    const showCompare = (chip, wanted) => {
+    const showCompare = (chip, wanted, warning = null) => {
         hideCompare();
         if (matchMedia("(hover: none)").matches) return;
         const lines = [];
@@ -1120,7 +1142,8 @@ function presetChips() {
         }
         if (!lines.some(line => line.classList.contains("changed") || line.classList.contains("removed"))) lines.splice(0, lines.length, h("div", { class: "mc-ench" }, TEXT.wanted.compare_same));
         compare = h("div", { class: "mc-tooltip compare-tip", "aria-hidden": "true" },
-            h("div", { class: nameClass("common") }, logic.itemName(state.item)), lines);
+            h("div", { class: nameClass("common") }, logic.itemName(state.item)), lines,
+            warning ? h("div", { class: "compare-warn" }, warning) : null);
         // On the page itself, fixed under the chip: inside the card it would sit under the item's tooltip and be clipped while the card morphs into the
         // sticky bar (Wanted.js setupItemDock). The chip moves when the page scrolls, so the tooltip goes then.
         document.body.append(compare);
@@ -1129,32 +1152,206 @@ function presetChips() {
         compare.style.left = Math.max(8, Math.min(at.left, innerWidth - compare.offsetWidth - 8)) + "px";
         addEventListener("scroll", hideCompare, { passive: true });
     };
-    const hover = wanted => ({
-        onmouseenter: event => showCompare(event.currentTarget, wanted), onmouseleave: hideCompare,
-        onfocus: event => showCompare(event.currentTarget, wanted), onblur: hideCompare
+    const hover = (wanted, warning = null) => ({
+        onmouseenter: event => showCompare(event.currentTarget, wanted, warning), onmouseleave: hideCompare,
+        onfocus: event => showCompare(event.currentTarget, wanted, warning), onblur: hideCompare
     });
-    return h("div", { class: "presets", role: "group", "aria-label": TEXT.wanted.presets },
-        h("div", { class: "presets-label" }, TEXT.wanted.presets),
-        h("div", { class: "preset-chips" },
-            // "Plain": nothing chosen, the unenchanted item (this is how to clear everything).
+    // Your saved setups for this item, after Plain (the game's Best and swap presets are gone: your own are the presets): one click loads it (`loadSaved`); hovering shows what changes, and the game rules
+    // it would set too. Then "+ Save" (a name box opens under the row). Every preset, for any item, is in the header's Presets menu.
+    const saved = readSaved();
+    if (saved.length) askSavedMods();
+    const mine = saved.filter(setup => setup.item === state.item).map(setup => ({ setup, fit: setupFit(setup) })).filter(entry => entry.fit);
+    // The header's Presets star is solid while one of these is the setup on screen (its chip lit), outlined otherwise.
+    const button = $("#presets-menu > summary");
+    if (button) button.classList.toggle("active", mine.some(({ fit }) => Object.keys(fit.wanted).length > 0 && same(fit.wanted, state.wanted)));
+    const savedChip = ({ setup, fit }) => {
+        const also = fit.changes.length ? TEXT.wanted.saved_also({ list: fit.changes }) : null;
+        const selected = Object.keys(fit.wanted).length > 0 && same(fit.wanted, state.wanted);
+        return h("span", { class: "saved-chip" + (selected ? " selected" : "") },
             h("button", {
-                type: "button", class: "preset" + (Object.keys(state.wanted).length === 0 ? " selected" : ""),
-                "aria-pressed": String(Object.keys(state.wanted).length === 0), "data-focus": "preset-plain",
-                title: TEXT.wanted.preset_plain_help, ...hover({}),
-                onclick: () => { state.wanted = {}; commit(); }
-            }, TEXT.wanted.preset_plain),
-            presets.map(preset => {
-                const selected = same(preset.wanted, state.wanted);
-                const best = preset.key === "best";
-                return h("button", {
-                    type: "button", class: "preset" + (selected ? " selected" : ""), "aria-pressed": String(selected),
-                    "data-focus": "preset-" + preset.key,
-                    title: best ? TEXT.wanted.preset_best_help : TEXT.wanted.preset_swap_help({ name: logic.enchName(preset.key) }),
-                    ...hover(preset.wanted),
-                    onclick: () => { state.wanted = { ...preset.wanted }; commit(); }
-                }, best ? bestName(preset.wanted) : logic.enchName(preset.key));
-            }))
+                type: "button", class: "preset mine" + (selected ? " selected" : ""), "aria-pressed": String(selected), "data-focus": "saved-" + setup.name,
+                title: TEXT.wanted.saved_load_help({ name: setup.name }), ...hover(fit.wanted, also), onclick: () => { hideCompare(); loadSaved(setup); }
+            }, setup.name),
+            h("button", {
+                type: "button", class: "saved-chip-x", title: TEXT.page.delete_saved, "aria-label": TEXT.page.delete_saved_label({ name: setup.name }),
+                onclick: () => { hideCompare(); deleteSetup(setup.name, setup.item); renderItem(); renderPresetsMenu(); }
+            }, "×"));
+    };
+    return h("div", { class: "presets", role: "group", "aria-label": TEXT.wanted.presets, "data-presets-fold": "card" },
+        ...presetsFold("card", TEXT.wanted.presets, [h("div", { class: "preset-chips" },
+            mine.map(savedChip),
+            h("button", {
+                type: "button", class: "preset add", "data-focus": "saved-add", "aria-expanded": String(saving_setup), title: TEXT.wanted.saved_save_help,
+                onclick: () => { saving_setup = !saving_setup; renderItem(); const box = document.querySelector("#item .saved-form input"); if (box) box.focus(); }
+            }, TEXT.wanted.saved_save),
+        ),
+        saving_setup ? saveForm() : null]),
+        savedWarning()
     );
+}
+
+// The Presets row (item card) and Your saved setups (first screen) fold away from their label, a button with the page's fold chevron; which are
+// closed is kept in this browser. The box eases to its new height (Motion.js easeHeight).
+const PRESETS_FOLD_KEY = "enchantment-calculator-presets-closed";
+const closed_presets = new Set((() => { const list = readStorage(PRESETS_FOLD_KEY, []); return Array.isArray(list) ? list : []; })());
+function presetsFold(key, label, body) {
+    const open = !closed_presets.has(key);
+    return [
+        h("button", {
+            type: "button", class: "presets-label presets-toggle", "aria-expanded": String(open), "data-focus": "presets-fold-" + key,
+            onclick: () => {
+                const box = document.querySelector(`[data-presets-fold="${key}"]`);
+                const from = box ? box.getBoundingClientRect().height : null;
+                if (open) closed_presets.add(key); else closed_presets.delete(key);
+                writeStorage(PRESETS_FOLD_KEY, [...closed_presets]);
+                if (key === "first") renderWanted(); else renderItem();
+                const again = document.querySelector(`[data-presets-fold="${key}"]`);
+                if (again && from != null && motionOk()) easeHeight(again, from);
+            }
+        }, h("span", { class: "fold-chevron", "aria-hidden": "true" }), label),
+        open ? h("div", { class: "presets-body" }, body) : null
+    ];
+}
+
+// Which game rules the last saved setup loaded changed (edition, mods, Allow conflicts), until dismissed or another preset is chosen; only for its item.
+function savedWarning() {
+    if (!saved_warning || saved_warning.item !== state.item) return null;
+    return h("div", { class: "saved-warning", role: "status" },
+        h("span", {}, TEXT.wanted.saved_rules({ name: saved_warning.name, list: saved_warning.changes })),
+        h("button", { type: "button", class: "saved-warning-x", title: TEXT.wanted.dismiss, "aria-label": TEXT.wanted.dismiss, onclick: () => { saved_warning = null; renderItem(); } }, "×"));
+}
+
+// The header's Presets menu (`#presets-menu`, a <details>): every preset in one list:
+// saved setup, for any item (`savedList`), and "Save current…" (the same name box as the item card's + Save). Choosing one closes the menu.
+export function renderPresetsMenu() {
+    const panel = $("#presets-panel");
+    if (!panel) return;
+    // A redraw (a group opening or closing, a preset removed) keeps the list where it was scrolled and the focus on the control that had it.
+    const old_list = panel.querySelector(".presets-menu-groups");
+    const scroll = old_list ? old_list.scrollTop : 0;
+    const focused = panel.contains(document.activeElement) ? document.activeElement.dataset.focus : null;
+    const saved = readSaved();
+    if (saved.length) askSavedMods();
+    panel.replaceChildren(...h("div", {},
+        h("div", { class: "presets-menu-title" }, TEXT.page.saved),
+        saved.length ? savedGroups(saved) : h("p", { class: "hint" }, TEXT.page.saved_empty),
+        state.item ? (menu_saving ? saveForm(() => { menu_saving = false; renderPresetsMenu(); }) : h("button", {
+            type: "button", class: "btn small", "data-focus": "menu-save", onclick: () => { menu_saving = true; renderPresetsMenu(); const box = $("#presets-panel .saved-form input"); if (box) box.focus(); }
+        }, TEXT.wanted.save_current)) : null
+    ).childNodes);
+    const list = panel.querySelector(".presets-menu-groups");
+    if (list) list.scrollTop = scroll;
+    const again = focused && panel.querySelector(`[data-focus="${CSS.escape(focused)}"]`);
+    if (again) again.focus({ preventScroll: true });
+}
+let menu_saving = false; // the Presets menu's name box is open
+
+// A group just opened that runs past the bottom of the menu's list: the list scrolls down just far enough to show its last preset, or, when the group is
+// taller than the list, brings its heading to the top.
+function revealMenuGroup(item) {
+    const list = document.querySelector("#presets-panel .presets-menu-groups");
+    const head = list && list.querySelector(`[data-focus="menu-item-${CSS.escape(item)}"]`);
+    if (!head) return;
+    const group = head.closest(".presets-menu-group");
+    const box = list.getBoundingClientRect(), at = group.getBoundingClientRect();
+    if (at.bottom <= box.bottom + 0.5) return; // (all of it shows already)
+    const top = list.scrollTop + (at.height > list.clientHeight ? at.top - box.top : at.bottom - box.bottom);
+    list.scrollTo({ top, behavior: motionOk() ? "smooth" : "auto" });
+}
+
+// The menu's saved presets, one group per item under its icon and name, the items in alphabetical order (in the page's language). Each group folds from its
+// heading (the page's fold chevron, and how many presets it holds); all start folded, and the ones opened stay open while the page is open.
+const open_menu_items = new Set();
+function savedGroups(saved) {
+    const items = [...new Set(saved.map(setup => setup.item))]
+        .sort((a, b) => logic.itemName(a).localeCompare(logic.itemName(b), localeOf(language)));
+    return h("div", { class: "presets-menu-groups" }, items.map(item => {
+        const open = open_menu_items.has(item);
+        const list = saved.filter(setup => setup.item === item);
+        return h("div", { class: "presets-menu-group" },
+            h("button", {
+                type: "button", class: "presets-menu-item", "aria-expanded": String(open), "data-focus": "menu-item-" + item,
+                onclick: () => { if (open) open_menu_items.delete(item); else { open_menu_items.add(item); } renderPresetsMenu(); if (!open) revealMenuGroup(item); }
+            }, h("span", { class: "fold-chevron", "aria-hidden": "true" }), logic.isItem(item) ? icon(item, true) : null, logic.itemName(item),
+                h("span", { class: "saved-count" }, String(list.length))),
+            open ? savedList(list, "grouped") : null);
+    }));
+}
+
+// ---------- Saved setups (the item card's presets row and the first screen) ----------
+let saving_setup = false;     // the name box under the presets row is open
+let saved_warning = null;     // { item, name, changes }: the game rules the last loaded setup changed, shown in the item card until dismissed or another preset
+let saved_mods_asked = false;
+
+// Loads a saved setup (its item, enchantments and the game rules they need); the item card says which rules changed.
+async function loadSaved(setup) {
+    const fit = setupFit(setup);
+    if (!fit || !fit.usable) return;
+    saving_setup = false;
+    const menu = $("#presets-menu");
+    if (menu) menu.open = false;
+    saved_warning = fit.changes.length ? { item: fit.item, name: setup.name, changes: fit.changes } : null;
+    if (!(await applySetup(setup))) { saved_warning = null; renderItem(); }
+}
+
+// The name box: Enter (or Save) saves the current setup under the name typed (or the item and its enchantments), Escape closes it. Refused, with the
+// box staying open and saying why: a name this item already has a setup under (another item's may share it), or a setup already saved (same item,
+// enchantments and rules) under any name.
+function saveForm(done = () => { saving_setup = false; renderItem(); }) {
+    const error = h("p", { class: "saved-form-error", role: "alert", hidden: true });
+    const input = h("input", {
+        type: "text", class: "rename-input", maxlength: MAX_SETUP_NAME, placeholder: defaultSetupName(), "aria-label": TEXT.page.save_name_label,
+        onkeydown: event => { if (event.key === "Escape") { event.stopPropagation(); done(); } },
+        oninput: () => { error.hidden = true; input.removeAttribute("aria-invalid"); }
+    });
+    return h("div", { class: "saved-form-box" },
+        h("form", {
+            class: "saved-form",
+            onsubmit: event => {
+                event.preventDefault();
+                const name = input.value.trim() || defaultSetupName();
+                const saved = saveSetup(name);
+                if (!saved.ok) {
+                    error.textContent = saved.error === "exists" ? TEXT.wanted.saved_exists({ name: saved.name })
+                        : TEXT.wanted.saved_name_taken({ name, item: logic.itemName(state.item) });
+                    error.hidden = false;
+                    input.setAttribute("aria-invalid", "true");
+                    input.focus();
+                    return;
+                }
+                done(); renderItem(); renderPresetsMenu();
+            }
+        }, input, h("button", { type: "submit", class: "btn small primary" }, TEXT.page.save)),
+        error);
+}
+
+// A list of saved setups (all of them, in the header's Presets menu and on the first screen): its item, name, how many enchantments, and × to
+// remove it. A setup whose item isn't offered here can't be chosen and says why.
+function savedList(list, extra_class = "") {
+    return h("ul", { class: "saved-list " + extra_class }, list.map(setup => {
+        const fit = setupFit(setup);
+        const usable = Boolean(fit && fit.usable);
+        return h("li", {},
+            h("button", {
+                type: "button", class: "saved-load", disabled: !usable, "data-focus": "saved-load-" + setup.item + "-" + setup.name, // (names repeat across items)
+                title: usable ? TEXT.wanted.saved_load_help({ name: setup.name }) : TEXT.wanted.saved_unusable({ name: setup.name }),
+                onclick: () => loadSaved(setup)
+            },
+                logic.isItem(setup.item) ? icon(setup.item, true) : null,
+                h("span", { class: "saved-name" }, setup.name),
+                usable ? h("span", { class: "saved-count" }, TEXT.wanted.saved_count({ count: Object.keys(fit.wanted).length })) : null),
+            h("button", {
+                type: "button", class: "saved-delete", title: TEXT.page.delete_saved, "aria-label": TEXT.page.delete_saved_label({ name: setup.name }),
+                onclick: () => { deleteSetup(setup.name, setup.item); renderItem(); renderWanted(); renderPresetsMenu(); }
+            }, "×"));
+    }));
+}
+
+// The files of mods a saved setup names load once (not switched on), so its enchantments can be named; the lists redraw when they arrive.
+function askSavedMods() {
+    if (saved_mods_asked) return;
+    saved_mods_asked = true;
+    loadSavedMods().then(any => { if (any) { renderItem(); renderWanted(); renderPresetsMenu(); } });
 }
 
 // The conflict tree of a bracket (Logic conflictTree) drawn as nested sections: one code for Pick a side, Pick any and their mixtures, nested or not. A "side" node is a Pick one

@@ -408,8 +408,11 @@ export function createLogic(meta, names = {}) {
         return null;
     }
 
+    // The item grid: every item that takes an enchantment in either edition, so the same items are offered in both (a recovery compass takes
+    // Curse of Vanishing in Bedrock only, and shows in Java too, taking nothing there). A metadata entry's `bedrock` object holds its Bedrock items.
     function enchantableItems() {
-        return meta.items.filter(item => item !== "book" && applicable(item).length > 0);
+        const takes = item => Object.values(enchantments).some(data => data.items.includes(item) || Boolean(data.bedrock && data.bedrock.items && data.bedrock.items.includes(item)));
+        return meta.items.filter(item => item !== "book" && takes(item));
     }
 
     // Keep only valid, applicable enchantments, dropping conflicts unless they are allowed.

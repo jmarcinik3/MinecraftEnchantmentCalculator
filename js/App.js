@@ -6,13 +6,13 @@ import { setupFeedback } from "./Feedback.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
 import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
-import { renderItem, renderWanted, setupConflictTips, setupItemDock, setupItemMenu } from "./Wanted.js";
+import { renderItem, renderPresetsMenu, renderWanted, setupConflictTips, setupItemDock, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
 import { renderMetrics, setupOrderPanel } from "./Ranking.js";
 import { renderLevelPop, renderSettings, resultNode, setupLevelPop, setupOptionsMenu, syncRename } from "./Options.js";
 import { anvilRisk, renderResults } from "./Results.js";
 import { resetWorkers, runCalculation, scheduleCalculation, startWorker } from "./Calc.js";
-import { currentLink, linkText, loadFromUrl, readLink, saveToUrl, useLink } from "./Link.js";
+import { currentLink, linkText, loadFromUrl, readLink, readSetup, saveToUrl, useLink } from "./Link.js";
 import { setupInfoTip } from "./Tips.js";
 
 const META_URL = "json/metadata.json";
@@ -23,7 +23,6 @@ const LANGUAGE_STORAGE_KEY = "enchantment-calculator-language";
 const COLLAPSED_STORAGE_KEY = "enchantment-calculator-collapsed";
 const THEME_STORAGE_KEY = "enchantment-calculator-theme"; // also read by index.html before the page draws
 const MAX_SETUP_NAME = 100;
-let saved_name = ""; // what is typed in the Saved menu's name box
 
 export function commit() {
     saveToUrl();
@@ -183,9 +182,9 @@ function render() {
     renderLanguage();
     renderFeedback();
     renderTheme();
-    renderSaved();
     renderItem();
     renderWanted();
+    renderPresetsMenu();
     renderBooks();
     renderSettings();
     renderLevelPop();
@@ -351,72 +350,123 @@ async function switchLanguage(code) {
 }
 
 // ---------- Saved setups ----------
-// Setups saved in this browser under a name, from the header's Saved menu. Each is a
-// share link's text, so loading one works like opening its link.
+// Setups saved in this browser under a name, from the item card's presets row (+ Save; Wanted.js presetChips) and listed there and on the first
+// screen. Each is a share link's text; loading one sets its item, enchantments and the game rules they need (edition, mods, Allow conflicts), and the item
+// card says which rules changed (`setupFit`, `applySetup`).
 
-function readSaved() {
-    const list = readStorage(SAVED_STORAGE_KEY, []);
+export function readSaved() {
+    const stored = readStorage(SAVED_STORAGE_KEY, null);
+    const list = stored === null ? starterPresets() : stored;
     return Array.isArray(list) ? list.filter(setup => setup && typeof setup.name === "string" && typeof setup.link === "string") : [];
 }
 
+// The presets a new visitor starts with, saved once (the first time the list is read with nothing stored), so they can be renamed over or removed like any
+// other and never come back: one "God" per item, every enchantment it takes at its highest level (Logic `maxAll`, the game's own only, no curses), with
+// the game's own rules (Java, the level limit 39, no conflicts, no mods) and Automatic books. An item that takes nothing that way gets none.
+const STARTER_NAME = "God";
+function starterPresets() {
+    if (!logic || !meta) return [];
+    const base = { ...state, wanted: {}, auto_books: true, books: [], edition: "java", max_step: 39, no_step_limit: false, allow_incompatible: false, mods: [], rename: false, rename_to: "" };
+    const java = createLogic(editionMetadata(meta, "java"), TEXT.names); // (the game's own Java helpers, whatever the page shows now)
+    const list = [];
+    for (const item of java.enchantableItems()) {
+        const wanted = java.maxAll(item, {}, false);
+        if (!Object.keys(wanted).length) continue;
+        list.push({ name: STARTER_NAME, item, link: logic.serialize({ ...base, item, wanted }) });
+    }
+    writeStorage(SAVED_STORAGE_KEY, list);
+    return list;
+}
+
 // "Boots: Protection IV, Mending" for the current setup.
-function defaultSetupName() {
+export function defaultSetupName() {
     if (!state.item) return "";
     const chosen = logic.summary(Object.entries(state.wanted).map(([namespace, level]) => ({ namespace, level })));
     return [...(logic.itemName(state.item) + (chosen ? ": " + chosen : ""))].slice(0, MAX_SETUP_NAME).join("");
 }
+export { MAX_SETUP_NAME };
 
-function renderSaved() {
-    const list = readSaved();
-    // Through h(), which skips the parts that are missing (replaceChildren would print "null").
-    $("#saved-panel").replaceChildren(...h("div", {},
-        h("form", {
-            class: "saved-form",
-            onsubmit: event => { event.preventDefault(); saveSetup(saved_name.trim() || defaultSetupName()); }
-        },
-            h("input", {
-                type: "text", class: "rename-input", maxlength: MAX_SETUP_NAME, value: saved_name,
-                placeholder: defaultSetupName(), "aria-label": TEXT.page.save_name_label,
-                oninput: event => { saved_name = event.target.value; }
-            }),
-            h("button", { type: "submit", class: "btn small primary", disabled: !state.item }, TEXT.page.save)
-        ),
-        list.length
-            ? h("ul", { class: "saved-list" }, list.map((setup, index) => h("li", {},
-                h("button", { type: "button", class: "saved-load", title: setup.name, onclick: () => loadSetup(setup.link) },
-                    logic.isItem(setup.item) ? icon(setup.item, true) : null,
-                    h("span", { class: "saved-name" }, setup.name)),
-                h("button", {
-                    type: "button", class: "saved-delete", title: TEXT.page.delete_saved,
-                    "aria-label": TEXT.page.delete_saved_label({ name: setup.name }),
-                    onclick: () => deleteSetup(index)
-                }, "×")
-            )))
-            : h("p", { class: "hint" }, TEXT.page.saved_empty)
-    ).childNodes);
+// A name is one item's: two setups may share a name if they are for different items, but one item's names are all different (ignoring case).
+export const setupNameTaken = (name, item) => readSaved().some(setup => setup.item === item && setup.name.toLowerCase() === name.toLowerCase());
+
+// The saved setup that already holds what the page shows (the same item, enchantments and the game rules a preset sets: edition, mods, Allow
+// conflicts), or null.
+export function sameSavedSetup() {
+    if (!state.item) return null;
+    const same = (a, b) => Object.keys(a).length === Object.keys(b).length && Object.keys(a).every(ns => a[ns] === b[ns]);
+    const mods = [...(state.edition === "java" ? state.mods || [] : [])].sort().join();
+    return readSaved().find(setup => {
+        if (setup.item !== state.item) return false;
+        const saved = readSetup(setup.link);
+        return saved && saved.edition === state.edition && saved.allow_incompatible === Boolean(state.allow_incompatible)
+            && [...(saved.edition === "java" ? saved.mods_on : [])].sort().join() === mods && same(saved.wanted, state.wanted);
+    }) || null;
 }
 
-// Saving under a name already in the list replaces that setup; the newest is first.
-function saveSetup(name) {
-    if (!state.item || !name) return;
-    const list = readSaved().filter(setup => setup.name !== name);
+// Saves the current setup under a name, the newest first. Refused when this item already has a setup by that name ({ error: "name" }) or when one
+// already holds the same setup ({ error: "exists", name: its name }); else { ok: true }.
+export function saveSetup(name) {
+    if (!state.item || !name) return { error: "name" };
+    if (setupNameTaken(name, state.item)) return { error: "name" };
+    const twin = sameSavedSetup();
+    if (twin) return { error: "exists", name: twin.name };
+    const list = readSaved();
     list.unshift({ name, item: state.item, link: logic.serialize(state) });
     writeStorage(SAVED_STORAGE_KEY, list);
-    saved_name = "";
-    renderSaved();
+    return { ok: true };
 }
 
-// Removing asks nothing first.
-function deleteSetup(index) {
-    const list = readSaved();
-    const [setup] = list.splice(index, 1);
-    if (!setup) return;
-    writeStorage(SAVED_STORAGE_KEY, list);
-    renderSaved();
+// Removing asks nothing first. A setup is its name and item together.
+export function deleteSetup(name, item) {
+    writeStorage(SAVED_STORAGE_KEY, readSaved().filter(setup => !(setup.name === name && setup.item === item)));
 }
 
-async function loadSetup(link) {
-    if (await openLink(link)) $("#saved").open = false;
+// The mods named by any saved setup: their files load (not switch on) so their enchantments can be named when a setup is shown or loaded
+// while the mod is off. Resolves to whether any file was new.
+export async function loadSavedMods() {
+    const ids = [...new Set(readSaved().flatMap(setup => linkMods(setup.link)))].filter(id => !mod_data[id]);
+    if (!ids.length) return false;
+    await loadMods(ids);
+    return true;
+}
+
+// What loading a saved setup would do: its item and enchantments, and the game rules it would change (edition, mods, Allow conflicts; its books
+// and level limit are not taken), as "Edition: Bedrock" lines. Null if it can't be read; `usable` is false when its item isn't offered at all.
+export function setupFit(setup) {
+    const saved = readSetup(setup.link);
+    if (!saved) return null;
+    const changes = [];
+    const rule = (name, value) => TEXT.wanted.rule_set({ rule: name, value });
+    const onOff = on => (on ? TEXT.ranking.switch_on : TEXT.ranking.switch_off);
+    if (saved.edition !== state.edition) changes.push(rule(TEXT.ranking.edition, TEXT.page.editions[saved.edition].label));
+    const now = new Set(state.mods || []), then = new Set(saved.edition === "java" ? saved.mods_on : []);
+    for (const id of MOD_IDS) {
+        if (now.has(id) === then.has(id) || (saved.edition !== "java" && !now.has(id))) continue;
+        changes.push(rule(mod_data[id] ? mod_data[id].label : id, onOff(then.has(id))));
+    }
+    if (saved.allow_incompatible !== Boolean(state.allow_incompatible)) changes.push(rule(TEXT.ranking.allow_conflicts, onOff(saved.allow_incompatible)));
+    return { item: saved.item, wanted: saved.wanted, changes, usable: logic.enchantableItems().includes(saved.item) };
+}
+
+// Loads a saved setup: its item, enchantments, edition, mods and Allow conflicts (the books are kept, and checked against the new item and rules; the level
+// limit and the ranking stay). Its mods' files load first. Resolves to the fit (Wanted.js says which rules changed), or null if it can't load.
+export async function applySetup(setup) {
+    const fit = setupFit(setup);
+    if (!fit || !fit.usable) return null;
+    const loaded_mods = await loadMods(linkMods(setup.link));
+    const loaded = readLink(setup.link);
+    if (!loaded) return null;
+    setItemMenuOpen(false);
+    state.edition = loaded.edition;
+    state.rename_to = cleanName(state.rename_to, state.edition);
+    syncRename();
+    state.mods = loaded.mods.filter(id => loaded_mods.includes(id));
+    state.allow_incompatible = loaded.allow_incompatible;
+    state.item = loaded.item;
+    state.wanted = loaded.wanted;
+    applyMods(); // (the helpers for the edition and mods, the workers, and the books checked against them)
+    commit();
+    return fit;
 }
 
 // Puts a link's setup on screen in place of the current one (a saved setup, or a link pasted
@@ -442,7 +492,7 @@ function setupHashChange() {
     });
 }
 
-// A <details> menu (Saved, Settings) closes on a click outside it or on Escape.
+// A <details> menu (Settings, Share) closes on a click outside it or on Escape.
 export function setupMenuClosing(menu) {
     closeOnOutside({
         open: () => menu.open,
@@ -450,12 +500,6 @@ export function setupMenuClosing(menu) {
         inside: event => event.composedPath().includes(menu),
         close: () => { menu.open = false; }
     });
-}
-
-function setupSavedMenu() {
-    const menu = $("#saved");
-    $("#saved > summary").title = TEXT.page.saved_help;
-    setupMenuClosing(menu);
 }
 
 // ---------- Header controls (edition, theme, reset, copy link) ----------
@@ -623,8 +667,10 @@ async function init() {
     setupSkipLinks();
     new MutationObserver(renderBadges).observe($("#books-alert"), { childList: true }); // (Books.js draws and clears the alert badge)
     setupResultsColumn();
-    setupSavedMenu();
     setupItemMenu();
+    setupMenuClosing($("#presets-menu")); // (the header's Presets menu: Wanted.js renderPresetsMenu)
+    $("#presets-menu > summary").title = TEXT.page.saved_help;
+    $("#presets-menu > summary").setAttribute("aria-label", TEXT.wanted.presets); // (its label hides on narrow windows, leaving the star)
     setupItemDock();
     setupConflictTips();
     setupEntryPopover();

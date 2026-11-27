@@ -71,6 +71,26 @@ export function currentLink() {
 // The state in a share link's text, or null if it is not valid. Read with the helpers of the
 // link's own edition and mods (Bedrock offers enchantments Java does not); the caller then
 // switches to them.
+// A saved setup as it was saved: its item and enchantments read with its own edition and mods, and each enchantment's name and mod (its label)
+// from those, so one this page can't offer now (a mod that is off, the other edition's) can still be named. Null if the link can't be read.
+export function readSetup(text) {
+    try {
+        useEdition(linkEdition(text), linkMods(text).filter(id => mod_data[id]));
+        const loaded = logic.deserialize(text, () => 0);
+        if (!loaded) return null;
+        const names = {}, mods = {};
+        for (const [ns, level] of Object.entries(loaded.wanted)) {
+            names[ns] = logic.displayName(ns, level);
+            if (logic.modOf(ns)) mods[ns] = logic.modOf(ns);
+        }
+        return { item: loaded.item, wanted: loaded.wanted, names, mods, edition: loaded.edition, allow_incompatible: loaded.allow_incompatible, mods_on: loaded.mods };
+    } catch {
+        return null;
+    } finally {
+        useEdition(state.edition);
+    }
+}
+
 export function readLink(text) {
     try {
         useEdition(linkEdition(text), linkMods(text).filter(id => mod_data[id]));
