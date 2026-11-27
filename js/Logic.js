@@ -69,10 +69,24 @@ export function clampStepLimit(value) {
 // Game editions with their own anvil rules (must match Engine.js).
 export const EDITIONS = ["java", "bedrock"];
 
-// A share link's edition field (`e`, an index into EDITIONS) as an edition; Java for anything else.
-function linkEditionOf(index) {
-    return Number.isInteger(index) && EDITIONS[index] ? EDITIONS[index] : EDITIONS[0];
+// What the numbers in older share links meant: `p` and `e` once held positions in CRITERIA and EDITIONS. These lists are frozen, so
+// reordering the live ones never changes what an old link says. New links hold the names themselves.
+const LEGACY_CRITERIA = Object.freeze(["levels", "xp", "max_step", "prior_work"]);
+const LEGACY_EDITIONS = Object.freeze(["java", "bedrock"]);
+
+// A share link's edition field (`e`: the edition's name, or in older links its position in LEGACY_EDITIONS) as an edition; Java for anything else.
+function linkEditionOf(value) {
+    if (typeof value === "string" && EDITIONS.includes(value)) return value;
+    return Number.isInteger(value) && LEGACY_EDITIONS[value] ? LEGACY_EDITIONS[value] : EDITIONS[0];
 }
+
+// Namespaces renamed since links were made: { items: { old: "new" }, enchantments: { old: "new" } }. Add an entry here whenever an
+// item or enchantment key in metadata.json changes, so every link made before still loads (`sweeping` stayed as it was instead).
+export const LINK_RENAMES = { items: {}, enchantments: {} };
+const renamed = (table, key) => (typeof key === "string" && Object.hasOwn(table, key) ? table[key] : key);
+const renameKeys = (levels, table) => (levels && typeof levels === "object" && !Array.isArray(levels)
+    ? Object.fromEntries(Object.entries(levels).map(([ns, level]) => [renamed(table, ns), level]))
+    : levels);
 
 // Longest name the anvil accepts, per edition (Minecraft Wiki, "Anvil mechanics").
 export const MAX_NAME_LENGTH = { java: 50, bedrock: 30 };
@@ -760,11 +774,11 @@ export function createLogic(meta, names = {}) {
                 if ((book.copies || 1) > 1) saved.push(book.copies);
                 return saved;
             }),
-            p: state.priority.map(c => CRITERIA.indexOf(c)),
+            p: state.priority,
             c: state.max_step,
             n: state.no_step_limit ? 1 : 0,
             x: state.allow_incompatible ? 1 : 0,
-            e: EDITIONS.indexOf(state.edition),
+            e: state.edition,
             d: state.mods && state.mods.length ? state.mods : undefined,
             r: state.rename ? 1 : 0,
             m: state.rename_to || undefined,
@@ -776,7 +790,8 @@ export function createLogic(meta, names = {}) {
 
     function deserialize(text, makeId) {
         const data = JSON.parse(fromLinkText(text));
-        const item = typeof data.i === "string" && items.has(data.i) && data.i !== "book" ? data.i : null;
+        const named = renamed(LINK_RENAMES.items, data.i);
+        const item = typeof named === "string" && items.has(named) && named !== "book" ? named : null;
         if (!item) return null;
         // Entries that are not [enchantments, prior work, type, copies] are skipped.
         const books = Array.isArray(data.b) ? data.b.filter(Array.isArray) : [];
@@ -789,19 +804,19 @@ export function createLogic(meta, names = {}) {
             rename_to: cleanName(data.m, edition),
             allow_incompatible,
             mods: Array.isArray(data.d) ? MOD_IDS.filter(id => data.d.includes(id)) : [],
-            wanted: sanitizeEnchantments(data.w, item, allow_incompatible),
+            wanted: sanitizeEnchantments(renameKeys(data.w, LINK_RENAMES.enchantments), item, allow_incompatible),
             auto_books: data.a !== 0,
             // Only the item's enchantments are offered, so others are dropped.
             books: sanitizeBooks(books.map(([enchants, prior_work, type_flag, copies]) => ({
                 id: makeId(),
                 type: type_flag === 1 ? "item" : "book",
-                enchantments: enchants,
+                enchantments: renameKeys(enchants, LINK_RENAMES.enchantments),
                 prior_work: clampPriorWork(prior_work),
                 copies: clampCopies(copies)
             })), item, allow_incompatible),
             // Older links stored one objective: `o` = 1 meant least XP.
             priority: Array.isArray(data.p)
-                ? normalizePriority(data.p.map(index => CRITERIA[index]))
+                ? normalizePriority(data.p.map(c => (typeof c === "string" ? c : LEGACY_CRITERIA[c])))
                 : normalizePriority(data.o === 1 ? ["xp", "levels"] : []),
             max_step: data.c == null ? MAX_STEP_LEVELS : clampStepLimit(data.c),
             no_step_limit: data.n === 1,

@@ -10,7 +10,7 @@ const read = path => readFileSync(new URL(path, import.meta.url), "utf8");
 // data: URLs too (a data: URL has no folder to resolve "./" against).
 const moduleUrl = path => "data:text/javascript," + encodeURIComponent(read(path)
     .replace(/from "\.\/([A-Za-z]+\.js)"/g, (_, file) => `from "${moduleUrl("../js/" + file)}"`));
-const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods, linkEdition, roman, MAX_PRIOR_WORK, applyRename, experienceFromLevel } = await import(moduleUrl("../js/Logic.js"));
+const { createLogic, editionMetadata, levelTrack, anvilBreakChance, cleanName, MAX_NAME_LENGTH, MAX_COPIES, normalizePriority, movePriority, clampStepLimit, maxPriorWork, searchSize, MAX_GROUPS, CRITERIA, EDITIONS, MOD_IDS, withMods, modNames, linkMods, linkEdition, roman, MAX_PRIOR_WORK, applyRename, experienceFromLevel, LINK_RENAMES } = await import(moduleUrl("../js/Logic.js"));
 const meta = JSON.parse(read("../json/metadata.json"));
 const { TEXT, LANGUAGES, SEARCH_NAMES, compileText, setText } = await import(moduleUrl("../js/Text.js"));
 const TEXTS = Object.fromEntries(Object.keys(LANGUAGES).map(code => [code, JSON.parse(read(`../json/text/${code}.json`))]));
@@ -723,7 +723,7 @@ test("a link is read in its own edition: Bedrock's Curse of Vanishing on a recov
     assert.deepStrictEqual(createLogic(editionMetadata(meta, linkEdition(link)), TEXTS.en_us.names).deserialize(link, () => 0).wanted, { vanishing_curse: 1 });
 });
 
-test("links with odd fields: edition only by index, broken entries skipped, prior work capped", () => {
+test("links with odd fields: edition by name or old index, broken entries skipped, prior work capped", () => {
     const encode = data => btoa(JSON.stringify(data)).replace(/=+$/, "");
     assert.strictEqual(logic.deserialize(encode({ i: "sword", e: "length" }), () => 0).edition, "java");
     assert.strictEqual(logic.deserialize(encode({ i: "sword", e: 1.5 }), () => 0).edition, "java");
@@ -789,6 +789,39 @@ test("the service worker's file list holds every script, style, data file and la
     for (const code of Object.keys(LANGUAGES)) assert.ok(existsSync(new URL(`../json/text/${code}.json`, import.meta.url)), code);
     const html = read("../index.html");
     for (const [, file] of html.matchAll(/(?:href|src)="((?:css|js)\/[^"?]+)/g)) assert.ok(listed.has(file), file + " is in index.html but not in FILES");
+});
+
+
+test("a link names its ranking and edition, and older links keep the meaning they had", () => {
+    const encode = data => btoa(JSON.stringify(data)).replace(/=+$/, "");
+    const state = { ...baseState("sword"), edition: "bedrock", priority: ["xp", "levels", "max_step", "prior_work"] };
+    const data = JSON.parse(atob(logic.serialize(state).replace(/-/g, "+").replace(/_/g, "/")));
+    assert.deepStrictEqual(data.p, ["xp", "levels", "max_step", "prior_work"]);
+    assert.strictEqual(data.e, "bedrock");
+    const loaded = logic.deserialize(logic.serialize(state), () => 0);
+    assert.deepStrictEqual(loaded.priority, state.priority);
+    assert.strictEqual(loaded.edition, "bedrock");
+    // Numbers (older links) are read against the lists as they were, never the live ones.
+    const old = logic.deserialize(encode({ i: "sword", w: {}, a: 1, b: [], p: [1, 0, 2, 3], e: 1 }), () => 0);
+    assert.deepStrictEqual(old.priority, ["xp", "levels", "max_step", "prior_work"]);
+    assert.strictEqual(old.edition, "bedrock");
+});
+
+test("a renamed item or enchantment still loads from a link made before", () => {
+    const encode = data => btoa(JSON.stringify(data)).replace(/=+$/, "");
+    LINK_RENAMES.items.old_sword = "sword";
+    LINK_RENAMES.enchantments.old_sharp = "sharpness";
+    try {
+        const link = encode({ i: "old_sword", w: { old_sharp: 3 }, a: 0, b: [[{ old_sharp: 2 }, 0, 0]] });
+        const loaded = logic.deserialize(link, () => 0);
+        assert.strictEqual(loaded.item, "sword");
+        assert.deepStrictEqual(loaded.wanted, { sharpness: 3 });
+        assert.deepStrictEqual(loaded.books[0].enchantments, { sharpness: 2 });
+    } finally {
+        delete LINK_RENAMES.items.old_sword;
+        delete LINK_RENAMES.enchantments.old_sharp;
+    }
+    assert.strictEqual(logic.deserialize(encode({ i: "old_sword", w: {}, a: 1, b: [] }), () => 0), null);
 });
 
 console.log(`${passed} passed`);
