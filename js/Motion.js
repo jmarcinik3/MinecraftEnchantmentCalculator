@@ -19,6 +19,24 @@ function fadeOutCover(copy, duration) {
     return copy.animate([{ opacity: 1 }, { opacity: 0 }], { duration: duration * COVER_FADE, easing: "ease-in-out", fill: "forwards" });
 }
 
+// Holds the page's scroll at `y` (or at the page's new foot, when the page got shorter than that) for `ms`, frame by frame: while a box eases
+// smaller, iPhone Safari (WebKit) let the scroll fall well past the foot (to the very top at the page's end). A touch, wheel or key lets go at once.
+let scroll_hold = null;
+export function holdScroll(y, ms = MORPH_MS + 200) {
+    if (scroll_hold) scroll_hold.stop();
+    const until = performance.now() + ms;
+    let frame = 0;
+    const stop = () => { cancelAnimationFrame(frame); for (const type of ["wheel", "touchstart", "keydown"]) removeEventListener(type, stop, true); if (scroll_hold?.stop === stop) scroll_hold = null; };
+    for (const type of ["wheel", "touchstart", "keydown"]) addEventListener(type, stop, { capture: true, passive: true });
+    const tick = () => {
+        const want = Math.max(0, Math.min(y, document.documentElement.scrollHeight - innerHeight));
+        if (Math.abs(scrollY - want) > 1) scrollTo(scrollX, want);
+        if (performance.now() < until) frame = requestAnimationFrame(tick); else stop();
+    };
+    scroll_hold = { stop };
+    tick();
+}
+
 // `timing` (optional): { duration, easing } to slide with instead of the default 0.25s ease-out.
 export function growSmoothly(element, from, timing = null) {
     const to = element.getBoundingClientRect().height;
@@ -374,6 +392,11 @@ function morphCard(card, old, now, timing, how) {
             if (!was || !is || child === unit) continue;
             animations.push(child.animate([{ transform: `translate(${was.left - is.left - dx}px, ${was.top - is.top - dy}px)` }, { transform: "none" }], timing));
         }
+    }
+    // The stack count's - / + (always shown on touch) waits at the card's new place while the slots travel, and the slots of the cards after it
+    // passed over it: it stays hidden until the slots have landed, then fades in.
+    for (const control of card.querySelectorAll(":scope > .copies-control, :scope .copies-control")) {
+        animations.push(control.animate([{ opacity: 0 }, { opacity: 0, offset: 0.75 }, { opacity: 1 }], timing));
     }
     if (unit && old.slot && now.slot) {
         unit.style.zIndex = "2";

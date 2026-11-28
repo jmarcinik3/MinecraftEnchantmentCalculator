@@ -180,6 +180,7 @@ export function setupItemDock() {
     let geo = null, shown = 0, following = false, last_frame = 0;
     const past = () => -sentinel.getBoundingClientRect().top;
     const target = () => {
+        if (item_menu_open) return 0; // (the item grid is open in the card: it stays the full card while you scroll to an item)
         const p = Math.min(1, Math.max(0, past() / DOCK_RANGE));
         return motionOk() ? p : (p >= 0.5 ? 1 : 0);
     };

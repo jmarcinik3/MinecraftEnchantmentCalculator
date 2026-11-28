@@ -141,6 +141,10 @@ function drawResults() {
         });
     }
     bar_was_shown = !!box.querySelector(".current-bar:not(.tucked)"); // (read before the redraw empties the box: `currentBar` starts the new one the same)
+    // The box keeps its height while it is rebuilt: the build reads the layout, and an empty box there made the page short enough that the
+    // browser pulled the scroll up (Expand all at the page's foot jumped hundreds of pixels). Let go once the new contents are in.
+    box.style.minHeight = box.getBoundingClientRect().height + "px";
+    queueMicrotask(() => { box.style.minHeight = ""; });
     box.replaceChildren();
     // The slots that lit a card in Books and items are gone (a removed element never gets its blur or mouseleave), so the card goes dark.
     for (const card of document.querySelectorAll("#books .entry-card.highlight")) card.classList.remove("highlight");

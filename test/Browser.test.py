@@ -364,6 +364,40 @@ def part_phone_morph(browser, base):
     check("no page errors (part_phone_morph)", not errors, errors)
 
 
+def part_phone_scroll(browser, base):
+    """on a phone at the page's foot, Automatic <-> Custom and Expand all steps leave the page where it was (they dropped it toward the top)"""
+    _, p, errors = open_page(browser, base, viewport={"width": 393, "height": 660})
+    p.click('#wanted .item-grid button[data-focus="item-boots"]')
+    choose_max(p)
+    settle(p)
+    p.evaluate("document.querySelector('[data-section=wanted] .collapse-toggle').click()")
+    p.evaluate("document.querySelector('[data-section=steps] .collapse-toggle').click()")
+    settle(p)
+    foot = lambda: p.evaluate("Math.round(document.documentElement.scrollHeight - innerHeight)")
+    for mode in ("Custom", "Automatic"):
+        p.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
+        frames(p, 4)
+        was = p.evaluate("Math.round(scrollY)")
+        p.locator("#books .seg-option, #books button", has_text=mode).first.click()
+        settle(p)
+        frames(p, 30)
+        y, bottom = p.evaluate("Math.round(scrollY)"), foot()
+        check(f"switching to {mode} at the page's foot keeps the scroll (or the page's new foot, when it got shorter), not near the top", y >= min(was, bottom) - 2, (was, y, bottom))
+    p.evaluate("document.querySelector('[data-section=books] .collapse-toggle').click()")
+    p.evaluate("document.querySelector('[data-section=steps] .collapse-toggle').click()")
+    settle(p)
+    if p.evaluate("document.querySelector('#results .fold-toggle').getAttribute('aria-label').startsWith('Collapse')"):
+        p.evaluate("document.querySelector('#results .fold-toggle').click()")
+        settle(p)
+    p.evaluate("scrollTo(0, document.documentElement.scrollHeight)")
+    frames(p, 4)
+    before = p.evaluate("Math.round(scrollY)")
+    p.evaluate("document.querySelector('#results .fold-toggle').click()")
+    frames(p, 3)
+    check("Expand all steps at the page's foot does not scroll the page up", p.evaluate("Math.round(scrollY)") >= before - 2, (before, p.evaluate("Math.round(scrollY)")))
+    check("no page errors (part_phone_scroll)", not errors, errors)
+
+
 def part_item_bar(browser, base):
     """the phone's condensed Item bar: Start over at its left, the bar itself back to the top, and Steps down to Anvil uses"""
     _, p, errors = open_page(browser, base, viewport={"width": 390, "height": 800})
@@ -2550,7 +2584,7 @@ def part_search_tip(browser, base):
     return errors
 
 
-PARTS = [part_search_tip, part_phone_morph, part_stage_hotbar, part_wide_morph, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
+PARTS = [part_search_tip, part_phone_morph, part_phone_scroll, part_stage_hotbar, part_wide_morph, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
 
 
 class PartBrowser:
@@ -2580,7 +2614,7 @@ class PartBrowser:
 
 
 # The parts that check animations (they keep "Show animations" on); the rest run with it off, which is faster and steadier.
-MOTION_PARTS = {part_phone_morph, part_wide_morph, part_folds_motion, part_chips, part_sections_motion, part_books_views, part_section1_motion, part_settings_motion, part_section1, part_narrow_results, part_motion_access, part_level_rows}
+MOTION_PARTS = {part_phone_scroll, part_phone_morph, part_wide_morph, part_folds_motion, part_chips, part_sections_motion, part_books_views, part_section1_motion, part_settings_motion, part_section1, part_narrow_results, part_motion_access, part_level_rows}
 
 
 def run_part(part, base, browser):

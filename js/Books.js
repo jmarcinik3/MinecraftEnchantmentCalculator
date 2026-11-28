@@ -3,7 +3,7 @@ import { MAX_COPIES, maxPriorWork, movePriority, roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, nextBookId, state } from "./Store.js";
 import { $, afterAnimation, closeOnOutside, enchLine, flash, h, icon, holdRepeat, mcMark, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, segmented, svg, writeStorage } from "./Dom.js";
-import { animateCards, animateChips, barSnapshot, chipSnapshot, cardRects, changeLines, leaveBar, pillRects, revealBar, rollChipsIn, rollChipsOut, slidePills, snapshotLines } from "./Motion.js";
+import { animateCards, animateChips, holdScroll, barSnapshot, chipSnapshot, cardRects, changeLines, leaveBar, pillRects, revealBar, rollChipsIn, rollChipsOut, slidePills, snapshotLines } from "./Motion.js";
 import { focusState, levelBar, restoreFocus } from "./Wanted.js";
 import { dragToReorder } from "./Ranking.js";
 import { stepLimit } from "./Options.js";
@@ -100,6 +100,7 @@ export function renderBooks() {
     } else if (!view_changed && old_cards.size && old_keys === new_keys) animateLines(box, old_cards);
     else animateCards(box, old_rects, old_height, view_changed ? "view" : false); // holds the old height while it slides
     if (scrollY !== scroll) scrollTo(scrollX, scroll);
+    if ((mode_changed || view_changed) && motionOk()) holdScroll(scroll); // (the grid eases to its new height: the scroll stays put, or at the page's foot)
     restoreFocus(box, focus);
     if (fresh_entry != null) {
         const id = fresh_entry;

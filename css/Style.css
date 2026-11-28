@@ -29,6 +29,7 @@
     --gui-light: #ffffff;
     --gui-dark: #555555;
     --gui-text: #404040;
+    --cost-chip-bg: var(--gui-bg);   /* Section 4's cost chips: light in light mode (the game green keeps its dark shadow) */
     --radius: 8px;
     /* Minecraft palette: the game's own colours for slots, tooltips, the cost text and the XP bar. */
     --mc-white: #ffffff;
@@ -120,6 +121,7 @@
         --gui-light: #5c5c60;
         --gui-dark: #1c1c1e;
         --gui-text: #c8c8c8;
+    --cost-chip-bg: var(--mc-panel);
         color-scheme: dark;
     }
 }
@@ -148,6 +150,7 @@
     --gui-light: #5c5c60;
     --gui-dark: #1c1c1e;
     --gui-text: #c8c8c8;
+    --cost-chip-bg: var(--mc-panel);
     color-scheme: dark;
 }
 
@@ -1990,14 +1993,14 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .anvil-arrow { grid-area: arrow; flex-direction: column; gap: 2px; }
 .arrow-glyph { font-size: 22px; line-height: 1; }
 
-/* Green cost text with the game's drop shadow, on a dark chip so it reads in light mode */
+/* Green cost text with the game's drop shadow, on the theme's cost chip (the anvil's light gray in light mode, the dark panel in dark mode) */
 .anvil-cost {
     font-family: "Minecraft", system-ui, sans-serif;
     font-size: 12px;
     white-space: nowrap;
     color: var(--mc-green);
     text-shadow: 1px 1px 0 var(--mc-green-shadow);
-    background: var(--mc-panel);
+    background: var(--cost-chip-bg);
     padding: 1px 5px;
     border-radius: 2px;
 }
@@ -2122,9 +2125,9 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .saved-chip { display: inline-flex; align-items: stretch; }
 .saved-chip > .preset.mine { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none; }
 .saved-chip-x { padding: 0 7px; border: 1px solid var(--border-strong); border-left: 1px solid var(--border); border-radius: 0 13px 13px 0; background: none; color: var(--text-muted); font: 13px/1 system-ui, sans-serif; cursor: pointer; }
-.saved-chip.selected > .saved-chip-x { border-color: var(--accent); }
+.saved-chip.selected > .saved-chip-x { border-left-color: var(--accent); } /* (only the line beside the name: the rest of the × keeps the plain outline) */
 .saved-chip > .preset.mine:is(:hover, :focus-visible) + .saved-chip-x { border-left-color: var(--accent); } /* (the line between name and × is the ×'s left edge: it joins the name's outline) */
-.saved-chip-x:hover, .saved-chip-x:focus-visible { color: var(--danger-text); border-color: var(--danger-text); }
+.saved-chip-x:hover, .saved-chip-x:focus-visible, .saved-chip.selected > .saved-chip-x:is(:hover, :focus-visible) { color: var(--danger-text); border-color: var(--danger-text); } /* (also on a selected preset, whose × is otherwise ringed in the accent) */
 .preset.add { border-style: dashed; color: var(--text-muted); }
 .saved-warning { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-bg); color: var(--accent-text); font-size: 12px; } /* (a note of the rules a loaded setup changed) */
 .saved-warning > span { flex: 1; min-width: 0; }
@@ -2990,3 +2993,6 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 @keyframes pop-in { from { opacity: 0; translate: 0 -4px; } }
 .presets-menu[open] > .presets-panel, .options-menu[open] > .options-panel, .language-panel:not([hidden]), .level-pop:not([hidden]),
 .has-breakdown.open .cost-breakdown, .compare-tip { animation: pop-in 0.14s ease-out; }
+/* While the item grid is open in the card, the card scrolls with the page instead of sticking (and never condenses: Wanted.js setupItemDock),
+   so every item can be reached however tall the grid is. */
+@media (max-width: 1359px) { .item-dock:has(.wanted-head.menu-open) { position: relative; top: auto; } }
