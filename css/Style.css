@@ -660,7 +660,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     gap: 3px;
     margin-left: 8px;
     padding: 0 7px;
-    border: 1px dashed var(--border-strong);
+    border: 1px solid var(--border-strong);
     border-radius: 9px;
     font: 11px/16px system-ui, sans-serif;
     color: var(--text-muted);
@@ -815,7 +815,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .toolbar .view-switch { margin-left: auto; }
 .view-switch button, .view-icons button { display: inline-flex; align-items: center; padding: 4px 9px; }
 .view-switch svg, .view-icons svg { display: block; width: 16px; height: 16px; }
-.entry-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; }
+.entry-grid { position: relative; display: grid; grid-template-columns: minmax(0, 1fr); gap: 8px; align-items: start; align-content: start; } /* (rows never stretch: while its height eases from a taller view the grid is held taller than its rows, and stretched rows put every card lower than it ends) */
 @container books (min-width: 440px) {
     .entry-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
@@ -844,7 +844,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .entry-card.bare > .entry-tooltip { align-self: center; }
 .entry-card.popover-open { border-color: var(--accent); }
 .entry-card.dragging { opacity: 0.55; }
-.entry-card.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.entry-card.drop-target { outline: 2px solid var(--accent); outline-offset: 2px; }
 .entry-head { display: flex; align-items: center; gap: 4px; min-width: 0; min-height: 24px; }
 .entry-tools { display: flex; align-items: center; margin-left: auto; }
 /* The grip, ⋯, ⧉ and ×: small to look at, but with room to hit (bigger on touch screens). */
@@ -896,7 +896,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 }
 /* Reached chips: the game's green text (as the Levels and cost chips) on the tooltip's dark, so it reads in both themes. */
 .cover-chip.ok { background: var(--mc-tooltip-bg); color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); border-color: var(--mc-tooltip-edge); }
-.cover-chip.short { background: var(--warning-bg); color: var(--warning-text); border: 1px dashed var(--warning-text); cursor: pointer; } /* (the warning colours, as its pixel x) */
+.cover-chip.short { background: var(--warning-bg); color: var(--warning-text); border: 1px solid var(--warning-text); cursor: pointer; } /* (the warning colours, as its pixel x) */
 .cover-chip.short:hover, .cover-chip.short:focus-visible { border-style: solid; }
 /* The coverage chips are all in the game font: names, the "best now: II" / "not on any book" note and the "All 13 reached" summary. */
 .cover-chip { font-family: "Minecraft", system-ui, sans-serif; }
@@ -974,7 +974,7 @@ button.entry-summary:hover, .entry-summary.open { background: var(--surface-alt)
 .mc-tooltip.line-ghost { position: fixed; z-index: 60; width: auto; padding: 3px 7px; pointer-events: none; box-shadow: var(--shadow-drag); }
 .entry-card.drag-source { opacity: 0.7; }
 .entry-card.drop-ok { outline: 2px solid var(--accent); outline-offset: 2px; }
-.entry-card.drop-no { outline: 2px dashed var(--danger-text); outline-offset: 2px; }
+.entry-card.drop-no { outline: 2px solid var(--danger-text); outline-offset: 2px; }
 body.dragging, body.dragging * { cursor: grabbing !important; }
 
 /* The slot is the book/item switch: a purple ring on hover. The stack count sits in its
@@ -1090,7 +1090,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
 .entry-line:focus-visible, .entry-add:focus-visible { outline: 1px solid var(--mc-aqua); outline-offset: 1px; }
 .mc-ench .tag-flag { flex: none; text-shadow: none; }
 
-/* The add area, a dashed bar under the entries: the two add buttons and the type box. */
+/* The add area, a bar under the entries: the two add buttons and the type box. */
 .entry-add-buttons { display: flex; flex-wrap: wrap; gap: 6px; }
 .type-add { display: flex; gap: 6px; }
 .type-add-input {
@@ -1114,7 +1114,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     align-items: center;
     gap: 8px 12px;
     padding: 8px;
-    border: 1px dashed var(--border-strong);
+    border: 1px solid var(--border-strong);
     border-radius: var(--radius);
 }
 .entry-add-card .type-add { flex: 1 1 220px; }
@@ -1435,7 +1435,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     width: 32px;
     height: 32px;
     padding: 0;
-    border: 1px dashed var(--border-strong);
+    border: 1px solid var(--border-strong);
     border-radius: 50%;
     background: none;
     color: var(--text-secondary);
@@ -1648,7 +1648,7 @@ button.entry-badge:hover, .entry-badge.open { background: var(--surface); }
     touch-action: none; /* a finger drags the tile instead of scrolling the page */
 }
 .rank-tile.dragging { opacity: 0.55; cursor: grabbing; }
-.rank-tile.drop-target { outline: 2px dashed var(--accent); outline-offset: 2px; }
+.rank-tile.drop-target { outline: 2px solid var(--accent); outline-offset: 2px; }
 .rank-tile-head { display: flex; align-items: baseline; gap: 5px; }
 /* The grip: two columns of dots, so the tile looks draggable. */
 .rank-grip { flex: none; align-self: center; width: 8px; height: 12px; opacity: 0.4; background: radial-gradient(circle, currentColor 1.1px, transparent 1.5px) 0 0 / 4px 4px; }
@@ -2128,7 +2128,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .saved-chip.selected > .saved-chip-x { border-left-color: var(--accent); } /* (only the line beside the name: the rest of the × keeps the plain outline) */
 .saved-chip > .preset.mine:is(:hover, :focus-visible) + .saved-chip-x { border-left-color: var(--accent); } /* (the line between name and × is the ×'s left edge: it joins the name's outline) */
 .saved-chip-x:hover, .saved-chip-x:focus-visible, .saved-chip.selected > .saved-chip-x:is(:hover, :focus-visible) { color: var(--danger-text); border-color: var(--danger-text); } /* (also on a selected preset, whose × is otherwise ringed in the accent) */
-.preset.add { border-style: dashed; color: var(--text-muted); }
+.preset.add { border-style: solid; color: var(--text-muted); }
 .saved-warning { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-bg); color: var(--accent-text); font-size: 12px; } /* (a note of the rules a loaded setup changed) */
 .saved-warning > span { flex: 1; min-width: 0; }
 .saved-warning-x { flex: none; padding: 0 4px; border: none; background: none; color: inherit; font: 15px/1 system-ui, sans-serif; cursor: pointer; }
@@ -2571,13 +2571,13 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .cover-ring .ring-track { stroke: color-mix(in srgb, var(--mc-green) 25%, transparent); }
 .cover-ring .ring-fill { stroke: var(--mc-green); stroke-linecap: round; }
 #books .entry-add-card.drop-ok { outline: 2px solid var(--accent); outline-offset: 2px; }
-#books .entry-add-card.drop-no { outline: 2px dashed var(--danger-text); outline-offset: 2px; }
+#books .entry-add-card.drop-no { outline: 2px solid var(--danger-text); outline-offset: 2px; }
 .entry-card.merge-target { outline: 2px solid var(--accent); outline-offset: 2px; }
 .merge-ghost { position: fixed; z-index: 70; display: flex; align-items: flex-start; gap: 8px; pointer-events: none; filter: drop-shadow(0 6px 12px var(--ink-35)); }
 .merge-ghost.done { opacity: 0; transition: opacity 0.4s ease 1.1s; }
 .merge-chip { min-width: 80px; max-width: 230px; padding: 5px 9px; border: 1px solid var(--border-strong); border-radius: 8px; background: var(--surface); color: var(--text); font: 12px/1.35 system-ui, sans-serif; }
 .merge-chip:empty { display: none; }
-.merge-chip.ok { border-color: var(--success-text); }
+.merge-chip.ok { border-color: var(--accent); }
 .merge-chip.bad { border-color: var(--danger-text); color: var(--danger-text); }
 .merge-chip .merge-result { font-size: 11px; color: var(--text-muted); }
 /* The slots view. */
@@ -2619,11 +2619,16 @@ div.slot-cell-button { cursor: default; }
 body.dragging { -webkit-user-select: none; user-select: none; }
 
 .entry-card.slotcell > .drag-handle { position: absolute; top: -9px; left: -6px; z-index: 3; min-width: 18px; height: 17px; border: 1px solid var(--border-strong); background: var(--surface); font-size: 12px; }
-/* Reordering slots: the slot being dragged and the one it would go to (dashed outline) show their tooltips. */
+/* Reordering slots: the slot being dragged and the one it would go to (outlined) show their tooltips. */
 .slotcell.dragging .slot-tip, .slotcell.drop-target .slot-tip { opacity: 1; }
 .entry-card.slotcell.dragging { opacity: 1; }
 .entry-card.slotcell.dragging .mc-slot { opacity: 0.6; }
 .entry-card.slotcell.drop-target { z-index: 31; }
+/* Dragging onto a slot (a merge preview, a line or chip drop, a reorder): the ring hugs the slot, as its hover ring does (the 52px cell is wider than the 48px slot). */
+.entry-card.slotcell:is(.merge-target, .drop-ok, .drop-target) { outline: none; }
+.entry-card.slotcell.drop-no { outline: none; }
+.entry-card.slotcell:is(.merge-target, .drop-ok, .drop-target) .mc-slot { box-shadow: 0 0 0 2px var(--accent); }
+.entry-card.slotcell.drop-no .mc-slot { box-shadow: 0 0 0 2px var(--danger-text); }
 
 /* Anvil uses: the Compact toggle, slot labels, instruction, cost breakdown,
    final card, phone bar, the Slots view and the compact tree. */
@@ -2781,7 +2786,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .coverage { position: relative; }
 .chip-leaving { position: absolute; pointer-events: none; } /* (under the summary chip, z-index 1, which slides over it) */
 /* No order within the limit: where it breaks, and the way out. */
-.break-down { display: grid; gap: 8px; justify-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--warning-text); }
+.break-down { display: grid; gap: 8px; justify-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--warning-text); }
 .break-down p { margin: 0; }
 .break-title { font-weight: 700; }
 .break-step { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; }
@@ -3021,3 +3026,12 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 .anvil-step.folding::after { content: ""; position: absolute; inset: -1px; z-index: 3; border: 1px solid; border-color: inherit; border-radius: inherit; pointer-events: none; }
 /* The arrow is drawn over the cost beside it (they can meet while a view switch circles the cost round it). */
 .anvil-arrow > .arrow-glyph { position: relative; z-index: 1; }
+/* An open step's one-line summary is there but hidden (a fold fades it in or out: Results.js fadeFoldLook). */
+.anvil-step:not(.folded) > .step-head .step-summary { opacity: 0; }
+/* In the Slots view the - / + is placed in the 52px card, wider than its slot (48px, 40px under 420px) on the right: moved in by the difference, it
+   sits at the slot's corner exactly as in the Cards and List views (8px past the slot's right edge). */
+.entry-card.slotcell .copies-control { right: calc(52px - 48px - 8px); }
+@media (max-width: 420px) { .entry-card.slotcell .copies-control { right: calc(52px - 40px - 8px); } }
+
+/* A copy or remove button travelling between views (Motion.js morphCard): in a bare card, so the card's button rules reach it. */
+.entry-card.tool-fly { position: absolute; display: block; width: auto; height: auto; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; outline: 0; pointer-events: none; z-index: 3; }

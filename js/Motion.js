@@ -221,6 +221,7 @@ function slotUnit(card) {
 }
 
 // A part of a card, by its first class (the tooltip, the head strip, the summary...).
+const COPIES_OFFSET = { right: 8, bottom: 10 }; // the - / + from its slot's bottom-right corner (Style.css .copies-control)
 function partName(part) {
     return part.classList[0] || part.tagName;
 }
@@ -255,6 +256,9 @@ function cardGhost(card, unit, box, hide_slot) {
     return clone;
 }
 
+// A card's copy and remove buttons (by class).
+const TOOLS = ["entry-tool", "entry-remove"];
+
 // Where each card was before a redraw (by entry id), for animateCards: relative to the
 // grid, so only moves inside it animate (not the whole section moving with the page).
 // Each also has where its slot and its other parts were and how its box looked (`slot`,
@@ -275,6 +279,10 @@ export function cardRects(box, ghosts = false) {
         rects.set(card.dataset.key, {
             ...relative(outline),
             slot: unit ? relative((card.querySelector(".mc-slot") || unit).getBoundingClientRect()) : null, // the slot itself: its wrapper can be wider (the slots view's button)
+            // The stack count's - / +, where it was (or where a flyer of it is, caught mid-switch): it flies from there (morphCard).
+            control: (() => { const c = document.querySelector(`body > .copies-flyer[data-for="${CSS.escape(card.dataset.key)}"]`) || card.querySelector(".copies-control"); const r = c && c.getBoundingClientRect(); return r && r.width >= 1 && getComputedStyle(c).visibility !== "hidden" ? relative(r) : null; })(),
+            // The copy and remove buttons (⧉ and ×), where they were: they travel to their new places on a view change (morphCard).
+            tools: Object.fromEntries(TOOLS.map(name => { const b = card.querySelector("." + name); const r = b && b.getBoundingClientRect(); return [name, r && r.width >= 1 && getComputedStyle(b).visibility !== "hidden" ? relative(r) : null]; })),
             parts: new Map([...card.children].filter(part => part !== unit).map(part => [partName(part), relative(part.getBoundingClientRect())])),
             chrome: { background: style.backgroundColor, border: parseFloat(style.borderTopWidth) > 0 ? style.borderTopColor : "rgba(0, 0, 0, 0)", radius: style.borderTopLeftRadius, width: parseFloat(getComputedStyle(card).borderTopWidth) || 0 },
             ghost: ghosts && !frame ? cardGhost(card, unit, outline, true) : null,
@@ -361,7 +369,9 @@ function morphCard(card, old, now, timing, how) {
         origin = `${inner.left - outer.left}px ${inner.top - outer.top}px`;
     }
     // (Where the old contents are a copy laid over the card, the new ones are simply there under it: only what has nothing going away over it fades in.)
-    const fading = (!keep && old.ghost) ? [] : [...card.children].filter(child => child !== unit && !child.matches(".slot-tip, .copies-control") && getComputedStyle(child).opacity === "1" && !(keep && old.parts.has(partName(child))));
+    // (Always, even with the old contents' copy over it: the new tooltip fades in while the old one fades out, so every switch both shows it going
+    // and coming; it was skipped where a copy lay over it, and then whether a tooltip faded depended on which view it came from.)
+    const fading = [...card.children].filter(child => child !== unit && !child.matches(".slot-tip, .copies-control") && getComputedStyle(child).opacity === "1" && !(keep && old.parts.has(partName(child))));
     const looks = (box, chrome) => ({ width: box.width + "px", height: box.height + "px", backgroundColor: chrome.background, borderColor: chrome.border, borderRadius: chrome.radius });
     const frame = h("div", { class: "card-frame", "aria-hidden": "true" });
     frame.style.left = frame.style.top = -now.chrome.width + "px";
@@ -382,8 +392,11 @@ function morphCard(card, old, now, timing, how) {
         ghost.style.top = now.top + "px";
         card.parentElement.append(ghost);
         animations.push(ghost.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], timing));
+        // (Exactly the card's box, so the card's edge is what cuts it.)
         animations.push(ghost.animate([{ width: old.width + "px", height: old.height + "px" }, { width: now.width + "px", height: now.height + "px" }], timing));
-        animations.push(fadeOutCover(ghost, timing.duration));
+        // Its tooltip fades from the first frame (ease-out: most of the fade early, while the card's box is still closing over it), so it is seen
+        // fading as the card's edge cuts it, even into a Slots card, whose box closes most of the way in the first frames.
+        animations.push(ghost.animate([{ opacity: 1 }, { opacity: 0 }], { duration: timing.duration * 0.5, easing: "ease-out", fill: "forwards" }));
     }
     if (keep) {
         for (const child of card.children) {
@@ -393,10 +406,79 @@ function morphCard(card, old, now, timing, how) {
             animations.push(child.animate([{ transform: `translate(${was.left - is.left - dx}px, ${was.top - is.top - dy}px)` }, { transform: "none" }], timing));
         }
     }
-    // The stack count's - / + (always shown on touch) waits at the card's new place while the slots travel, and the slots of the cards after it
-    // passed over it: it stays hidden until the slots have landed, then fades in.
-    for (const control of card.querySelectorAll(":scope > .copies-control, :scope .copies-control")) {
-        animations.push(control.animate([{ opacity: 0 }, { opacity: 0, offset: 0.75 }, { opacity: 1 }], timing));
+    // The stack count's - / + (in every view; always shown on touch) rides its slot's bottom-right corner, unfaded, and above every slot: a copy of it
+    // flies in the grid itself (a card is a layer of its own, so the slots of the cards after it would pass over the real one) while the real one hides.
+    const copies_flyers = [];
+    const slot_of = card.querySelector(".mc-slot");
+    for (const control of card.querySelectorAll(".copies-control")) {
+        if (!old.slot || !now.slot || !slot_of) continue;
+        // (Hidden ones too, at any width: with a mouse it shows only while its card is hovered, and the copy shows exactly when it would.)
+        // (Measured whole: the control and its - and + shown for a moment, as on hover; a count of 1 is nothing but them.)
+        const parts = [control, ...control.querySelectorAll(".copies-step")];
+        const shown = parts.map(part => part.style.display);
+        parts.forEach((part, i) => { part.style.display = i ? "inline-flex" : "flex"; });
+        const r = control.getBoundingClientRect(), s0 = slot_of.getBoundingClientRect();
+        parts.forEach((part, i) => { part.style.display = shown[i]; });
+        if (r.width < 1) continue;
+        // Where it sits by its slot: its right edge 8px past the slot's and its bottom 10px below (Style.css .copies-control, the same in every view
+        // and whether its - and + show). Not measured here: mid-switch the card is laid out as neither view, and that put it off by up to 15px.
+        const off = COPIES_OFFSET;
+        const fly = control.cloneNode(true);
+        fly.classList.add("copies-flyer");
+        fly.dataset.for = card.dataset.key;
+        fly.setAttribute("aria-hidden", "true");
+        // (On the page, fixed, not in the grid: the grid clips while its height eases, and cut the copies off under the slots of a short new row.
+        // Under the item bar, z-index 25.)
+        Object.assign(fly.style, { position: "fixed", left: "auto", bottom: "auto", margin: "0", zIndex: "20", pointerEvents: "none" });
+        document.body.append(fly);
+        control.style.visibility = "hidden";
+        copies_flyers.push({ fly, control, off });
+    }
+    // Each frame every copy is put by its own slot as that slot is drawn now (wherever its glide has got to), held by its right edge and bottom
+    // as the real one is, so it never drifts from its icon; and it shows what its real one would show (the control, and its - and + by the count).
+    if (copies_flyers.length) {
+        const grid = card.parentElement;
+        const follow = () => {
+            if (!copies_flyers.every(({ fly }) => fly.isConnected)) return;
+            const s = slot_of.getBoundingClientRect();
+            for (const entry of copies_flyers) {
+                const { fly, control } = entry;
+                fly.style.display = getComputedStyle(control).display;
+                const real_parts = control.querySelectorAll("*"), fly_parts = fly.querySelectorAll("*");
+                real_parts.forEach((part, i) => { if (fly_parts[i]) fly_parts[i].style.display = getComputedStyle(part).display; });                const { off } = entry;
+                // (By its left edge, from its width now: a fixed box's `right` counts from the window's edge, past the scrollbar.)
+                fly.style.right = "auto";
+                fly.style.left = s.right + off.right - fly.offsetWidth + "px";
+                fly.style.top = s.bottom + off.bottom - fly.offsetHeight + "px";
+            }
+            requestAnimationFrame(follow);
+        };
+        queueMicrotask(follow); // (first once the slot's glide is set up below, before anything is drawn)
+    }
+    // A change of view: the copy and remove buttons travel from where they were to where they are (in the grid beside the card, in a bare card so the
+    // card's button rules reach them, unfaded: the old ones are hidden in the copy of the old contents, the real new ones until the end).
+    const tool_flyers = [];
+    if (!keep) {
+        for (const name of TOOLS) {
+            const button = card.querySelector("." + name), was = old.tools?.[name], is = now.tools?.[name];
+            if (!button || !was || !is) continue;
+            const fly = button.cloneNode(true);
+            fly.removeAttribute("data-focus");
+            fly.tabIndex = -1;
+            const wrap = h("div", { class: "entry-card tool-fly", "aria-hidden": "true" }, fly);
+            wrap.inert = true;
+            wrap.style.left = is.left + "px";
+            wrap.style.top = is.top + "px";
+            card.parentElement.append(wrap);
+            const size = box => ({ width: box.width + "px", height: box.height + "px" });
+            fly.style.boxSizing = "border-box";
+            animations.push(wrap.animate([{ transform: `translate(${was.left - is.left}px, ${was.top - is.top}px)` }, { transform: "none" }], timing));
+            animations.push(fly.animate([size(was), size(is)], timing));
+            const in_copy = old.ghost?.querySelector("." + name);
+            if (in_copy) in_copy.style.visibility = "hidden";
+            button.style.visibility = "hidden";
+            tool_flyers.push({ wrap, button });
+        }
     }
     if (unit && old.slot && now.slot) {
         unit.style.zIndex = "2";
@@ -413,6 +495,8 @@ function morphCard(card, old, now, timing, how) {
         done = true;
         frame.remove();
         if (ghost) ghost.remove();
+        for (const { fly, control } of copies_flyers) { fly.remove(); control.style.visibility = ""; }
+        for (const { wrap, button } of tool_flyers) { wrap.remove(); button.style.visibility = ""; }
         card.classList.remove("morphing");
         if (unit) unit.style.zIndex = "";
     };
@@ -518,7 +602,6 @@ export function leaveBar(anchor, old) {
 // The coverage chips of a folded "All n reached" menu roll out of its chip one row at a
 // time (rollChipsIn, after the redraw that shows them; `old_height` is the strip's height
 // before) and back into it, the last row first (rollChipsOut, then `done` redraws).
-const ROLL_STEP_MS = 80;
 
 function chipRows(strip) {
     const summary = strip.querySelector(".cover-chip.summary");
@@ -537,22 +620,23 @@ function chipRows(strip) {
 
 // How far a chip sits from the summary chip: the ones on its row slide out from under it,
 // the rows below drop from its row.
+const CHIP_ROLL_MS = 320; // "All N reached" opening or closing
 function fromSummary(summary, chip) {
     const from = summary.getBoundingClientRect();
     const box = chip.getBoundingClientRect();
-    const same_row = Math.abs(box.top - from.top) < 4;
-    return same_row ? { dx: Math.min(0, from.left + from.width / 2 - box.left), dy: 0 } : { dx: 0, dy: from.top - box.top };
+    // (Straight from the summary's centre to the chip's: every chip comes out of, or goes back into, the summary on a line of its own.)
+    return { dx: from.left + from.width / 2 - (box.left + box.width / 2), dy: from.top + from.height / 2 - (box.top + box.height / 2) };
 }
 
 export function rollChipsIn(strip, old_height) {
     if (!motionOk()) return;
     const { summary, chips, rows } = chipRows(strip);
     if (!summary || !chips.length) return;
-    growSmoothly(strip, old_height, { duration: 240 + (rows - 1) * ROLL_STEP_MS, easing: MORPH_EASING });
-    for (const { chip, row, column } of chips) {
+    // All at once and at an even pace: each chip travels in a straight line out of the summary while the strip grows with them.
+    growSmoothly(strip, old_height, { duration: CHIP_ROLL_MS, easing: "linear" });
+    for (const { chip } of chips) {
         const { dx, dy } = fromSummary(summary, chip);
-        chip.animate([{ opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.8)` }, { opacity: 1, transform: "none" }],
-            { duration: 280, delay: row * ROLL_STEP_MS + column * 18, easing: "cubic-bezier(0.2, 0.8, 0.3, 1)", fill: "backwards" });
+        chip.animate([{ opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.8)` }, { opacity: 1, transform: "none" }], { duration: CHIP_ROLL_MS, easing: "linear" });
     }
 }
 
@@ -563,16 +647,15 @@ export function rollChipsOut(strip, done) {
     for (const { chip } of chips) chip.style.display = "none";
     const closed = strip.getBoundingClientRect().height;
     for (const { chip } of chips) chip.style.display = "";
-    const total = 200 + (rows - 1) * ROLL_STEP_MS;
     strip.style.overflow = "hidden";
     strip.style.pointerEvents = "none";
-    strip.animate([{ height: open + "px" }, { height: closed + "px" }], { duration: total, easing: MORPH_EASING, fill: "forwards" });
-    for (const { chip, row, column } of chips) {
+    // All at once and at an even pace, the reverse of opening: each chip goes back into the summary in a straight line while the strip shrinks.
+    strip.animate([{ height: open + "px" }, { height: closed + "px" }], { duration: CHIP_ROLL_MS, easing: "linear", fill: "forwards" });
+    for (const { chip } of chips) {
         const { dx, dy } = fromSummary(summary, chip);
-        chip.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.8)` }],
-            { duration: 200, delay: (rows - 1 - row) * ROLL_STEP_MS + column * 12, easing: "ease-in", fill: "forwards" });
+        chip.animate([{ opacity: 1, transform: "none" }, { opacity: 0, transform: `translate(${dx}px, ${dy}px) scale(0.8)` }], { duration: CHIP_ROLL_MS, easing: "linear", fill: "forwards" });
     }
-    setTimeout(done, total + 20);
+    setTimeout(done, CHIP_ROLL_MS + 20);
 }
 
 // A "Pick one" group's chosen row when it appears (None to an enchantment) opens from no height

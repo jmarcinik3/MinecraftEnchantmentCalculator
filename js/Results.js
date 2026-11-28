@@ -359,7 +359,26 @@ let drawn_key = null;
 function easeFolds(heights) {
     // A tree merge or step that folds keeps its contents on show while its box shrinks, so it is unfolding played backwards (the box clips them); then it hides them.
     const keepBranch = el => el.matches("li.tree-node.folded, li.anvil-step.folded") ? () => { el.classList.add("folding"); return () => el.classList.remove("folding"); } : undefined;
-    for (const [number, el] of stepBoxes()) if (heights.has(number)) easeHeight(el, heights.get(number), { during: keepBranch(el), overhang: el.matches(".anvil-step") ? 40 : 0 }); // (a step's circle sits on the rail, outside its box)
+    for (const [number, el] of stepBoxes()) {
+        if (!heights.has(number)) continue;
+        // (Only a step whose fold changed: `heights` holds every step's, and the others keep their height.)
+        if (el.matches(".anvil-step") && motionOk() && Math.abs(el.getBoundingClientRect().height - heights.get(number)) > 30) fadeFoldLook(el);
+        easeHeight(el, heights.get(number), { during: keepBranch(el), overhang: el.matches(".anvil-step") ? 40 : 0 }); // (a step's circle sits on the rail, outside its box)
+    }
+}
+
+// A step folding or unfolding: its card (the background and border a folded step has, an open one has not) fades between the two looks, and the
+// one-line summary in its head fades in or out, alongside the height.
+function fadeFoldLook(el) {
+    const folded = el.classList.contains("folded");
+    const look = () => { const s = getComputedStyle(el); return { backgroundColor: s.backgroundColor, borderColor: s.borderColor }; };
+    const now = look();
+    el.classList.toggle("folded", !folded); // (the other look, read in the same frame: nothing is drawn meanwhile)
+    const was = look();
+    el.classList.toggle("folded", folded);
+    el.animate([was, now], { duration: FOLD_MS, easing: FOLD_EASING });
+    const summary = el.querySelector(":scope > .step-head .step-summary");
+    if (summary) summary.animate([{ opacity: folded ? 0 : 1 }, { opacity: folded ? 1 : 0 }], { duration: FOLD_MS * 0.6, easing: "ease-out", delay: folded ? FOLD_MS * 0.3 : 0, fill: "backwards" });
 }
 
 // The "?" in a round's label: why its steps can go in any order (a bubble that floats over the page).
@@ -643,7 +662,8 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         onclick: event => { if (!event.target.closest(".step-fold")) toggleFold(order_key, number, !folded); }
     },
         h("span", { class: "step-title", "data-fly": "step:" + number }, TEXT.results.step_title({ number })),
-        h("span", { class: "step-summary" }, folded ? stepLine(step) : null),
+        // (Always there, and shown only while folded, so a fold can fade it in or out: easeFolds.)
+        h("span", { class: "step-summary", "aria-hidden": folded ? null : "true" }, stepLine(step)),
         h("button", {
             type: "button", class: "step-fold", "aria-expanded": String(!folded), "aria-label": fold_label, title: fold_label,
             onclick: () => toggleFold(order_key, number, !folded)
