@@ -2119,6 +2119,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .saved-chip > .preset.mine { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none; }
 .saved-chip-x { padding: 0 7px; border: 1px solid var(--border-strong); border-left: 1px solid var(--border); border-radius: 0 13px 13px 0; background: none; color: var(--text-muted); font: 13px/1 system-ui, sans-serif; cursor: pointer; }
 .saved-chip.selected > .saved-chip-x { border-color: var(--accent); }
+.saved-chip > .preset.mine:is(:hover, :focus-visible) + .saved-chip-x { border-left-color: var(--accent); } /* (the line between name and × is the ×'s left edge: it joins the name's outline) */
 .saved-chip-x:hover, .saved-chip-x:focus-visible { color: var(--danger-text); border-color: var(--danger-text); }
 .preset.add { border-style: dashed; color: var(--text-muted); }
 .saved-warning { display: flex; align-items: flex-start; gap: 8px; margin-top: 8px; padding: 6px 10px; border: 1px solid var(--accent); border-radius: var(--radius); background: var(--accent-bg); color: var(--accent-text); font-size: 12px; } /* (a note of the rules a loaded setup changed) */
