@@ -1086,7 +1086,9 @@ function stepHotbar(steps, done, order_key, level_up = false) {
             onpointerenter: event => placeHotbarTip(event.currentTarget), onfocus: event => placeHotbarTip(event.currentTarget),
             // Hovering or focusing it lights the Section 3 cards that went into this step's result, as a merged item does in Steps and Tree.
             ...sourcesHover(step.node)
-        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, mcMark("check")) : null, tip,
+        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number),
+            // Its cost in levels, in the slot's bottom-right corner where a stack's count goes (the game's green).
+            h("span", { class: "hotbar-cost", "aria-hidden": "true" }, step.node.merge_levels), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, mcMark("check")) : null, tip,
             index === current ? h("span", { class: "hotbar-ring", "aria-hidden": "true" }) : null);
     });
     return h("div", { class: "step-hotbar" + (level_up ? " level-up" : ""), role: "group", "aria-label": TEXT.results.hotbar_label },

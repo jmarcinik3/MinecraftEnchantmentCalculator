@@ -2066,7 +2066,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .mc-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 /* Enchantments added or raised by this step */
 .mc-ench.changed { color: var(--mc-white); }
-.mc-ench.changed::before { content: "+ "; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); }
+.mc-ench.changed::before { content: "+\00a0"; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); } /* (a no-break space: a line never breaks between the "+" and its name) */
 
 @media (max-width: 420px) {
     .mc-slot { width: 40px; height: 40px; }
@@ -2414,6 +2414,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     display: inline-flex;
     align-items: center;
     gap: 5px;
+    font-family: "Minecraft", system-ui, sans-serif; /* ("Step 7 · 15 levels" in the game font) */
     font-size: 11px;
     padding: 2px 8px 2px 5px;
     border-radius: 9px;
@@ -2719,7 +2720,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .hotbar-slot.done .item-icon { opacity: 0.45; }
 @media (pointer: coarse) { .hotbar-slot::before { content: ""; position: absolute; inset: -4px 0; } }
 .hotbar-number { position: absolute; left: 1px; top: 0; font: 9px/1 "Minecraft", system-ui, sans-serif; color: var(--mc-white); text-shadow: 1px 1px 0 var(--mc-black); pointer-events: none; }
-.hotbar-check { position: absolute; right: 0; bottom: -1px; font-size: 12px; line-height: 1; font-weight: 700; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-black); pointer-events: none; }
+.hotbar-check { position: absolute; right: 0; top: 0; bottom: auto; font-size: 12px; line-height: 1; font-weight: 700; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-black); pointer-events: none; }
 /* A slot's game tooltip (Results.js stepHotbar): fixed to the window and placed by placeHotbarTip (under the slot, centred, inside the window); shown on hover or keyboard focus. */
 .hotbar-tip { display: none; position: fixed; z-index: 60; width: max-content; max-width: min(280px, calc(100vw - 16px)); text-align: left; white-space: nowrap; pointer-events: none; }
 .hotbar-slot:hover .hotbar-tip, .hotbar-slot:focus-visible .hotbar-tip { display: block; }
@@ -2748,7 +2749,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .slots-mode .anvil-step.folded .anvil-row, .slots-mode .anvil-step.folded .step-caption { display: none; }
 /* The compact tree: each entry a slot and a one-line caption; the tooltip shows on hover. */
 .tree-caption { display: none; }
-.merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-size: 12px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-family: "Minecraft", system-ui, sans-serif; font-size: 11px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
 .merge-tree.compact .tree-line { position: relative; }
 .merge-tree.compact .tree-tooltip { display: none; }
 /* The tooltip shows on mouse hover and keyboard focus only: on touch a tap (which folds or unfolds the merge) would leave it stuck open, so the caption wraps there instead. */
@@ -3035,3 +3036,10 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 
 /* A copy or remove button travelling between views (Motion.js morphCard): in a bare card, so the card's button rules reach it. */
 .entry-card.tool-fly { position: absolute; display: block; width: auto; height: auto; min-height: 0; padding: 0; border: 0; background: none; box-shadow: none; outline: 0; pointer-events: none; z-index: 3; }
+/* While a Tree switch moves copies of its lines (Motion.js morphView), the real ones (and the old view's copy's) are hidden. */
+.lines-flying .tree-children { border-left-color: transparent; }
+.lines-flying .tree-children > .tree-node::before { border-top-color: transparent; }
+.lines-flying .tree-children > .tree-node:last-child::after { display: none; }
+
+/* A hotbar slot's cost, where a stack's count sits in Section 3's slots (bottom-right, the game font, scaled to the 32px slot), in the cost's green. */
+.hotbar-cost { position: absolute; right: 1px; bottom: 1px; z-index: 1; font: 9px/1 "Minecraft", system-ui, sans-serif; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); pointer-events: none; } /* (the step number's size, .hotbar-number) */

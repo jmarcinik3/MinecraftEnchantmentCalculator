@@ -1018,6 +1018,25 @@ function hostPoint(el, origin) {
     return null;
 }
 
+// Where the Tree's lines are, relative to `base`: per shown branch list (`ul.tree-children`, its upright drawn by its left border), the upright's x, top and
+// bottom (the last child's stub, below which the line is masked), and each child's stub's y (Style.css: 18px down each child, 12px left of it).
+function treeLines(scroller, base) {
+    return real(scroller, "ul.tree-children").filter(ul => ul.getClientRects().length && ul.getBoundingClientRect().height >= 1).map(ul => {
+        const r = ul.getBoundingClientRect();
+        const kids = [...ul.children].filter(li => li.matches(".tree-node"));
+        const stubs = kids.map(li => li.getBoundingClientRect().top - base.top + 18);
+        const stub = kids[0] ? getComputedStyle(kids[0], "::before") : null; // (narrower on a phone)
+        // Each stub's own item icon (the icon on its child's line) and where the stub is from it; and the upright's top from its parent's icon.
+        const iconOf = li => li && li.querySelector(":scope > .tree-line [data-node]");
+        const offset = (icon, x, y) => { if (!icon) return null; const q = icon.getBoundingClientRect(); return { id: icon.dataset.node, dx: x - (q.left - base.left), dy: y - (q.top - base.top) }; };
+        const x = r.left - base.left;
+        return {
+            x, top: r.top - base.top, bottom: stubs.length ? stubs[stubs.length - 1] + 1 : r.bottom - base.top, stubs, stub_width: stub ? parseFloat(stub.width) || 10 : 10,
+            by_icon: kids.map((li, k) => offset(iconOf(li), x, stubs[k])), parent: offset(iconOf(ul.closest(".tree-node")), x, r.top - base.top)
+        };
+    });
+}
+
 let settling = null; // ends the morph in progress (set by morphView)
 const arc_stops = new Set(); // the arcs in progress (morphStep): a new switch stops them first, or it measured the arrow where the last frame had put it
 export function viewSnapshot(scroller) {
@@ -1049,7 +1068,11 @@ export function viewSnapshot(scroller) {
     const fly_list = real(scroller, "[data-fly]").map((el, i) => {
         const rect = rel(el);
         const shown = rect.width >= 1 && rect.height >= 1;
-        return { id: el.dataset.fly, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_fly[i] };
+        // (A Tree tooltip's own item icon, by its place in the icon list: in a Compact <-> full Tree switch it goes with that icon.)
+        const icon = el.dataset.fly.startsWith("tip:") && el.closest(".tree-line") ? all_icons.indexOf(el.closest(".tree-line").querySelector("[data-node]")) : -1;
+        // (And how each of its parts is displayed as it rests: a copy laid outside the Tree loses the Tree's rules, the narrow window's hidden commas.)
+        const displays = icon >= 0 ? [...el.querySelectorAll("*")].map(part => getComputedStyle(part).display) : null;
+        return { id: el.dataset.fly, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_fly[i], icon, displays };
     });
     // Compact Tree's captions (the one-line text beside each icon), each with the icon it sits beside.
     const twin_captions = [...copy.querySelectorAll(".tree-caption")];
@@ -1090,7 +1113,8 @@ export function viewSnapshot(scroller) {
     }
     for (const tip of copy.querySelectorAll(".info-tip")) tip.classList.remove("floating");
     const shared = real(scroller, ".round-label").map(rel); // the parts both timeline views have, in order
-    return { copy, held_copy, slot_list, fly_list, caption_list, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
+    const tree_lines = treeLines(scroller, base);
+    return { copy, held_copy, slot_list, fly_list, caption_list, tree_lines, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
 }
 
 // One step's box, from where it was (`was`) to where it is (`now`), both relative to the scroller's visible box.
@@ -1426,6 +1450,7 @@ export function morphView(scroller, container, old) {
                 const natural = n.shown ? n.rect : o.rect;
                 const fly = n.el.cloneNode(true);
                 fly.removeAttribute("data-node");
+                fly.dataset.flyIcon = id;
                 // (A step's result icon: what its arrow aims at while it travels, morphStep. The same item is also the next step's input, so by step.)
                 if (n.el.closest(".anvil-cell.result")) fly.dataset.flyResult = n.el.closest("[data-step-card]")?.dataset.stepCard || "";
                 // (And the inputs, by step and side: on a phone the result keeps in line with them, morphStep.)
@@ -1493,6 +1518,7 @@ export function morphView(scroller, container, old) {
                 return { el, id: el.dataset.fly, rect, shown, point: shown ? null : hostPoint(el, origin) };
             });
             const boxes_old = group(old.fly_list);
+            const tip_riders = []; // Tree tooltips that ride their icon, centred on it (placed each frame below)
             for (const [key, here] of group(boxes_new)) {
                 const olds = boxes_old.get(key);
                 if (!olds) continue;
@@ -1500,9 +1526,37 @@ export function morphView(scroller, container, old) {
                 for (let k = here.length; k < olds.length; k++) pairs.push([olds[k], here[0], 0]);
                 for (const [o, n, k] of pairs) {
                     if (!o.shown && !n.shown) continue;
-                    const from = o.shown ? o.rect : collapsed(o, icons_old, key, k);
-                    const to = n.shown ? n.rect : collapsed(n, icons_new, key, k);
+                    let from = o.shown ? o.rect : collapsed(o, icons_old, key, k);
+                    let to = n.shown ? n.rect : collapsed(n, icons_new, key, k);
                     if (!from || !to) continue;
+                    // A Tree tooltip coming out of its icon (or going back into it) stays centred on its icon, beside it, as the icon flies (put there each
+                    // frame), and is revealed from the icon's side outward and from its middle up and down (or hidden back the same way).
+                    if (key.startsWith("tip:") && o.shown !== n.shown) {
+                        const coming = n.shown;
+                        const el = coming ? n.el : o.twin;
+                        const icon_el = coming ? n.el.closest(".tree-line")?.querySelector("[data-node]") : null;
+                        const icon_rect = coming ? (icon_el && (() => { const q = icon_el.getBoundingClientRect(); return { left: q.left - origin.left, top: q.top - origin.top, width: q.width, height: q.height }; })()) : old.slot_list[o.icon]?.rect;
+                        const id = coming ? icon_el?.dataset.node : old.slot_list[o.icon]?.id;
+                        const rect = coming ? n.rect : o.rect;
+                        if (el && icon_rect && id != null) {
+                            const fly = strip(el);
+                            // (Laid in the layer, outside the Tree, the Tree's own rules no longer reach it: on a narrow window or a touch screen they hide the
+                            // commas and put each enchantment on a line of its own. Each part takes its original's display, so it reads exactly as it rests.)
+                            const copies = [...fly.querySelectorAll("*")];
+                            const displays = coming ? [...el.querySelectorAll("*")].map(part => getComputedStyle(part).display) : o.displays || [];
+                            displays.forEach((display, i) => { if (copies[i]) copies[i].style.display = display; });
+                            place(fly, rect);
+                            const off = { dx: rect.left - icon_rect.left, dy: rect.top + rect.height / 2 - (icon_rect.top + icon_rect.height / 2) };
+                            // (It opens from the icon's side outward and from its middle line up and down: it grows and shrinks in both directions.)
+                            const shut = `inset(${rect.height / 2}px ${rect.width}px ${rect.height / 2}px 0)`, open = "inset(0 0 0 0)";
+                            animations.push(fly.animate(coming ? [{ clipPath: shut }, { clipPath: open }] : [{ clipPath: open }, { clipPath: shut }], { ...timing, fill: "forwards" }));
+                            fly.dataset.rideFor = String(id);
+                            fly.style.zIndex = "2"; // (over the compact captions)
+                            tip_riders.push({ fly, id: String(id), off, rect });
+                            if (coming) hidden.add(n.el); else o.twin.style.visibility = "hidden";
+                            continue;
+                        }
+                    }
                     if (n.shown) {
                         const fly = strip(n.el);
                         place(fly, to);
@@ -1522,18 +1576,40 @@ export function morphView(scroller, container, old) {
                     }
                 }
             }
+            if (tip_riders.length) {
+                const ride = () => {
+                    if (!layer.isConnected) return;
+                    const l = layer.getBoundingClientRect();
+                    for (const { fly, id, off, rect } of tip_riders) {
+                        const icon = layer.querySelector(`[data-fly-icon="${CSS.escape(id)}"]`);
+                        if (!icon) continue;
+                        const q = icon.getBoundingClientRect();
+                        fly.style.translate = `${q.left - l.left + off.dx - rect.left}px ${q.top - l.top + q.height / 2 + off.dy - rect.height / 2 - rect.top}px`;
+                    }
+                    requestAnimationFrame(ride);
+                };
+                queueMicrotask(ride);
+            }
             // Compact Tree's captions (the text beside each icon) follow their icon: an old one travels with it as far as the icon goes, and fades; a new
             // one starts where its icon starts and fades in.
             // (A caption is only drawn inside the compact Tree, by a rule of the tree's, so its clone, laid in the overlay, gets that look itself.)
-            const captionLook = clone => Object.assign(clone.style, { display: "block", fontSize: "12px", color: "var(--text-secondary)", whiteSpace: "nowrap", textOverflow: "ellipsis" });
+            // (Between the compact and full Tree the tooltips cover or uncover the captions, so they don't fade; between the Tree and Steps they do.)
+            const to_other_view = old.timeline !== Boolean(scroller.querySelector(".rounds.timeline"));
+            // (On a phone-width tree the full tooltips go on lines of their own and never cover the captions: there a caption is wiped away from its
+            // right going to the full Tree, and wiped in from its left coming back.)
+            const narrow_tree = scroller.clientWidth <= 480;
+            const captionLook = clone => Object.assign(clone.style, { display: "block", fontFamily: '"Minecraft", system-ui, sans-serif', fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", textOverflow: "ellipsis" });
             for (const caption of old.caption_list) {
                 const moved = follow.old.get(caption.icon);
                 if (!moved || !caption.twin) continue;
                 const gone = strip(caption.twin);
                 captionLook(gone);
                 place(gone, caption.rect);
+                gone.dataset.flyCaption = old.slot_list[caption.icon]?.id || "";
+                gone.style.zIndex = "1"; // (under the full Tree's tooltips, which cover it as they open)
                 animations.push(gone.animate([{ transform: "none" }, { transform: `translate(${moved.dx}px, ${moved.dy}px)` }], { ...timing, fill: "forwards" }));
-                animations.push(fadeOutCover(gone, timing.duration));
+                if (to_other_view) animations.push(fadeOutCover(gone, timing.duration)); // (into Steps no tooltip covers it: it fades)
+                else if (narrow_tree) animations.push(gone.animate([{ clipPath: "inset(0 0 0 0)" }, { clipPath: "inset(0 100% 0 0)" }], { ...timing, easing: "linear", fill: "forwards" })); // (wiped away from the right, at an even pace)
                 caption.twin.style.visibility = "hidden";
             }
             for (const el of real(scroller, ".tree-caption")) {
@@ -1544,9 +1620,53 @@ export function morphView(scroller, container, old) {
                 const fly = strip(el);
                 captionLook(fly);
                 place(fly, rect);
-                animations.push(fly.animate([{ transform: `translate(${moved.dx}px, ${moved.dy}px)`, opacity: 0 }, { transform: "none", opacity: 1 }], { ...timing, easing: "ease-out" }));
+                fly.dataset.flyCaption = el.parentElement.querySelector("[data-node]")?.dataset.node || "";
+                fly.style.zIndex = "1"; // (under the full Tree's tooltips: they uncover it as they close)
+                // (Moving at the icon's own pace, so it keeps its place by the icon all the way; not faded: the tooltips cover or uncover it.)
+                animations.push(fly.animate([{ transform: `translate(${moved.dx}px, ${moved.dy}px)` }, { transform: "none" }], timing));
+                if (to_other_view) animations.push(fly.animate([{ opacity: 0 }, { opacity: 1 }], { ...timing, easing: "ease-out" })); // (out of Steps: it fades in)
+                else if (narrow_tree) animations.push(fly.animate([{ clipPath: "inset(0 100% 0 0)" }, { clipPath: "inset(0 0 0 0)" }], { ...timing, easing: "linear" })); // (wiped in from the left, at an even pace)
                 hidden.add(el);
             }
+        }
+        // The Tree's lines (each branch's upright and every child's stub) move evenly from where they were to where they go, instead of the old ones
+        // fading and the new ones just being there: copies in the layer, while the real ones (and the old copy's) are hidden.
+        const lines_now = old.tree_lines && treeLines(scroller, origin);
+        const lines_match = lines_now && lines_now.length && lines_now.length === old.tree_lines.length && lines_now.every((line, i) => line.stubs.length === old.tree_lines[i].stubs.length);
+        if (lines_match) {
+            scroller.classList.add("lines-flying");
+            const even = { ...timing, easing: "linear" };
+            const bar = (style) => { const el = h("div", { class: "tree-line-flyer view-overlay", "aria-hidden": "true" }); Object.assign(el.style, { position: "absolute", left: "0", top: "0", pointerEvents: "none", background: "var(--border-strong)", ...style }); layer.append(el); return el; };
+            // Each stub keeps its place by its own item icon as that icon flies (moved by as much as the icon's copy is from where it lands), and each
+            // upright runs from beside its parent's icon (moved the same way) down to its last stub, frame by frame.
+            const parts = lines_now.map((line, i) => {
+                const was = old.tree_lines[i];
+                return { line, was, upright: bar({ width: "1px" }), stubs: line.stubs.map((_, k) => { const stub = bar({ width: line.stub_width + "px", height: "1px" }); stub.dataset.forIcon = line.by_icon[k]?.id || ""; return stub; }) };
+            });
+            // Where an icon's copy is drawn this frame, in the layer (its own place, `left`/`top`, plus how far its glide has it from there).
+            const iconAt = id => {
+                const el = id && layer.querySelector(`[data-fly-icon="${CSS.escape(id)}"]`);
+                if (!el) return null;
+                const q = el.getBoundingClientRect(), l = layer.getBoundingClientRect();
+                return { x: q.left - l.left, y: q.top - l.top };
+            };
+            const follow_lines = () => {
+                if (!layer.isConnected) return;
+                for (const { line, upright, stubs } of parts) {
+                    let last = null;
+                    stubs.forEach((stub, k) => {
+                        const mine = line.by_icon[k], icon = iconAt(mine?.id);
+                        last = icon ? { x: icon.x + mine.dx, y: icon.y + mine.dy } : { x: line.x, y: line.stubs[k] };
+                        stub.style.transform = `translate(${last.x}px, ${last.y}px)`;
+                    });
+                    const head = line.parent && iconAt(line.parent.id);
+                    const top = head ? head.y + line.parent.dy : line.top, x = last ? last.x : head ? head.x + line.parent.dx : line.x, bottom = last ? last.y + 1 : top;
+                    upright.style.transform = `translate(${x}px, ${top}px)`;
+                    upright.style.height = Math.max(0, bottom - top) + "px";
+                }
+                requestAnimationFrame(follow_lines);
+            };
+            queueMicrotask(follow_lines);
         }
         for (const el of hidden) el.style.visibility = "hidden";
         let landed = false;
@@ -1555,6 +1675,7 @@ export function morphView(scroller, container, old) {
             landed = true;
             layer.remove();
             for (const el of hidden) el.style.visibility = "";
+            scroller.classList.remove("lines-flying");
         };
         finishers.push(land);
         Promise.allSettled(animations.map(animation => animation.finished)).then(land);
