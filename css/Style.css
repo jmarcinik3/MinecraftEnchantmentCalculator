@@ -206,12 +206,12 @@ html { scrollbar-gutter: stable; scroll-padding-top: calc(var(--dock-h, 0px) + 8
 /* Narrow windows (600px, where Settings becomes its gear): every header button is just its icon (Copy link's label returns while it says
    "Copied"); each keeps its name as its label for screen readers and its hover title. */
 @media (max-width: 600px) {
-    .copy-link:not(.copied) .copy-label, .theme-label, .feedback-open .feedback-label, .presets-button-label { display: none; }
-    .copy-link, .feedback-open, .theme-toggle, .presets-button { width: 32px; padding: 0; justify-content: center; }
+    .header-control.copy-link:not(.copied) .copy-label, .theme-label, .feedback-open .feedback-label, .presets-button-label { display: none; }
+    .header-control.copy-link, .feedback-open, .theme-toggle, .presets-button { width: 32px; padding: 0; justify-content: center; }
     .presets-button .fold-chevron, .options-button .fold-chevron { display: none; }
 }
 @media (max-width: 440px) {
-    .copy-link, .feedback-open, .theme-toggle, .presets-button { width: 28px; }
+    .header-control.copy-link, .feedback-open, .theme-toggle, .presets-button { width: 28px; } /* (the header's Copy link, not the share menu's) */
     /* A little tighter, so the toolbar (with the sun/moon) stays on one row on a 375px phone,
        in Spanish too. */
     header .header-actions { gap: 5px; }
@@ -2484,7 +2484,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
    the enchantment names keep room beside their level bars. */
 @media (max-width: 359px) {
     header .header-actions { gap: 4px; }
-    .copy-link, .feedback-open, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
+    .header-control.copy-link, .feedback-open, .theme-toggle, .header-actions .saved-menu > .header-control { padding: 0 6px; }
     .language-button { padding: 0 6px; }
     .ench-row { column-gap: 6px; }
     .level-bar { --seg: 25px; }
