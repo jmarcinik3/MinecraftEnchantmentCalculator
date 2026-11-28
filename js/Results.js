@@ -5,7 +5,7 @@ import { TEXT, localeOf } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
 import { $, closeOnOutside, copyText, enchLine, flash, h, icon, mcMark, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
 import { svgIcon } from "./Books.js";
-import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
+import { easeHeight, FOLD_EASING, FOLD_MS, foldDetails, foldTarget, growSmoothly, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, spendLevels, levelChip, placeLevelPop, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, runCalculation, running, show_progress } from "./Calc.js";
@@ -127,6 +127,20 @@ function drawResults() {
     const ring_from = old_ring ? { rect: old_ring.getBoundingClientRect(), key: hotbar_key } : null;
     const old_scroll = box.querySelector(".steps-scroll");
     if (old_scroll) steps_scroll.top = old_scroll.scrollTop;
+    // The toolbar's level line ("Need 36 more levels") coming or going eases the toolbar's height (it moved every step 24px at once).
+    const old_tools = box.querySelector(".result-tools");
+    if (old_tools) {
+        const had_status = !!old_tools.querySelector(".level-status");
+        const tools_height = old_tools.getBoundingClientRect().height;
+        queueMicrotask(() => {
+            const tools = box.querySelector(".result-tools");
+            const status = tools?.querySelector(".level-status");
+            if (!tools || !!status === had_status) return;
+            growSmoothly(tools, tools_height, { duration: FOLD_MS, easing: FOLD_EASING });
+            if (status && motionOk()) status.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 220, delay: 80, easing: "ease-out", fill: "backwards" });
+        });
+    }
+    bar_was_shown = !!box.querySelector(".current-bar:not(.tucked)"); // (read before the redraw empties the box: `currentBar` starts the new one the same)
     box.replaceChildren();
     // The slots that lit a card in Books and items are gone (a removed element never gets its blur or mouseleave), so the card goes dark.
     for (const card of document.querySelectorAll("#books .entry-card.highlight")) card.classList.remove("highlight");
@@ -147,13 +161,15 @@ function drawResults() {
 
     const result = last_result;
     // Nothing to show yet (no item, or no enchantment chosen): the card is just its heading and one muted line, its number greyed.
-    const idle = result ? result.status === "empty" : !state.item;
+    // (While a search for chosen enchantments runs, an old "empty" result is stale: the card is not idle, it shows the search.)
+    const searching = running && entries.length > 0 && result?.status === "empty";
+    const idle = result && !searching ? result.status === "empty" : !state.item;
     box.closest(".card").classList.toggle("idle", idle);
     if (idle) {
         box.append(h("p", { class: "idle-line" }, !state.item ? TEXT.page.pick_item_first : TEXT.results.choose_enchantments));
         return;
     }
-    if (!result) return;
+    if (!result || searching) return;
 
     if (result.status === "cancelled") {
         box.append(h("p", { class: "hint" }, TEXT.results.cancelled,
@@ -721,9 +737,10 @@ function watchCurrentStep() {
     if (!bar || !step || !list || typeof IntersectionObserver !== "function") return;
     // Tucked while the step shows, and while the list's top is still in the bottom BAR_ROOM_PX of the window: the bar is sticky inside the
     // list, so there it would be held at the list's top, over the first step's head.
-    let step_shown = false;
-    let list_in_reach = false;
-    const update = () => bar.classList.toggle("tucked", step_shown || !list_in_reach);
+    // (Nothing changes until both have answered once: the first answer alone tucked a bar that was showing, and it blinked at each redraw.)
+    let step_shown = null;
+    let list_in_reach = null;
+    const update = () => { if (step_shown !== null && list_in_reach !== null) bar.classList.toggle("tucked", step_shown || !list_in_reach); };
     const stepWatch = new IntersectionObserver(([entry]) => { step_shown = entry.isIntersecting; update(); });
     const listWatch = new IntersectionObserver(([entry]) => { list_in_reach = entry.isIntersecting; update(); }, { rootMargin: `0px 0px -${BAR_ROOM_PX}px 0px` });
     stepWatch.observe(step);
@@ -746,6 +763,7 @@ function markStepDone(steps, done, order_key, number) {
 // The current step and a Done button, kept at the bottom of the screen while the steps scroll: on phones a bar with the step's line
 // (in flow, sticky), on wide windows a "Next step" card with its three slots over the bottom of the steps column (a zero-high sticky
 // wrapper, so it adds nothing to the scroller's size). Either way it is tucked while its step shows (watchCurrentStep).
+let bar_was_shown = false; // whether the Next step bar was on screen before this redraw (drawResults)
 function currentBar(steps, done, order_key, current) {
     const step = steps.find(entry => entry.number === current);
     const card = () => document.querySelector(`#results .anvil-step[data-step-card="${current}"]`);
@@ -758,8 +776,7 @@ function currentBar(steps, done, order_key, current) {
     }, icon(node.item_namespace));
     // It starts as the bar on screen was (tucked when there was none): its observers answer only after the first frame, and an untucked start
     // flashed the card in and out each time a search finished.
-    const shown = document.querySelector("#results .current-bar:not(.tucked)");
-    return h("div", { class: "current-bar" + (shown ? "" : " tucked") }, h("div", { class: "current-bar-card" },
+    return h("div", { class: "current-bar" + (bar_was_shown ? "" : " tucked") }, h("div", { class: "current-bar-card" },
         h("div", { class: "current-bar-text" },
             h("small", { class: "current-bar-eyebrow" }, TEXT.results.bar_next),
             h("strong", {}, TEXT.results.bar_step({ number: current, total: steps.length })),
@@ -939,7 +956,13 @@ function undoToast(text, undo) {
         h("button", { type: "button", class: "link", onclick: () => { toast.remove(); undo(); } }, TEXT.results.undo));
     document.body.append(toast);
     undo_toast = toast;
-    setTimeout(() => { toast.remove(); if (undo_toast === toast) undo_toast = null; }, 4000);
+    // (It fades out when its time is up, as it faded in.)
+    setTimeout(() => {
+        if (undo_toast === toast) undo_toast = null;
+        if (!toast.isConnected || !motionOk()) { toast.remove(); return; }
+        const fade = toast.animate([{ opacity: 1 }, { opacity: 0, translate: "0 6px" }], { duration: 180, easing: "ease-in", fill: "forwards" });
+        fade.finished.then(() => toast.remove(), () => toast.remove());
+    }, 4000);
 }
 
 // The menu closes on a click outside it, or on Escape (one listener for the menu of every redraw).

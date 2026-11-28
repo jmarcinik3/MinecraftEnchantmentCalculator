@@ -307,6 +307,8 @@ function handleWorkerMessage(event) {
         // XP bar's ease so often that it never moved while hovered.
         if (!progress_frame) progress_frame = requestAnimationFrame(() => { progress_frame = 0; showProgress(); });
     } else if (data.message === "optimal_searched") {
+        progress_share = 1; // (full as it goes: the XP bar shows it done while it fades)
+        shareToBadge();
         stopRunning();
         last_result = { status: "ok", node: data.result };
         result_key = running_key;

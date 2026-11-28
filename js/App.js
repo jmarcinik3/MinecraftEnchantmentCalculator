@@ -3,7 +3,7 @@ import { clampStepLimit, cleanName, createLogic, editionMetadata, EDITIONS, link
 import { DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Text.js";
 import { setupLanguagePicker } from "./Languages.js";
 import { setupFeedback } from "./Feedback.js";
-import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
+import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setWantedReshaped, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
 import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, mcMark, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
 import { renderItem, renderPresetsMenu, renderWanted, setupConflictTips, setupItemDock, setupItemMenu } from "./Wanted.js";
@@ -119,6 +119,7 @@ export function applyMods() {
 export async function setMod(id, on) {
     if (on && !(await loadMods([id])).length) return;
     state.mods = MOD_IDS.filter(other => (other === id ? on : state.mods.includes(other)));
+    setWantedReshaped(true);
     applyMods();
     commit();
 }

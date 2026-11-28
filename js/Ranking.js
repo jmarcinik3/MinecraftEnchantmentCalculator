@@ -110,8 +110,18 @@ export function renderMetrics(rebuild = false) {
     const box = $("#metrics");
     const order = state.priority.join(",");
     if (rebuild || box.dataset.order !== order) {
+        // The tiles slide to their new places (FLIP), as Books and items' cards do, instead of swapping at once.
+        const old = new Map([...box.querySelectorAll(".rank-tile[data-criterion]")].map(tile => [tile.dataset.criterion, tile.getBoundingClientRect()]));
         box.dataset.order = order;
         box.replaceChildren(h("ol", { class: "metrics" }, state.priority.map(rankTile)), rankCaption());
+        if (old.size && motionOk()) {
+            for (const tile of box.querySelectorAll(".rank-tile[data-criterion]")) {
+                const was = old.get(tile.dataset.criterion), now = tile.getBoundingClientRect();
+                if (!was) continue;
+                const dx = was.left - now.left, dy = was.top - now.top;
+                if (Math.abs(dx) >= 1 || Math.abs(dy) >= 1) tile.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: "none" }], { duration: 260, easing: FOLD_EASING });
+            }
+        }
     }
 
     const node = resultNode(); // nothing to show without a step
@@ -149,7 +159,7 @@ function rankTile(criterion, index) {
     const last = index === state.priority.length - 1;
     return h("li", {
         class: "metric rank-tile" + (index === 0 ? " primary" : ""),
-        "data-index": index,
+        "data-index": index, "data-criterion": criterion,
         "data-criterion": criterion,
         title: TEXT.ranking.criteria[criterion].help,
         onpointerdown: event => startRankDrag(event, index)

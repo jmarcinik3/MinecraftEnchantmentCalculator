@@ -409,7 +409,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .wanted-head { position: relative; display: flex; flex-wrap: wrap; gap: 0 16px; margin-bottom: 4px; }
 .wanted-preview { position: relative; flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
 /* While its height slides (Motion.js growSmoothly), new lines show as the box opens. */
-.resizing { overflow: hidden; transition: height 0.25s ease-out; }
+.resizing { overflow: clip; } /* (while Motion.js growSmoothly eases its height) */
 .wanted-controls { flex: 1 1 100%; min-width: 0; margin-bottom: 12px; }
 #wanted > .hint { margin: 0 0 10px; }
 
@@ -430,7 +430,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 .mini-text { flex: 1 1 auto; min-width: 0; overflow: hidden; padding: 3px 7px; }
 .mini-name { font-family: "Minecraft", system-ui, sans-serif; font-weight: normal; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 /* Very narrow: the bar keeps the name and the way to the steps; the cost is in the receipt below. */
-@media (max-width: 359px) { .item-mini .cost-line { display: none; } }
+@media (max-width: 439px) { .item-mini .cost-line { display: none; } } /* (below this the name had no room left: a sliver) */
 .mini-list { font-family: "Minecraft", system-ui, sans-serif; font-size: 12px; color: var(--mc-gray); overflow: hidden; white-space: nowrap; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); } /* fades out at the right instead of "…" (the morph uses the same fade, Wanted.js setupItemDock) */
 .mini-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 .item-mini .cost-line { flex: none; margin: 0; }
@@ -448,14 +448,18 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     .item-dock.condensed .item-mini { display: flex; }
     /* A slow search's progress along the condensed bar's bottom edge, in the game's XP-bar look (Calc.js: `--search-share`, `.on`); it fades in and out. */
     .item-dock.condensed #item { position: relative; }
-    .item-dock.condensed .mini-xp { position: absolute; left: 14px; right: 14px; bottom: -1px; height: 5px; display: block; border: 1px solid var(--mc-black); border-radius: 1px; background: var(--mc-xp-track); overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
-    .item-dock.condensed .mini-xp.on { opacity: 1; pointer-events: auto; }
+    .item-dock.condensed .mini-xp { position: absolute; left: 14px; right: 14px; bottom: -1px; height: 5px; display: block; border: 1px solid var(--mc-black); border-radius: 1px; background: var(--mc-xp-track); overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 0.25s 0.3s; } /* (it goes after a beat, so a finished search shows full) */
+    .item-dock.condensed .mini-xp.on { opacity: 1; pointer-events: auto; transition-delay: 0s; }
     .item-dock.condensed .mini-xp::after { content: ""; position: absolute; inset: -4px 0; } /* (a taller hover target) */
-    .item-dock.condensed .mini-xp > i { position: absolute; inset: 0 auto 0 0; width: calc(var(--search-share, 0) * 100%); background: linear-gradient(var(--mc-green-light), var(--mc-green) 60%, var(--mc-green-deep)); transition: width 0.25s linear; }
+    .item-dock.condensed .mini-xp > i { position: absolute; inset: 0 auto 0 0; width: calc(var(--search-share, 0) * 100%); background: linear-gradient(var(--mc-green-light), var(--mc-green) 60%, var(--mc-green-deep)); } /* (drawn straight from the share, as the badge's ring: an eased width lagged behind) */
     /* Between the two forms (Wanted.js setupItemDock): the full card stays laid out, its box drawn by ::before at --morph-h, the bar's row laid over it
        where it will be, and the dock clipped to the box; clicks pass through the dock's empty part. */
     .item-dock.condensed, .item-dock.morphing { pointer-events: none; }
     .item-dock.morphing { background: none; clip-path: inset(0 0 calc(100% - var(--morph-h) - 8px) 0); }
+    /* The flyers and the bar's enchantment row reach past the window's right edge mid-morph. A clip-path hides them but they still widen the
+       page, and iPhone Safari then zooms the page out to fit (and the zoom changes the layout the morph measures, so it skipped back and
+       forth). `overflow-x: clip` takes them out of the page's width (it is not a scroll box, so the sticky bar keeps working). */
+    .item-dock.morphing, .item-dock.condensed { overflow-x: clip; }
     .item-dock.morphing #item { pointer-events: auto; position: relative; isolation: isolate; background: none; border-color: transparent; }
     .item-dock.morphing #item::before { content: ""; position: absolute; z-index: -1; left: -1px; right: -1px; top: -1px; height: var(--morph-h); box-sizing: border-box; background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
     .item-dock.morphing .item-mini-row { display: flex; align-items: center; gap: 10px; min-width: 0; position: absolute; left: var(--mini-x); top: var(--mini-y); width: var(--mini-w); }
@@ -2772,7 +2776,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .segmented.sliding button { position: relative; }
 .segmented.sliding button.selected { background: transparent; }
 .coverage { position: relative; }
-.chip-leaving { position: absolute; pointer-events: none; }
+.chip-leaving { position: absolute; pointer-events: none; } /* (under the summary chip, z-index 1, which slides over it) */
 /* No order within the limit: where it breaks, and the way out. */
 .break-down { display: grid; gap: 8px; justify-items: start; margin-top: 10px; padding-top: 10px; border-top: 1px dashed var(--warning-text); }
 .break-down p { margin: 0; }
@@ -2980,3 +2984,9 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 .feedback-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .feedback-row select { flex: 1; min-width: 160px; width: auto; }
 
+
+/* Menus, panels and popovers open with a short fade and a 4px drop instead of appearing in one frame (`translate`, not `transform`, so
+   the places their scripts give them are kept). They close at once. The motion switch and reduced motion turn it off with every animation. */
+@keyframes pop-in { from { opacity: 0; translate: 0 -4px; } }
+.presets-menu[open] > .presets-panel, .options-menu[open] > .options-panel, .language-panel:not([hidden]), .level-pop:not([hidden]),
+.has-breakdown.open .cost-breakdown, .compare-tip { animation: pop-in 0.14s ease-out; }

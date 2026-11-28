@@ -45,4 +45,6 @@ export function setState(value) { state = value; }
 export function nextBookId() { return next_book_id++; }
 export function setItemMenuOpen(value) { item_menu_open = value; }
 export function setConflictsToggled(value) { conflicts_toggled = value; }
+export let wanted_reshaped = false; // the next redraw of section 1 changes its whole layout (a mod switched): it eases its height and fades in
+export function setWantedReshaped(value) { wanted_reshaped = value; }
 export function setLanguage(value) { language = value; }

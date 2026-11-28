@@ -23,30 +23,23 @@ function fadeOutCover(copy, duration) {
 export function growSmoothly(element, from, timing = null) {
     const to = element.getBoundingClientRect().height;
     if (Math.abs(to - from) < 1 || !motionOk()) return;
+    // A WAAPI animation, not a CSS transition: a transition is cancelled when an ancestor is hidden for a moment (the item bar's `measure`
+    // switches the card to its condensed form and back to measure it, and the card jumped to its new height), an animation is not.
+    // `.resizing` clips the box meanwhile (`overflow: clip`: a hidden overflow could be scrolled, and focusing inside it scrolled the box).
+    const duration = timing ? timing.duration : 250;
+    element.getAnimations().filter(a => a.id === "grow").forEach(a => a.cancel());
     element.classList.add("resizing");
-    if (timing) {
-        element.style.transitionDuration = timing.duration + "ms";
-        element.style.transitionTimingFunction = timing.easing;
-    }
-    element.style.height = from + "px";
-    element.getBoundingClientRect(); // apply the old height before the transition starts
-    element.style.height = to + "px";
-    // Back to its natural height once done. The timer covers a slide that never ends
-    // (the section closed mid-slide, or a hidden tab), so it can never stay stuck.
+    const animation = element.animate([{ height: from + "px" }, { height: to + "px" }], { duration, easing: timing ? timing.easing : "ease-out" });
+    animation.id = "grow";
+    // Back to its natural height once done. The timer covers a slide that never ends (a hidden tab), so it can never stay stuck.
     let done = false;
     const finish = () => {
         if (done) return;
         done = true;
-        element.classList.remove("resizing");
-        element.style.height = "";
-        element.style.transitionDuration = "";
-        element.style.transitionTimingFunction = "";
+        if (!element.getAnimations().some(a => a.id === "grow" && a !== animation)) element.classList.remove("resizing");
     };
-    // Only its own height transition (the level bars inside have short ones of their own).
-    const own = event => { if (event.target === element && event.propertyName === "height") finish(); };
-    element.addEventListener("transitionend", own);
-    element.addEventListener("transitioncancel", own);
-    setTimeout(finish, (timing ? timing.duration : 250) + 150);
+    animation.finished.then(finish, finish);
+    setTimeout(finish, duration + 150);
 }
 
 // New tooltip lines open from no height in their own place (and fade in), so the lines
@@ -576,14 +569,17 @@ export function closeRow(parent, copy) {
 // (or back) crosses over from a copy of its old self, the others slide to their new places, new
 // ones fade in, gone ones (folded away, or removed) fade out where they were, the ring fills or
 // empties, and the strip grows or shrinks. chipSnapshot before the redraw, animateChips after it.
+// Each enchantment's chip, and the summary ("All 7 reached"), which slides like them (its text changes in place).
+const CHIPS = ".cover-chip[data-ns], .cover-chip.summary";
+const chipKey = chip => chip.dataset.ns || "summary";
 export function chipSnapshot(strip) {
     const snap = { height: 0, chips: new Map(), ring: null };
     if (!strip) return snap;
     const base = strip.getBoundingClientRect();
     snap.height = base.height;
-    for (const chip of strip.querySelectorAll(".cover-chip[data-ns]")) {
+    for (const chip of strip.querySelectorAll(CHIPS)) {
         const box = chip.getBoundingClientRect();
-        snap.chips.set(chip.dataset.ns, {
+        snap.chips.set(chipKey(chip), {
             short: chip.classList.contains("short"), left: box.left - base.left, top: box.top - base.top, width: box.width, height: box.height, copy: inertCopy(chip)
         });
     }
@@ -607,9 +603,9 @@ export function animateChips(strip, old) {
     if (old.height) growSmoothly(strip, old.height, timing);
     const base = strip.getBoundingClientRect();
     const seen = new Set();
-    for (const chip of strip.querySelectorAll(".cover-chip[data-ns]")) {
-        const was = old.chips.get(chip.dataset.ns);
-        seen.add(chip.dataset.ns);
+    for (const chip of strip.querySelectorAll(CHIPS)) {
+        const was = old.chips.get(chipKey(chip));
+        seen.add(chipKey(chip));
         if (!was) {
             chip.animate([{ opacity: 0, transform: "scale(0.85)" }, { opacity: 1, transform: "none" }], { duration: 260, easing: "ease-out", fill: "backwards", delay: 60 });
             continue;

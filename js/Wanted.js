@@ -1,10 +1,10 @@
 // Section 1: the item and the enchantments it should end up with.
 import { EDITIONS, roman } from "./Logic.js";
 import { TEXT, localeOf } from "./Text.js";
-import { conflicts_toggled, item_menu_open, language, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
-import { $, closeOnOutside, enchLine, h, icon, mcMark, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, writeStorage } from "./Dom.js";
+import { conflicts_toggled, item_menu_open, language, logic, setConflictsToggled, setItemMenuOpen, setWantedReshaped, state, wanted_reshaped } from "./Store.js";
+import { $, afterAnimation, closeOnOutside, enchLine, h, icon, mcMark, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, writeStorage } from "./Dom.js";
 import { hoverProgress, last_result, running, searchShare, searchShown } from "./Calc.js";
-import { changeLines, closeRow, easeHeight, foldClick, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
+import { changeLines, closeRow, easeHeight, FOLD_EASING, FOLD_MS, foldClick, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
 import { anvilCell, foldIcon } from "./Results.js";
 import { nameField } from "./Options.js";
 import { floatBubble, infoTip } from "./Tips.js";
@@ -462,7 +462,11 @@ export function renderWanted() {
     if (conflicts_toggled) {
         for (const group of box.querySelectorAll(".ench-group[data-group]")) old_groups.set(group.dataset.group, group.getBoundingClientRect().height);
     }
+    // A redraw that changes the whole layout ("Allow conflicts" turns the groups into one list, a mod adds its boxes): the section eases from
+    // its old height and its lists fade in (the groups that are in both still slide on their own, below).
+    const reshaped = (conflicts_toggled || wanted_reshaped) && state.item ? box.getBoundingClientRect().height : null;
     setConflictsToggled(false);
+    setWantedReshaped(false);
     // Each "Pick a side" section: its chosen rows (a copy, height and level bar each), selected options and border.
     const old_each = captureEach(box);
     // Each row's height, to ease a row that gets taller or shorter (a "not on your books" note appearing, say) instead of jumping.
@@ -517,6 +521,12 @@ export function renderWanted() {
     box.append(...[wantedSearch(), list, ...mod_boxes].filter(Boolean)); // append(null) would print "null"
     const graph = state.allow_incompatible ? null : conflictGraph(searchMatcher()); // (with conflicts allowed nothing conflicts)
     if (graph) box.append(graph); // the last box of the section, at every width
+    if (reshaped != null && motionOk()) {
+        growSmoothly(box, reshaped, { duration: FOLD_MS, easing: FOLD_EASING });
+        for (const part of box.querySelectorAll(":scope > .wanted-list, :scope > .mod-section, :scope > .graph-box")) {
+            part.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 280, delay: 60, easing: "ease-out", fill: "backwards" });
+        }
+    }
     for (const group of box.querySelectorAll(".ench-group[data-group]")) {
         if (!old_groups.has(group.dataset.group)) continue;
         growSmoothly(group, old_groups.get(group.dataset.group));
@@ -845,12 +855,15 @@ function searchInput() {
         type: "search", class: "wanted-search", value: wanted_query, placeholder: TEXT.wanted.search, "aria-label": TEXT.wanted.search, "data-focus": "wanted-search",
         oninput: event => {
             wanted_query = event.target.value;
+            const section = document.querySelector("#wanted");
+            const before = section.getBoundingClientRect().height; // (the list filters, and the section eases to its new height)
             const { list, mod_boxes } = wantedList();
             document.querySelector("#wanted .wanted-list").replaceWith(list);
             for (const old of document.querySelectorAll("#wanted > .mod-section")) old.remove();
             list.after(...mod_boxes);
             markGraphSearch(searchMatcher());
             restoreConflicts();
+            growSmoothly(section, before, { duration: 200, easing: "ease-out" });
         }
     });
 }
@@ -1253,6 +1266,24 @@ let menu_saving = false; // the Presets menu's name box is open
 
 // A group just opened that runs past the bottom of the menu's list: the list scrolls down just far enough to show its last preset, or, when the group is
 // taller than the list, brings its heading to the top.
+// A group of the Presets menu opens or closes with the page's fold: it eases from its old height (a closing one keeps a copy of its list until the end).
+function toggleMenuGroup(item, open, old_group) {
+    const from = old_group ? old_group.getBoundingClientRect().height : 0;
+    const copy = open && old_group?.querySelector(".saved-list") ? inertCopy(old_group.querySelector(".saved-list")) : null;
+    if (open) open_menu_items.delete(item); else open_menu_items.add(item);
+    renderPresetsMenu();
+    if (!open) revealMenuGroup(item); // (first: it measures the group at its open size, and its scroll runs with the fold)
+    const head = document.querySelector(`#presets-panel [data-focus="menu-item-${CSS.escape(item)}"]`);
+    const group = head && head.closest(".presets-menu-group");
+    if (!group || !motionOk()) return;
+    if (!open) { easeHeight(group, from, { fade: false }); return; }
+    const to = group.getBoundingClientRect().height;
+    if (copy) group.append(copy);
+    group.style.overflow = "hidden";
+    const done = () => { copy?.remove(); group.style.overflow = ""; };
+    afterAnimation(group.animate([{ height: from + "px" }, { height: to + "px" }], { duration: FOLD_MS, easing: FOLD_EASING }), done, FOLD_MS + 150);
+}
+
 function revealMenuGroup(item) {
     const list = document.querySelector("#presets-panel .presets-menu-groups");
     const head = list && list.querySelector(`[data-focus="menu-item-${CSS.escape(item)}"]`);
@@ -1276,7 +1307,7 @@ function savedGroups(saved) {
         return h("div", { class: "presets-menu-group" },
             h("button", {
                 type: "button", class: "presets-menu-item", "aria-expanded": String(open), "data-focus": "menu-item-" + item,
-                onclick: () => { if (open) open_menu_items.delete(item); else { open_menu_items.add(item); } renderPresetsMenu(); if (!open) revealMenuGroup(item); }
+                onclick: event => toggleMenuGroup(item, open, event.currentTarget.closest(".presets-menu-group"))
             }, h("span", { class: "fold-chevron", "aria-hidden": "true" }), logic.isItem(item) ? icon(item, true) : null, logic.itemName(item),
                 h("span", { class: "saved-count" }, String(list.length))),
             open ? savedList(list, "grouped") : null);

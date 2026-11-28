@@ -349,6 +349,21 @@ def part_section1(browser, base):
     return errors6
 
 
+def part_phone_morph(browser, base):
+    """on a phone (393px, an iPhone 15 Pro) the Item card's morph into the bar never widens the page: iPhone Safari zoomed out to fit, and the morph skipped"""
+    _, p, errors = open_page(browser, base, viewport={"width": 393, "height": 660})
+    p.click("#wanted .example")
+    settle(p)
+    widest, morphed = 0, False
+    for y in range(0, 401, 20):
+        p.evaluate(f"scrollTo(0, {y})")
+        frames(p, 6)
+        widest = max(widest, p.evaluate("document.documentElement.scrollWidth"))
+        morphed = morphed or p.evaluate("document.querySelector('#item-dock').classList.contains('morphing')")
+    check("the morph ran, and the page stayed as wide as the window all the way through it", morphed and widest <= 393, (morphed, widest))
+    check("no page errors (part_phone_morph)", not errors, errors)
+
+
 def part_item_bar(browser, base):
     """the phone's condensed Item bar: Start over at its left, the bar itself back to the top, and Steps down to Anvil uses"""
     _, p, errors = open_page(browser, base, viewport={"width": 390, "height": 800})
@@ -2535,7 +2550,7 @@ def part_search_tip(browser, base):
     return errors
 
 
-PARTS = [part_search_tip, part_stage_hotbar, part_wide_morph, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
+PARTS = [part_search_tip, part_phone_morph, part_stage_hotbar, part_wide_morph, part_rerun, part_item_bar, part_shelf, part_controls, part_typed_lines, part_chip_drag, part_offline, part_folds_motion, part_chips, part_pick_none, part_sections_motion, part_books_tail, part_books, part_books_views, part_keys, part_anvil_uses, part_section1_motion, part_ranking, part_settings_motion, part_fancy, part_links, part_section1, part_steps, part_two_mods, part_pick_side, part_narrow_results, part_layout, part_motion_access, part_level_rows, part_elytra, part_mod_off, part_cost_width, part_pick_each, part_plain_bracket, part_several_groups, part_fold_all, part_stray_groups]  # longest first, so the long parts start together
 
 
 class PartBrowser:
@@ -2565,7 +2580,7 @@ class PartBrowser:
 
 
 # The parts that check animations (they keep "Show animations" on); the rest run with it off, which is faster and steadier.
-MOTION_PARTS = {part_wide_morph, part_folds_motion, part_chips, part_sections_motion, part_books_views, part_section1_motion, part_settings_motion, part_section1, part_narrow_results, part_motion_access, part_level_rows}
+MOTION_PARTS = {part_phone_morph, part_wide_morph, part_folds_motion, part_chips, part_sections_motion, part_books_views, part_section1_motion, part_settings_motion, part_section1, part_narrow_results, part_motion_access, part_level_rows}
 
 
 def run_part(part, base, browser):
