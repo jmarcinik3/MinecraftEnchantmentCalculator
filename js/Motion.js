@@ -1020,11 +1020,51 @@ function hostPoint(el, origin) {
 
 // Where the Tree's lines are, relative to `base`: per shown branch list (`ul.tree-children`, its upright drawn by its left border), the upright's x, top and
 // bottom (the last child's stub, below which the line is masked), and each child's stub's y (Style.css: 18px down each child, 12px left of it).
+// A Tree line's words, where each is drawn and how it looks, in its tooltip and in its compact caption (`data-word`: an enchantment, or "name"), each part
+// null where it is not shown. A word's place is its glyphs' (a Range), not its box, whose line spacing differs between the two.
+const WORD_PAD = 40; // (room left of a flying word for its "+")
+function treeWords(line, base) {
+    const rel = r => ({ left: r.left - base.left, top: r.top - base.top, width: r.width, height: r.height });
+    const part = holder => {
+        if (!holder) return null;
+        const box = holder.getBoundingClientRect();
+        if (box.width < 1 || box.height < 1) return null;
+        const words = new Map();
+        for (const el of holder.querySelectorAll("[data-word]")) {
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            const r = range.getClientRects()[0];
+            if (!r || r.width < 1) continue;
+            const look = getComputedStyle(el), before = getComputedStyle(el, "::before");
+            // (The comma after it, the caption's or the tooltip's where it shows (a narrow window's Tree hides them): part of the word as it flies.)
+            const next = el.nextElementSibling;
+            const sep = next && (next.classList.contains("cap-sep") || next.classList.contains("ench-sep")) && getComputedStyle(next).display !== "none" ? next.textContent : "";
+            const plus = el.classList.contains("changed") && before.content && before.content !== "none" ? { text: before.content.slice(1, -1), color: before.color, shadow: before.textShadow } : null;
+            words.set(el.dataset.word, { rect: rel(r), text: el.textContent, sep, size: parseFloat(look.fontSize), family: look.fontFamily, color: look.color, shadow: look.textShadow, plus });
+        }
+        return { rect: rel(box), words };
+    };
+    return { tip: part(line.querySelector(":scope > .tree-tooltip")), cap: part(line.querySelector(":scope > .tree-caption")) };
+}
+// Each Tree child's stub (and the last child's end of the upright) goes at the middle of its own item icon: `--stub-y` on the node, from its top. (A
+// line is as tall as its tooltip, and the icon is centred on it, so a fixed place was off by up to the tooltip's half height on a phone.)
+export function placeTreeStubs(root) {
+    for (const node of root.querySelectorAll(".tree-children > .tree-node")) {
+        const slot = node.querySelector(":scope > .tree-line > .tree-slot");
+        if (!slot) continue;
+        if (slot.offsetHeight < 1) continue;
+        // (By offsets, not boxes: a view switch moves the lines with transforms meanwhile, and the stub is for where they rest.)
+        let y = slot.offsetHeight / 2;
+        for (let el = slot; el && el !== node; el = el.offsetParent) y += el.offsetTop;
+        node.style.setProperty("--stub-y", Math.round(y - 0.5) + "px");
+    }
+}
 function treeLines(scroller, base) {
+    placeTreeStubs(scroller);
     return real(scroller, "ul.tree-children").filter(ul => ul.getClientRects().length && ul.getBoundingClientRect().height >= 1).map(ul => {
         const r = ul.getBoundingClientRect();
         const kids = [...ul.children].filter(li => li.matches(".tree-node"));
-        const stubs = kids.map(li => li.getBoundingClientRect().top - base.top + 18);
+        const stubs = kids.map(li => li.getBoundingClientRect().top - base.top + (parseFloat(getComputedStyle(li, "::before").top) || 18));
         const stub = kids[0] ? getComputedStyle(kids[0], "::before") : null; // (narrower on a phone)
         // Each stub's own item icon (the icon on its child's line) and where the stub is from it; and the upright's top from its parent's icon.
         const iconOf = li => li && li.querySelector(":scope > .tree-line [data-node]");
@@ -1061,7 +1101,8 @@ export function viewSnapshot(scroller) {
     const slot_list = all_icons.map((el, i) => {
         const rect = rel(el);
         const shown = rect.width >= 1 && rect.height >= 1;
-        return { id: el.dataset.node, index: i, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_icons[i] };
+        const line = el.closest(".tree-line");
+        return { id: el.dataset.node, index: i, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_icons[i], words: shown && line ? treeWords(line, base) : null };
     });
     // The tooltips and step badges (`data-fly`) the same way: where each is (`shown`: not hidden), and its twin in the copy.
     const twin_fly = [...copy.querySelectorAll("[data-fly]")];
@@ -1074,6 +1115,10 @@ export function viewSnapshot(scroller) {
         const displays = icon >= 0 ? [...el.querySelectorAll("*")].map(part => getComputedStyle(part).display) : null;
         return { id: el.dataset.fly, rect, shown, point: shown ? null : hostPoint(el, base), twin: twin_fly[i], icon, displays };
     });
+    // Each step's fold chevron, by step, with its twin in the copy: it moves to its new place (morphView), it doesn't fade.
+    const twin_folds = [...copy.querySelectorAll(".step-fold")];
+    const fold_list = real(scroller, ".step-fold").map((el, i) => ({ step: el.closest("[data-step-card]")?.dataset.stepCard, rect: rel(el), twin: twin_folds[i] }))
+        .filter(fold => fold.step && fold.rect.width >= 1 && fold.rect.height >= 1);
     // Compact Tree's captions (the one-line text beside each icon), each with the icon it sits beside.
     const twin_captions = [...copy.querySelectorAll(".tree-caption")];
     const caption_list = real(scroller, ".tree-caption").map((el, i) => ({
@@ -1114,7 +1159,7 @@ export function viewSnapshot(scroller) {
     for (const tip of copy.querySelectorAll(".info-tip")) tip.classList.remove("floating");
     const shared = real(scroller, ".round-label").map(rel); // the parts both timeline views have, in order
     const tree_lines = treeLines(scroller, base);
-    return { copy, held_copy, slot_list, fly_list, caption_list, tree_lines, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
+    return { copy, held_copy, slot_list, fly_list, fold_list, caption_list, tree_lines, rect: base, top: scroller.scrollTop, client: [scroller.clientWidth, scroller.clientHeight], padding: getComputedStyle(scroller).padding, items, shared, timeline: Boolean(scroller.querySelector(".rounds.timeline")) };
 }
 
 // One step's box, from where it was (`was`) to where it is (`now`), both relative to the scroller's visible box.
@@ -1481,6 +1526,32 @@ export function morphView(scroller, container, old) {
                 if (n.shown) hidden.add(n.el);
             }
         }
+        // Each step's fold chevron moves from its old place to its new one (a copy, unfaded), the real one and the old copy's hidden meanwhile, so no
+        // chevron fades in or out and none is shown twice. (Only where its step had one before; a new one is there under the old copy.)
+        if (old.fold_list) {
+            const unused = [...old.fold_list];
+            for (const el of real(scroller, ".step-fold")) {
+                const r = el.getBoundingClientRect();
+                if (r.width < 1 || r.height < 1) continue;
+                const step = el.closest("[data-step-card]")?.dataset.stepCard;
+                const k = unused.findIndex(fold => fold.step === step);
+                if (k < 0) continue;
+                const [o] = unused.splice(k, 1);
+                const to = { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height };
+                const fly = el.cloneNode(true);
+                fly.removeAttribute("id");
+                fly.dataset.flyFold = step;
+                fly.setAttribute("aria-hidden", "true");
+                fly.tabIndex = -1;
+                Object.assign(fly.style, { position: "absolute", left: to.left + "px", top: to.top + "px", width: to.width + "px", height: to.height + "px", margin: "0", zIndex: "3", pointerEvents: "none", visibility: "visible", flex: "none" });
+                layer.append(fly);
+                flyers.push(fly);
+                animations.push(fly.animate([{ transform: `translate(${o.rect.left - to.left}px, ${o.rect.top - to.top}px)` }, { transform: "none" }], timing));
+                hidden.add(el);
+                if (o.twin) o.twin.style.visibility = "hidden";
+            }
+            // (An old chevron with nowhere to go stays in the old copy and fades with it.)
+        }
         // Between the Tree and the other views the tooltips and step badges travel too: each box goes from its old place and size to its new one while the
         // text in it stays as it is (the old text over the new, the old fading, so nothing dips), a tooltip a view hides (Slots) grows out of its icon or is
         // taken into it, and a badge becomes the step's tick label and back. (Between Steps and Slots the panel clips them, above.)
@@ -1598,10 +1669,99 @@ export function morphView(scroller, container, old) {
             // (On a phone-width tree the full tooltips go on lines of their own and never cover the captions: there a caption is wiped away from its
             // right going to the full Tree, and wiped in from its left coming back.)
             const narrow_tree = scroller.clientWidth <= 480;
+            // Between the compact and full Tree each word of a line flies between its tooltip and its caption, as the item card's do into the item bar:
+            // a copy of the word goes from its place in one to its place in the other (its left edge and middle line), scaled by the ratio of the two fonts,
+            // its colour mixing from one to the other, a comma riding with the word before it and fading in or out, a "+" fading; each frame it is put
+            // relative to its icon's copy (which flies too), and clipped to a box easing from the tooltip's to the caption's, so words the caption cuts off
+            // slide out of sight under its edge. The tooltip's own words are hidden in its copy, whose box still opens or closes round the icon.
+            const flown = new Set();
+            if (!to_other_view) {
+                const lines_new = new Map();
+                for (const n of news) if (n.shown && n.el.closest(".tree-line")) lines_new.set(n.id, { icon: n, words: treeWords(n.el.closest(".tree-line"), origin) });
+                const word_flights = [];
+                for (const o of old.slot_list) {
+                    const n = lines_new.get(o.id);
+                    if (!o.words || !n || flown.has(o.id)) continue;
+                    const from_tip = Boolean(o.words.tip && !o.words.cap && n.words.cap && !n.words.tip);
+                    const from_cap = Boolean(o.words.cap && !o.words.tip && n.words.tip && !n.words.cap);
+                    if (!from_tip && !from_cap) continue;
+                    flown.add(o.id);
+                    const src = from_tip ? o.words.tip : o.words.cap, dst = from_tip ? n.words.cap : n.words.tip;
+                    const tip_side = from_tip ? src : dst, cap_side = from_tip ? dst : src;
+                    const off = (r, icon) => ({ left: r.left - icon.left, top: r.top - icon.top, width: r.width, height: r.height });
+                    const box_from = off(src.rect, o.rect), box_to = off(dst.rect, n.icon.rect);
+                    for (const [key, t] of tip_side.words) {
+                        const c = cap_side.words.get(key);
+                        if (!c) continue;
+                        const a = from_tip ? t : c, b = from_tip ? c : t;
+                        const fly = h("span", { class: "view-overlay", "aria-hidden": "true" }, t.text);
+                        fly.dataset.flyWord = o.id + ":" + key;
+                        // (Room on its left, WORD_PAD, for the "+": inside its box, so the fade's mask doesn't cut it away.)
+                        Object.assign(fly.style, { position: "absolute", left: "0", top: "0", margin: "0", paddingLeft: WORD_PAD + "px", whiteSpace: "pre", pointerEvents: "none", zIndex: "3", transformOrigin: "0 0", lineHeight: t.rect.height + "px", fontFamily: t.family, fontSize: t.size + "px" });
+                        // (Its comma rides with it, as part of it: kept where both views show one, faded in or out where only one does.)
+                        if (a.sep || b.sep) {
+                            const sep = h("span", {}, a.sep || b.sep);
+                            fly.append(sep);
+                            if (!a.sep || !b.sep) animations.push(sep.animate(b.sep ? [{ opacity: 0 }, { opacity: 1 }] : [{ opacity: 1 }, { opacity: 0 }], { ...timing, fill: "forwards" }));
+                        }
+                        if (t.plus) {
+                            const plus = h("span", {}, t.plus.text);
+                            Object.assign(plus.style, { position: "absolute", right: `calc(100% - ${WORD_PAD}px)`, top: "0", color: t.plus.color, textShadow: t.plus.shadow });
+                            fly.append(plus);
+                            animations.push(plus.animate(from_tip ? [{ opacity: 1 }, { opacity: 0 }] : [{ opacity: 0 }, { opacity: 1 }], { ...timing, fill: "forwards" }));
+                        }
+                        layer.append(fly);
+                        flyers.push(fly);
+                        const clock = fly.animate([{ color: a.color, textShadow: a.shadow }, { color: b.color, textShadow: b.shadow }], { ...timing, fill: "forwards" });
+                        animations.push(clock);
+                        // (A word on the caption's last line fades out at its right edge as the caption does, the fade growing in from none toward it.)
+                        const last = c.rect.top + c.rect.height / 2 > cap_side.rect.top + cap_side.rect.height - c.rect.height;
+                        word_flights.push({ fly, clock, id: o.id, from: off(a.rect, o.rect), to: off(b.rect, n.icon.rect), scale: [a.size / t.size, b.size / t.size], box_from, box_to, end: n.icon.rect, h0: t.rect.height, last, to_cap: from_tip });
+                    }
+                }
+                // The tooltip copies' own words are hidden: the flying ones draw them; going to the caption the box (and the name above an enchanted item's
+                // words) fades out over the first half as it shrinks, as the rest of the item card does into the item bar; coming from it, it grows from
+                // the icon whole, unfaded.
+                for (const { fly, id } of tip_riders) {
+                    if (!flown.has(id)) continue;
+                    for (const part of fly.querySelectorAll("[data-word], .ench-sep")) part.style.visibility = "hidden";
+                    if (!lines_new.get(id)?.words.tip) animations.push(fly.animate([{ opacity: 1 }, { opacity: 0, offset: 0.5 }, { opacity: 0 }], { duration: timing.duration, easing: "linear", fill: "forwards" }));
+                }
+                if (word_flights.length) {
+                    const lerp = (x, y, p) => x + (y - x) * p;
+                    const fly_words = () => {
+                        if (!layer.isConnected) return;
+                        const l = layer.getBoundingClientRect();
+                        for (const w of word_flights) {
+                            const p = w.clock.effect.getComputedTiming().progress;
+                            if (p == null) continue;
+                            const icon_el = layer.querySelector(`[data-fly-icon="${CSS.escape(w.id)}"]`);
+                            const q = icon_el ? icon_el.getBoundingClientRect() : null;
+                            const ix = q ? q.left - l.left : w.end.left, iy = q ? q.top - l.top : w.end.top;
+                            const s = lerp(w.scale[0], w.scale[1], p);
+                            const x = ix + lerp(w.from.left, w.to.left, p);
+                            const y = iy + lerp(w.from.top + w.from.height / 2, w.to.top + w.to.height / 2, p) - w.h0 * s / 2;
+                            w.fly.style.transform = `translate(${x - WORD_PAD * s}px, ${y}px) scale(${s})`;
+                            // (Clipped to the box easing from the tooltip's to the caption's, in the word's own, scaled, coordinates; the left is left open for the "+".)
+                            const bt = iy + lerp(w.box_from.top, w.box_to.top, p);
+                            const br = ix + lerp(w.box_from.left + w.box_from.width, w.box_to.left + w.box_to.width, p);
+                            const bb = bt + lerp(w.box_from.height, w.box_to.height, p);
+                            w.fly.style.clipPath = `inset(${(bt - y) / s - 2}px ${Math.max(-4, (x - WORD_PAD * s + w.fly.offsetWidth * s - br) / s)}px ${(y + w.h0 * s - bb) / s - 2}px 0)`;
+                            if (w.last) {
+                                const fade = 24 * (w.to_cap ? p : 1 - p) / s, edge = (br - x) / s + WORD_PAD;
+                                w.fly.style.maskImage = w.fly.style.webkitMaskImage = `linear-gradient(to right, #000 ${edge - fade}px, transparent ${edge}px)`;
+                            }
+                        }
+                        requestAnimationFrame(fly_words);
+                    };
+                    fly_words();
+                }
+            }
             const captionLook = clone => Object.assign(clone.style, { display: "block", fontFamily: '"Minecraft", system-ui, sans-serif', fontSize: "11px", color: "var(--text-secondary)", whiteSpace: "nowrap", textOverflow: "ellipsis" });
             for (const caption of old.caption_list) {
                 const moved = follow.old.get(caption.icon);
                 if (!moved || !caption.twin) continue;
+                if (flown.has(old.slot_list[caption.icon]?.id)) { caption.twin.style.visibility = "hidden"; continue; } // (its words fly, above)
                 const gone = strip(caption.twin);
                 captionLook(gone);
                 place(gone, caption.rect);
@@ -1617,6 +1777,7 @@ export function morphView(scroller, container, old) {
                 const rect = { left: r.left - origin.left, top: r.top - origin.top, width: r.width, height: r.height };
                 const moved = follow.new.get(el.parentElement.querySelector("[data-node]"));
                 if (!moved || rect.width < 1 || rect.height < 1) continue;
+                if (flown.has(el.parentElement.querySelector("[data-node]")?.dataset.node)) { hidden.add(el); continue; } // (its words fly, above)
                 const fly = strip(el);
                 captionLook(fly);
                 place(fly, rect);

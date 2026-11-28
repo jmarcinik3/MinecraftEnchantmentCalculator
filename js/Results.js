@@ -5,7 +5,7 @@ import { TEXT, localeOf } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
 import { $, closeOnOutside, copyText, enchLine, flash, h, icon, mcMark, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
 import { svgIcon } from "./Books.js";
-import { easeHeight, FOLD_EASING, FOLD_MS, foldDetails, foldTarget, growSmoothly, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
+import { easeHeight, FOLD_EASING, FOLD_MS, foldDetails, foldTarget, growSmoothly, keepInPlace, morphView, placeTreeStubs, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
 import { activeLevel, spendLevels, levelChip, placeLevelPop, remainingLevels, updateLevelMeter } from "./Options.js";
 import { cancelCalculation, last_break, last_result, runCalculation, running, show_progress } from "./Calc.js";
@@ -287,7 +287,10 @@ function drawResults() {
     content.append(scroller);
 
     if (result_view === "tree") {
-        scroller.append(mergeTree(node, steps, done, order_key));
+        const tree = mergeTree(node, steps, done, order_key);
+        scroller.append(tree);
+        // (Its stubs go at their icons' middles, measured: again whenever its size changes, a font loading or the window's width.)
+        new ResizeObserver(() => placeTreeStubs(tree)).observe(tree);
     } else {
         // A timeline: one group per round (its steps don't depend on each other, so any
         // order works), a node per step on the rail. The first step not done is the one
@@ -473,9 +476,13 @@ function mergeTree(root, steps, done, order_key) {
             index ? h("span", { class: "ench-sep" }, ", ") : null,
             h("span", {
                 class: "mc-ench" + (logic.isCurse(e.namespace) ? " curse" : "") +
-                    (before && before.get(e.namespace) !== e.level ? " changed" : "")
+                    (before && before.get(e.namespace) !== e.level ? " changed" : ""), "data-word": e.namespace
             }, logic.displayName(e.namespace, e.level))
         ]);
+        // The compact caption says the same, word for word (`data-word`: a Compact <-> full switch flies each from the tooltip to the caption and back).
+        const caption_words = enchanted
+            ? logic.tooltipSort(node.enchantments).flatMap((e, index) => [index ? h("span", { class: "cap-sep" }, ", ") : null, h("span", { "data-word": e.namespace }, logic.displayName(e.namespace, e.level))])
+            : [h("span", { "data-word": "name" }, nodeName(node))];
         // A merge folds and unfolds like its step in the Steps view (the same fold state):
         // done ones start folded, hiding what went into them; a click on the line (but
         // the tick) or its chevron button switches it.
@@ -492,9 +499,9 @@ function mergeTree(root, steps, done, order_key) {
             },
                 h("span", { class: "tree-slot" + (enchanted ? " glint" : ""), "data-node": nodeId(node) }, icon(node.item_namespace, true)),
                 // Compact: a one-line caption next to the slot; the tooltip shows on hover.
-                h("span", { class: "tree-caption" }, enchanted ? logic.summary(node.enchantments) : nodeName(node)),
+                h("span", { class: "tree-caption" }, caption_words),
                 h("span", { class: "mc-tooltip tree-tooltip", "data-fly": "tip:" + nodeId(node) },
-                    h("span", { class: nameClass(logic.rarity(node.item_namespace, enchanted), renamed ? " renamed" : "") }, nodeName(node)),
+                    h("span", { class: nameClass(logic.rarity(node.item_namespace, enchanted), renamed ? " renamed" : ""), "data-word": enchanted ? null : "name" }, nodeName(node)),
                     enchanted ? h("span", { class: "mc-ench" }, enchantments) : null),
                 number ? h("label", { class: "tree-step", title: TEXT.results.step_done_help, "data-fly": "step:" + number },
                     stepTick(number, done, order_key, steps),

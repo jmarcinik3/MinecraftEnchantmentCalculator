@@ -2066,7 +2066,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .mc-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
 /* Enchantments added or raised by this step */
 .mc-ench.changed { color: var(--mc-white); }
-.mc-ench.changed::before { content: "+\00a0"; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); } /* (a no-break space: a line never breaks between the "+" and its name) */
+.mc-ench.changed::before { content: "+"; color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); } /* (no space: a line never breaks between the "+" and its name) */
 
 @media (max-width: 420px) {
     .mc-slot { width: 40px; height: 40px; }
@@ -2371,7 +2371,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     content: "";
     position: absolute;
     left: -12px;
-    top: 18px;
+    top: var(--stub-y, 18px); /* (the middle of its own icon: Motion.js placeTreeStubs) */
     width: 10px;
     border-top: 1px solid var(--border-strong);
 }
@@ -2380,7 +2380,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     content: "";
     position: absolute;
     left: -13px;
-    top: 19px;
+    top: calc(var(--stub-y, 18px) + 1px);
     bottom: 0;
     border-left: 3px solid var(--surface);
 }
@@ -2407,7 +2407,10 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
     min-width: 0;
     padding: 3px 6px;
 }
-/* (Curses and the white "+ " for added enchantments come from .mc-ench.curse / .changed.) */
+/* (Curses and the green "+" for added enchantments come from .mc-ench.curse / .changed.) */
+.mc-ench.curse + .ench-sep { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); } /* (a comma takes its enchantment's colour, the one before it) */
+.mc-ench.changed + .ench-sep { color: var(--mc-white); }
+.tree-tooltip .mc-ench .mc-ench { white-space: nowrap; } /* (an enchantment and its level never break apart: lines break only between enchantments, so each one flies whole to its caption) */
 .tree-step {
     margin-left: auto;
     flex: none;
@@ -2749,7 +2752,9 @@ body.dragging { -webkit-user-select: none; user-select: none; }
 .slots-mode .anvil-step.folded .anvil-row, .slots-mode .anvil-step.folded .step-caption { display: none; }
 /* The compact tree: each entry a slot and a one-line caption; the tooltip shows on hover. */
 .tree-caption { display: none; }
-.merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-family: "Minecraft", system-ui, sans-serif; font-size: 11px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; }
+.merge-tree.compact .tree-caption { display: block; flex: 1 1 0; min-width: 0; overflow: hidden; font-family: "Minecraft", system-ui, sans-serif; font-size: 11px; line-height: 13px; color: var(--text-secondary); white-space: nowrap; -webkit-mask-image: var(--caption-fade); mask-image: var(--caption-fade); }
+/* (It fades out over its last 24px instead of a "…", as the item bar's list does; on two lines only the last line's end fades.) */
+.merge-tree.compact { --caption-fade: linear-gradient(to right, #000 calc(100% - 24px), transparent); }
 .merge-tree.compact .tree-line { position: relative; }
 .merge-tree.compact .tree-tooltip { display: none; }
 /* The tooltip shows on mouse hover and keyboard focus only: on touch a tap (which folds or unfolds the merge) would leave it stuck open, so the caption wraps there instead. */
@@ -2799,7 +2804,7 @@ body.dragging { -webkit-user-select: none; user-select: none; }
     .tree-children > .tree-node:last-child::after { left: -8px; }
     .tree-line { gap: 6px; }
     /* The one-line caption may take two lines, so a deep entry keeps its words ("Sweeping Edge III", not "Swe..."). */
-    .merge-tree.compact .tree-caption { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; white-space: normal; overflow-wrap: break-word; }
+    .merge-tree.compact .tree-caption { display: block; max-height: 26px; white-space: normal; overflow-wrap: break-word; -webkit-mask: linear-gradient(#000, #000) top / 100% calc(100% - 13px) no-repeat, linear-gradient(to right, #000 calc(100% - 24px), transparent) bottom / 100% 13px no-repeat; mask: linear-gradient(#000, #000) top / 100% calc(100% - 13px) no-repeat, linear-gradient(to right, #000 calc(100% - 24px), transparent) bottom / 100% 13px no-repeat; }
     /* A merge's step badge goes on a line under its caption, so a deep entry's caption keeps the whole width left of its slot. */
     .merge-tree.compact .tree-line { flex-wrap: wrap; row-gap: 2px; }
     .merge-tree.compact .tree-caption { flex: 1 1 calc(100% - 40px); }
