@@ -238,7 +238,6 @@
     "ranking": {
         "rank_by": "An urzh gwellañ a vez dibabet dre ar pevar boeson a-is: an urzh gant ar gwerzh bihanañ en hini kentañ a c'hounezh, ha ar re all a dorr an enebiezhioù. Tennit ur boeson, pe implijit e saezhoù ‹ ›, evit cheñch an hini a bouez ar muiañ.",
         "order_title": "Urzhiet dre",
-        "order_uses": {"plural": "uses", "one": "{uses} implij", "two": "{uses} implij", "few": "{uses} implij", "other": "{uses} implij"},
         "level_chip": "Liv {level}",
         "level_chip_off": "Lakaat al live",
         "rank_help_label": "Penaos e vez dibabet an urzh gwellañ",
@@ -352,7 +351,6 @@
         "step_done_help": "Merkit ar pazennoù pa vez graet. Miret e vez en ar merdeer-mañ.",
         "enchanted_book": "Levr enchantet",
         "level_track": "Liv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} implij an anvil", "two": "{uses} implij an anvil", "few": "{uses} implij an anvil", "other": "{uses} implij an anvil"},
         "anvil_break": "{chance} a zegouezh e torr un anvil nevez",
         "anvil_safe": "Un anvil nevez ne dorro ket",
         "anvil_safe_short": "Diogel",

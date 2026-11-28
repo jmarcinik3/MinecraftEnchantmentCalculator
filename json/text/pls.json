@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Cuatro tsakjan ngaꞌa juanthaꞌa cualo: juanthàꞌa ngaꞌa cualo valor cetl, cetl ntsekjì chrjá, occe ngaꞌa ngaꞌa empates. Chjaꞌa tsakjan, o chrjaꞌa flechas ‹ › ngaꞌa chrjìnda ntsekjì.",
         "order_title": "Ntsekjì juanthaꞌa",
-        "order_uses": {"plural": "uses", "one": "{uses} uso", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Chrjaꞌa nivel",
         "rank_help_label": "Juanthàꞌa cualo juanthaꞌa",
@@ -348,7 +347,6 @@
         "step_done_help": "Marca pasos según chrjaꞌa. Guardado ngaꞌa navegador.",
         "enchanted_book": "Xrùun Enchanted",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} uso yuunke", "other": "{uses} usos yuunke"},
         "anvil_break": "{chance} probabilidad yuunke nuevo se rompe",
         "anvil_safe": "Yuunke nuevo thù se romperá",
         "anvil_safe_short": "Seguro",

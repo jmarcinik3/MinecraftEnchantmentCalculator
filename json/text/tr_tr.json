@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "En iyi sıra aşağıdaki dört kartla seçilir: ilk kartta en düşük değeri olan sıra kazanır, sonraki kartlar eşitliği bozar. Hangisinin en çok sayılacağını değiştirmek için bir kartı sürükle ya da ‹ › oklarını kullan.",
         "order_title": "Sıralama ölçütü",
-        "order_uses": {"plural": "uses", "one": "{uses} kullanım", "other": "{uses} kullanım"},
         "level_chip": "Sv. {level}",
         "level_chip_off": "Seviye ayarla",
         "rank_help_label": "En iyi sıra nasıl seçilir",
@@ -348,7 +347,6 @@
         "step_done_help": "Yaptıkça adımları işaretle. Bu tarayıcıda saklanır.",
         "enchanted_book": "Büyülü Kitap",
         "level_track": "Sv. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} örs kullanımı", "other": "{uses} örs kullanımı"},
         "anvil_break": "Yeni bir örsün kırılma olasılığı {chance}",
         "anvil_safe": "Yeni bir örs kırılmaz",
         "anvil_safe_short": "Güvenli",

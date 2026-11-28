@@ -235,7 +235,6 @@
     "ranking": {
         "rank_by": "Susunan terbaik dipilih oleh empat kotak di bawah: susunan dengan nilai terendah dalam kotak pertama menang, dan kotak seterusnya memutuskan jika seri. Seret kotak, atau guna anak panah ‹ ›, untuk menukar yang paling penting.",
         "order_title": "Disusun mengikut",
-        "order_uses": {"plural": "uses", "other": "{uses} penggunaan"},
         "level_chip": "Tahap {level}",
         "level_chip_off": "Tetapkan tahap",
         "rank_help_label": "Cara susunan terbaik dipilih",
@@ -346,7 +345,6 @@
         "step_done_help": "Tandai langkah apabila anda melakukannya. Disimpan dalam pelayar ini.",
         "enchanted_book": "Buku Bersihir",
         "level_track": "Tahap {before} → {after}",
-        "anvil_uses": {"plural": "uses", "other": "{uses} penggunaan landasan"},
         "anvil_break": "Peluang {chance} landasan baharu pecah",
         "anvil_safe": "Landasan baharu tidak akan pecah",
         "anvil_safe_short": "Selamat",

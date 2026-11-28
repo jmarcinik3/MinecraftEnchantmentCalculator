@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "lo melbi ordo cu tcini lo vi'o pa jai ca'e: lo ordo ke ro mu'o valsi ca lo pa jai cu pagre, je lo jai ca'e cu ro da cu sorcu lo nu sinxa. nu tirna lo jai, ja'o nu basti lo ‹ › pelxu, ke nu basti lo nu ro ke barda.",
         "order_title": "ni'o lo nu",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} kei",
-            "other": "{uses} kei"
-        },
         "level_chip": "niv. {level}",
         "level_chip_off": "nu cuxna nivelo",
         "rank_help_label": "qualo ka'e cu tcini lo melbi ordo",
@@ -446,11 +441,6 @@
         "step_done_help": "nu marki lo mudri ke mi ba'o ri. cuxna ca lo nu bangu.",
         "enchanted_book": "sorcu cukta",
         "level_track": "niv. {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} anvil kei",
-            "other": "{uses} anvil kei"
-        },
         "anvil_break": "{chance} chanci ke anvil ke gau rompu",
         "anvil_safe": "anvil ke gau na rompu",
         "anvil_safe_short": "sekura",

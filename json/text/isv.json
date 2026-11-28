@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Najlučši porędok je izbran četyrmi plytkami nižče: porędok z najmenšoju vrednostju v prvoj plytkě pobědi, a sledujųće plytky rěšajut ravenstva. Potegni plytku ili upotrěbi jejo strěly ‹ ›, čtoby promeniti, što je najvažnějše.",
         "order_title": "Klasifikovano po",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} upotrěbjeńje",
-            "other": "{uses} upotrěbjeńj"
-        },
         "level_chip": "Ur. {level}",
         "level_chip_off": "Nastrojiti uroveń",
         "rank_help_label": "Kako je izbran najlučši porędok",
@@ -446,11 +441,6 @@
         "step_done_help": "Otmečaj kroky, kogda ih dělaješ. Sohranjeno v tom brauzeru.",
         "enchanted_book": "Začarovana kniga",
         "level_track": "Ur. {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} upotrěbjeńje kovadla",
-            "other": "{uses} upotrěbjeńja kovadla"
-        },
         "anvil_break": "{chance} šansa, že novy kovadlo se slomi",
         "anvil_safe": "Novy kovadlo se ne slomi",
         "anvil_safe_short": "Bezpečno",

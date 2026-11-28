@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La miôr combinazion e ven sielte da lis cuatri cassetis sot: al vinç l'ordin cul valôr plui basse de prime cassete, e lis altris a rompin i pariôs. Strissine une cassete, o dopre lis sôs frecis ‹ ›, par cambiâ cuâl che conte di plui.",
         "order_title": "Ordenât di",
-        "order_uses": {"plural": "uses", "one": "{uses} ûs", "other": "{uses} ûs"},
         "level_chip": "Liv {level}",
         "level_chip_off": "Met il nivel",
         "rank_help_label": "Cemût si sielç la miôr combinazion",
@@ -348,7 +347,6 @@
         "step_done_help": "Segne i pas a misura che tu lis fasis. Al reste in chest browser.",
         "enchanted_book": "Libri incjantât",
         "level_track": "Liv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} ûs de incudine", "other": "{uses} ûs de incudine"},
         "anvil_break": "{chance} di probabilitât che une incudine gnove si rompi",
         "anvil_safe": "Une incudine gnove no si romparà",
         "anvil_safe_short": "Sigure",

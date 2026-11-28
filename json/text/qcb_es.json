@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La mejor orde escuéyese colos cuatro cuadros d'abaxo: gana la orde col valor más baju nel primeru, y los siguientes desfacen los empates. Arrastra un cuadro, o usa les sos flechas ‹ ›, pa cambiar cuál cuenta más.",
         "order_title": "Ordenao por",
-        "order_uses": {"plural": "uses", "one": "{uses} usu", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Poner nivel",
         "rank_help_label": "Cómo se escueye la mejor orde",
@@ -348,7 +347,6 @@
         "step_done_help": "Marca los pasos según los faigas. Guárdase nesti navegador.",
         "enchanted_book": "Libru maldáu",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} usu de la unqui", "other": "{uses} usos de la unqui"},
         "anvil_break": "{chance} de probabilidá de que una unqui nueva se rompa",
         "anvil_safe": "Una unqui nueva nun se va romper",
         "anvil_safe_short": "Segura",

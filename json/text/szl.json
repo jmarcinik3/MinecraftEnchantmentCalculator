@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Nojlepszy porządek sie wybiyro czterma kafelkami niżyj: wygrywo porządek z nojnižszōm wartościōm w pierszym kafelku, a nastympne rozstrzygajōm remisy. Przecōngnij kafelek abo użyj jego strzałek ‹ ›, coby zmiynić, kery sie liczy nojbarzij.",
         "order_title": "Posortowane wedle",
-        "order_uses": {"plural": "uses", "one": "{uses} użycie", "other": "{uses} użyć"},
         "level_chip": "Pz {level}",
         "level_chip_off": "Ustaw poziōm",
         "rank_help_label": "Jak sie wybiyro nojlepszy porządek",
@@ -348,7 +347,6 @@
         "step_done_help": "Hacz kroki, jak je robisz. Zapisane w tyj przeglōndarce.",
         "enchanted_book": "Zaklynto ksiōnżka",
         "level_track": "Pz {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} użycie ambosa", "other": "{uses} użyć ambosa"},
         "anvil_break": "{chance} szansy, że nowy ambos sie rozbije",
         "anvil_safe": "Nowy ambos sie niy rozbije",
         "anvil_safe_short": "Bezpiecznie",

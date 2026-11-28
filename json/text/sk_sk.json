@@ -313,13 +313,6 @@
     "ranking": {
         "rank_by": "Najlepšie poradie sa vyberá podľa štyroch dlaždíc nižšie: vyhráva poradie s najnižšou hodnotou v prvej dlaždici a ďalšie dlaždice rozhodujú zhody. Potiahnutím dlaždice alebo jej šípkami ‹ › zmeníš, čo je najdôležitejšie.",
         "order_title": "Zoradené podľa",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} použitie",
-            "few": "{uses} použitia",
-            "many": "{uses} použitia",
-            "other": "{uses} použití"
-        },
         "level_chip": "Ú {level}",
         "level_chip_off": "Nastaviť úroveň",
         "rank_help_label": "Ako sa vyberá najlepšie poradie",
@@ -488,13 +481,6 @@
         "step_done_help": "Odškrtni kroky, ako ich robíš. Uchováva sa v tomto prehliadači.",
         "enchanted_book": "Očarovaná kniha",
         "level_track": "Ú {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} použitie kovadliny",
-            "few": "{uses} použitia kovadliny",
-            "many": "{uses} použitia kovadliny",
-            "other": "{uses} použití kovadliny"
-        },
         "anvil_break": "{chance} šanca, že sa nová kovadlina rozbije",
         "anvil_safe": "Nová kovadlina sa nerozbije",
         "anvil_safe_short": "Bezpečné",

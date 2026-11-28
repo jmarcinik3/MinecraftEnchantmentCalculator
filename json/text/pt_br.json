@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "A melhor ordem é escolhida pelos quatro blocos abaixo: vence a ordem com o menor valor no primeiro bloco, e os próximos blocos desempatam. Arraste um bloco, ou use as setas ‹ ›, para mudar qual conta mais.",
         "order_title": "Classificado por",
-        "order_uses": {"plural": "uses", "one": "{uses} uso", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Definir nível",
         "rank_help_label": "Como a melhor ordem é escolhida",
@@ -348,7 +347,6 @@
         "step_done_help": "Marque os passos conforme os faz. Fica guardado neste navegador.",
         "enchanted_book": "Livro Encantado",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} uso de bigorna", "other": "{uses} usos de bigorna"},
         "anvil_break": "{chance} de chance de uma bigorna nova quebrar",
         "anvil_safe": "Uma bigorna nova não vai quebrar",
         "anvil_safe_short": "Seguro",

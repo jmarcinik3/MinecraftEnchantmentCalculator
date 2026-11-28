@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Best rekkjefylgja verður vald eftir teimum fýra reitunum niðanfyri: rekkjefylgjan við lægsta virðið í fyrsta reitinum vinnur, og tey næstu avgera líka. Drag ein reit, ella brúk pílarnar ‹ ›, at broyta hvat sum telur mest.",
         "order_title": "Raðað eftir",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} brúk",
-            "other": "{uses} brúk"
-        },
         "level_chip": "Nv {level}",
         "level_chip_off": "Set nivå",
         "rank_help_label": "Hvussu best rekkjefylgja verður vald",
@@ -446,11 +441,6 @@
         "step_done_help": "Kryss steg av, tá tú gert tey. Goymt í hesi nettlesaranum.",
         "enchanted_book": "Galdrað bók",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} ambolt-brúk",
-            "other": "{uses} ambolt-brúk"
-        },
         "anvil_break": "{chance} sjansi fyri at ein nýggjur ambolt brotnar",
         "anvil_safe": "Ein nýggjur ambolt brotnar ikki",
         "anvil_safe_short": "Trygt",

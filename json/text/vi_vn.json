@@ -235,7 +235,6 @@
     "ranking": {
         "rank_by": "Cách tốt nhất được chọn theo bốn ô bên dưới: cách có giá trị thấp nhất ở ô đầu tiên thắng, và các ô sau dùng để phân định khi bằng nhau. Kéo một ô, hoặc dùng mũi tên ‹ ›, để đổi cái nào quan trọng nhất.",
         "order_title": "Xếp theo",
-        "order_uses": {"plural": "uses", "other": "{uses} lần dùng"},
         "level_chip": "Cấp {level}",
         "level_chip_off": "Đặt cấp",
         "rank_help_label": "Cách chọn thứ tự tốt nhất",
@@ -346,7 +345,6 @@
         "step_done_help": "Tick các bước khi làm xong. Được giữ trong trình duyệt này.",
         "enchanted_book": "Sách được phù phép",
         "level_track": "Cấp {before} → {after}",
-        "anvil_uses": {"plural": "uses", "other": "{uses} lần dùng đe"},
         "anvil_break": "{chance} khả năng một cái đe mới bị vỡ",
         "anvil_safe": "Đe mới sẽ không vỡ",
         "anvil_safe_short": "An toàn",

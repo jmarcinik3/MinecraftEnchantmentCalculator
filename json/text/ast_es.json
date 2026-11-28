@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La mejor orde escuéyese colos cuatro cuadros d'abaxo: gana la orde col valor más baxu nel primer cuadru, y los siguientes cuadros desempaten. Arrastra un cuadru, o usa les flechas ‹ ›, pa cambiar cuál cuenta más.",
         "order_title": "Ordenao por",
-        "order_uses": {"plural": "uses", "one": "{uses} usu", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Afitar nivel",
         "rank_help_label": "Cómo se escueye la mejor orde",
@@ -348,7 +347,6 @@
         "step_done_help": "Marca los pasos según los vayas faciendo. Guárdase nesti restolador.",
         "enchanted_book": "Llibru encantexáu",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} usu de la xuncla", "other": "{uses} usos de la xuncla"},
         "anvil_break": "{chance} de probabilidá de que una xuncla nueva se rompa",
         "anvil_safe": "Una xuncla nueva nun se rompe",
         "anvil_safe_short": "Segura",

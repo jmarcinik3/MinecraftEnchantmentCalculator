@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "In nāui tlapōwalli ītech tiquinquiltia in tlapōhualli cualtzin: in tlapōhualli ōmoyōltzin ītlapōwalli achtopa cualtzin ōmotēmiz, in occequi tlapōwalli quimpōhua in tlatlaxilistli. Xitzīnaz tlapōwalli, anoce xiquitēquitia ‹ › ītech, ca xitlapatiliz in cualtzin quipiya.",
         "order_title": "Tlapōhualli īpan",
-        "order_uses": {"plural": "uses", "one": "{uses} tēquitiliztli", "other": "{uses} tēquitiliztli"},
         "level_chip": "Tl {level}",
         "level_chip_off": "Xitlapatiliz tlapōhualli",
         "rank_help_label": "Quēn tiquiltia in tlapōhualli cualtzin",
@@ -348,7 +347,6 @@
         "step_done_help": "Xiquitzōyōta tlapōhualli in tiquitlachīhua. Īnin tlachīhualiztli ītech tlapōhualtia.",
         "enchanted_book": "Tlaxōchiwilli Āmoxtli",
         "level_track": "Tl {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} tēquitiliztli tepōstlatsonalōni", "other": "{uses} tēquitiliztli tepōstlatsonalōni"},
         "anvil_break": "{chance} tēcuepa tlapōhualiztli cemmeh tepōstlatsonalōni tlapōhualiztli",
         "anvil_safe": "Cemmeh tepōstlatsonalōni ahmo tlapōhualiz",
         "anvil_safe_short": "Cualtzin",

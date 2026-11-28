@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Parim järjekord valitakse allpool olevate nelja ploki järgi: madalaima väärtusega järjekord esimeses plokis võidab ning järgmised lahendavad viigid. Lohista plokki või kasuta ‹ › nooli, et muuta, mis loeb kõige rohkem.",
         "order_title": "Järjestatud",
-        "order_uses": {"plural": "uses", "one": "{uses} kasutus", "other": "{uses} kasutust"},
         "level_chip": "Tase {level}",
         "level_chip_off": "Määra tase",
         "rank_help_label": "Kuidas parim järjekord valitakse",
@@ -348,7 +347,6 @@
         "step_done_help": "Märgi sammud ära, kui neid teed. Hoitakse selles brauseris.",
         "enchanted_book": "Lummatud raamat",
         "level_track": "Tase {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} alasi kasutus", "other": "{uses} alasi kasutust"},
         "anvil_break": "{chance} tõenäosus, et uus alasi puruneb",
         "anvil_safe": "Uus alasi ei pursta",
         "anvil_safe_short": "Ohutu",

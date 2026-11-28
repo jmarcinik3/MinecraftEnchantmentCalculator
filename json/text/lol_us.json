@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Teh best order iz pikd bi teh four tiles below: teh order with teh lowest valu in teh furst tile wins, an teh next tiles brek ties. Drag a tile, or yooz its ‹ › arrowz, to chanj wich kounts most.",
         "order_title": "Ranked bi",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} yooz",
-            "other": "{uses} yoozez"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Set levul",
         "rank_help_label": "How teh best order iz pikd",
@@ -446,11 +441,6 @@
         "step_done_help": "Tik off stepz az u do dem. Kept in dis browzer.",
         "enchanted_book": "Magic Book",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} anvil yooz",
-            "other": "{uses} anvil yoozez"
-        },
         "anvil_break": "{chance} chans a nu anvil brakez",
         "anvil_safe": "A nu anvil wont brek",
         "anvil_safe_short": "Safe",

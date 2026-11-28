@@ -207,7 +207,7 @@ function drawResults() {
     const remaining = remainingLevels(steps);
     const track = activeLevel() == null ? null : levelTrack(remaining.costs, activeLevel());
     // Only on paper: the anvil wear (on screen it is in the receipt above the toolbar, which isn't printed).
-    content.append(h("p", { class: "print-only" }, TEXT.results.anvil_uses({ uses: steps.length }) + " · " + anvilRiskText(steps.length)));
+    content.append(h("p", { class: "print-only" }, TEXT.page.summary_steps({ count: steps.length }) + " · " + anvilRiskText(steps.length)));
 
     const order_key = orderKey(steps);
     drawn_key = order_key;

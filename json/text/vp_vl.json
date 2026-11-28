@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Bon ordine es sentaka per kwatro tili infra: ordine kun mina valor en prima tili vince, e poste tili desida tie. Tira un tili, au usa ci ‹ › flechi, per ansia kante counts plu.",
         "order_title": "Rangita per",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} usa",
-            "other": "{uses} usi"
-        },
         "level_chip": "Atai {level}",
         "level_chip_off": "Sentake atai",
         "rank_help_label": "Kon bon ordine sentakesa",
@@ -446,11 +441,6 @@
         "step_done_help": "Marka stepi kande fa ci. Saved en ci browser.",
         "enchanted_book": "Taikalibre",
         "level_track": "Atai {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} bigorna-usa",
-            "other": "{uses} bigorna-usi"
-        },
         "anvil_break": "{chance} sansa ke nova bigorna rompe",
         "anvil_safe": "Nova bigorna nul rompe",
         "anvil_safe_short": "Sikur",

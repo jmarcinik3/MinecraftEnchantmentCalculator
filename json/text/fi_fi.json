@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Paras järjestys valitaan alla olevilla neljällä ruudulla: ensimmäisessä ruudussa pienin arvo voittaa, ja seuraavat ratkaisevat tasatilanteet. Vedä ruutua tai käytä sen ‹ › -nuolia muuttaaksesi, mikä lasketaan eniten.",
         "order_title": "Järjestetty",
-        "order_uses": {"plural": "uses", "one": "{uses} käyttö", "other": "{uses} käyttöä"},
         "level_chip": "Taso {level}",
         "level_chip_off": "Aseta taso",
         "rank_help_label": "Miten paras järjestys valitaan",
@@ -348,7 +347,6 @@
         "step_done_help": "Ruksaa vaiheet, kun teet ne. Tallennetaan tähän selaimeen.",
         "enchanted_book": "Lumottu kirja",
         "level_track": "Taso {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} alasinkäyttö", "other": "{uses} alasinkäyttöä"},
         "anvil_break": "{chance} todennäköisyys, että uusi alasin hajoaa",
         "anvil_safe": "Uusi alasin ei hajoa",
         "anvil_safe_short": "Turvallinen",

@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "The best order is picked by the four tiles below: the order with the lowest value in the first tile wins, and the next tiles break ties. Drag a tile, or use its ‹ › arrows, to change which counts most.",
         "order_title": "Ranked by",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} use",
-            "other": "{uses} uses"
-        },
         "level_chip": "Rk {level}",
         "level_chip_off": "Set rank",
         "rank_help_label": "How the best order is chosen",
@@ -446,11 +441,6 @@
         "step_done_help": "Tick off steps as you do them. Kept in this browser.",
         "enchanted_book": "Galed Book",
         "level_track": "Rk {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} anvil use",
-            "other": "{uses} anvil uses"
-        },
         "anvil_break": "{chance} chance a new anvil breaks",
         "anvil_safe": "A new anvil will not break",
         "anvil_safe_short": "Safe",

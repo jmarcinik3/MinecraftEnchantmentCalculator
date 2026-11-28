@@ -235,7 +235,6 @@
     "ranking": {
         "rank_by": "最佳順序由下方四個卡片決定：第一張卡片數值最低的順序勝出，其餘卡片用來打破平手。拖曳卡片，或使用它的 ‹ › 箭頭，可以改變哪一項最重要。",
         "order_title": "排序依據",
-        "order_uses": {"plural": "uses", "other": "{uses} 次使用"},
         "level_chip": "等級 {level}",
         "level_chip_off": "設定等級",
         "rank_help_label": "如何選擇最佳順序",
@@ -346,7 +345,6 @@
         "step_done_help": "完成步驟後打勾。儲存在此瀏覽器中。",
         "enchanted_book": "附魔書",
         "level_track": "{before} 級 → {after} 級",
-        "anvil_uses": {"plural": "uses", "other": "{uses} 次鐵砧使用"},
         "anvil_break": "新鐵砧損壞的機率為 {chance}",
         "anvil_safe": "新鐵砧不會損壞",
         "anvil_safe_short": "安全",

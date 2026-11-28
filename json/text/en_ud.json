@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "˙ʇsoɯ sʇunoɔ ɥɔᴉɥʍ ǝᵷuɐɥɔ oʇ 'sʍoɹɹɐ ‹ › sʇᴉ ǝsn ɹo 'ǝꞁᴉʇ ɐ ᵷɐɹᗡ ˙sǝᴉʇ ʞɐǝɹq sǝꞁᴉʇ ʇxǝu ǝɥʇ puɐ 'suᴉʍ ǝꞁᴉʇ ʇsɹᴉɟ ǝɥʇ uᴉ ǝnꞁɐʌ ʇsǝʍoꞁ ǝɥʇ ɥʇᴉʍ ɹǝpɹo ǝɥʇ :ʍoꞁǝq sǝꞁᴉʇ ɹnoɟ ǝɥʇ ʎq pǝʞɔᴉd sᴉ ɹǝpɹo ʇsǝq ǝɥ⟘",
         "order_title": "ʎq pǝʞuɐᴚ",
-        "order_uses": {
-            "plural": "uses",
-            "one": "ǝsn {uses}",
-            "other": "sǝsn {uses}"
-        },
         "level_chip": "{level} ʌ˥",
         "level_chip_off": "ꞁǝʌǝꞁ ʇǝS",
         "rank_help_label": "uǝsoɥɔ sᴉ ɹǝpɹo ʇsǝq ǝɥʇ ʍoH",
@@ -446,11 +441,6 @@
         "step_done_help": "˙ɹǝsʍoɹq sᴉɥʇ uᴉ ʇdǝ⋊ ˙ɯǝɥʇ op noʎ sɐ sdǝʇs ɟɟo ʞɔᴉ⟘",
         "enchanted_book": "ʞooᗺ pǝʇuɐɥɔuƎ",
         "level_track": "{after} → {before} ʌ˥",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "ǝsn ꞁᴉʌuɐ {uses}",
-            "other": "sǝsn ꞁᴉʌuɐ {uses}"
-        },
         "anvil_break": "sʞɐǝɹq ꞁᴉʌuɐ ʍǝu ɐ ǝɔuɐɥɔ {chance}",
         "anvil_safe": "ʞɐǝɹq ʇ,uoʍ ꞁᴉʌuɐ ʍǝu ∀",
         "anvil_safe_short": "ǝɟɐS",

@@ -238,7 +238,6 @@
     "ranking": {
         "rank_by": "Lepšy paradak vybirajuć čatyry plitki nižej: pieramahaje paradak z najmienšym značeńniem u pieršaj plitcy, a nastupnyja plitki razrywajuć ničyi. Pieracjahnicie plitku abo karystajciesia jaje strełkami ‹ ›, kab źmianić, što važyć bolš.",
         "order_title": "Ranžyravana pa",
-        "order_uses": {"plural": "uses", "one": "{uses} vykarystańnie", "few": "{uses} vykarystańni", "many": "{uses} vykarystańniaŭ", "other": "{uses} vykarystańniaŭ"},
         "level_chip": "Ŭzr. {level}",
         "level_chip_off": "Zadać ŭzroŭień",
         "rank_help_label": "Jak vybiraecca lepšy paradak",
@@ -352,7 +351,6 @@
         "step_done_help": "Adznačajcie kroki pa miery vykanańnia. Zachoŭvajecca ŭ hetym braŭzery.",
         "enchanted_book": "Začaravanaja kniha",
         "level_track": "Ŭzr. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} vykarystańnie kavadła", "few": "{uses} vykarystańni kavadła", "many": "{uses} vykarystańniaŭ kavadła", "other": "{uses} vykarystańniaŭ kavadła"},
         "anvil_break": "Šaniec {chance}, što novaje kavadła zlamajecca",
         "anvil_safe": "Novaje kavadła nie zlamajecca",
         "anvil_safe_short": "Biaspečna",

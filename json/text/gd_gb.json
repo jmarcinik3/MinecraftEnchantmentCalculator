@@ -313,13 +313,6 @@
     "ranking": {
         "rank_by": "Thèid an t-òrdugh as fheàrr a thaghadh leis na ceithir tiles gu h-ìosal: buannaichidh an t-òrdugh leis an luach as ìsle sa chiad tile, agus briseadh na tiles eile na co-ionnanan. Slaod tile, no cleachd na saighdean ‹ › aige, gus atharrachadh dè as cudromaiche.",
         "order_title": "Rangaichte a rèir",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} chleachdadh",
-            "two": "{uses} chleachdadh",
-            "few": "{uses} cleachdaidhean",
-            "other": "{uses} cleachdadh"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Suidhich an ìre",
         "rank_help_label": "Mar a thèid an t-òrdugh as fheàrr a thaghadh",
@@ -488,13 +481,6 @@
         "step_done_help": "Cromaich na ceumannan mar a nì thu iad. Thèid a chumail san bhrobhsair seo.",
         "enchanted_book": "Leabhar fo gheas",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} chleachdadh innealtair",
-            "two": "{uses} chleachdadh innealtair",
-            "few": "{uses} cleachdaidhean innealtair",
-            "other": "{uses} cleachdadh innealtair"
-        },
         "anvil_break": "{chance} cothrom gun bris innealtair ùr",
         "anvil_safe": "Cha bhris innealtair ùr",
         "anvil_safe_short": "Sàbhailte",

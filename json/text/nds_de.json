@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "De beste Reegenfolg warrt mit de veer Kacheln ünnen wählt: De Reegenfolg mit den lütsten Weert in de eerste Kachel wannt, un de nächsten Kacheln entscheedt bi Gliekheit. Tehn en Kachel oder bruuk de ‹ ›-Pielen, um to ännern, wat am meesten telt.",
         "order_title": "Sorteert na",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} Bruuk",
-            "other": "{uses} Bruuken"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Level fastsetten",
         "rank_help_label": "Wo de beste Reegenfolg wählt warrt",
@@ -446,11 +441,6 @@
         "step_done_help": "Hak de Steg af, wenn du se daust. Warrt in disen Browser spiekert.",
         "enchanted_book": "Verzöbert Book",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} Amboss-Bruuk",
-            "other": "{uses} Amboss-Bruuken"
-        },
         "anvil_break": "{chance} Chance, dat en nieg Amboss brickt",
         "anvil_safe": "En nieg Amboss brickt nich",
         "anvil_safe_short": "Seeker",

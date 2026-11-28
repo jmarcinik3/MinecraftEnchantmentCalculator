@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Ordena onena beheko lau mosaikoek aukeratzen dute: balio txikiena duen ordenak irabazten du lehen mosaikoan, eta hurrengoek berdinketak apurtzen dituzte. Arrastatu mosaiko bat, edo erabili ‹ › geziak, zein gehien kontatzen duen aldatzeko.",
         "order_title": "Honen arabera sailkatua",
-        "order_uses": {"plural": "uses", "one": "erabilera {uses}", "other": "{uses} erabilera"},
         "level_chip": "{level}. maila",
         "level_chip_off": "Ezarri maila",
         "rank_help_label": "Nola aukeratzen den ordena onena",
@@ -348,7 +347,6 @@
         "step_done_help": "Markatu urratsak egin ahala. Nabigatzaile honetan gordetzen da.",
         "enchanted_book": "Sorgindutako liburua",
         "level_track": "{before} → {after} maila",
-        "anvil_uses": {"plural": "uses", "one": "yunke-erabilera {uses}", "other": "{uses} yunke-erabilera"},
         "anvil_break": "Yunke berri batek hausteko {chance} probabilitatea",
         "anvil_safe": "Yunke berri bat ez da hausten",
         "anvil_safe_short": "Segurua",

@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Besta rakkan verður valt eftir teimum fýra reitunum niðanfyri: rakkanin við lægsta virðið í fyrsta reitinum vinnur, og tey næstu avgera líka. Drag ein reit, ella brúk pílarnar ‹ ›, at broyta hvat sum telur mest.",
         "order_title": "Raðfest eftir",
-        "order_uses": {"plural": "uses", "one": "{uses} nýtsla", "other": "{uses} nýtslur"},
         "level_chip": "Stig {level}",
         "level_chip_off": "Set stig",
         "rank_help_label": "Hvussu besta rakkan verður valt",
@@ -348,7 +347,6 @@
         "step_done_help": "Hak steg av, tá tú gert tey. Goymt í hesum kagaranum.",
         "enchanted_book": "Trylt bók",
         "level_track": "Stig {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} ambolt-nýtsla", "other": "{uses} ambolt-nýtslur"},
         "anvil_break": "{chance} møguleiki at ein nýggjur ambolt brotnar",
         "anvil_safe": "Ein nýggjur ambolt brotnar ikki",
         "anvil_safe_short": "Trygt",

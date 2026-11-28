@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "De beste volgorde wordt gekozen met de vier tegels hieronder: de volgorde met de laagste waarde in de eerste tegel wint, en de volgende tegels beslissen bij gelijkspel. Sleep een tegel, of gebruik de pijltjes ‹ ›, om te wijzigen welke het zwaarst telt.",
         "order_title": "Gerangschikt op",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} gebruik",
-            "other": "{uses} gebruiken"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Level instellen",
         "rank_help_label": "Hoe de beste volgorde wordt gekozen",
@@ -446,11 +441,6 @@
         "step_done_help": "Vink stappen af terwijl je ze doet. Wordt in deze browser bewaard.",
         "enchanted_book": "Betoverd boek",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} aambeeldgebruik",
-            "other": "{uses} aambeeldgebruiken"
-        },
         "anvil_break": "{chance} kans dat een nieuw aambeeld breekt",
         "anvil_safe": "Een nieuw aambeeld breekt niet",
         "anvil_safe_short": "Veilig",

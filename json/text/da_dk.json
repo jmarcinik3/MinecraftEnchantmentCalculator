@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Den bedste rækkefølge vælges af de fire felter nedenfor: rækkefølgen med den laveste værdi i det første felt vinder, og de næste felter afgør uafgjorte. Træk i et felt, eller brug dets ‹ ›-pile, for at ændre hvad der tæller mest.",
         "order_title": "Rangeret efter",
-        "order_uses": {"plural": "uses", "one": "{uses} brug", "other": "{uses} brug"},
         "level_chip": "Niv {level}",
         "level_chip_off": "Sæt niveau",
         "rank_help_label": "Hvordan den bedste rækkefølge vælges",
@@ -348,7 +347,6 @@
         "step_done_help": "Sæt kryds ved trin, når du har lavet dem. Gemmes i denne browser.",
         "enchanted_book": "Fortryllet bog",
         "level_track": "Niv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} brug af ambolten", "other": "{uses} brug af ambolten"},
         "anvil_break": "{chance} chance for at en ny ambolt går i stykker",
         "anvil_safe": "En ny ambolt går ikke i stykker",
         "anvil_safe_short": "Sikker",

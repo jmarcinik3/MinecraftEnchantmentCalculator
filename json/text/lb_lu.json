@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Déi bescht Reiefolleg gëtt iwwer déi véier Kachelen hei ënnen gewielt: D'Reiefolleg mat dem nidderegsten Wäert an der éischter Kachel gewënnt, an déi nächst Kachelen entscheede bei Gläichheet. Zéie eng Kachel oder benotz d'‹ ›-Pielen, fir z'änneren wat am meeschte zielt.",
         "order_title": "Sortéiert no",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} Benotzung",
-            "other": "{uses} Benotzungen"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Niveau festleeen",
         "rank_help_label": "Wéi déi bescht Reiefolleg gewielt gëtt",
@@ -446,11 +441,6 @@
         "step_done_help": "Hakt d'Schrëtt of, wann Dir se maacht. Gëtt am Browser gespäichert.",
         "enchanted_book": "Verzaubert Buch",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} Amboss-Benotzung",
-            "other": "{uses} Amboss-Benotzungen"
-        },
         "anvil_break": "{chance} Chance, datt en neie Amboss brécht",
         "anvil_safe": "En neie Amboss brécht net",
         "anvil_safe_short": "Sécher",

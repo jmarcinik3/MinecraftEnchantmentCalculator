@@ -313,13 +313,6 @@
     "ranking": {
         "rank_by": "Najboljši vrstni red izbere štiri ploščice spodaj: zmaga vrstni red z najnižjo vrednostjo v prvi ploščici, naslednje ploščice odločajo izenačenja. Povleci ploščico ali uporabi njene puščice ‹ ›, da spremeniš, kaj šteje najbolj.",
         "order_title": "Razvrščeno po",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} uporaba",
-            "two": "{uses} uporabi",
-            "few": "{uses} uporabe",
-            "other": "{uses} uporab"
-        },
         "level_chip": "R {level}",
         "level_chip_off": "Nastavi raven",
         "rank_help_label": "Kako se izbere najboljši vrstni red",
@@ -488,13 +481,6 @@
         "step_done_help": "Označi korake, ko jih narediš. Shranjeno v tem brskalniku.",
         "enchanted_book": "Začarana knjiga",
         "level_track": "R {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} uporaba nakovala",
-            "two": "{uses} uporabi nakovala",
-            "few": "{uses} uporabe nakovala",
-            "other": "{uses} uporab nakovala"
-        },
         "anvil_break": "{chance} verjetnost, da se novo nakovalo zlomi",
         "anvil_safe": "Novo nakovalo se ne bo zlomilo",
         "anvil_safe_short": "Varno",

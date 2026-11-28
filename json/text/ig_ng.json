@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Akụkụ anọ ndị dị n'okpuru na-ahọrọ usoro kacha mma: usoro nke nwere uru kacha ala n'akara mbụ na-emeri, akara ndị ọzọ na-edozi ihe ndị na-atụ otu. Dọpụta akara, ma ọ bụ jiri akụ ‹ › ya, iji gbanwee nke na-adịghị ya mkpa.",
         "order_title": "Ehazila site na",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} ojiji",
-            "other": "{uses} ojiji"
-        },
         "level_chip": "Ọk {level}",
         "level_chip_off": "Tọọ ọkwa",
         "rank_help_label": "Otu a si ahọrọ usoro kacha mma",
@@ -446,11 +441,6 @@
         "step_done_help": "Kpọọ usoro ka ị na-eme ha. Ọ na-anọgide n'ihe nchọgharị a.",
         "enchanted_book": "Akwụkwọ Enwasị",
         "level_track": "Ọk {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} ojiji anvil",
-            "other": "{uses} ojiji anvil"
-        },
         "anvil_break": "{chance} ohere ka anvil ọhụrụ gbajie",
         "anvil_safe": "Anvil ọhụrụ agaghị agbaji",
         "anvil_safe_short": "Nchekwa",

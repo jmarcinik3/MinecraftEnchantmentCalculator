@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Àwọn ìpín mẹ́rin ní ìsàlẹ̀ ni ń yan ọ̀nà tí ó dára jùlọ: ọ̀nà tí ó ní iye tí ó kéré jùlọ nínú ìpín àkọ́kọ́ ló ń borí, àwọn ìpín tí ó tẹ̀lé e sì ń yanjú ìbáramu. Fà ìpín kan, tàbí lo ọfà ‹ › rẹ̀, láti yí èyí tí ó ṣe pàtàkì jùlọ pada.",
         "order_title": "Tò ní ọ̀nà",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} lílò",
-            "other": "{uses} lílò"
-        },
         "level_chip": "Ip {level}",
         "level_chip_off": "Ṣètò ipele",
         "rank_help_label": "Bí a ṣe ń yan ọ̀nà tí ó dára jùlọ",
@@ -446,11 +441,6 @@
         "step_done_help": "Ṣàmì àwọn ìgbésẹ̀ bí o ṣe ń ṣe wọ́n. A pamọ́ ní aṣàwákiri yìí.",
         "enchanted_book": "Iwe Enchanted",
         "level_track": "Ip {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} lílo anvil",
-            "other": "{uses} lílo anvil"
-        },
         "anvil_break": "{chance} àǹfààní pé anvil tuntun yóò fọ́",
         "anvil_safe": "Anvil tuntun kò ní fọ́",
         "anvil_safe_short": "Ààbò",

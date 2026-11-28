@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "De bès volgorde weurt gekoze mit de vier tegele hieónger: de volgorde mit de leechste waarde in de ierste tegel wint, en de volgende tegele beslisse bie gelieke. Sleep ein tegel, of gebroek zien ‹ ›-pielkes, óm te verangere wat 't zwaorste telt.",
         "order_title": "Gerangsjikt op",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} gebroek",
-            "other": "{uses} gebroeke"
-        },
         "level_chip": "Nv {level}",
         "level_chip_off": "Nivo instelle",
         "rank_help_label": "Hoe de bès volgorde gekoze weurt",
@@ -446,11 +441,6 @@
         "step_done_help": "Vink de sjtappe aaf as te ze doet. Weurt in dees browser bewaord.",
         "enchanted_book": "Betouwerd boek",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} aambeeldgebroek",
-            "other": "{uses} aambeeldgebroeke"
-        },
         "anvil_break": "{chance} kaans dat e nuij aambeeld breik",
         "anvil_safe": "E nuij aambeeld breik neet",
         "anvil_safe_short": "Veilig",

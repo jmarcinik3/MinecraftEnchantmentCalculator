@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Die bessde Reihnfolch wird über die vier Kachln unna ausgwählt: De Reihnfolch mit em niedrichstn Wert in dr erschtn Kachl gwinnt, und die nägschdn Kachln endschaidn Gleichstand. Ziach a Kachl oder nimm ihre ‹ ›-Pfeil, zum ändern, was am meischtn zählt.",
         "order_title": "Sortiert nach",
-        "order_uses": {"plural": "uses", "one": "{uses} Benutzung", "other": "{uses} Benutzunga"},
         "level_chip": "Lv {level}",
         "level_chip_off": "Level festlächn",
         "rank_help_label": "Wie de bessde Reihnfolch ausgwählt wird",
@@ -348,7 +347,6 @@
         "step_done_help": "Hag die Schritt ab, wenn de sie machsd. Wird im Browser gspeichert.",
         "enchanted_book": "Verzaubarts Buch",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} Amboss-Benutzung", "other": "{uses} Amboss-Benutzunga"},
         "anvil_break": "{chance} Chance, dass a neier Amboss brichd",
         "anvil_safe": "A neier Amboss brichd ned",
         "anvil_safe_short": "Sicher",

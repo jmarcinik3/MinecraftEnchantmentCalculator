@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Die beste volgorde word gekies deur die vier teëls hieronder: die volgorde met die laagste waarde in die eerste teël wen, en die volgende teëls breek gelykopstaande. Sleep 'n teël, of gebruik sy ‹ › pyltjies, om te verander watter die swaarste tel.",
         "order_title": "Gerangskik volgens",
-        "order_uses": {"plural": "uses", "one": "{uses} gebruik", "other": "{uses} gebruike"},
         "level_chip": "Vl {level}",
         "level_chip_off": "Stel vlak",
         "rank_help_label": "Hoe die beste volgorde gekies word",
@@ -348,7 +347,6 @@
         "step_done_help": "Merk stappe af soos jy dit doen. Word in hierdie blaaier gehou.",
         "enchanted_book": "Betoorde boek",
         "level_track": "Vl {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} aambeeldgebruik", "other": "{uses} aambeeldgebruike"},
         "anvil_break": "{chance} kans dat 'n nuwe aambeeld breek",
         "anvil_safe": "'n Nuwe aambeeld sal nie breek nie",
         "anvil_safe_short": "Veilig",

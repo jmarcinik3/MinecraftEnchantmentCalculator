@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La plej bona ordo estas elektita per la kvar kartoj malsupre: la ordo kun la plej malalta valoro en la unua karto gajnas, kaj la sekvaj kartoj decidas egalecojn. Tiru karton, aŭ uzu ĝiajn ‹ › sagojn, por ŝanĝi tion, kio plej gravas.",
         "order_title": "Rangigita laŭ",
-        "order_uses": {"plural": "uses", "one": "{uses} uzo", "other": "{uses} uzoj"},
         "level_chip": "Niv. {level}",
         "level_chip_off": "Agordi nivelon",
         "rank_help_label": "Kiel la plej bona ordo estas elektita",
@@ -348,7 +347,6 @@
         "step_done_help": "Markaltu paŝojn dum vi faras ilin. Konservita en ĉi tiu retumilo.",
         "enchanted_book": "Sorĉita libro",
         "level_track": "Niv. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} anvila uzo", "other": "{uses} anvilaj uzoj"},
         "anvil_break": "{chance} ŝanco, ke nova anvilo rompiĝos",
         "anvil_safe": "Nova anvilo ne rompiĝos",
         "anvil_safe_short": "Sekura",

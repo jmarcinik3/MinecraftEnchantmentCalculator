@@ -237,7 +237,6 @@
     "ranking": {
         "rank_by": "Geriausią tvarką parenka keturios žemiau esančios plytelės: nugali tvarka su mažiausia pirmosios plytelės verte, o kitos plytelės lemia lygiąsias. Vilkite plytelę arba naudokite jos ‹ › rodykles, kad pakeistumėte, kuri svarbiausia.",
         "order_title": "Rikiuojama pagal",
-        "order_uses": {"plural": "uses", "one": "{uses} naudojimas", "few": "{uses} naudojimai", "other": "{uses} naudojimų"},
         "level_chip": "Lyg. {level}",
         "level_chip_off": "Nustatyti lygį",
         "rank_help_label": "Kaip parenkama geriausia tvarka",
@@ -350,7 +349,6 @@
         "step_done_help": "Žymėkite žingsnius, kai juos atliekate. Išsaugoma šioje naršyklėje.",
         "enchanted_book": "Užkerėta knyga",
         "level_track": "Lyg. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} priekalo naudojimas", "few": "{uses} priekalo naudojimai", "other": "{uses} priekalo naudojimų"},
         "anvil_break": "{chance} tikimybė, kad naujas priekalas sulūš",
         "anvil_safe": "Naujas priekalas nesulūš",
         "anvil_safe_short": "Saugu",

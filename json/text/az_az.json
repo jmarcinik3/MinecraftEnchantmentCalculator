@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Ən yaxşı ardıcıllıq aşağıdakı dörd kafel ilə seçilir: birinci kafeldə ən aşağı dəyər olan ardıcıllıq qalib gəlir, növbəti kafellər bərabərliyi həll edir. Hansının daha vacib olduğunu dəyişmək üçün kafeli sürükləyin və ya ‹ › oxlarından istifadə edin.",
         "order_title": "Sıralama",
-        "order_uses": {"plural": "uses", "one": "{uses} istifadə", "other": "{uses} istifadə"},
         "level_chip": "Səv {level}",
         "level_chip_off": "Səviyyə təyin et",
         "rank_help_label": "Ən yaxşı ardıcıllıq necə seçilir",
@@ -348,7 +347,6 @@
         "step_done_help": "Addımları etdikcə işarələyin. Bu brauzerdə saxlanılır.",
         "enchanted_book": "Sehrli Kitab",
         "level_track": "Səv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} dəmirçi zindanı istifadəsi", "other": "{uses} dəmirçi zindanı istifadəsi"},
         "anvil_break": "Yeni dəmirçi zindanının qırılma ehtimalı {chance}",
         "anvil_safe": "Yeni dəmirçi zindanı qırılmayacaq",
         "anvil_safe_short": "Təhlükəsiz",

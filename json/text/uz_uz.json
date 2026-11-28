@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Eng yaxshi tartibni quyidagi to'rtta plitka tanlaydi: birinchi plitkada eng past qiymatga ega tartib g'olib bo'ladi, keyingi plitkalar tenglikni hal qiladi. Qaysi biri muhimroq ekanini o'zgartirish uchun plitkani sudrang yoki ‹ › strelkalaridan foydalaning.",
         "order_title": "Tartiblangan",
-        "order_uses": {"plural": "uses", "one": "{uses} marta ishlatish", "other": "{uses} marta ishlatish"},
         "level_chip": "D {level}",
         "level_chip_off": "Darajani belgilash",
         "rank_help_label": "Eng yaxshi tartib qanday tanlanadi",
@@ -348,7 +347,6 @@
         "step_done_help": "Qadamlarni bajarganingizda belgilang. Bu brauzerda saqlanadi.",
         "enchanted_book": "Sehrlangan kitob",
         "level_track": "D {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} marta sandon ishlatish", "other": "{uses} marta sandon ishlatish"},
         "anvil_break": "Yangi sandonning buzilish ehtimoli {chance}",
         "anvil_safe": "Yangi sandon buzilmaydi",
         "anvil_safe_short": "Xavfsiz",

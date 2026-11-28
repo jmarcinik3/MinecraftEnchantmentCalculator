@@ -339,15 +339,6 @@
     "ranking": {
         "rank_by": "An rewl gorra a vydh dewisys dre'n peder teyl a-is: an rewl gans an gwyns ysla y'n kynsa teyl a dhe'n tro, ha'n teylow erell a dhyghtya an kenstrif. Tenna teyl, po usya y sagh ‹ ›, dhe chanjya pyth a vydh an pythra.",
         "order_title": "Rangys dre",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} usadow",
-            "two": "{uses} usadow",
-            "other": "{uses} usadow",
-            "zero": "{uses} usadow",
-            "few": "{uses} usadow",
-            "many": "{uses} usadow"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Gosod lefel",
         "rank_help_label": "Fatel vydh an rewl gorra dewisys",
@@ -530,15 +521,6 @@
         "step_done_help": "Tiketh an stennow wosa pub onan. Ev a vydh gwithys y'n porwr ma.",
         "enchanted_book": "Lyver gans Hus",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} usadow an anwan",
-            "two": "{uses} usadow an anwan",
-            "other": "{uses} usadow an anwan",
-            "zero": "{uses} usadow an anwan",
-            "few": "{uses} usadow an anwan",
-            "many": "{uses} usadow an anwan"
-        },
         "anvil_break": "{chance} a sans y tor anwan nowydh",
         "anvil_safe": "Ny dhrollyo anwan nowydh",
         "anvil_safe_short": "Diogel",

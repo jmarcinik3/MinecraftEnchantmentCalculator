@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Kuatro tsakil ta ilel k'ot pasos: ta lo'il ta jun ta sventa k'ak'al valor ta alkal, ta xchi'uk tsakil ch'ayel ta mu jtuk. Jak' jun tsakil, o xchi'uk flechas ‹ › ta xchanbey ta ta ch'ayel lo'il.",
         "order_title": "Ta lo'il ta",
-        "order_uses": {"plural": "uses", "one": "{uses} uso", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Ilan nivel",
         "rank_help_label": "Bu ta ilel ta k'ot pasos",
@@ -348,7 +347,6 @@
         "step_done_help": "Ch'ak' ta pasos ta xa ta xchanbey. Ta nabeb ta jnatol xa sa'.",
         "enchanted_book": "Vun Enchanted",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} yunke anvil", "other": "{uses} yunke anvil"},
         "anvil_break": "{chance} ch'ay ta xchi'uk anvil k'ak'al ta ch'ayel",
         "anvil_safe": "Anvil k'ak'al mu xa ta ch'ayel",
         "anvil_safe_short": "Seguro",

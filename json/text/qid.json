@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Oeroetan terbaik dipilih berdasarkan empat kotak di bawah: oeroetan dengan nilai terendah di kotak pertama menang, dan kotak berikoetnja memoetoeskan kalau seri. Seret sebuah kotak, atau pakai panah ‹ ›, oentoek mengoebah mana jang paling penting.",
         "order_title": "Dioeroetkan berdasarkan",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} kali pakai",
-            "other": "{uses} kali pakai"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Atoer level",
         "rank_help_label": "Tjara memilih oeroetan terbaik",
@@ -446,11 +441,6 @@
         "step_done_help": "Tjentang langkah saat anda mengerdjakannja. Disimpan di peramban ini.",
         "enchanted_book": "Boekoe Pesona",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} kali pemakaian landasan",
-            "other": "{uses} kali pemakaian landasan"
-        },
         "anvil_break": "Peloeang {chance} landasan baroe roesak",
         "anvil_safe": "Landasan baroe tidak akan roesak",
         "anvil_safe_short": "Aman",

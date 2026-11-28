@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "mIw Do' wIvlu' cha'logh bIngDaq nav loS: nav wa'DIch Daq patlh puS law'; latlh nav Dachav Sanbe'. nav yIqoy, qoj ‹ › yIlo', 'oH law' wIvmeH.",
         "order_title": "wIvlu'bogh",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} lo'",
-            "other": "{uses} lo'"
-        },
         "level_chip": "patlh {level}",
         "level_chip_off": "patlh yIchoH",
         "rank_help_label": "mIw Do' wIvlu' 'oH nuq",
@@ -446,11 +441,6 @@
         "step_done_help": "mIw pItlh Dachaw'. lalDan QorwI' Daq vanDI'.",
         "enchanted_book": "tlheH paq",
         "level_track": "patlh {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "'achme' {uses} lo'",
-            "other": "'achme' {uses} lo'"
-        },
         "anvil_break": "{chance} 'achme' chu' Qaw'laH",
         "anvil_safe": "'achme' chu' Qaw'laHbe'",
         "anvil_safe_short": "QaQ",

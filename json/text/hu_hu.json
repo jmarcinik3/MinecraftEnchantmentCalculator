@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "A legjobb sorrendet a lenti négy csempe határozza meg: a nyer, amelyiknek az első csempéjén a legkisebb érték van, a többi csempe dönt az egyenlőségeknél. Húzz egy csempét, vagy használd a ‹ › nyilait, hogy megváltoztasd, mi számít a legtöbbet.",
         "order_title": "Rangsorolva",
-        "order_uses": {"plural": "uses", "one": "{uses} használat", "other": "{uses} használat"},
         "level_chip": "Sz. {level}",
         "level_chip_off": "Szint beállítása",
         "rank_help_label": "Hogyan választják ki a legjobb sorrendet",
@@ -348,7 +347,6 @@
         "step_done_help": "Pipáld ki a lépéseket, ahogy elvégzed őket. Ebben a böngészőben marad meg.",
         "enchanted_book": "Varázskönyv",
         "level_track": "Sz. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} üllő-használat", "other": "{uses} üllő-használat"},
         "anvil_break": "{chance} esély, hogy egy új üllő eltörik",
         "anvil_safe": "Egy új üllő nem törik el",
         "anvil_safe_short": "Biztonságos",

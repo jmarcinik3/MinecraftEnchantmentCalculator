@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Dæn bestu raðingin verður vald av dei fýra flísunum niðanfyri: raðingin við lægsta virði í fyrstu flísini vinnur, og dei næstu flísarnar skilja jamnt. Drag ein flís, ell bruk hennar ‹ ›-pílir, fyr at broyta hvat telur mest.",
         "order_title": "Raðað eftir",
-        "order_uses": {"plural": "uses", "one": "{uses} brúk", "other": "{uses} brúk"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Set nivå",
         "rank_help_label": "Hvussu dæn bestu raðingin verður vald",
@@ -348,7 +347,6 @@
         "step_done_help": "Kryss steg av táið tú gerð tey. Verður gemt í hesum vafra.",
         "enchanted_book": "Fertrylld buok",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} aambeeld-brúk", "other": "{uses} aambeeld-brúk"},
         "anvil_break": "{chance} sjans at eitt nýtt aambeeld brestur",
         "anvil_safe": "Eitt nýtt aambeeld brestur ikki",
         "anvil_safe_short": "Trygt",

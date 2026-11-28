@@ -237,7 +237,6 @@
     "ranking": {
         "rank_by": "Labāko kārtību izvēlas četras zemāk esošās kartītes: uzvar kārtība ar zemāko pirmās kartītes vērtību, bet pārējās kartītes izlemj neizšķirtus. Velciet kartīti vai izmantojiet tās ‹ › bultiņas, lai mainītu, kas ir svarīgākais.",
         "order_title": "Kārtots pēc",
-        "order_uses": {"plural": "uses", "zero": "{uses} lietojumu", "one": "{uses} lietojums", "other": "{uses} lietojumi"},
         "level_chip": "Lim. {level}",
         "level_chip_off": "Iestatīt līmeni",
         "rank_help_label": "Kā izvēlas labāko kārtību",
@@ -350,7 +349,6 @@
         "step_done_help": "Atzīmējiet soļus, kad tos izpildāt. Saglabājas šajā pārlūkprogrammā.",
         "enchanted_book": "Uzlabota grāmata",
         "level_track": "Lim. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "zero": "{uses} laktas lietojumu", "one": "{uses} laktas lietojums", "other": "{uses} laktas lietojumi"},
         "anvil_break": "{chance} varbūtība, ka jauna lakta salūst",
         "anvil_safe": "Jauna lakta nesalūzīs",
         "anvil_safe_short": "Droši",

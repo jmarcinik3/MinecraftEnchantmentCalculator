@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Optimus ordo quattuor tabulis infra eligitur: ordo cum minimo valore in prima tabula vincit, et sequentes paritates dirimunt. Tabulam trahe, vel sagittis ‹ › utere, ut mutes quae plurimum valeat.",
         "order_title": "Ordinatum secundum",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} usus",
-            "other": "{uses} usus"
-        },
         "level_chip": "Gr {level}",
         "level_chip_off": "Gradum pone",
         "rank_help_label": "Quomodo optimus ordo eligitur",
@@ -446,11 +441,6 @@
         "step_done_help": "Gradus nota dum facis. Servantur in hoc navigatore.",
         "enchanted_book": "Liber incantatus",
         "level_track": "Gr {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} usus incudis",
-            "other": "{uses} usus incudis"
-        },
         "anvil_break": "{chance} probabilitas ut incus nova frangatur",
         "anvil_safe": "Incus nova non frangetur",
         "anvil_safe_short": "Tuta",

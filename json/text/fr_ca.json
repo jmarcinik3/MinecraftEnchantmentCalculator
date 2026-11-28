@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "La meilleure combinaison est choisie par les quatre cases ci-dessous : celle dont la valeur est la plus basse dans la première case l'emporte, et les cases suivantes départagent. Glissez une case, ou utilisez ses flèches ‹ ›, pour changer ce qui compte le plus.",
         "order_title": "Classé par",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} utilisation",
-            "other": "{uses} utilisations"
-        },
         "level_chip": "Niv. {level}",
         "level_chip_off": "Régler le niveau",
         "rank_help_label": "Comment la meilleure combinaison est choisie",
@@ -446,11 +441,6 @@
         "step_done_help": "Cochez les étapes au fur et à mesure. Gardé dans ce navigateur.",
         "enchanted_book": "Livre enchanté",
         "level_track": "Niv. {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} utilisation de l'enclume",
-            "other": "{uses} utilisations de l'enclume"
-        },
         "anvil_break": "{chance} de chance qu'une enclume neuve se casse",
         "anvil_safe": "Une enclume neuve ne se cassera pas",
         "anvil_safe_short": "Sûr",

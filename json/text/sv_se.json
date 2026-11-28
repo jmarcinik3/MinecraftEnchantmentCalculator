@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Den bästa ordningen väljs av de fyra brickorna nedan: ordningen med lägst värde i den första brickan vinner, och de följande brickorna avgör oavgjort läge. Dra en bricka, eller använd dess ‹ ›-pilar, för att ändra vad som räknas mest.",
         "order_title": "Rankad efter",
-        "order_uses": {"plural": "uses", "one": "{uses} användning", "other": "{uses} användningar"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Ange nivå",
         "rank_help_label": "Hur den bästa ordningen väljs",
@@ -348,7 +347,6 @@
         "step_done_help": "Bocka av steg när du gör dem. Sparas i den här webbläsaren.",
         "enchanted_book": "Förtrollad bok",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} användning av städslet", "other": "{uses} användningar av städslet"},
         "anvil_break": "{chance} chans att ett nytt städsel går sönder",
         "anvil_safe": "Ett nytt städsel går inte sönder",
         "anvil_safe_short": "Säkert",

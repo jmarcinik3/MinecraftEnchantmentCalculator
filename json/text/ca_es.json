@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La millor ordre es tria amb els quatre mosaics de sota: guanya l'ordre amb el valor més baix al primer mosaic, i els següents desempaten. Arrossega un mosaic, o fes servir les fletxes ‹ ›, per canviar quin compta més.",
         "order_title": "Classificat per",
-        "order_uses": {"plural": "uses", "one": "{uses} ús", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Defineix el nivell",
         "rank_help_label": "Com es tria la millor ordre",
@@ -348,7 +347,6 @@
         "step_done_help": "Marca els passos a mesura que els facis. Es guarda en aquest navegador.",
         "enchanted_book": "Llibre encantat",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} ús de l'enclusa", "other": "{uses} usos de l'enclusa"},
         "anvil_break": "{chance} de probabilitat que una enclusa nova es trenqui",
         "anvil_safe": "Una enclusa nova no es trencarà",
         "anvil_safe_short": "Segur",

@@ -235,7 +235,6 @@
     "ranking": {
         "rank_by": "Urutan terbaik dipilih berdasarkan empat kotak di bawah: urutan dengan nilai terendah di kotak pertama menang, dan kotak berikutnya memutuskan jika seri. Seret sebuah kotak, atau gunakan panah ‹ ›, untuk mengubah mana yang paling penting.",
         "order_title": "Diurutkan berdasarkan",
-        "order_uses": {"plural": "uses", "other": "{uses} kali pakai"},
         "level_chip": "Lv {level}",
         "level_chip_off": "Atur level",
         "rank_help_label": "Cara memilih urutan terbaik",
@@ -346,7 +345,6 @@
         "step_done_help": "Centang langkah saat Anda mengerjakannya. Disimpan di peramban ini.",
         "enchanted_book": "Buku Pesona",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "other": "{uses} kali pemakaian landasan"},
         "anvil_break": "Peluang {chance} landasan baru rusak",
         "anvil_safe": "Landasan baru tidak akan rusak",
         "anvil_safe_short": "Aman",

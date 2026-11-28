@@ -300,12 +300,6 @@
     "ranking": {
         "rank_by": "De beste Reihefolg wärd met de vier Kachele unge ussjesöck: De Reihefolg met dem niedrichste Wäät en de eetste Kachel jewennt, un de nächste Kachele entscheide Jliche. Ziehe ene Kachel oder nemm ieh ‹ ›-Pfiele, öm ze ändere, wat am miste zällt.",
         "order_title": "Sortiert nohm",
-        "order_uses": {
-            "plural": "uses",
-            "zero": "{uses} Jebrüch",
-            "one": "{uses} Jebrauch",
-            "other": "{uses} Jebrüch"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Level fess lääje",
         "rank_help_label": "Wi de beste Reihefolg ussjesöck wääd",
@@ -467,12 +461,6 @@
         "step_done_help": "Heck de Schredte aff, wenn de se maachs. Dat weed em Browser jespeichert.",
         "enchanted_book": "Verzaubert Booch",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "zero": "{uses} Amboss-Jebrüch",
-            "one": "{uses} Amboss-Jebrauch",
-            "other": "{uses} Amboss-Jebrüch"
-        },
         "anvil_break": "{chance} Chance, dat ene neue Amboss brich",
         "anvil_safe": "Ene neue Amboss bricht nit",
         "anvil_safe_short": "Sescher",

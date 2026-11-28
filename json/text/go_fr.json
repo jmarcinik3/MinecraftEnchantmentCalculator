@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Le meilleur ordre est chouézi par les quate cases d'en bas : l'ordre avec la valeur la plus basse dans la première case gagne, et les suivantes départagent. Traînez une case, ou ûsez ses flèches ‹ ›, pour changer ce qui compte le pus.",
         "order_title": "Classé par",
-        "order_uses": {"plural": "uses", "one": "{uses} ûsage", "other": "{uses} ûsages"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Mettre le nivé",
         "rank_help_label": "Comment le meilleur ordre est chouézi",
@@ -348,7 +347,6 @@
         "step_done_help": "Cochez les pas au fur et à mesure. Gardé dans ce navigateur.",
         "enchanted_book": "Livr enchantë",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} ûsage de l'enclume", "other": "{uses} ûsages de l'enclume"},
         "anvil_break": "{chance} de chance qu'une enclume neuve casse",
         "anvil_safe": "Une enclume neuve cassera pas",
         "anvil_safe_short": "Sûre",

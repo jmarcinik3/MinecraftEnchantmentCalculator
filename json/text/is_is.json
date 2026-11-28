@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Besta röðin er valin eftir reitunum fjórum hér fyrir neðan: röðin með lægsta gildið í fyrsta reitnum vinnur, og næstu reitir skera úr um jafntefli. Dragðu reit, eða notaðu örvarnar ‹ ›, til að breyta hvað telur mest.",
         "order_title": "Raðað eftir",
-        "order_uses": {"plural": "uses", "one": "{uses} notkun", "other": "{uses} notkunir"},
         "level_chip": "Stig {level}",
         "level_chip_off": "Stilla stig",
         "rank_help_label": "Hvernig besta röðin er valin",
@@ -348,7 +347,6 @@
         "step_done_help": "Hakaðu við skref þegar þú gerir þau. Geymt í þessum vafra.",
         "enchanted_book": "Galdrabók",
         "level_track": "Stig {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} notkun á steðja", "other": "{uses} notkanir á steðja"},
         "anvil_break": "{chance} líkur á að nýr steðji brotni",
         "anvil_safe": "Nýr steðji brotnar ekki",
         "anvil_safe_short": "Öruggt",

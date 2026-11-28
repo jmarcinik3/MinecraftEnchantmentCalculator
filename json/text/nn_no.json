@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Den beste rekkjefølgja blir valt etter dei fire felta under: rekkjefølgja med lågaste verdi i det første feltet vinn, og dei neste felta avgjer likskap. Dra eit felt, eller bruk pilane ‹ ›, for å endre kva som tel mest.",
         "order_title": "Rangert etter",
-        "order_uses": {"plural": "uses", "one": "{uses} bruk", "other": "{uses} bruk"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Set nivå",
         "rank_help_label": "Korleis den beste rekkjefølgja blir valt",
@@ -348,7 +347,6 @@
         "step_done_help": "Kryss av steg etter kvart som du gjer dei. Blir lagra i denne nettlesaren.",
         "enchanted_book": "Fortryllt bok",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} ambolt-bruk", "other": "{uses} ambolt-bruk"},
         "anvil_break": "{chance} sjanse for at ein ny ambolt bryt",
         "anvil_safe": "Ein ny ambolt bryt ikkje",
         "anvil_safe_short": "Trygt",

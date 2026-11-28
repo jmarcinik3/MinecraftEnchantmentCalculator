@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "I melda hyarmë nanwa ya tyelë ni: i hyarmë ya ëa i minya or i ëa i nótë tyelë vanwë, ar i hyar tyelë quetë. Nasta tyelë, or ter ‹ › tarmar, ná ána i ya nó.",
         "order_title": "Rancë",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} úsië",
-            "other": "{uses} úsiër"
-        },
         "level_chip": "Tarmë {level}",
         "level_chip_off": "Cara tarmë",
         "rank_help_label": "Qualë i melda hyarmë cárina",
@@ -446,11 +441,6 @@
         "step_done_help": "Ticë i hyarmar ar i nanwat. Mapina ettë.",
         "enchanted_book": "Luhtaina Parma",
         "level_track": "Tarmë {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} anvil-úsië",
-            "other": "{uses} anvil-úsiër"
-        },
         "anvil_break": "{chance} mauya ya anvil ná ruinë",
         "anvil_safe": "Anvil ná ú-ruinë",
         "anvil_safe_short": "Ú-ruinë",

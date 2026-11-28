@@ -313,13 +313,6 @@
     "ranking": {
         "rank_by": "L-aħjar ordni tintgħażel mill-erba' kaxxi hawn taħt: l-ordni bl-inqas valur fl-ewwel kaxxa tirbaħ, u l-kaxxi li ġejjin jisolvu l-indaqqijiet. Iġbed kaxxa, jew uża l-vleġeġ ‹ › tagħha, biex tibdel liema tgħodd l-aktar.",
         "order_title": "Immexxi skont",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} użu",
-            "other": "{uses} użi",
-            "few": "{uses} użi",
-            "many": "{uses} użi"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Issettja l-livell",
         "rank_help_label": "Kif tintgħażel l-aħjar ordni",
@@ -488,13 +481,6 @@
         "step_done_help": "Immarka l-passi hekk kif tagħmilhom. Jinżamm f'dan il-browser.",
         "enchanted_book": "Ktieb Imsaħħar",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} użu tal-inkwina",
-            "other": "{uses} użi tal-inkwina",
-            "few": "{uses} użi tal-inkwina",
-            "many": "{uses} użi tal-inkwina"
-        },
         "anvil_break": "{chance} ċans li inkwina ġdida tinkiser",
         "anvil_safe": "Inkwina ġdida ma tinkisirx",
         "anvil_safe_short": "Sigura",

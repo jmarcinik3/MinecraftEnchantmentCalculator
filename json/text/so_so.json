@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Afarta xabbo ee hoose ayaa dooranaya habka ugu fiican: habka leh qiimaha ugu hooseeya xabbada koowaad ayaa guuleysta, xabbooyinka xiga ayaa xallinaya isle'egyada. Jiid xabbo, ama isticmaal fallaadhaha ‹ › si aad u beddesho midka ugu muhiimsan.",
         "order_title": "Lagu kala horreeyo",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} isticmaal",
-            "other": "{uses} isticmaal"
-        },
         "level_chip": "Hey {level}",
         "level_chip_off": "Deji heerka",
         "rank_help_label": "Sida habka ugu fiican loo doorto",
@@ -446,11 +441,6 @@
         "step_done_help": "Calaamadee tallaabooyinka markaad qabanayso. Browserkan ayaa lagu kaydiyaa.",
         "enchanted_book": "Buug Sixir Leh",
         "level_track": "Heer {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} isticmaal anvil",
-            "other": "{uses} isticmaal anvil"
-        },
         "anvil_break": "{chance} fursad in anvil cusub uu jabo",
         "anvil_safe": "Anvil cusub ma jabi doono",
         "anvil_safe_short": "Ammaan",

@@ -237,7 +237,6 @@
     "ranking": {
         "rank_by": "Buorre rihkku válljejuvvo njeallje rutnii vuolábealde: rihkku mas lea unnimus árvvu vuosttas rutnii, voittaná; ja vuolgit rutnit čielgasmahttet sadjeeohcamuša. Veadjit rutnii dahje geavat ‹ › njuoliid, vai rievdat mii lea dehálaččamus.",
         "order_title": "Rádjejuvvon mielde",
-        "order_uses": {"plural": "uses", "one": "{uses} geavahus", "two": "{uses} geavahusa", "other": "{uses} geavahusa"},
         "level_chip": "Dássi {level}",
         "level_chip_off": "Heivet dássi",
         "rank_help_label": "Mo buorre rihkku válljejuvvo",
@@ -350,7 +349,6 @@
         "step_done_help": "Merke ádjáid go dahkat daid. Vealahuvvo dán láseránis.",
         "enchanted_book": "Noiddojuvvon girji",
         "level_track": "Dássi {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} ruovdeákšu-geavahus", "two": "{uses} ruovdeákšu-geavahusa", "other": "{uses} ruovdeákšu-geavahusa"},
         "anvil_break": "{chance} vejolašvuohta ahte ođđa ruovdeákšu rihkkašuvvá",
         "anvil_safe": "Ođđa ruovdeákšu ii rihkkašuvvo",
         "anvil_safe_short": "Njuovvan",

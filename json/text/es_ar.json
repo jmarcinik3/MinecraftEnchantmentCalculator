@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "El mejor orden se elige con las cuatro casillas de abajo: gana el orden con el valor más bajo en la primera, y las siguientes deshacen los empates. Arrastrá una casilla, o usá sus flechas ‹ ›, para cambiar cuál cuenta más.",
         "order_title": "Ordenado por",
-        "order_uses": {"plural": "uses", "one": "{uses} uso", "other": "{uses} usos"},
         "level_chip": "Nv. {level}",
         "level_chip_off": "Tu nivel",
         "rank_help_label": "Cómo se elige el mejor orden",
@@ -348,7 +347,6 @@
         "step_done_help": "Marcá los pasos según los hagas. Se guarda en este navegador.",
         "enchanted_book": "Libro encantado",
         "level_track": "Nv. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} uso del yunque", "other": "{uses} usos del yunque"},
         "anvil_break": "{chance} de probabilidad de que un yunque nuevo se rompa",
         "anvil_safe": "Un yunque nuevo no se romperá",
         "anvil_safe_short": "Seguro",

@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "Die beste Reihenfolge wird über die vier Kacheln unten gewählt: Die Reihenfolge mit dem niedrigsten Wert in der ersten Kachel gewinnt, und die nächsten Kacheln entscheiden Gleichstände. Ziehe eine Kachel oder nutze ihre ‹ ›-Pfeile, um zu ändern, was am meisten zählt.",
         "order_title": "Sortiert nach",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} Benutzung",
-            "other": "{uses} Benutzungen"
-        },
         "level_chip": "Lv {level}",
         "level_chip_off": "Level festlegen",
         "rank_help_label": "Wie die beste Reihenfolge gewählt wird",
@@ -446,11 +441,6 @@
         "step_done_help": "Hake Schritte ab, während du sie machst. Wird in diesem Browser gespeichert.",
         "enchanted_book": "Verzaubertes Buch",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} Amboss-Benutzung",
-            "other": "{uses} Amboss-Benutzungen"
-        },
         "anvil_break": "{chance} Chance, dass ein neuer Amboss bricht",
         "anvil_safe": "Ein neuer Amboss bricht nicht",
         "anvil_safe_short": "Sicher",

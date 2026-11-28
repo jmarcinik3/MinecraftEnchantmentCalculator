@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Ke koho ʻia ke ʻano maikaʻi loa e nā kiʻi ʻehā ma lalo: ʻo ke ʻano me ka waiwai haʻahaʻa loa ma ke kiʻi mua ka mea lanakila, a e hoʻoholo nā kiʻi aʻe i nā hoʻohālikelike. E kauhuli i kekahi kiʻi, a i ʻole e hoʻohana i kāna mau pua ‹ ›, e hoʻololi ai i ka mea i nui loa ka mana.",
         "order_title": "Hoʻonohonoho ʻia e",
-        "order_uses": {"plural": "uses", "one": "{uses} hoʻohana", "other": "{uses} hoʻohana"},
         "level_chip": "Pae {level}",
         "level_chip_off": "E koho i ka pae",
         "rank_help_label": "Pehea e koho ʻia ai ke ʻano maikaʻi loa",
@@ -348,7 +347,6 @@
         "step_done_help": "E kaupoi i nā hana i kāu hana ʻana. Mālama ʻia ma kēia polokalamu hoʻokele.",
         "enchanted_book": "Puke Hoʻokalakupua",
         "level_track": "Pae {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} hoʻohana kua hao", "other": "{uses} hoʻohana kua hao"},
         "anvil_break": "{chance} ka maopopo e haki ana kekahi kua hao hou",
         "anvil_safe": "ʻAʻole e haki kekahi kua hao hou",
         "anvil_safe_short": "Palekana",

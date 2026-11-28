@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "De bêste folchoarder wurdt keazen troch de fjouwer tegels hjirûnder: de folchoarder mei de leechste wearde yn de earste tegel wint, en de folgjende tegels beslistelle by gelikens. Slepe in tegel, of brûk syn ‹ ›-pylken, om te wizigjen wat it meast telt.",
         "order_title": "Rangskikt op",
-        "order_uses": {"plural": "uses", "one": "{uses} gebrûk", "other": "{uses} gebrûken"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Nivo ynstelle",
         "rank_help_label": "Hoe de bêste folchoarder keazen wurdt",
@@ -348,7 +347,6 @@
         "step_done_help": "Set de stappen ôf as jo se dwaan. Wurdt yn dizze browser bewarre.",
         "enchanted_book": "Betoverd boek",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} anvilgebrûk", "other": "{uses} anvilgebrûken"},
         "anvil_break": "{chance} kâns dat in nije anvil brekt",
         "anvil_safe": "In nije anvil brekt net",
         "anvil_safe_short": "Feilich",

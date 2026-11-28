@@ -300,12 +300,6 @@
     "ranking": {
         "rank_by": "Najbolji redosled bira se pomoću četiri pločice ispod: pobeđuje redosled s najmanjom vrednošću u prvoj pločici, a sledeće pločice odlučuju kod izjednačenja. Povuci pločicu ili koristi njene strelice ‹ › da promeniš šta je najvažnije.",
         "order_title": "Poredano po",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} korišćenje",
-            "few": "{uses} korišćenja",
-            "other": "{uses} korišćenja"
-        },
         "level_chip": "Niv {level}",
         "level_chip_off": "Postavi nivo",
         "rank_help_label": "Kako se bira najbolji redosled",
@@ -467,12 +461,6 @@
         "step_done_help": "Označi korake dok ih radiš. Pamti se u ovom pretraživaču.",
         "enchanted_book": "Začarana knjiga",
         "level_track": "Niv {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} korišćenje nakovnja",
-            "few": "{uses} korišćenja nakovnja",
-            "other": "{uses} korišćenja nakovnja"
-        },
         "anvil_break": "{chance} šanse da se novi nakovanj slomi",
         "anvil_safe": "Novi nakovanj se neće slomiti",
         "anvil_safe_short": "Sigurno",

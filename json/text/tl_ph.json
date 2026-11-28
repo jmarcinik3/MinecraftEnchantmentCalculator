@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Pinipili ang pinakamahusay na pagkakasunod-sunod gamit ang apat na tile sa ibaba: ang pagkakasunod-sunod na may pinakamababang halaga sa unang tile ang nananalo, at ang mga kasunod na tile ang nagpapasya kapag magkapantay. I-drag ang isang tile, o gamitin ang mga arrow na ‹ ›, para baguhin kung alin ang pinakamahalaga.",
         "order_title": "Niraranggo ayon sa",
-        "order_uses": {"plural": "uses", "one": "{uses} gamit", "other": "{uses} gamit"},
         "level_chip": "Lv {level}",
         "level_chip_off": "Itakda ang level",
         "rank_help_label": "Paano pinipili ang pinakamahusay na pagkakasunod-sunod",
@@ -348,7 +347,6 @@
         "step_done_help": "Markahan ang mga hakbang habang ginagawa mo ang mga ito. Naka-save sa browser na ito.",
         "enchanted_book": "Binukungang Aklat",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} gamit ng yunan", "other": "{uses} gamit ng yunan"},
         "anvil_break": "{chance} na tsansang masira ang bagong yunan",
         "anvil_safe": "Hindi masisira ang bagong yunan",
         "anvil_safe_short": "Ligtas",

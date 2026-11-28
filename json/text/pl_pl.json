@@ -238,7 +238,6 @@
     "ranking": {
         "rank_by": "Najlepszą kolejność wybiera cztery kafelki poniżej: wygrywa kolejność z najniższą wartością w pierwszym kafelku, a kolejne kafelki rozstrzygają remisy. Przeciągnij kafelek lub użyj jego strzałek ‹ ›, aby zmienić, który liczy się najbardziej.",
         "order_title": "Uszeregowane wg",
-        "order_uses": {"plural": "uses", "one": "{uses} użycie", "few": "{uses} użycia", "many": "{uses} użyć", "other": "{uses} użycia"},
         "level_chip": "Poz. {level}",
         "level_chip_off": "Ustaw poziom",
         "rank_help_label": "Jak wybiera się najlepszą kolejność",
@@ -352,7 +351,6 @@
         "step_done_help": "Odhaczaj kroki w miarę ich wykonywania. Zapisywane w tej przeglądarce.",
         "enchanted_book": "Zaklęta książka",
         "level_track": "Poz. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} użycie kowadła", "few": "{uses} użycia kowadła", "many": "{uses} użyć kowadła", "other": "{uses} użycia kowadła"},
         "anvil_break": "Szansa {chance}, że nowe kowadło się zepsuje",
         "anvil_safe": "Nowe kowadło się nie zepsuje",
         "anvil_safe_short": "Bezpieczne",

@@ -260,7 +260,7 @@ export function renderStepsSummary() {
     $("#order").hidden = !node;
     if (node) {
         $("#order-levels").textContent = TEXT.wanted.cost_meter({ levels: node.cumulative_levels });
-        $("#order-uses").textContent = TEXT.ranking.order_uses({ uses });
+        $("#order-uses").textContent = TEXT.page.summary_steps({ count: uses });
     }
     $("#anvil-risk").replaceChildren(...(node ? [anvilRisk(uses)] : []));
     renderBadges();

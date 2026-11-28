@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La melhor òrdre es causida amb los quatre tuiles de sota: guanha l'òrdre amb la valor la mai bassa dins lo primièr tuile, e los seguents departajan. Arrossegatz un tuile, o utilizatz las flechas ‹ ›, per cambiar quin compta mai.",
         "order_title": "Classat per",
-        "order_uses": {"plural": "uses", "one": "{uses} utilizacion", "other": "{uses} utilizacions"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Fixar lo nivèl",
         "rank_help_label": "Cossí es causida la melhor òrdre",
@@ -348,7 +347,6 @@
         "step_done_help": "Marcatz los passes a mesura que los fasètz. Es gardat dins aqueste navigador.",
         "enchanted_book": "Libre encantat",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} utilizacion d'enclusa", "other": "{uses} utilizacions d'enclusa"},
         "anvil_break": "{chance} de chança que una enclusa nòva se trenque",
         "anvil_safe": "Una enclusa nòva se trencarà pas",
         "anvil_safe_short": "Segur",

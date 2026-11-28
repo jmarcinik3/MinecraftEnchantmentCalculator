@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "A mellor orde escóllese polos catro cadros de abaixo: gaña a orde co valor máis baixo no primeiro cadro, e os seguintes desempatan. Arrastra un cadro, ou usa as frechas ‹ ›, para cambiar cal conta máis.",
         "order_title": "Ordenado por",
-        "order_uses": {"plural": "uses", "one": "{uses} uso", "other": "{uses} usos"},
         "level_chip": "Nv {level}",
         "level_chip_off": "Fixar nivel",
         "rank_help_label": "Como se escolle a mellor orde",
@@ -348,7 +347,6 @@
         "step_done_help": "Marca os pasos conforme os fas. Gárdase neste navegador.",
         "enchanted_book": "Libro encantado",
         "level_track": "Nv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} uso da bigorna", "other": "{uses} usos da bigorna"},
         "anvil_break": "{chance} de probabilidade de que unha bigorna nova se rompa",
         "anvil_safe": "Unha bigorna nova non se vai romper",
         "anvil_safe_short": "Seguro",

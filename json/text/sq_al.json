@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Rradha më e mirë zgjidhet nga katër pllakat më poshtë: fiton rradha me vlerën më të ulët në pllakën e parë, dhe pllakat e tjera zgjidhin barazimet. Tërhiq një pllakë ose përdor shigjetat ‹ › të saj për të ndryshuar cila numëron më shumë.",
         "order_title": "Renditur sipas",
-        "order_uses": {"plural": "uses", "one": "{uses} përdorim", "other": "{uses} përdorime"},
         "level_chip": "Nv. {level}",
         "level_chip_off": "Cakto nivelin",
         "rank_help_label": "Si zgjidhet rradha më e mirë",
@@ -348,7 +347,6 @@
         "step_done_help": "Shëno hapat ndërsa i bën. Ruhet në këtë shfletues.",
         "enchanted_book": "Libër përforcimi",
         "level_track": "Nv. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} përdorim i kudhrës", "other": "{uses} përdorime të kudhrës"},
         "anvil_break": "{chance} shans që një kudhër e re të prishet",
         "anvil_safe": "Një kudhër e re nuk do të prishet",
         "anvil_safe_short": "E sigurt",

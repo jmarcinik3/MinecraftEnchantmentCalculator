@@ -237,7 +237,6 @@
     "ranking": {
         "rank_by": "Cea mai bună ordine este aleasă de cele patru cartonașe de mai jos: câștigă ordinea cu cea mai mică valoare din primul cartonaș, iar următoarele departajează. Trage un cartonaș sau folosește săgețile ‹ › ale lui ca să schimbi ce contează cel mai mult.",
         "order_title": "Ordonat după",
-        "order_uses": {"plural": "uses", "one": "{uses} folosire", "few": "{uses} folosiri", "other": "{uses} de folosiri"},
         "level_chip": "Nv. {level}",
         "level_chip_off": "Setează nivelul",
         "rank_help_label": "Cum este aleasă cea mai bună ordine",
@@ -350,7 +349,6 @@
         "step_done_help": "Bifează pașii pe măsură ce îi faci. Rămâne salvat în acest browser.",
         "enchanted_book": "Carte fermecată",
         "level_track": "Nv. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} folosire a nicovalei", "few": "{uses} folosiri ale nicovalei", "other": "{uses} de folosiri ale nicovalei"},
         "anvil_break": "{chance} șansă ca o nicovală nouă să se spargă",
         "anvil_safe": "O nicovală nouă nu se va sparge",
         "anvil_safe_short": "Sigur",

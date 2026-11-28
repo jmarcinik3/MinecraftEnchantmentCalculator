@@ -235,7 +235,6 @@
     "ranking": {
         "rank_by": "Urutan paling apik dipilih saka papat kothak ing ngisor: urutan kanthi nilai paling cilik ing kothak pisanan menang, lan kothak sabanjure mutusake yen padha. Seret kothak, utawa nggunakake panah ‹ ›, kanggo ngganti sing paling penting.",
         "order_title": "Diurutake miturut",
-        "order_uses": {"plural": "uses", "other": "{uses} panggunaan"},
         "level_chip": "Lv {level}",
         "level_chip_off": "Atur level",
         "rank_help_label": "Cara milih urutan paling apik",
@@ -346,7 +345,6 @@
         "step_done_help": "Centang langkah nalika sampeyan nindakake. Disimpen ing browser iki.",
         "enchanted_book": "Buku Enchantment",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "other": "{uses} panggunaan landasan"},
         "anvil_break": "Kemungkinan {chance} landasan anyar rusak",
         "anvil_safe": "Landasan anyar ora bakal rusak",
         "anvil_safe_short": "Aman",

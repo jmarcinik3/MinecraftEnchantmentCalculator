@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "La maxim bona ordo esas elektita per la quar kartri infre: la ordo kun la minimuma valoro en la unesma karto vincas, e la sequanta kartri desidas egaleso. Trenez un karto, o uzez ses ‹ › sagi, por chanjar quo maxim kontas.",
         "order_title": "Klasigita per",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} uzo",
-            "other": "{uses} uzi"
-        },
         "level_chip": "Niv. {level}",
         "level_chip_off": "Agordar nivelo",
         "rank_help_label": "Qualmaniere la maxim bona ordo esas elektita",
@@ -446,11 +441,6 @@
         "step_done_help": "Markez stupi kande vu facas li. Konservita en ca retrovilo.",
         "enchanted_book": "Libro sorcita",
         "level_track": "Niv. {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} anvil-uzo",
-            "other": "{uses} anvil-uzi"
-        },
         "anvil_break": "{chance} chanco ke nova anvil rompos",
         "anvil_safe": "Nova anvil ne rompos",
         "anvil_safe_short": "Sekura",

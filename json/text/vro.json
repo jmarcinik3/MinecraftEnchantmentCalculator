@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "Parhas järk valitas alompool olõvidõ nelä ruudu järgi: kõgõ vähämbä väärtusõga järk esimeses ruudus võidas, ja tõisõq ratkasõvaq viigi. Vedä ruutu vai kasuta ‹ › nooli, et mutta, midä kõgõ rohkõm lugõq.",
         "order_title": "Järgu järk",
-        "order_uses": {"plural": "uses", "one": "{uses} kasutus", "other": "{uses} kasutust"},
         "level_chip": "Tasõ {level}",
         "level_chip_off": "Anna tasõ",
         "rank_help_label": "Kuidas parhas järk valitas",
@@ -348,7 +347,6 @@
         "step_done_help": "Märgi sammuq ärä, kui neid teet. Hoitas sen brauserin.",
         "enchanted_book": "Nõiut raamat",
         "level_track": "Tasõ {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} alasi kasutus", "other": "{uses} alasi kasutust"},
         "anvil_break": "{chance} tõnõsus, et uu alasi pursteb",
         "anvil_safe": "Uu alasi ei purste",
         "anvil_safe_short": "Ohutu",

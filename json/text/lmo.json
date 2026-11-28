@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "La miglior combinazion la vegn sceltta dai quater quadrètt chi sota: vinc l'ordin cul valor pü bass in del primm quadrètt, e i sücessivi risolvan i parit. Tira un quadrètt, o dopra i sò frecce ‹ ›, per cambià quale che conta de püssee.",
         "order_title": "Ordinaa per",
-        "order_uses": {"plural": "uses", "one": "{uses} dopraa", "other": "{uses} dopraa"},
         "level_chip": "Liv {level}",
         "level_chip_off": "Met el livell",
         "rank_help_label": "Come l'ordin miliór el vegn sceltu",
@@ -348,7 +347,6 @@
         "step_done_help": "Spunta i pass man man che i se fa. Salvaa in sto browser.",
         "enchanted_book": "Liber incantaa",
         "level_track": "Liv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} dopraa de l'incudin", "other": "{uses} dopraa de l'incudin"},
         "anvil_break": "{chance} de probabilità che un'incudin növa se rompa",
         "anvil_safe": "Un'incudin növa no la se romparà",
         "anvil_safe_short": "Sicura",

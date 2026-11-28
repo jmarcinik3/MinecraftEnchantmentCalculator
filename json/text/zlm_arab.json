@@ -287,11 +287,6 @@
     "ranking": {
         "rank_by": "ترتيب ترباءيق دڤيليه اوليه ۏمڤت کوتق دibawah: ترتيب دڠن نيلاي ترندah دalam کوتق ڤرتام منڠ، دan کوتق سترusnya ممutuskan اڤابيلا سري. سرت کوتق، اتاو ݢونا anak panah ‹ ›، اونتوق منوکر یڠ ڤاليڠ ڤنتيڠ.",
         "order_title": "دتيرتيبکن محيقوت",
-        "order_uses": {
-            "plural": "uses",
-            "one": "{uses} ڤڠݢوناan",
-            "other": "{uses} ڤڠݢوناan"
-        },
         "level_chip": "تاهاڤ {level}",
         "level_chip_off": "تتڤکن تاهاڤ",
         "rank_help_label": "چارا ترتيب ترباءيق دڤيليه",
@@ -446,11 +441,6 @@
         "step_done_help": "تيک لڠکه apabila اندا ملاکوکننيا. دسيمڤن دalam ڤلاير Ø§ÙÙ.",
         "enchanted_book": "بوکو ترسيحير",
         "level_track": "تاهاڤ {before} → {after}",
-        "anvil_uses": {
-            "plural": "uses",
-            "one": "{uses} ڤڠݢوناan لندسن",
-            "other": "{uses} ڤڠݢوناan لندسن"
-        },
         "anvil_break": "ڤلوڠ {chance} لندسن باهرو ڤچه",
         "anvil_safe": "لندسن باهرو تياد اکن ڤچه",
         "anvil_safe_short": "سلامت",

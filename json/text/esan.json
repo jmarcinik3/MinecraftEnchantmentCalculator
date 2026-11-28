@@ -236,7 +236,6 @@
     "ranking": {
         "rank_by": "El mejor orden se elige con lah cuatro casillah de abajo: gana el orden con el valor máh bajo en la primera, y lah siguiente deshacen lô empate. Arrastra una casilla, o usa su flechah ‹ ›, pa cambiá cuál cuenta máh.",
         "order_title": "Ordenao por",
-        "order_uses": {"plural": "uses", "one": "{uses} usô", "other": "{uses} usô"},
         "level_chip": "Nv. {level}",
         "level_chip_off": "Tu nibêh",
         "rank_help_label": "Cómo se elige el mejoh orden",
@@ -348,7 +347,6 @@
         "step_done_help": "Marca lô pasô según lô hagaj. Se guarda en este navegadô.",
         "enchanted_book": "Libro encantao",
         "level_track": "Nv. {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} uso deh yunque", "other": "{uses} usô deh yunque"},
         "anvil_break": "{chance} de probabilidad de que un yunque nuevo se rompa",
         "anvil_safe": "Un yunque nuevo no se romperá",
         "anvil_safe_short": "Seguro",

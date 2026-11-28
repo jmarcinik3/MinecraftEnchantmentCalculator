@@ -239,7 +239,6 @@
     "ranking": {
         "rank_by": "Roghnaítear an t-ord is fearr leis na ceithre tile thíos: buann an t-ord leis an luach is ísle sa chéad tile, agus briseann na tiles eile na cinn chomhionanna. Tarraing tile, nó bain úsáid as a shaighdiúir ‹ ›, chun a athrú cé acu is tábhachtaí.",
         "order_title": "Rangaithe de réir",
-        "order_uses": {"plural": "uses", "one": "{uses} úsáid", "two": "{uses} úsáid", "few": "{uses} úsáid", "many": "{uses} úsáid", "other": "{uses} úsáid"},
         "level_chip": "Lv {level}",
         "level_chip_off": "Socraigh leibhéal",
         "rank_help_label": "Conas a roghnaítear an t-ord is fearr",
@@ -354,7 +353,6 @@
         "step_done_help": "Tic na céimeanna de de réir mar a dhéanann tú iad. Coinnítear sa bhrabhsálaí seo.",
         "enchanted_book": "Leabhar Draíochta",
         "level_track": "Lv {before} → {after}",
-        "anvil_uses": {"plural": "uses", "one": "{uses} úsáid innealtóra", "two": "{uses} úsáid innealtóra", "few": "{uses} úsáid innealtóra", "many": "{uses} úsáid innealtóra", "other": "{uses} úsáid innealtóra"},
         "anvil_break": "{chance} seans go mbrisfidh innealtóir nua",
         "anvil_safe": "Ní bhrisfidh innealtóir nua",
         "anvil_safe_short": "Sábháilte",
