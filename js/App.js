@@ -4,7 +4,7 @@ import { DEFAULT_LANGUAGE, LANGUAGES, TEXT, loadLanguage, localeOf } from "./Tex
 import { setupLanguagePicker } from "./Languages.js";
 import { setupFeedback } from "./Feedback.js";
 import { language, logic, meta, mod_data, nextBookId, setConflictsToggled, setItemMenuOpen, setLanguage, setLogic, setMeta, setModData, state } from "./Store.js";
-import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, readStorage, scrollToView, writeStorage } from "./Dom.js";
+import { $, closeOnOutside, copyText, h, icon, keepGlintsInStep, mcMark, readStorage, scrollToView, writeStorage } from "./Dom.js";
 import { slideSection } from "./Motion.js";
 import { renderItem, renderPresetsMenu, renderWanted, setupConflictTips, setupItemDock, setupItemMenu } from "./Wanted.js";
 import { focusPicker, openPicker, renderBooks, setupEntryPopover, markFresh } from "./Books.js";
@@ -283,7 +283,9 @@ function renderBadges() {
         const word = stage.problem ? TEXT.page.badge_problem : stage.done ? TEXT.page.badge_done : "";
         badge.classList.toggle("done", Boolean(stage.done) && !stage.problem);
         badge.classList.toggle("warn", Boolean(stage.problem));
-        badge.textContent = stage.problem ? "!" : stage.done ? "✓" : stage.number;
+        if (stage.problem) badge.replaceChildren(mcMark("bang"));
+        else if (stage.done) badge.replaceChildren(mcMark("check"));
+        else badge.textContent = stage.number;
         const label = heading.querySelector(".badge-state");
         label.textContent = word;
         heading.setAttribute("aria-labelledby", heading.querySelector(".section-title").id + (word ? " " + label.id : ""));

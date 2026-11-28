@@ -2,7 +2,7 @@
 import { MAX_COPIES, maxPriorWork, movePriority, roman } from "./Logic.js";
 import { TEXT } from "./Text.js";
 import { logic, nextBookId, state } from "./Store.js";
-import { $, afterAnimation, closeOnOutside, enchLine, flash, h, icon, holdRepeat, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, segmented, svg, writeStorage } from "./Dom.js";
+import { $, afterAnimation, closeOnOutside, enchLine, flash, h, icon, holdRepeat, mcMark, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, segmented, svg, writeStorage } from "./Dom.js";
 import { animateCards, animateChips, barSnapshot, chipSnapshot, cardRects, changeLines, leaveBar, pillRects, revealBar, rollChipsIn, rollChipsOut, slidePills, snapshotLines } from "./Motion.js";
 import { focusState, levelBar, restoreFocus } from "./Wanted.js";
 import { dragToReorder } from "./Ranking.js";
@@ -426,7 +426,7 @@ function coverageStrip() {
     const short = sorted.filter(item => !reached.includes(item));
     const okChip = ({ namespace: ns, level }) => {
         const name = logic.displayName(ns, level);
-        return h("span", { "data-ns": ns, class: "cover-chip ok draggable", title: TEXT.books.cover_ok({ name }) + ". " + TEXT.books.chip_drag_hint, onpointerdown: event => chipDrag(event, ns, level) }, "✓ ", name);
+        return h("span", { "data-ns": ns, class: "cover-chip ok draggable", title: TEXT.books.cover_ok({ name }) + ". " + TEXT.books.chip_drag_hint, onpointerdown: event => chipDrag(event, ns, level) }, mcMark("check"), name);
     };
     const folded = reached.length >= 3;
     const summary_text = short.length ? TEXT.books.cover_some({ count: reached.length, total: sorted.length }) : TEXT.books.cover_all({ count: reached.length });
@@ -449,7 +449,7 @@ function coverageStrip() {
             return h("button", {
                 type: "button", class: "cover-chip short draggable", "data-focus": "cover-" + ns, "data-ns": ns, title: fix + ". " + TEXT.books.chip_drag_hint, "aria-label": fix,
                 onclick: () => applyFix(ns, level), onpointerdown: event => chipDrag(event, ns, level)
-            }, "+ ", name, h("span", { class: "cover-best" }, reach ? TEXT.books.fix_best({ level: roman(reach) }) : TEXT.wanted.not_on_books));
+            }, mcMark("cross"), name, h("span", { class: "cover-best" }, reach ? TEXT.books.fix_best({ level: roman(reach) }) : TEXT.wanted.not_on_books));
         }),
         summary,
         !folded || coverage_open ? reached.map(okChip) : null

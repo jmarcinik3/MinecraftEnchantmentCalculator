@@ -140,6 +140,13 @@ def link_data(page):
 
 
 
+
+MARK_JS = "(b => b.querySelector('.mc-mark.check') ? '\u2713' : b.querySelector('.mc-mark.bang') ? '!' : b.textContent)"
+
+def badge_mark(page, selector):
+    """A section badge's mark: its pixel check (Dom.js mcMark) as "✓", its "!" as "!", else its text (the number)."""
+    return page.evaluate("s => %s(document.querySelector(s))" % MARK_JS, selector)
+
 def clear_all(page):
     """Section 1's Remove all, when anything is chosen (it is disabled otherwise)."""
     button = page.locator('#wanted [data-focus="wanted-clear-all"]')
@@ -628,7 +635,7 @@ def part_books_tail(browser, base):
     check("opening a group below the fold scrolls the menu just enough to show its last preset", abs(shown[0]) <= 1 and shown[1] > 0, shown)
     page4.evaluate("[...document.querySelectorAll('#presets-panel .presets-menu-item')].pop().click()")
     page4.evaluate("document.querySelector('#presets-panel .presets-menu-groups').scrollTop = 0")
-    check("the Presets menu's groups are in alphabetical order", page4.evaluate("(() => { const names = [...document.querySelectorAll('#presets-panel .presets-menu-item')].map(b => b.textContent.replace(/\d+$/, '')); return names.join('|') === [...names].sort((a, b) => a.localeCompare(b)).join('|'); })()"))
+    check("the Presets menu's groups are in alphabetical order", page4.evaluate("(() => { const names = [...document.querySelectorAll('#presets-panel .presets-menu-item')].map(b => b.textContent.replace(/\\d+$/, '')); return names.join('|') === [...names].sort((a, b) => a.localeCompare(b)).join('|'); })()"))
     page4.click('#presets-panel [data-focus="menu-item-%s"]' % link_data(page4)["i"])
     check("opening a group lists its presets", page4.locator("#presets-panel .saved-load", has_text="Smoke").count() == 1)
     page4.click("#presets-panel .saved-load >> text=Smoke")
@@ -1589,7 +1596,7 @@ def part_shelf(browser, base):
     tops = m.evaluate("Object.fromEntries([...document.querySelectorAll('.layout [data-section]')].map(el => [el.dataset.section, el.getBoundingClientRect().top + scrollY]))")
     check("on a phone the sections keep their numbered order: Enchantments, Books and items, Anvil uses", tops["wanted"] < tops["books"] < tops["steps"], tops)
     check("the item card still comes first", m.evaluate("document.querySelector('#item-dock').getBoundingClientRect().top + scrollY") < tops["wanted"])
-    check("the section badges are checks once their stage is done", m.inner_text('[data-section="wanted"] .step-badge') == "\u2713" and m.inner_text('[data-section="books"] .step-badge') == "\u2713" and m.inner_text('[data-section="steps"] .step-badge') == "\u2713")
+    check("the section badges are checks once their stage is done", badge_mark(m, '[data-section="wanted"] .step-badge') == "\u2713" and badge_mark(m, '[data-section="books"] .step-badge') == "\u2713" and badge_mark(m, '[data-section="steps"] .step-badge') == "\u2713")
     check("the phone shelf stays inside the screen", no_overflow(m) and m.evaluate("[...document.querySelectorAll('#books .shelf .slotcell')].every(el => el.getBoundingClientRect().right <= innerWidth)"))
     m.click('[data-section="books"] .collapse-toggle')
     settle(m)
@@ -2093,19 +2100,19 @@ def part_stage_hotbar(browser, base):
     errors = []
     _, page, errs = open_page(browser, base, viewport={"width": 1280, "height": 760})
     errors += errs
-    badges = lambda: page.evaluate("[...document.querySelectorAll('[data-section] > h2 .step-badge')].map(b => [b.textContent, b.classList.contains('done'), b.classList.contains('warn')])")
+    badges = lambda: page.evaluate("[...document.querySelectorAll('[data-section] > h2 .step-badge')].map(b => [" + MARK_JS + "(b), b.classList.contains('done'), b.classList.contains('warn')])")
     check("before an item the badges are 1, 3 and 4, plain (greyed)", badges() == [["1", False, False], ["3", False, False], ["4", False, False]], badges())
     check("before an item Books and Anvil uses are a heading and one muted line each", page.inner_text("#books") == "Pick an item first" and page.inner_text("#results") == "Pick an item first" and page.locator(".card.idle").count() == 2 and page.locator("#books").evaluate("e => e.closest('.card').getBoundingClientRect().height") < 90)
     pick_boots(page)
-    check("with an item, enchantments and an order every badge is a check, and the Item card's too", badges() == [["\u2713", True, False]] * 3 and page.inner_text("#item .step-badge") == "\u2713", badges())
+    check("with an item, enchantments and an order every badge is a check, and the Item card's too", badges() == [["\u2713", True, False]] * 3 and badge_mark(page, "#item .step-badge") == "\u2713", badges())
     check("a done heading says so to a screen reader", "done" in page.evaluate("(() => { const h = document.querySelector('[data-section=steps] h2'); return h.getAttribute('aria-labelledby').split(' ').map(id => document.getElementById(id).textContent).join(' '); })()"))
     # With nothing chosen, Enchantments' badge is the amber "!" too (there is nothing to calculate yet), and back to a check once one is.
     clear_all(page)
     settle(page)
-    check("with no enchantment chosen, the Enchantments badge is an amber !", page.evaluate("[document.querySelector('[data-section=wanted] .step-badge').textContent, document.querySelector('[data-section=wanted] .step-badge').classList.contains('warn')]") == ["!", True])
+    check("with no enchantment chosen, the Enchantments badge is an amber !", page.evaluate("[" + MARK_JS + "(document.querySelector('[data-section=wanted] .step-badge')),  document.querySelector('[data-section=wanted] .step-badge').classList.contains('warn')]") == ["!", True])
     choose_max(page)
     settle(page)
-    check("and a check again once one is chosen", page.inner_text('[data-section="wanted"] .step-badge') == "✓")
+    check("and a check again once one is chosen", badge_mark(page, '[data-section="wanted"] .step-badge') == "✓")
     badge_bg = lambda: page.evaluate("getComputedStyle(document.querySelector('[data-section=steps] .step-badge')).backgroundColor")
     idle_bg = badge_bg()
     spin = lambda: page.evaluate("getComputedStyle(document.querySelector('[data-section=steps] .step-badge'), '::after').content")
@@ -2135,7 +2142,7 @@ def part_stage_hotbar(browser, base):
     page.mouse.move(0, 0)
     page.click('[data-focus="mode-auto"]')
     settle(page)
-    check("fixed, the Books badge is a check again", "warn" not in books_badge.get_attribute("class") and books_badge.inner_text() == "\u2713" and page.locator("#books-alert .info-tip").count() == 0)
+    check("fixed, the Books badge is a check again", "warn" not in books_badge.get_attribute("class") and badge_mark(page, '[data-section="books"] .step-badge') == "\u2713" and page.locator("#books-alert .info-tip").count() == 0)
     # The hotbar: in every view, Compact or not.
     steps = page.locator("#results .anvil-step").count()
     hot = page.locator("#results .step-hotbar")

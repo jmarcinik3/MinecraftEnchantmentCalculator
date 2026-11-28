@@ -72,6 +72,7 @@ function stopRunning() {
     markSearch("idle");
     running = false;
     show_progress = false;
+    syncXpBar();
     clearTimeout(progress_timer);
     clearInterval(progress_clock);
     if (badge_tip) badge_tip.hidden = true;
@@ -101,15 +102,31 @@ function duration(seconds) {
 // badge itself: on <html> it woke the observers of the root's style on every message) and hovering it says the percent and the time left.
 const stepsBadge = () => document.querySelector('[data-section="steps"] .step-badge');
 function shareToBadge() {
-    const badge = stepsBadge();
-    if (!badge) return;
     const share = Math.min(1, progress_share).toFixed(3);
-    if (badge.style.getPropertyValue("--search-share") !== share) badge.style.setProperty("--search-share", share);
+    for (const el of [stepsBadge(), xpBar()]) if (el && el.style.getPropertyValue("--search-share") !== share) el.style.setProperty("--search-share", share);
 }
 
-// Hovering the badge while a search runs shows a small tooltip under it with the percent and the time (a `title` would not change while it
-// shows): one fixed element, its text refreshed by every progress message and every second.
+// The sticky item bar's XP bar (Wanted.js itemMini): the same share, shown (`.on`) while a slow search runs (from PROGRESS_DELAY_MS, as the Cancel
+// button), so a quick one never flashes it. The bar is drawn again with every redraw of the item card, which reads these.
+const xpBar = () => document.querySelector("#item .mini-xp");
+export const searchShare = () => Math.min(1, progress_share);
+export const searchShown = () => running && show_progress;
+function syncXpBar() {
+    const bar = xpBar();
+    if (bar) bar.classList.toggle("on", searchShown());
+}
+
+// Hovering the badge (or the item bar's XP bar) while a search runs shows a small tooltip under it with the percent and the time (a `title`
+// would not change while it shows): one fixed element, its text refreshed by every progress message and every second.
 let badge_hovered = false;
+let progress_frame = 0; // a progress redraw waiting for the next frame
+let tip_anchor = null; // the element hovered: the badge or the XP bar
+export function hoverProgress(el, on) {
+    tip_anchor = on ? el : null;
+    badge_hovered = on;
+    searchTip();
+    showProgress();
+}
 let badge_tip = null;
 function searchTip() {
     if (!badge_tip) {
@@ -118,8 +135,8 @@ function searchTip() {
         badge_tip.setAttribute("role", "status");
         document.body.append(badge_tip);
         const badge = stepsBadge();
-        badge.addEventListener("mouseenter", () => { badge_hovered = true; showProgress(); });
-        badge.addEventListener("mouseleave", () => { badge_hovered = false; showProgress(); });
+        badge.addEventListener("mouseenter", () => { badge_hovered = true; tip_anchor = badge; showProgress(); });
+        badge.addEventListener("mouseleave", () => { badge_hovered = false; tip_anchor = null; showProgress(); });
     }
     return badge_tip;
 }
@@ -132,7 +149,7 @@ function showProgress() {
     tip.hidden = !(running && badge_hovered);
     if (tip.hidden) return;
     tip.textContent = progressLabel();
-    const box = badge.getBoundingClientRect();
+    const box = (tip_anchor && tip_anchor.isConnected ? tip_anchor : badge).getBoundingClientRect();
     tip.style.left = Math.max(8, Math.min(innerWidth - tip.offsetWidth - 8, box.left + box.width / 2 - tip.offsetWidth / 2)) + "px";
     tip.style.top = box.bottom + 8 + "px";
 }
@@ -232,6 +249,7 @@ export function runCalculation() {
     }
     progress_timer = setTimeout(() => {
         show_progress = true;
+        syncXpBar();
         renderResults();
         progress_clock = setInterval(showProgress, 1000);
     }, PROGRESS_DELAY_MS);
@@ -285,7 +303,9 @@ function handleWorkerMessage(event) {
 
     if (data.message === "progress") {
         progress_share = data.total ? data.done / data.total : 0;
-        showProgress();
+        // Drawn at most once a frame: messages come many times a frame, and redrawing (and measuring, while the tooltip shows) for each restarted the
+        // XP bar's ease so often that it never moved while hovered.
+        if (!progress_frame) progress_frame = requestAnimationFrame(() => { progress_frame = 0; showProgress(); });
     } else if (data.message === "optimal_searched") {
         stopRunning();
         last_result = { status: "ok", node: data.result };

@@ -2,8 +2,8 @@
 import { EDITIONS, roman } from "./Logic.js";
 import { TEXT, localeOf } from "./Text.js";
 import { conflicts_toggled, item_menu_open, language, logic, setConflictsToggled, setItemMenuOpen, state } from "./Store.js";
-import { $, closeOnOutside, enchLine, h, icon, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, writeStorage } from "./Dom.js";
-import { last_result, running } from "./Calc.js";
+import { $, closeOnOutside, enchLine, h, icon, mcMark, motionOk, nameClass, plain, readStorage, roving, scrollToView, scrubber, writeStorage } from "./Dom.js";
+import { hoverProgress, last_result, running, searchShare, searchShown } from "./Calc.js";
 import { changeLines, closeRow, easeHeight, foldClick, foldDetails, foldTarget, growSmoothly, inertCopy, openRow, rollLevelBar, slideWidth, snapshotLines } from "./Motion.js";
 import { anvilCell, foldIcon } from "./Results.js";
 import { nameField } from "./Options.js";
@@ -77,7 +77,7 @@ export function renderItem() {
     for (const tip of document.querySelectorAll("body > .compare-tip")) tip.remove(); // (a preset's tooltip lives on the page, not in the card)
     if (!state.item) return;
     // Section 1, with its number like the others (it has no collapse arrow, and is one line in the condensed bar).
-    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, "✓"), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading)),
+    box.append(h("h2", { class: "item-heading", "aria-labelledby": "item-title item-state" }, h("span", { class: "step-badge done", "aria-hidden": "true" }, mcMark("check")), h("span", { class: "sr-only", id: "item-state" }, TEXT.page.badge_done), h("span", { class: "section-title", id: "item-title" }, TEXT.page.item_heading)),
         wantedHead(presetChips()),
         h("div", { class: "item-foot" }, h("button", { type: "button", class: "btn small reset-button", title: TEXT.page.reset_help, onclick: resetEverything }, h("span", { class: "reset-label" }, TEXT.page.reset), restartIcon()),
             h("button", { type: "button", class: "mini-steps foot-steps", title: TEXT.wanted.item_mini_steps_help, "aria-label": TEXT.wanted.item_mini_steps_help, onclick: goToSteps }, TEXT.wanted.item_mini_steps)),
@@ -133,7 +133,12 @@ function itemMini() {
         onclick: event => { event.stopPropagation(); resetEverything(); },
         onkeydown: event => event.stopPropagation()
     }, restartIcon());
-    return h("div", { class: "item-mini-row" }, restart, h("div", {
+    // A slow search's progress, as the game's XP bar along the bar's bottom edge (Calc.js fills it and shows it); hovering it says the percent and time.
+    const xp = h("span", {
+        class: "mini-xp" + (searchShown() ? " on" : ""), style: "--search-share:" + searchShare().toFixed(3),
+        onmouseenter: event => hoverProgress(event.currentTarget, true), onmouseleave: event => hoverProgress(event.currentTarget, false)
+    }, h("i", {}));
+    return h("div", { class: "item-mini-row" }, xp, restart, h("div", {
         class: "item-mini", role: "button", tabindex: "0", title: TEXT.wanted.item_mini_top, "aria-label": TEXT.wanted.item_mini_top,
         onclick: top,
         onkeydown: event => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); top(); } }

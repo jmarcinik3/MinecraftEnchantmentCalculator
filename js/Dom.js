@@ -52,6 +52,27 @@ export function scrollToView(el, block = "nearest") {
 
 export const $ = selector => document.querySelector(selector);
 
+// The game's own marks, drawn as pixels (no smoothing) in the game's text colours with its drop shadow (CSS `.mc-mark`): a check (`.check`, the bright
+// green), a cross and an exclamation (`.cross`, `.bang`, the yellow). For the section badges, the coverage chips and the done steps.
+const MARK_PIXELS = {
+    check: { w: 7, h: 6, rows: ["......#", ".....##", "#...##.", "##.##..", ".###...", "..#...."] },
+    cross: { w: 5, h: 5, rows: ["#...#", ".#.#.", "..#..", ".#.#.", "#...#"] },
+    bang: { w: 2, h: 7, rows: ["##", "##", "##", "##", "..", "##", "##"] }
+};
+export function mcMark(kind) {
+    const { w, h: height, rows } = MARK_PIXELS[kind];
+    const ns = "http://www.w3.org/2000/svg";
+    const svg = document.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", `0 0 ${w} ${height}`);
+    svg.setAttribute("class", "mc-mark " + kind);
+    svg.setAttribute("aria-hidden", "true");
+    svg.setAttribute("shape-rendering", "crispEdges");
+    const path = document.createElementNS(ns, "path");
+    path.setAttribute("d", rows.flatMap((row, y) => [...row].map((c, x) => (c === "#" ? `M${x} ${y}h1v1h-1z` : ""))).join(""));
+    svg.append(path);
+    return svg;
+}
+
 export function icon(item_ns, small = false) {
     return h("img", {
         class: "item-icon" + (small ? " small" : ""),

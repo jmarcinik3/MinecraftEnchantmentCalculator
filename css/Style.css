@@ -4,6 +4,10 @@
 }
 
 :root {
+    --mc-mark-green: var(--mc-green);  /* the checks share the cost text's green (Levels, the cost chips) */
+    --mc-mark-green-shadow: var(--mc-green-shadow);
+    --mc-mark-yellow: #ffff55;       /* the game's yellow text (§e) */
+    --mc-mark-yellow-shadow: #3f3f15;
     --bg: #f4f3ef;
     --surface: #ffffff;
     --surface-alt: #f0eee8;
@@ -112,7 +116,7 @@
         --accent-bg: #2f2550;
         --accent-text: #d4c6fb;
         --warning-bg: #3d2f12;
-        --warning-text: #f2cf8a;
+        --warning-text: #ffff55; /* the game's yellow (--mc-mark-yellow) */
         --success-bg: #183a1f;
         --success-text: #a5e0a3;
         --danger-bg: #431c1c;
@@ -140,7 +144,7 @@
     --accent-bg: #2f2550;
     --accent-text: #d4c6fb;
     --warning-bg: #3d2f12;
-    --warning-text: #f2cf8a;
+    --warning-text: #ffff55; /* the game's yellow (--mc-mark-yellow) */
     --success-bg: #183a1f;
     --success-text: #a5e0a3;
     --danger-bg: #431c1c;
@@ -289,8 +293,17 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 /* A stage's state (App.js renderBadges): a check once done, amber "!" while Books has a problem, a ring while a search is pending or running
    (<html data-search>): a progress ring from the start (empty while the search waits its short delay), filling clockwise from the top as it goes
    (Calc.js sets --search-share, 0 to 1, on the badge). */
-.step-badge.done { background: var(--success-bg); color: var(--success-text); }
-.step-badge.warn { background: var(--warning-bg); color: var(--warning-text); box-shadow: 0 0 0 1px var(--warning-text); font-weight: 700; }
+/* Done and problem badges are the game's tooltip look (dark, purple edge) holding its pixel check or "!" (Dom.js mcMark). */
+.step-badge.done, .step-badge.warn { background: var(--mc-tooltip-bg); box-shadow: inset 0 0 0 1px var(--mc-tooltip-edge); }
+.step-badge.warn { box-shadow: inset 0 0 0 1px var(--mc-tooltip-edge), 0 0 0 1px var(--mc-mark-yellow); }
+/* The game's marks (Dom.js mcMark): pixels, the game's text colours and its drop shadow (1px down and right, in the colour's shadow). */
+.mc-mark { display: inline-block; flex: none; width: 10.5px; height: auto; vertical-align: -1px; overflow: visible; }
+.mc-mark path { fill: currentColor; }
+.mc-mark.check { color: var(--mc-mark-green); filter: drop-shadow(1.5px 1.5px 0 var(--mc-mark-green-shadow)); }
+.mc-mark.cross { width: 8px; color: var(--mc-mark-yellow); filter: drop-shadow(1.5px 1.5px 0 var(--mc-mark-yellow-shadow)); }
+.mc-mark.bang { width: 3px; color: var(--mc-mark-yellow); filter: drop-shadow(1.5px 1.5px 0 var(--mc-mark-yellow-shadow)); }
+.cover-chip .mc-mark { margin-right: 5px; }
+.hotbar-check .mc-mark { width: 9px; }
 :root:is([data-search="running"], [data-search="pending"]) [data-section="steps"]:not(.idle) .step-badge { background: var(--warning-bg); color: var(--warning-text); }
 :root:is([data-search="running"], [data-search="pending"]) [data-section="steps"] .step-badge::after {
     content: ""; position: absolute; inset: -3px; border-radius: 50%;
@@ -439,6 +452,12 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     .item-dock.condensed .mini-reset { display: inline-flex; }
     .item-dock.condensed .mini-steps { display: inline-flex; }
     .item-dock.condensed .item-mini { display: flex; }
+    /* A slow search's progress along the condensed bar's bottom edge, in the game's XP-bar look (Calc.js: `--search-share`, `.on`); it fades in and out. */
+    .item-dock.condensed #item { position: relative; }
+    .item-dock.condensed .mini-xp { position: absolute; left: 14px; right: 14px; bottom: -1px; height: 5px; display: block; border: 1px solid var(--mc-black); border-radius: 1px; background: var(--mc-xp-track); overflow: hidden; opacity: 0; pointer-events: none; transition: opacity 0.25s; }
+    .item-dock.condensed .mini-xp.on { opacity: 1; pointer-events: auto; }
+    .item-dock.condensed .mini-xp::after { content: ""; position: absolute; inset: -4px 0; } /* (a taller hover target) */
+    .item-dock.condensed .mini-xp > i { position: absolute; inset: 0 auto 0 0; width: calc(var(--search-share, 0) * 100%); background: linear-gradient(var(--mc-green-light), var(--mc-green) 60%, var(--mc-green-deep)); transition: width 0.25s linear; }
     /* Between the two forms (Wanted.js setupItemDock): the full card stays laid out, its box drawn by ::before at --morph-h, the bar's row laid over it
        where it will be, and the dock clipped to the box; clicks pass through the dock's empty part. */
     .item-dock.condensed, .item-dock.morphing { pointer-events: none; }
@@ -874,13 +893,16 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
     font-size: 12px;
     white-space: nowrap;
 }
-.cover-chip.ok { background: var(--success-bg); color: var(--success-text); }
-.cover-chip.short { background: var(--warning-bg); color: var(--warning-text); border: 1px dashed var(--warning-text); cursor: pointer; }
+/* Reached chips: the game's green text (as the Levels and cost chips) on the tooltip's dark, so it reads in both themes. */
+.cover-chip.ok { background: var(--mc-tooltip-bg); color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); border-color: var(--mc-tooltip-edge); }
+.cover-chip.short { background: var(--mc-tooltip-bg); color: var(--mc-mark-yellow); text-shadow: 1px 1px 0 var(--mc-mark-yellow-shadow); border: 1px dashed var(--mc-mark-yellow); cursor: pointer; } /* (the yellow of its pixel x, on the tooltip's dark) */
 .cover-chip.short:hover, .cover-chip.short:focus-visible { border-style: solid; }
+/* The coverage chips are all in the game font: names, the "best now: II" / "not on any book" note and the "All 13 reached" summary. */
+.cover-chip { font-family: "Minecraft", system-ui, sans-serif; }
 .cover-best { font-size: 11px; opacity: 0.8; }
 .cover-best::before { content: "· "; }
 .cover-chip.summary { cursor: pointer; }
-.cover-chip.summary:hover, .cover-chip.summary:focus-visible { border-color: var(--success-text); }
+.cover-chip.summary:hover, .cover-chip.summary:focus-visible { border-color: var(--mc-green); }
 
 /* List view: one row per entry. */
 .entry-grid.list { grid-template-columns: minmax(0, 1fr); gap: 6px; }
@@ -1850,12 +1872,13 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .step-node input { position: absolute; inset: -2px; z-index: 1; width: auto; height: auto; margin: 0; border-radius: 50%; opacity: 0; cursor: pointer; }
 .step-node:hover { border-color: var(--mc-done); }
 .anvil-step:not(.done) .step-node:hover .step-node-mark { font-size: 0; }
-.anvil-step:not(.done) .step-node:hover .step-node-mark::after { content: "\2713"; font-size: 13px; color: var(--mc-done); }
+.anvil-step:not(.done) .step-node:hover .step-node-mark::after { content: ""; display: inline-block; width: 10.5px; height: 9px; background: var(--mc-mark-green); -webkit-mask: var(--mc-check-mask) center / contain no-repeat; mask: var(--mc-check-mask) center / contain no-repeat; } /* (the pixel check it would give) */
+.step-node-mark { --mc-check-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 7 6' shape-rendering='crispEdges'%3E%3Cpath d='M6 0h1v1h-1zM5 1h2v1h-2zM0 2h1v1h-1zM4 2h2v1h-2zM0 3h2v1h-2zM3 3h2v1h-2zM1 4h3v1h-3zM2 5h1v1h-1z'/%3E%3C/svg%3E"); }
 .step-node:has(input:focus-visible) { outline: 2px solid var(--accent); outline-offset: 2px; }
 /* A bigger target on touch screens, without changing the circle. */
 .step-node::after { content: ""; position: absolute; inset: -6px; border-radius: 50%; }
 @media (pointer: coarse) { .step-node::after { inset: -9px; } }
-.anvil-step.done .step-node { border-color: var(--mc-done); background: var(--mc-done); color: var(--mc-white); }
+.anvil-step.done .step-node { border-color: var(--mc-tooltip-edge); background: var(--mc-tooltip-bg); color: var(--mc-mark-green); } /* (the game's pixel check, Dom.js mcMark) */
 .anvil-step.current .step-node { border-color: var(--accent); color: var(--accent-text); box-shadow: 0 0 0 4px var(--accent-bg); }
 
 .anvil-step {
@@ -1873,7 +1896,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .anvil-step:not(.folded), .anvil-step.current:not(.folded) { border-color: transparent; background: none; }
 .anvil-step.current:not(.folded) .anvil-row { outline: 2px solid var(--accent); outline-offset: 2px; }
 .step-head { display: flex; align-items: center; gap: 8px; min-height: 28px; margin-bottom: 8px; min-width: 0; cursor: pointer; }
-.step-title { flex: none; padding: 3px 0; font-size: 13px; font-weight: 600; color: var(--text); }
+.step-title { flex: none; padding: 3px 0; font-family: "Minecraft", system-ui, sans-serif; font-size: 13px; font-weight: 400; color: var(--text); }
 /* The whole head (but the tick) folds and unfolds the step; the chevron says which it will do. */
 .step-summary { flex: 1; min-width: 0; overflow: hidden; font-family: "Minecraft", system-ui, sans-serif; font-size: 13px; color: var(--text-secondary); text-overflow: ellipsis; white-space: nowrap; } /* the game font for the enchantment names, like the tooltips */
 .step-fold {
@@ -2100,7 +2123,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .clear-all:disabled { opacity: 0.4; cursor: default; }
 .saved-chip { display: inline-flex; align-items: stretch; }
 .saved-chip > .preset.mine { border-top-right-radius: 0; border-bottom-right-radius: 0; border-right: none; }
-.preset.mine::before { content: "★"; margin-right: 4px; color: var(--warning-text); }
+.preset.mine::before { content: "★"; margin-right: 4px; color: var(--mc-mark-yellow); text-shadow: 1px 1px 0 var(--mc-mark-yellow-shadow); } /* (the yellow of the game's marks, with their shadow) */
 .saved-chip-x { padding: 0 7px; border: 1px solid var(--border-strong); border-left: 1px solid var(--border); border-radius: 0 13px 13px 0; background: none; color: var(--text-muted); font: 13px/1 system-ui, sans-serif; cursor: pointer; }
 .saved-chip.selected > .saved-chip-x { border-color: var(--accent); }
 .saved-chip-x:hover, .saved-chip-x:focus-visible { color: var(--danger-text); border-color: var(--danger-text); }
@@ -2476,6 +2499,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .item-foot .reset-button { font: 400 12px system-ui, -apple-system, "Segoe UI", sans-serif; }
 .reset-button { display: inline-flex; align-items: center; gap: 6px; color: var(--text-secondary); background: var(--surface); }
 .item-mini-row { display: contents; }
+.mini-xp { display: none; } /* (only on the condensed bar) */
 .mini-reset { display: none; flex: none; align-items: center; justify-content: center; width: 32px; height: 32px; padding: 0; border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface); color: var(--text-secondary); cursor: pointer; }
 .mini-reset:hover, .mini-reset:focus-visible { color: var(--text); border-color: var(--accent); }
 .mini-reset .reset-icon { width: 16px; height: 16px; }
@@ -2543,8 +2567,8 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .foot-actions { display: flex; gap: 6px; margin-left: auto; margin-right: 8px; }
 .cover-chip.draggable { cursor: grab; }
 .cover-ring { width: 14px; height: 14px; flex: none; }
-.cover-ring .ring-track { stroke: color-mix(in srgb, var(--success-text) 25%, transparent); }
-.cover-ring .ring-fill { stroke: var(--success-text); stroke-linecap: round; }
+.cover-ring .ring-track { stroke: color-mix(in srgb, var(--mc-green) 25%, transparent); }
+.cover-ring .ring-fill { stroke: var(--mc-green); stroke-linecap: round; }
 #books .entry-add-card.drop-ok { outline: 2px solid var(--accent); outline-offset: 2px; }
 #books .entry-add-card.drop-no { outline: 2px dashed var(--danger-text); outline-offset: 2px; }
 .entry-card.merge-target { outline: 2px solid var(--accent); outline-offset: 2px; }

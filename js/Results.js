@@ -3,7 +3,7 @@ import { updateCostMeter } from "./Wanted.js";
 import { MAX_GROUPS, MAX_STEP_LEVELS, anvilBreakChance, levelTrack, roman, searchSize } from "./Logic.js";
 import { TEXT, localeOf } from "./Text.js";
 import { SLOW_SPLITS, language, logic, state } from "./Store.js";
-import { $, closeOnOutside, copyText, enchLine, flash, h, icon, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
+import { $, closeOnOutside, copyText, enchLine, flash, h, icon, mcMark, motionOk, nameClass, readStorage, roving, scrollToView, segmented, writeStorage } from "./Dom.js";
 import { svgIcon } from "./Books.js";
 import { easeHeight, FOLD_MS, foldDetails, foldTarget, keepInPlace, morphView, revealBelow, viewSnapshot } from "./Motion.js";
 import { renderMetrics } from "./Ranking.js";
@@ -629,7 +629,7 @@ function anvilStep(step, done, order_key, steps, level = null, current = false, 
         class: "anvil-step" + (is_done ? " done" : "") + (folded ? " folded" : "") + (current ? " current" : ""),
         "data-step-card": number, onkeydown: keys
     },
-        h("label", { class: "step-node", title: TEXT.results.step_done_help }, tick, h("span", { class: "step-node-mark", "aria-hidden": "true" }, is_done ? "✓" : number)),
+        h("label", { class: "step-node", title: TEXT.results.step_done_help }, tick, h("span", { class: "step-node-mark", "aria-hidden": "true" }, is_done ? mcMark("check") : number)),
         head,
         // With "Your level" filled in and too low: how many levels to gain before this step.
         level && level.short ? h("div", { class: "level-checkpoint" }, TEXT.results.checkpoint({ count: level.short, level: cost })) : null,
@@ -1017,7 +1017,7 @@ function stepHotbar(steps, done, order_key, level_up = false) {
             onpointerenter: event => placeHotbarTip(event.currentTarget), onfocus: event => placeHotbarTip(event.currentTarget),
             // Hovering or focusing it lights the Section 3 cards that went into this step's result, as a merged item does in Steps and Tree.
             ...sourcesHover(step.node)
-        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, "✓") : null, tip,
+        }, icon(step.node.item_namespace), h("span", { class: "hotbar-number", "aria-hidden": "true" }, step.number), is_done ? h("span", { class: "hotbar-check", "aria-hidden": "true" }, mcMark("check")) : null, tip,
             index === current ? h("span", { class: "hotbar-ring", "aria-hidden": "true" }) : null);
     });
     return h("div", { class: "step-hotbar" + (level_up ? " level-up" : ""), role: "group", "aria-label": TEXT.results.hotbar_label },
