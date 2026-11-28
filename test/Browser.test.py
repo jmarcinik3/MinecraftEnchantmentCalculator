@@ -993,6 +993,9 @@ def part_anvil_uses(browser, base):
     check("Compact Steps' result slot shows its tooltip on hover", p7.evaluate("getComputedStyle(document.querySelector('#results .slots-mode .anvil-step:not(.folded) .anvil-cell.result .mc-tooltip')).display") != "none")
     p7.click("#results .density")
     settle(p7) # the old view is laid over the new one while they cross-fade
+    # (Mid-window first: scrolled only just into view, at the window's foot, the Next step card can lie over the step's circle and take the click.)
+    p7.evaluate("document.querySelector('#results input[data-step=\"7\"]').closest('.step-node').scrollIntoView({ block: 'center' })")
+    frames(p7)
     p7.locator('#results input[data-step="7"]').check(force=True)
     settle(p7)
     check("ticking the last step ticks every step", p7.locator("#results input[data-step]:not(:checked)").count() == 0)

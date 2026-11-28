@@ -1115,7 +1115,7 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         if (!before) continue;
         const after = slot.getBoundingClientRect();
         matched.add(role);
-        moving.set(slot, { before, left: after.left - origin.left, top: after.top - origin.top });
+        moving.set(slot, { before, left: after.left - origin.left, top: after.top - origin.top, width: after.width, height: after.height, centred: role === "op" || role === "arrow" });
         slot.style.zIndex = slot.matches(".arrow-glyph") ? "3" : "2"; // (the arrow over the cost circling it)
     }
     for (const [role, bit] of was.twin_bits) if (!matched.has(role)) bit.style.visibility = "";
@@ -1152,7 +1152,10 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         frame.animate([looks(was, was.chrome), looks(now, now.chrome)], { ...timing, fill: "forwards" })
     ];
     for (const [slot, here] of moving) {
-        const move = `translate(${here.before.left - here.left - dx}px, ${here.before.top - here.top - dy}px)`;
+        // (The "+" and the arrow go by their centres: their boxes differ between the views, a 14px "+" in Compact and a whole row with the "+" centred
+        // in it in a phone-width Steps card, and going by the box's corner started the sign 100px from where it was.)
+        const cx = here.centred ? (here.before.width - here.width) / 2 : 0, cy = here.centred ? (here.before.height - here.height) / 2 : 0;
+        const move = `translate(${here.before.left - here.left - dx + cx}px, ${here.before.top - here.top - dy + cy}px)`;
         animations.push(slot.animate([{ transform: move }, { transform: "none" }], timing));
     }
     // The arrow points at the result's icon all the way (right in Compact, down in a narrow Steps card): each frame it turns toward where that icon
@@ -1172,6 +1175,16 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         const t0 = Math.atan2(i0.y - a0.y, i0.x - a0.x);
         let turn = Math.atan2(i1.y - a1.y, i1.x - a1.x) - t0;
         turn = Math.atan2(Math.sin(turn), Math.cos(turn)); // the short way round
+        // The arrow rests pointing right in Compact and down in Steps. Where the icon is not in that direction from it at either end (a phone-width
+        // card stacks Left, Right and Result, so the result is not under the arrow), aiming at the icon would end off the resting angle and snap:
+        // there the arrow turns evenly from one resting angle to the other instead.
+        // (Steps turns it down only in a card 540px wide or less, the `steps` container query; Compact never does.)
+        const list = box.closest(".anvil-steps");
+        const steps_rest = list && list.clientWidth <= 540 ? Math.PI / 2 : 0;
+        const compact_now = Boolean(box.closest(".slots-mode"));
+        const rest_now = compact_now ? 0 : steps_rest, rest_was = compact_now ? steps_rest : 0;
+        const off_rest = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b))) > 0.17; // (more than 10°)
+        const by_rest = off_rest(t0, rest_was) || off_rest(t0 + turn, rest_now);
         const natural = fly.arc.to;
         const riders = [
             ...box.querySelectorAll(".anvil-cell.result .cell-label, .anvil-cell.result .mc-tooltip, .anvil-cell.result .cell-meta"),
@@ -1193,16 +1206,54 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         arrow.style.transform = "none"; // (the narrow card's own quarter turn waits for the end: meanwhile `rotate` alone turns the plain "→")
         fly.style.transformOrigin = "0 0";
         let frame_id = 0;
+        // The icon's place at a point q (0 to 1) of its path round the arrow.
+        const iconAt = q => {
+            const ax = a0.x + (a1.x - a0.x) * q, ay = a0.y + (a1.y - a0.y) * q;
+            const angle = t0 + turn * q, r = r0 + (r1 - r0) * q;
+            const w = fly.arc.from.width + (natural.width - fly.arc.from.width) * q, h = fly.arc.from.height + (natural.height - fly.arc.from.height) * q;
+            return { x: ax + r * Math.cos(angle) - w / 2, y: ay + r * Math.sin(angle) - h / 2, w, h };
+        };
+        // Where the arrow can't follow it (a phone-width card), the icon leaves the arc for the line through the two inputs' icons (as they are drawn
+        // this frame): beyond the right one, at a distance from it that changes evenly from the old to the new, so the three are always in a row and
+        // it never strays further from them than at either end (it stays in the panel).
+        const input = side => layer.querySelector(`[data-fly-input="${CSS.escape(box.dataset.stepCard + ":" + side)}"]`);
+        const pace = by_rest && input("left") && input("right") ? { q: 0 } : null;
+        const aimed = { reached: false }; // (the arrow has reached its last resting direction: it stays there)
         const place = () => {
             const p = clock.effect.getComputedTiming().progress ?? 1; // eased, as the arrow's glide is
             const ax = a0.x + (a1.x - a0.x) * p, ay = a0.y + (a1.y - a0.y) * p;
-            const angle = t0 + turn * p, r = r0 + (r1 - r0) * p;
-            const w = fly.arc.from.width + (natural.width - fly.arc.from.width) * p, h = fly.arc.from.height + (natural.height - fly.arc.from.height) * p;
-            const x = ax + r * Math.cos(angle) - w / 2, y = ay + r * Math.sin(angle) - h / 2;
+            const angle = t0 + turn * p;
+            let q = p;
+            let { x, y, w, h } = iconAt(q);
+            if (pace) {
+                const centre = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2 - origin.left, y: r.top + r.height / 2 - origin.top }; };
+                const l = centre(input("left")), rgt = centre(input("right"));
+                const length = Math.hypot(rgt.x - l.x, rgt.y - l.y);
+                if (pace.d0 == null) {
+                    // Its distance from the right input at the start and at the end (where both icons rest in the old and the new view).
+                    const start = iconAt(0), end = iconAt(1), right_end = input("right").arc?.to;
+                    pace.d0 = Math.hypot(start.x + start.w / 2 - rgt.x, start.y + start.h / 2 - rgt.y);
+                    pace.d1 = right_end ? Math.hypot(end.x + end.w / 2 - (right_end.left + right_end.width / 2), end.y + end.h / 2 - (right_end.top + right_end.height / 2)) : pace.d0;
+                }
+                if (length > 1 && p < 1) {
+                    // (Eased like the inputs: at an even pace it lagged their quick start and, with the line already turned, went past its end and came
+                    // back, or fell short of it until the very end.)
+                    let d = pace.d0 + (pace.d1 - pace.d0) * p;
+                    const ux = (rgt.x - l.x) / length, uy = (rgt.y - l.y) / length;
+                    // Never below the panel's inside (the panel eases as its frame does): nearer the right input along the same line instead.
+                    if (was.panel && now_panel && uy > 0.01) {
+                        const bw = now_panel.chrome ? now_panel.chrome.width : 0;
+                        const floor = was.panel.top + was.panel.height + (now_panel.top + now_panel.height - was.panel.top - was.panel.height) * p - bw - 2;
+                        d = Math.max(0, Math.min(d, (floor - h / 2 - rgt.y) / uy));
+                    }
+                    x = rgt.x + ux * d - w / 2;
+                    y = rgt.y + uy * d - h / 2;
+                }
+            }
             fly.style.transform = `translate(${x - natural.left}px, ${y - natural.top}px) scale(${w / natural.width}, ${h / natural.height})`;
             // Its label, tooltip and prior-work line (the new view's, and the old copy's) follow the icon's straight path on their own: they are
             // shifted by how far the arc is from that path, so they keep their place beside the icon.
-            const lx = fly.arc.from.left + (natural.left - fly.arc.from.left) * p, ly = fly.arc.from.top + (natural.top - fly.arc.from.top) * p;
+            const lx = fly.arc.from.left + (natural.left - fly.arc.from.left) * p, ly = fly.arc.from.top + (natural.top - fly.arc.from.top) * p; // (their own straight path goes at p)
             const shift = `${x - lx}px ${y - ly}px`;
             for (const part of riders) part.style.translate = shift;
             // ...and, since their own clips moved with them, each is cut here to where the panel's inside is now (eased as the panel's frame is).
@@ -1220,7 +1271,15 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
             arrow.style.translate = "";
             const at = arrow.getBoundingClientRect();
             arrow.style.translate = `${ax - (at.left + at.width / 2 - origin.left)}px ${ay - (at.top + at.height / 2 - origin.top)}px`;
-            arrow.style.rotate = angle + "rad";
+            if (by_rest) {
+                // It points at the icon, but only between its two resting directions (right and down), and once it has reached the one it ends at
+                // it stays there (the icon may still swing past it, as it does in a phone-width card).
+                const lo = Math.min(rest_was, rest_now), hi = Math.max(rest_was, rest_now);
+                const aim = Math.atan2(y + h / 2 - ay, x + w / 2 - ax);
+                let turned = Math.min(hi, Math.max(lo, aim));
+                if (aimed.reached || Math.abs(turned - rest_now) < 1e-3 || p >= 1) { aimed.reached = true; turned = rest_now; }
+                arrow.style.rotate = turned + "rad";
+            } else arrow.style.rotate = angle + "rad";
             if (orbit) {
                 const target = { x: orbit.c0.x + (orbit.c1.x - orbit.c0.x) * p, y: orbit.c0.y + (orbit.c1.y - orbit.c0.y) * p };
                 cost.style.translate = "0px 0px"; // (measured with no shift at all: the wide card's CSS centres it with a translate of its own)
@@ -1369,6 +1428,8 @@ export function morphView(scroller, container, old) {
                 fly.removeAttribute("data-node");
                 // (A step's result icon: what its arrow aims at while it travels, morphStep. The same item is also the next step's input, so by step.)
                 if (n.el.closest(".anvil-cell.result")) fly.dataset.flyResult = n.el.closest("[data-step-card]")?.dataset.stepCard || "";
+                // (And the inputs, by step and side: on a phone the result keeps in line with them, morphStep.)
+                for (const side of ["left", "right"]) if (n.el.closest(".anvil-cell." + side)) fly.dataset.flyInput = (n.el.closest("[data-step-card]")?.dataset.stepCard || "") + ":" + side;
                 fly.setAttribute("aria-hidden", "true");
                 Object.assign(fly.style, {
                     position: "absolute", left: natural.left + "px", top: natural.top + "px", width: natural.width + "px", height: natural.height + "px",
