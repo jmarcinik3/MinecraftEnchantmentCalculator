@@ -3,6 +3,24 @@ import { TEXT } from "./Text.js";
 
 const COPIED_MS = 1500; // how long "Copied" shows on a copy button
 
+// Slow motion, for watching an animation (a debugging aid): `?slow=5` in the address makes every animation five times slower, the scripts' own
+// (Element.animate) and the CSS ones (by the page's playback rate), with the timers that wait for them. Leave it out for normal speed.
+export const SLOW = Math.max(1, Number(new URLSearchParams(location.search).get("slow")) || 1);
+if (SLOW > 1) {
+    const animate = Element.prototype.animate;
+    Element.prototype.animate = function (frames, options) {
+        const timing = typeof options === "number" ? { duration: options } : { ...(options || {}) };
+        for (const key of ["duration", "delay", "endDelay"]) if (typeof timing[key] === "number") timing[key] *= SLOW;
+        return animate.call(this, frames, timing);
+    };
+    // CSS animations and transitions: each one, as it starts, plays at 1/SLOW speed.
+    const slowAll = () => { for (const animation of document.getAnimations()) if (animation.playbackRate === 1 && (animation instanceof CSSAnimation || animation instanceof CSSTransition)) animation.playbackRate = 1 / SLOW; };
+    for (const type of ["animationstart", "transitionrun"]) document.addEventListener(type, slowAll, true);
+    // And every timer, so the fallbacks that end an animation (and the waits for one) keep its pace instead of cutting it short.
+    const timeout = window.setTimeout;
+    window.setTimeout = (fn, ms = 0, ...rest) => timeout(fn, ms * SLOW, ...rest);
+}
+
 export function h(tag, attrs = {}, ...children) {
     const el = document.createElement(tag);
     for (const [key, value] of Object.entries(attrs)) {

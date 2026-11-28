@@ -1,5 +1,5 @@
 // Animations: slide a box to its new height or width, open and close tooltip lines, slide cards (FLIP), keep an element in place while the page redraws.
-import { afterAnimation, h, motionOk } from "./Dom.js";
+import { afterAnimation, h, motionOk, SLOW } from "./Dom.js";
 import { meta } from "./Store.js";
 import { steps_scroll } from "./Results.js";
 
@@ -24,7 +24,7 @@ function fadeOutCover(copy, duration) {
 let scroll_hold = null;
 export function holdScroll(y, ms = MORPH_MS + 200) {
     if (scroll_hold) scroll_hold.stop();
-    const until = performance.now() + ms;
+    const until = performance.now() + ms * SLOW; // (a clock, not a timer: slowed by hand)
     let frame = 0;
     const stop = () => { cancelAnimationFrame(frame); for (const type of ["wheel", "touchstart", "keydown"]) removeEventListener(type, stop, true); if (scroll_hold?.stop === stop) scroll_hold = null; };
     for (const type of ["wheel", "touchstart", "keydown"]) addEventListener(type, stop, { capture: true, passive: true });
@@ -936,7 +936,9 @@ function hostPoint(el, origin) {
 }
 
 let settling = null; // ends the morph in progress (set by morphView)
+const arc_stops = new Set(); // the arcs in progress (morphStep): a new switch stops them first, or it measured the arrow where the last frame had put it
 export function viewSnapshot(scroller) {
+    for (const stop of [...arc_stops]) stop();
     // A switch while the last one is still running starts from where that one ends (not from a copy of its frames and its old copy).
     if (settling) { const end = settling; settling = null; end(); }
     // So does one that folds a step (its contents stay on show while it shrinks): it ends first, or they would be copied as if they stayed.
@@ -1031,7 +1033,7 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         const after = slot.getBoundingClientRect();
         matched.add(role);
         moving.set(slot, { before, left: after.left - origin.left, top: after.top - origin.top });
-        slot.style.zIndex = "2";
+        slot.style.zIndex = slot.matches(".arrow-glyph") ? "3" : "2"; // (the arrow over the cost circling it)
     }
     for (const [role, bit] of was.twin_bits) if (!matched.has(role)) bit.style.visibility = "";
     const row = box.querySelector(":scope > .anvil-row");
@@ -1070,7 +1072,93 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         const move = `translate(${here.before.left - here.left - dx}px, ${here.before.top - here.top - dy}px)`;
         animations.push(slot.animate([{ transform: move }, { transform: "none" }], timing));
     }
-    const insetAround = (panel, r) => `inset(${panel.top - r.top}px ${r.left + r.width - panel.left - panel.width}px ${r.top + r.height - panel.top - panel.height}px ${panel.left - r.left}px)`;
+    // The arrow points at the result's icon all the way (right in Compact, down in a narrow Steps card): each frame it turns toward where that icon
+    // is (its flyer while it travels). Its glide replaces its CSS turn meanwhile, so the angle is from the plain "→".
+    const arrow = box.querySelector(".arrow-glyph");
+    // The result's icon travels on an arc about the arrow (a circle whose centre is the arrow, wherever the arrow is on its own glide): its distance and
+    // angle from the arrow ease from the old ones to the new, and the arrow turns with the angle, so it always points at the icon.
+    const fly = arrow && moving.has(arrow) ? layer.querySelector(`[data-fly-result="${CSS.escape(box.dataset.stepCard)}"]`) : null;
+    const clock = fly && fly.arc && fly.getAnimations()[0];
+    if (clock) {
+        const here = moving.get(arrow), size = arrow.getBoundingClientRect();
+        const centre = r => ({ x: r.left + r.width / 2, y: r.top + r.height / 2 });
+        // The arrow's centre before and after, in the layer's coordinates (its box keeps its size: it only glides).
+        const a0 = { x: here.before.left + size.width / 2, y: here.before.top + size.height / 2 }, a1 = { x: here.left + size.width / 2, y: here.top + size.height / 2 };
+        const i0 = centre(fly.arc.from), i1 = centre(fly.arc.to);
+        const r0 = Math.hypot(i0.x - a0.x, i0.y - a0.y), r1 = Math.hypot(i1.x - a1.x, i1.y - a1.y);
+        const t0 = Math.atan2(i0.y - a0.y, i0.x - a0.x);
+        let turn = Math.atan2(i1.y - a1.y, i1.x - a1.x) - t0;
+        turn = Math.atan2(Math.sin(turn), Math.cos(turn)); // the short way round
+        const natural = fly.arc.to;
+        const riders = [
+            ...box.querySelectorAll(".anvil-cell.result .cell-label, .anvil-cell.result .mc-tooltip, .anvil-cell.result .cell-meta"),
+            ...(was.parts || []).filter(part => part.icon === fly.arc.index && part.el).map(part => part.el)
+        ];
+        clock.effect.setKeyframes([{ opacity: 1 }, { opacity: 1 }]); // (only its clock is kept: the place is set below, frame by frame)
+        // The result's label, tooltip and prior-work line pass over the cost as its icon does (the icon flies above the page): drawn over it too.
+        for (const part of riders) { if (getComputedStyle(part).position === "static") part.style.position = "relative"; part.style.zIndex = "3"; }
+        // The arrow's own glide is set here too, on the same line (its glide was not where the arc's centre is reckoned).
+        for (const glide of arrow.getAnimations()) glide.effect.setKeyframes([{ opacity: 1 }, { opacity: 1 }]);
+        // The cost goes in a straight line from its old place to its new one, eased like the rest of the switch (in step with the arrow and the icons).
+        const cost = box.querySelector(".anvil-row .anvil-cost");
+        const orbit = cost && moving.has(cost) ? (() => {
+            const there = moving.get(cost), c = cost.getBoundingClientRect();
+            const c0 = { x: there.before.left + there.before.width / 2, y: there.before.top + there.before.height / 2 }, c1 = { x: there.left + c.width / 2, y: there.top + c.height / 2 };
+            for (const glide of cost.getAnimations()) glide.effect.setKeyframes([{ opacity: 1 }, { opacity: 1 }]);
+            return { c0, c1 };
+        })() : null;
+        arrow.style.transform = "none"; // (the narrow card's own quarter turn waits for the end: meanwhile `rotate` alone turns the plain "→")
+        fly.style.transformOrigin = "0 0";
+        let frame_id = 0;
+        const place = () => {
+            const p = clock.effect.getComputedTiming().progress ?? 1; // eased, as the arrow's glide is
+            const ax = a0.x + (a1.x - a0.x) * p, ay = a0.y + (a1.y - a0.y) * p;
+            const angle = t0 + turn * p, r = r0 + (r1 - r0) * p;
+            const w = fly.arc.from.width + (natural.width - fly.arc.from.width) * p, h = fly.arc.from.height + (natural.height - fly.arc.from.height) * p;
+            const x = ax + r * Math.cos(angle) - w / 2, y = ay + r * Math.sin(angle) - h / 2;
+            fly.style.transform = `translate(${x - natural.left}px, ${y - natural.top}px) scale(${w / natural.width}, ${h / natural.height})`;
+            // Its label, tooltip and prior-work line (the new view's, and the old copy's) follow the icon's straight path on their own: they are
+            // shifted by how far the arc is from that path, so they keep their place beside the icon.
+            const lx = fly.arc.from.left + (natural.left - fly.arc.from.left) * p, ly = fly.arc.from.top + (natural.top - fly.arc.from.top) * p;
+            const shift = `${x - lx}px ${y - ly}px`;
+            for (const part of riders) part.style.translate = shift;
+            // ...and, since their own clips moved with them, each is cut here to where the panel's inside is now (eased as the panel's frame is).
+            if (was.panel && now_panel) {
+                const bw = now_panel.chrome ? now_panel.chrome.width : 0;
+                const lerp = key => was.panel[key] + (now_panel[key] - was.panel[key]) * p;
+                const inside = { left: origin.left + lerp("left") + bw, top: origin.top + lerp("top") + bw, right: origin.left + lerp("left") + lerp("width") - bw, bottom: origin.top + lerp("top") + lerp("height") - bw };
+                for (const part of riders) {
+                    for (const own of part.getAnimations()) if (own.effect.getKeyframes().some(key => key.clipPath)) own.effect.setKeyframes([{}, {}]);
+                    const r = part.getBoundingClientRect();
+                    part.style.clipPath = `inset(${inside.top - r.top}px ${r.right - inside.right}px ${r.bottom - inside.bottom}px ${inside.left - r.left}px)`;
+                }
+            }
+            // The arrow: from where its box is now (the card's own glide moves it), to the point on its line.
+            arrow.style.translate = "";
+            const at = arrow.getBoundingClientRect();
+            arrow.style.translate = `${ax - (at.left + at.width / 2 - origin.left)}px ${ay - (at.top + at.height / 2 - origin.top)}px`;
+            arrow.style.rotate = angle + "rad";
+            if (orbit) {
+                const target = { x: orbit.c0.x + (orbit.c1.x - orbit.c0.x) * p, y: orbit.c0.y + (orbit.c1.y - orbit.c0.y) * p };
+                cost.style.translate = "0px 0px"; // (measured with no shift at all: the wide card's CSS centres it with a translate of its own)
+                const now = cost.getBoundingClientRect();
+                cost.style.translate = `${target.x - (now.left + now.width / 2 - origin.left)}px ${target.y - (now.top + now.height / 2 - origin.top)}px`;
+            }
+        };
+        // (It ends with the morph: once its clock has run out or its icon is gone, the arrow is left as the page draws it.)
+        const tick = () => {
+            if (!fly.isConnected || !arrow.isConnected || clock.playState === "finished" || clock.playState === "idle") { done(); return; }
+            place();
+            frame_id = requestAnimationFrame(tick);
+        };
+        const done = () => { cancelAnimationFrame(frame_id); arrow.style.rotate = arrow.style.translate = arrow.style.transform = ""; if (orbit) cost.style.translate = ""; for (const part of riders) part.style.translate = part.style.clipPath = part.style.zIndex = part.style.position = ""; arc_stops.delete(done); };
+        arc_stops.add(done);
+        tick();
+        Promise.allSettled([clock.finished, ...animations.map(animation => animation.finished)]).then(done);
+    }
+    // (Clipped to the panel's inside, within its embossed border, not its outer edge.)
+    const inner = panel => { const w = panel.chrome ? panel.chrome.width : 0; return { left: panel.left + w, top: panel.top + w, width: panel.width - 2 * w, height: panel.height - 2 * w }; };
+    const insetAround = (outer, r) => { const panel = inner(outer); return `inset(${panel.top - r.top}px ${r.left + r.width - panel.left - panel.width}px ${r.top + r.height - panel.top - panel.height}px ${panel.left - r.left}px)`; };
     for (const { el, rect, follows } of arrivals) {
         // (At the start the card is still at its old place, so the part is too: shifted by the card's move, and by the icon's.)
         const start = { ...rect, left: rect.left + dx + follows.dx, top: rect.top + dy + follows.dy };
@@ -1092,7 +1180,7 @@ function morphStep(box, was, now, origin, timing, same, follow, layer) {
         // What only the old view has inside the panel is not faded: it is shown only where the panel still is, so it goes as the panel shrinks past it.
         if (!now_panel) for (const { el } of was.parts) animations.push(el.animate([{ opacity: 1 }, { opacity: 0 }], { duration: timing.duration * 0.35, easing: "ease-out", fill: "forwards" }));
         if (now_panel) {
-            const inset = (panel, r) => `inset(${panel.top - r.top}px ${r.left + r.width - panel.left - panel.width}px ${r.top + r.height - panel.top - panel.height}px ${panel.left - r.left}px)`;
+            const inset = insetAround;
             for (const { el, rect, icon } of was.parts) {
                 // Each goes with its item's icon (the clip goes with it), and is cut by the panel's edges as the panel shrinks past it.
                 const follows = follow.old.get(icon) || { dx: 0, dy: 0 };
@@ -1196,6 +1284,8 @@ export function morphView(scroller, container, old) {
                 const natural = n.shown ? n.rect : o.rect;
                 const fly = n.el.cloneNode(true);
                 fly.removeAttribute("data-node");
+                // (A step's result icon: what its arrow aims at while it travels, morphStep. The same item is also the next step's input, so by step.)
+                if (n.el.closest(".anvil-cell.result")) fly.dataset.flyResult = n.el.closest("[data-step-card]")?.dataset.stepCard || "";
                 fly.setAttribute("aria-hidden", "true");
                 Object.assign(fly.style, {
                     position: "absolute", left: natural.left + "px", top: natural.top + "px", width: natural.width + "px", height: natural.height + "px",
@@ -1206,6 +1296,7 @@ export function morphView(scroller, container, old) {
                 flyers.push(fly);
                 if (o.shown && n.shown) {
                     animations.push(fly.animate([{ transform: `translate(${o.rect.left - n.rect.left}px, ${o.rect.top - n.rect.top}px) scale(${o.rect.width / n.rect.width}, ${o.rect.height / n.rect.height})` }, { transform: "none" }], timing));
+                    fly.arc = { from: o.rect, to: n.rect, index: o.index }; // (a step's result icon may instead circle its arrow: morphStep)
                     follow.old.set(o.index, { dx: n.rect.left - o.rect.left, dy: n.rect.top - o.rect.top });
                     follow.new.set(n.el, { dx: o.rect.left - n.rect.left, dy: o.rect.top - n.rect.top });
                 } else if (o.shown) {

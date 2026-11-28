@@ -2217,7 +2217,7 @@ h2:has(#books-alert:not(:empty)) > .step-badge { display: none; }
 .level-meter-fill { display: block; height: 100%; background: var(--mc-green); }
 /* Under a slot's tooltip: the step that made it, or the result's
    prior work. */
-.cell-meta { font: 11px/1.3 system-ui, sans-serif; color: var(--gui-text); text-align: center; }
+.cell-meta { font: 11px/1.3 "Minecraft", system-ui, sans-serif; color: var(--gui-text); text-align: center; } /* ("Prior work 1": the game font) */
 .entry-card.highlight { outline: 2px solid var(--accent); outline-offset: 2px; }
 .entry-card.flash { animation: entry-flash 1.4s ease-out; }
 @keyframes entry-flash {
@@ -2996,3 +2996,28 @@ html[data-glint="off"] .ench-row.chosen::after { display: none; }
 /* While the item grid is open in the card, the card scrolls with the page instead of sticking (and never condenses: Wanted.js setupItemDock),
    so every item can be reached however tall the grid is. */
 @media (max-width: 1359px) { .item-dock:has(.wanted-head.menu-open) { position: relative; top: auto; } }
+
+/* Steps view: the "+" and the arrow line up with the slots' middles (past the 10px "Left slot" label and its 6px gap), and the arrow's glyph
+   is on the "+"'s line; the cost sits under the arrow (wide) or beside it (narrow), never moving the glyph. */
+.timeline:not(.slots-mode) .anvil-row > .anvil-op { margin-top: 16px; }
+.timeline:not(.slots-mode) .anvil-row > .anvil-arrow { position: relative; margin-top: 16px; }
+.timeline:not(.slots-mode) .anvil-row > .anvil-arrow > .anvil-cost { position: absolute; top: calc(50% + 11px); left: 50%; translate: -50% 0; }
+@container steps (max-width: 540px) {
+    /* The arrow has a line of its own under the inputs: its glyph under the "+" (the row's middle), the cost to its right. */
+    .timeline:not(.slots-mode) .anvil-row > .anvil-arrow { margin-top: 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; column-gap: 8px; }
+    .timeline:not(.slots-mode) .anvil-row > .anvil-arrow > .arrow-glyph { grid-column: 2; }
+    .timeline:not(.slots-mode) .anvil-row > .anvil-arrow > .anvil-cost { position: static; translate: none; grid-column: 3; justify-self: start; }
+}
+@container steps (max-width: 360px) {
+    .timeline:not(.slots-mode) .anvil-row > .anvil-op { margin-top: 0; }
+}
+/* Compact Steps: the arrow's glyph on the "+"'s line (the slots' middle), the cost hanging just under it. */
+.slots-mode .anvil-row > .anvil-arrow { display: grid; grid-template-rows: minmax(0, 1fr) auto minmax(0, 1fr); justify-items: center; row-gap: 1px; }
+.slots-mode .anvil-row > .anvil-arrow > .anvil-cost { padding: 0 4px; line-height: 13px; } /* (short enough to end inside the slots' 48px, clear of the panel's edge) */
+.slots-mode .anvil-row > .anvil-arrow > .arrow-glyph { grid-row: 2; }
+.slots-mode .anvil-row > .anvil-arrow > .anvil-cost { grid-row: 3; align-self: start; }
+/* A step folding away keeps its content on show while its box shrinks: its border is drawn again on top, so the current step's purple ring is never
+   covered by the anvil panel sliding under it. */
+.anvil-step.folding::after { content: ""; position: absolute; inset: -1px; z-index: 3; border: 1px solid; border-color: inherit; border-radius: inherit; pointer-events: none; }
+/* The arrow is drawn over the cost beside it (they can meet while a view switch circles the cost round it). */
+.anvil-arrow > .arrow-glyph { position: relative; z-index: 1; }
