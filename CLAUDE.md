@@ -279,8 +279,9 @@ Keep Engine.js DOM-free and UMD. Keep UI text short, and in `json/text/*.json`.
   - The Next step bar keeps its shown state across a redraw (`bar_was_shown`, read before `drawResults` empties the box), and `watchCurrentStep` waits for both observers before tucking it.
   - A stale "empty" result while a search runs no longer shows the idle "Choose enchantments" line. The toolbar's level line coming or going eases the toolbar (`growSmoothly` from `drawResults`).
   - The coverage summary chip slides like the others (`CHIPS`/`chipKey` in Motion.js); it is drawn over the leaving ghosts.
-  - The item bar's XP bar is drawn straight from the share (no width transition), is set full on `optimal_searched` and fades out after 0.3s. The bar's cost line hides under 440px.
+  - The item bar's XP bar is drawn straight from the share (no width transition), is set full on `optimal_searched` and fades out after 0.3s. The bar's cost line hides under 440px; the morph still flies the tooltip's cost (and orb) to where the bar would put it (`.cost-probe` shows it while measured), fading out on the way (`fade` flyers).
   - Section 1: Allow conflicts and a mod switched (`wanted_reshaped`, Store.js) ease the section's height and fade its lists in, and the search eases the height as it filters.
   - The Presets menu groups fold with the page's fold (`toggleMenuGroup`). Ranking tiles slide on reorder (FLIP, `data-criterion`).
   - Panels and popovers open with `pop-in` (a fade and 4px drop, CSS). The Undo toast fades out.
   - The morphing and condensed item dock have `overflow-x: clip`: the flyers reached past the window and widened the page, and iPhone Safari zoomed out to fit, so the morph skipped (`part_phone_morph`, 393px).
+  - Compact Steps: a slot's tooltip goes above its slot when the window's foot or the Next step card leaves no room below (`placeSlotTip`, Results.js, on hover, focus and tap); the cost breakdown does the same (`tipFloor`: the window's foot or the Next step card's top), so neither ever covers or hides under the card.

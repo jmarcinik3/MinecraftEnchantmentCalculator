@@ -226,8 +226,12 @@ export function setupItemDock() {
         const pairs = [[P.name, P.mini_name], [P.cost, P.mini_cost]];
         for (const line of P.item.querySelectorAll(".wanted-preview .mc-tooltip .mc-ench[data-ns]")) pairs.push([line, list && list.querySelector(`.mini-ench[data-ns="${line.dataset.ns}"]`)]);
         for (const [el, to_el] of pairs) {
+            // On a narrow phone the bar has no room for the cost (hidden under 440px): it still travels to where the bar would put it, fading out
+            // on the way. `.cost-probe` shows the bar's cost just while it is measured.
+            const probe = Boolean(el && to_el === P.mini_cost && el.getClientRects().length && !to_el.getClientRects().length);
+            if (probe) dock.classList.add("cost-probe");
             // (no cost line with nothing chosen: the pair is skipped before anything reads it)
-            if (!el || !to_el || !el.getClientRects().length || !to_el.getClientRects().length) continue;
+            if (!el || !to_el || !el.getClientRects().length || !to_el.getClientRects().length) { dock.classList.remove("cost-probe"); continue; }
             const in_tip = el.classList.contains("mc-ench"); // an enchantment line: kept inside the tooltip's box on the way
             // Its colour (and shadow) go from the tooltip's to the bar's too (the words' own element: the cost line's text span).
             const words = node => node.querySelector(".cost-line-text") || node;
@@ -263,7 +267,7 @@ export function setupItemDock() {
             to_el.style.visibility = "hidden";
             if (sep) sep.style.visibility = "hidden";
             const box_w = flyer.offsetWidth;
-            flyers.push({ flyer, a: at, b: to, box_w, colors, scale, words_from, words_to, cy_from: text_from.cy, cy_to: text_to.cy, comma, in_tip, hidden: [el, to_el, sep].filter(Boolean) });
+            flyers.push({ flyer, a: at, b: to, box_w, colors, scale, words_from, words_to, cy_from: text_from.cy, cy_to: text_to.cy, comma, in_tip, fade: probe, hidden: [el, to_el, sep].filter(Boolean) });
             // The cost's XP orb travels on its own, from its box to the bar's (its size is its own, not the words'): the one in the words' copy hides.
             const orb = el.querySelector(".cost-line-orb"), to_orb = to_el.querySelector(".cost-line-orb");
             if (orb && to_orb) {
@@ -274,8 +278,9 @@ export function setupItemDock() {
                 orb_flyer.setAttribute("aria-hidden", "true");
                 Object.assign(orb_flyer.style, { left: from.x - geo.border + "px", top: from.y - geo.border + "px", width: from.w + "px", height: from.h + "px" });
                 P.item.append(orb_flyer);
-                flyers.push({ flyer: orb_flyer, orb: { from, to } });
+                flyers.push({ flyer: orb_flyer, orb: { from, to }, fade: probe });
             }
+            if (probe) dock.classList.remove("cost-probe");
         }
     };
     const clear = P => {
@@ -361,7 +366,8 @@ export function setupItemDock() {
         move(P.slot, full.slot, cond.slot, s);
         if (!flyers) makeFlyers(P);
         let tip_box = null;
-        for (const { flyer, a, b, box_w, colors, scale, words_from, words_to, cy_from, cy_to, comma, in_tip, orb, tip } of flyers) {
+        for (const { flyer, a, b, box_w, colors, scale, words_from, words_to, cy_from, cy_to, comma, in_tip, orb, tip, fade } of flyers) {
+            if (fade) flyer.style.opacity = 1 - s; // (the cost on a narrow phone: the bar has no room for it)
             if (orb) { move(flyer, orb.from, orb.to, s); continue; }
             if (tip) {
                 const lerp_box = prop => tip.from[prop] + (tip.to[prop] - tip.from[prop]) * s;

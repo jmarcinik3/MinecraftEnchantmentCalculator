@@ -308,7 +308,12 @@ function drawResults() {
                 const cell = event.target.closest(".anvil-cell");
                 for (const open of timeline.querySelectorAll(".anvil-cell.tip-open")) if (open !== cell) open.classList.remove("tip-open");
                 if (cell) cell.classList.toggle("tip-open");
+                if (cell) placeSlotTip(cell);
             });
+            // A slot's tooltip opens below the slot, or above it when the window (or the Next step card) leaves no room below, as the cost's does.
+            const place = event => { const cell = event.target.closest(".anvil-cell"); if (cell) placeSlotTip(cell); };
+            timeline.addEventListener("mouseover", place);
+            timeline.addEventListener("focusin", place);
         }
         scroller.append(timeline);
         // Done steps fold by themselves; one toggle under the list shows them all again (or folds them back).
@@ -720,7 +725,7 @@ function showCost(chip, bubble) {
     // Below the chip, or above it when the window has no room below (and there is room above).
     const height = bubble.offsetHeight, margin = 8;
     const below = box.bottom + 6;
-    bubble.style.top = (below + height > innerHeight - margin && box.top - 6 - height >= margin ? box.top - 6 - height : below) + "px";
+    bubble.style.top = (below + height > tipFloor() - margin && box.top - 6 - height >= margin ? box.top - 6 - height : below) + "px";
 }
 
 // The bar stands in for the current step while that step is off screen; while any of it
@@ -746,6 +751,23 @@ function watchCurrentStep() {
     stepWatch.observe(step);
     listWatch.observe(list);
     current_watch = [stepWatch, listWatch];
+}
+
+// How far down a tooltip may reach: the window's foot, or the Next step card's top while it shows (a tooltip that would meet it goes above instead).
+function tipFloor() {
+    const card = document.querySelector("#results .current-bar:not(.tucked) .current-bar-card");
+    return Math.min(innerHeight, card ? card.getBoundingClientRect().top : Infinity);
+}
+
+// Compact Steps: a slot's tooltip goes above its slot when there is no room for it below (the window's foot, or the Next step card over it).
+function placeSlotTip(cell) {
+    const tip = cell.querySelector(".mc-tooltip");
+    if (!tip) return;
+    tip.style.top = "";
+    if (getComputedStyle(tip).display === "none") return;
+    const slot = cell.querySelector(".mc-slot") || cell;
+    const box = tip.getBoundingClientRect(), at = slot.getBoundingClientRect(), base = cell.getBoundingClientRect();
+    if (box.bottom > tipFloor() - 4 && at.top - box.height - 6 >= 0) tip.style.top = at.top - base.top - box.height - 6 + "px";
 }
 
 // Ticks a step (and the ones it needs) and brings the next step into view.
