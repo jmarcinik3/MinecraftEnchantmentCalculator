@@ -435,7 +435,7 @@ body:not(:has(.layout.has-item)) .skip-link[data-skip="steps"] { display: none; 
 /* Very narrow: the bar keeps the name and the way to the steps; the cost is in the receipt below. */
 @media (max-width: 439px) { .item-dock:not(.cost-probe) .item-mini .cost-line { display: none; } } /* (.cost-probe: shown just while the morph measures where it would go) */ /* (below this the name had no room left: a sliver) */
 .mini-list { font-family: "Minecraft", system-ui, sans-serif; font-size: 12px; color: var(--mc-gray); overflow: hidden; white-space: nowrap; -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent); } /* fades out at the right instead of "…" (the morph uses the same fade, Wanted.js setupItemDock) */
-.mini-ench.curse { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); }
+.mini-ench.curse, .mini-ench.curse + .mini-sep { color: var(--mc-red); text-shadow: 1px 1px 0 var(--mc-red-shadow); } /* (a curse's comma is red too, as in the Tree's tooltips) */
 .item-mini .cost-line { flex: none; margin: 0; }
 .item-mini .cost-line.idle { display: none; } /* (no cost yet, nothing chosen: it would take the bar's whole width) */
 .item-mini .cost-line-text { color: var(--mc-green); text-shadow: 1px 1px 0 var(--mc-green-shadow); font-family: "Minecraft", system-ui, sans-serif; } /* the tooltip's green */
